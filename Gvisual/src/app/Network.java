@@ -38,11 +38,8 @@ public class Network {
 
         System.out.println("connecting...");
 
-        Connection conn = Util.getAppConnection();
-
         // Parameterized query template for location-based meeting queries.
-        // Parameters: month, date, location, duration threshold, count threshold (with >= or < or <=).
-        // The integer thresholds are safe from injection but parameterized for consistency.
+        // Parameters: month, date, location, duration threshold, count threshold.
 
         // --- Friends query ---
         String friendSql = " SELECT x.id , y.id , C , d  "
@@ -53,13 +50,6 @@ public class Network {
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
-        PreparedStatement psFriend = conn.prepareStatement(friendSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        psFriend.setString(1, Month);
-        psFriend.setString(2, Date);
-        psFriend.setInt(3, dThresF);
-        psFriend.setInt(4, CThresF);
-        ResultSet rs_friend = psFriend.executeQuery();
-
         // --- Study groups query ---
         String studygSql = " SELECT x.id , y.id , C , d   "
                 + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
@@ -68,13 +58,6 @@ public class Network {
                 + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C <= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        PreparedStatement psStudyg = conn.prepareStatement(studygSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        psStudyg.setString(1, Month);
-        psStudyg.setString(2, Date);
-        psStudyg.setInt(3, dThresSg);
-        psStudyg.setInt(4, CThresSg);
-        ResultSet rs_studyg = psStudyg.executeQuery();
 
         // --- Classmates query ---
         String cmateSql = " SELECT x.id , y.id, C , d  "
@@ -85,13 +68,6 @@ public class Network {
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
-        PreparedStatement psCmate = conn.prepareStatement(cmateSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        psCmate.setString(1, Month);
-        psCmate.setString(2, Date);
-        psCmate.setInt(3, dThresC);
-        psCmate.setInt(4, CThresC);
-        ResultSet rs_cmate = psCmate.executeQuery();
-
         // --- Strangers query ---
         String strangerSql = " SELECT x.id , y.id , C , d "
                 + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
@@ -100,13 +76,6 @@ public class Network {
                 + "              WHERE month = ? AND date = ? AND location != 'class' AND duration < ?) as b"
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C < ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        PreparedStatement psStranger = conn.prepareStatement(strangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        psStranger.setString(1, Month);
-        psStranger.setString(2, Date);
-        psStranger.setInt(3, dThresS);
-        psStranger.setInt(4, CThresS);
-        ResultSet rs_stranger = psStranger.executeQuery();
 
         // --- Familiar strangers query ---
         String famstrangerSql = " SELECT x.id , y.id , C , d  "
@@ -117,137 +86,94 @@ public class Network {
                 + "       GROUP BY imei1, imei2) as a , deviceID as x, deviceID as y"
                 + " WHERE C > ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
-        PreparedStatement psFamstranger = conn.prepareStatement(famstrangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        psFamstranger.setString(1, Month);
-        psFamstranger.setString(2, Date);
-        psFamstranger.setInt(3, dThresFS);
-        psFamstranger.setInt(4, CThresFS);
-        ResultSet rs_famstranger = psFamstranger.executeQuery();
+        try (Connection conn = Util.getAppConnection()) {
 
-        // --- Device query (no user input, safe as-is) ---
-        PreparedStatement psDevice = conn.prepareStatement("SELECT DISTINCT imei FROM device_1", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        ResultSet rs_device = psDevice.executeQuery();
+            // Use StringBuilder instead of String concatenation for performance
+            StringBuilder sb = new StringBuilder("edges");
 
+            // --- Friends ---
+            try (PreparedStatement psFriend = conn.prepareStatement(friendSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                psFriend.setString(1, Month);
+                psFriend.setString(2, Date);
+                psFriend.setInt(3, dThresF);
+                psFriend.setInt(4, CThresF);
+                try (ResultSet rs = psFriend.executeQuery()) {
+                    while (rs.next()) {
+                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                        sb.append("\nf ").append(rs.getString(1)).append(" ")
+                          .append(rs.getString(2)).append(" ").append(weight);
+                    }
+                }
+            }
 
-        String imei1, imei2;
-        int times;
-        float duration;
-        double weight;
+            // --- Study groups ---
+            try (PreparedStatement psStudyg = conn.prepareStatement(studygSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                psStudyg.setString(1, Month);
+                psStudyg.setString(2, Date);
+                psStudyg.setInt(3, dThresSg);
+                psStudyg.setInt(4, CThresSg);
+                try (ResultSet rs = psStudyg.executeQuery()) {
+                    while (rs.next()) {
+                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                        sb.append("\nsg ").append(rs.getString(1)).append(" ")
+                          .append(rs.getString(2)).append(" ").append(weight);
+                    }
+                }
+            }
 
-        File f = new File(path);
-        if (f.exists()) {
-            f.delete();
+            // --- Classmates ---
+            try (PreparedStatement psCmate = conn.prepareStatement(cmateSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                psCmate.setString(1, Month);
+                psCmate.setString(2, Date);
+                psCmate.setInt(3, dThresC);
+                psCmate.setInt(4, CThresC);
+                try (ResultSet rs = psCmate.executeQuery()) {
+                    while (rs.next()) {
+                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                        sb.append("\nc ").append(rs.getString(1)).append(" ")
+                          .append(rs.getString(2)).append(" ").append(weight);
+                    }
+                }
+            }
+
+            // --- Strangers ---
+            try (PreparedStatement psStranger = conn.prepareStatement(strangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                psStranger.setString(1, Month);
+                psStranger.setString(2, Date);
+                psStranger.setInt(3, dThresS);
+                psStranger.setInt(4, CThresS);
+                try (ResultSet rs = psStranger.executeQuery()) {
+                    while (rs.next()) {
+                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                        sb.append("\ns ").append(rs.getString(1)).append(" ")
+                          .append(rs.getString(2)).append(" ").append(weight);
+                    }
+                }
+            }
+
+            // --- Familiar strangers ---
+            try (PreparedStatement psFamstranger = conn.prepareStatement(famstrangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                psFamstranger.setString(1, Month);
+                psFamstranger.setString(2, Date);
+                psFamstranger.setInt(3, dThresFS);
+                psFamstranger.setInt(4, CThresFS);
+                try (ResultSet rs = psFamstranger.executeQuery()) {
+                    while (rs.next()) {
+                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                        sb.append("\nfs ").append(rs.getString(1)).append(" ")
+                          .append(rs.getString(2)).append(" ").append(weight);
+                    }
+                }
+            }
+
+            // Write output file
+            File f = new File(path);
+            if (f.exists()) {
+                f.delete();
+            }
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(f))) {
+                out.write(sb.toString());
+            }
         }
-
-        f = new File(path);
-
-
-        /**
-         * Nodes
-         */
-        BufferedWriter out = new BufferedWriter(new FileWriter(f, true));
-        String str = "edges";
-
-
-
-        /*
-         * Friend
-         */
-        rs_friend.first();
-        while (rs_friend.next()) {
-
-            imei1 = rs_friend.getString(1);
-            imei2 = rs_friend.getString(2);
-            times = rs_friend.getInt(3);
-            duration = rs_friend.getFloat(4);
-            weight=times*duration;
-
-            str = str + "\nf " + imei1 + " " + imei2 +" "+ weight;
-
-        }
-
-
-        /*
-         * Classmates
-         */
-        rs_cmate.first();
-        while (rs_cmate.next()) {
-
-            imei1 = rs_cmate.getString(1);
-            imei2 = rs_cmate.getString(2);
-            times = rs_cmate.getInt(3);
-            duration = rs_cmate.getFloat(4);
-            weight=times*duration;
-
-            str = str + "\nc " + imei1 + " " + imei2 +" "+ weight;
-
-        }
-
-        /*
-         * Familiar Stranger
-         */
-        rs_famstranger.first();
-        while (rs_famstranger.next()) {
-
-            imei1 = rs_famstranger.getString(1);
-            imei2 = rs_famstranger.getString(2);
-            times = rs_famstranger.getInt(3);
-            duration = rs_famstranger.getFloat(4);
-            weight=times*duration;
-
-            str = str + "\nfs " + imei1 + " " + imei2 +" "+ weight;
-
-        }
-
-
-        /*
-         *
-         * Study Groups
-         *
-         *
-         */
-        rs_studyg.first();
-        while (rs_studyg.next()) {
-
-            imei1 = rs_studyg.getString(1);
-            imei2 = rs_studyg.getString(2);
-            times = rs_studyg.getInt(3);
-            duration = rs_studyg.getFloat(4);
-            weight=times*duration;
-
-            str = str + "\nsg " + imei1 + " " + imei2 +" "+ weight;
-
-        }
-
-
-        /*
-         *
-         * Stranger
-         *
-         */
-        rs_stranger.first();
-        while (rs_stranger.next()) {
-
-            imei1 = rs_stranger.getString(1);
-            imei2 = rs_stranger.getString(2);
-            times = rs_stranger.getInt(3);
-            duration = rs_stranger.getFloat(4);
-            weight=times*duration;
-
-            str = str + "\ns " + imei1 + " " + imei2 +" "+ weight;
-
-        }
-
-        out.write(str);
-        out.flush();
-        out.close();
-
-        // Close all prepared statements
-        psFriend.close();
-        psStudyg.close();
-        psCmate.close();
-        psStranger.close();
-        psFamstranger.close();
-        psDevice.close();
     }
 }
