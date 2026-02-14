@@ -28,7 +28,7 @@ public class findMeetings {
         String[] endTimeArr2 = endTimeArr[1].split("\\.");
 
         String[] startTimeArr1 = startTimeArr[0].split("\\.");
-        String[] startTimeArr2 = startTimeArr[0].split("\\.");
+        String[] startTimeArr2 = startTimeArr[1].split("\\.");
 
 
         float numMin = (Float.parseFloat(endTimeArr1[0]) - Float.parseFloat(startTimeArr1[0])) * 60 + (Float.parseFloat(endTimeArr1[1]) - Float.parseFloat(startTimeArr1[1])) + (Float.parseFloat(endTimeArr2[0]) - Float.parseFloat(startTimeArr2[0])) / 60;
