@@ -34,6 +34,7 @@ The tool was developed for research on **social network analysis** — specifica
 - **New member highlighting** — Nodes appearing for the first time are drawn larger
 - **Notes panel** — Annotate each timestamp during analysis
 - **Graph export** — Save visualizations as PNG images and edge lists
+- **Network statistics panel** — Real-time metrics including node/edge counts, per-category breakdowns, graph density, average/max degree, average edge weight, isolated node count, and top-3 hub nodes
 
 ## Architecture
 
@@ -42,7 +43,8 @@ GraphVisual/
 ├── src/
 │   ├── gvisual/
 │   │   ├── Main.java          # Swing GUI — graph panel, timeline, controls, legend
-│   │   └── edge.java          # Edge model (type, vertices, weight, label)
+│   │   ├── edge.java          # Edge model (type, vertices, weight, label)
+│   │   └── GraphStats.java    # Network metrics calculator (density, degree, hubs)
 │   └── app/
 │       ├── Network.java       # Generates edge-list files from DB meeting queries
 │       ├── Util.java          # Database connection factory (env-based credentials)
@@ -51,6 +53,7 @@ GraphVisual/
 │       └── matchImei.java     # Device node → IMEI matching
 ├── test/
 │   ├── gvisual/EdgeTest.java  # Edge model unit tests
+│   ├── gvisual/GraphStatsTest.java # Network metrics unit tests
 │   └── app/UtilMethodsTest.java # Utility method tests
 ├── lib/                       # JUNG 2.0.1, PostgreSQL JDBC, Commons IO, Java3D
 └── images/                    # UI icons (play, pause, stop, etc.) and legend colors
@@ -148,6 +151,7 @@ java -cp "build/classes:lib/*" gvisual.Main
 | **Toolbar** | Left-side tools for interaction mode (transform vs. pick), image/edge-list export. |
 | **Category Panel** | Toggle visibility of each relationship type. Expand to adjust duration/frequency thresholds. |
 | **Notes Pane** | Free-text area for annotating the currently viewed graph timestamp. |
+| **Statistics Panel** | Live network metrics — node/edge counts, density, degree stats, and hub identification. |
 
 ## Relationship Classification
 

@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
@@ -146,6 +147,20 @@ public class Main extends JFrame {
     private boolean sLabelled;
     private boolean sgLabelled;
     private JPanel legendPanel;
+    private JPanel statsPanel;
+    private JLabel statsNodeCount;
+    private JLabel statsEdgeCount;
+    private JLabel statsFriendCount;
+    private JLabel statsClassmateCount;
+    private JLabel statsFsCount;
+    private JLabel statsStrangerCount;
+    private JLabel statsStudyGCount;
+    private JLabel statsDensity;
+    private JLabel statsAvgDegree;
+    private JLabel statsMaxDegree;
+    private JLabel statsAvgWeight;
+    private JLabel statsIsolated;
+    private JLabel statsTopNodes;
 
     /**
      * Constructor
@@ -156,6 +171,7 @@ public class Main extends JFrame {
 
         initializeContentPanel();
         initializeLegendSpace();
+        initializeStatsPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -605,6 +621,8 @@ public class Main extends JFrame {
         imagePanel.setVisible(false);
         imagePanel.setVisible(true);
 
+        updateStatsPanel();
+
         System.out.println("added the graph");
     }
 
@@ -677,6 +695,104 @@ public class Main extends JFrame {
 
     }
 
+    /**
+     * Initializes the network statistics panel showing real-time graph metrics.
+     */
+    public final void initializeStatsPanel() {
+        statsPanel = new JPanel();
+        statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.Y_AXIS));
+        statsPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Network Statistics",
+                TitledBorder.CENTER,
+                TitledBorder.TOP));
+
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+        Font valueFont = new Font("SansSerif", Font.BOLD, 12);
+
+        statsNodeCount = createStatsLabel("Nodes: 0", labelFont);
+        statsEdgeCount = createStatsLabel("Edges: 0 (visible) / 0 (total)", labelFont);
+        statsFriendCount = createStatsLabel("  Friends: 0", labelFont);
+        statsFriendCount.setForeground(FRIEND_COLOR);
+        statsClassmateCount = createStatsLabel("  Classmates: 0", labelFont);
+        statsClassmateCount.setForeground(CLASSMATES_COLOR);
+        statsFsCount = createStatsLabel("  Fam. Strangers: 0", labelFont);
+        statsFsCount.setForeground(FS_COLOR);
+        statsStrangerCount = createStatsLabel("  Strangers: 0", labelFont);
+        statsStrangerCount.setForeground(STRANGER_COLOR);
+        statsStudyGCount = createStatsLabel("  Study Groups: 0", labelFont);
+        statsStudyGCount.setForeground(STUDYG_COLOR);
+        statsDensity = createStatsLabel("Density: 0.000", labelFont);
+        statsAvgDegree = createStatsLabel("Avg Degree: 0.00", labelFont);
+        statsMaxDegree = createStatsLabel("Max Degree: 0", labelFont);
+        statsAvgWeight = createStatsLabel("Avg Weight: 0.00", labelFont);
+        statsIsolated = createStatsLabel("Isolated Nodes: 0", labelFont);
+        statsTopNodes = createStatsLabel("<html>Top Nodes: —</html>", labelFont);
+
+        statsPanel.add(statsNodeCount);
+        statsPanel.add(statsEdgeCount);
+        statsPanel.add(Box.createVerticalStrut(4));
+        statsPanel.add(statsFriendCount);
+        statsPanel.add(statsClassmateCount);
+        statsPanel.add(statsFsCount);
+        statsPanel.add(statsStrangerCount);
+        statsPanel.add(statsStudyGCount);
+        statsPanel.add(Box.createVerticalStrut(4));
+        statsPanel.add(statsDensity);
+        statsPanel.add(statsAvgDegree);
+        statsPanel.add(statsMaxDegree);
+        statsPanel.add(statsAvgWeight);
+        statsPanel.add(statsIsolated);
+        statsPanel.add(Box.createVerticalStrut(4));
+        statsPanel.add(statsTopNodes);
+    }
+
+    private JLabel createStatsLabel(String text, Font font) {
+        JLabel label = new JLabel(text);
+        label.setFont(font);
+        label.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    /**
+     * Updates the statistics panel with current graph metrics.
+     */
+    private void updateStatsPanel() {
+        if (statsPanel == null || g == null) return;
+
+        GraphStats stats = new GraphStats(g, friendEdges, fsEdges,
+                classmateEdges, strangerEdges, studyGEdges);
+
+        statsNodeCount.setText("Nodes: " + stats.getNodeCount());
+        statsEdgeCount.setText("Edges: " + stats.getVisibleEdgeCount()
+                + " (visible) / " + stats.getTotalEdgeCount() + " (total)");
+        statsFriendCount.setText("  Friends: " + stats.getFriendCount());
+        statsClassmateCount.setText("  Classmates: " + stats.getClassmateCount());
+        statsFsCount.setText("  Fam. Strangers: " + stats.getFsCount());
+        statsStrangerCount.setText("  Strangers: " + stats.getStrangerCount());
+        statsStudyGCount.setText("  Study Groups: " + stats.getStudyGroupCount());
+        statsDensity.setText(String.format("Density: %.4f", stats.getDensity()));
+        statsAvgDegree.setText(String.format("Avg Degree: %.2f", stats.getAverageDegree()));
+        statsMaxDegree.setText("Max Degree: " + stats.getMaxDegree());
+        statsAvgWeight.setText(String.format("Avg Weight: %.1f", stats.getAverageWeight()));
+        statsIsolated.setText("Isolated Nodes: " + stats.getIsolatedNodeCount());
+
+        java.util.List<String> topNodes = stats.getTopNodes(3);
+        if (topNodes.isEmpty()) {
+            statsTopNodes.setText("<html>Top Nodes: —</html>");
+        } else {
+            StringBuilder sb = new StringBuilder("<html>Top Nodes:<br/>");
+            for (String node : topNodes) {
+                sb.append("&nbsp;&nbsp;").append(node).append("<br/>");
+            }
+            sb.append("</html>");
+            statsTopNodes.setText(sb.toString());
+        }
+
+        statsPanel.revalidate();
+        statsPanel.repaint();
+    }
+
     
     /**
      * creates the right pane containing the communities and notes section
@@ -692,8 +808,13 @@ public class Main extends JFrame {
         JSplitPane splitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPane, notesPanel);
 
+        // Add stats panel between communities and notes
+        JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPane1, statsPanel);
+
         splitPane1.setDividerLocation(400);
-        add(splitPane1, BorderLayout.EAST);
+        splitPane2.setDividerLocation(580);
+        add(splitPane2, BorderLayout.EAST);
 
     }
 

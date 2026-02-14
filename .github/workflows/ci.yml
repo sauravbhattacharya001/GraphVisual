@@ -57,4 +57,5 @@ jobs:
           java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
             org.junit.runner.JUnitCore \
             app.UtilMethodsTest \
-            gvisual.EdgeTest
+            gvisual.EdgeTest \
+            gvisual.GraphStatsTest
