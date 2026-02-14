@@ -38,8 +38,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.GregorianCalendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
 
 import java.util.logging.Level;
@@ -162,6 +164,21 @@ public class Main extends JFrame {
     private JLabel statsIsolated;
     private JLabel statsTopNodes;
 
+    // --- Shortest path fields ---
+    private boolean pathFindingMode;
+    private String pathSource;
+    private String pathTarget;
+    private Set<String> pathVertices;
+    private Set<edge> pathEdges;
+    private JPanel pathPanel;
+    private JLabel pathSourceLabel;
+    private JLabel pathTargetLabel;
+    private JLabel pathResultLabel;
+    private JButton pathFindButton;
+    private JButton pathClearButton;
+    private JRadioButton pathByHops;
+    private JRadioButton pathByWeight;
+
     /**
      * Constructor
      * @throws FileNotFoundException
@@ -172,6 +189,7 @@ public class Main extends JFrame {
         initializeContentPanel();
         initializeLegendSpace();
         initializeStatsPanel();
+        initializePathPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -539,6 +557,10 @@ public class Main extends JFrame {
         Transformer<edge, Paint> edgePaint = new Transformer<edge, Paint>() {
 
             public Paint transform(edge edge) {
+                // Highlight edges in the shortest path
+                if (pathEdges != null && pathEdges.contains(edge)) {
+                    return Color.YELLOW;
+                }
                 if (edge.getType().equalsIgnoreCase("f")) {
                     return FRIEND_COLOR;
                 } else if (edge.getType().equalsIgnoreCase("fs")) {
@@ -557,6 +579,16 @@ public class Main extends JFrame {
         Transformer<String, Paint> vertexPaint = new Transformer<String, Paint>() {
 
             public Paint transform(String vertex) {
+                // Highlight source node in cyan, target in magenta, path nodes in yellow
+                if (pathSource != null && vertex.equals(pathSource)) {
+                    return Color.CYAN;
+                }
+                if (pathTarget != null && vertex.equals(pathTarget)) {
+                    return Color.MAGENTA;
+                }
+                if (pathVertices != null && pathVertices.contains(vertex)) {
+                    return Color.YELLOW;
+                }
                 int f = 0, c = 0, fs = 0, s = 0, sg = 0;
                 for (edge x : g.getOutEdges(vertex)) {
                     if (x.getType().equals("f")) {
@@ -591,7 +623,16 @@ public class Main extends JFrame {
         Transformer<String, Shape> vertexShape = new Transformer<String, Shape>() {
 
             public Shape transform(String vertex) {
-
+                // Make path source/target/intermediate nodes larger and distinct
+                if (pathSource != null && vertex.equals(pathSource)) {
+                    return new Ellipse2D.Double(-8, -8, 16, 16);
+                }
+                if (pathTarget != null && vertex.equals(pathTarget)) {
+                    return new Ellipse2D.Double(-8, -8, 16, 16);
+                }
+                if (pathVertices != null && pathVertices.contains(vertex)) {
+                    return new Ellipse2D.Double(-6, -6, 12, 12);
+                }
                 if (OldVertices != null) {
                     if (OldVertices.contains(vertex)) {
                         return new Ellipse2D.Double(-5, -5, 10, 10);
@@ -609,6 +650,10 @@ public class Main extends JFrame {
         Transformer<edge, Stroke> edgeWeight = new Transformer<edge, Stroke>() {
 
             public Stroke transform(edge i) {
+                // Highlight path edges with thicker solid stroke
+                if (pathEdges != null && pathEdges.contains(i)) {
+                    return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+                }
                 float dash[] = {1.0f};
                 float width = i.getWeight() / 40 + 1.0f;
                 return new BasicStroke(width, BasicStroke.JOIN_BEVEL, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
@@ -694,6 +739,271 @@ public class Main extends JFrame {
         legendPanel.add(splitPane);
 
     }
+
+    /**
+     * Initializes the shortest path finder panel with source/target selection,
+     * path mode toggle, and result display.
+     */
+    public final void initializePathPanel() {
+        pathFindingMode = false;
+        pathSource = null;
+        pathTarget = null;
+        pathVertices = new HashSet<String>();
+        pathEdges = new HashSet<edge>();
+
+        pathPanel = new JPanel();
+        pathPanel.setLayout(new BoxLayout(pathPanel, BoxLayout.Y_AXIS));
+        pathPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Shortest Path Finder",
+                TitledBorder.CENTER,
+                TitledBorder.TOP));
+
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+
+        pathSourceLabel = new JLabel("Source: (none)");
+        pathSourceLabel.setFont(labelFont);
+        pathSourceLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        pathTargetLabel = new JLabel("Target: (none)");
+        pathTargetLabel.setFont(labelFont);
+        pathTargetLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        pathResultLabel = new JLabel("<html>Click 'Select Nodes' then click two nodes on the graph.</html>");
+        pathResultLabel.setFont(labelFont);
+        pathResultLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        // Path mode radio buttons
+        pathByHops = new JRadioButton("Fewest hops", true);
+        pathByWeight = new JRadioButton("Lowest weight");
+        ButtonGroup pathModeGroup = new ButtonGroup();
+        pathModeGroup.add(pathByHops);
+        pathModeGroup.add(pathByWeight);
+
+        JPanel radioPanel = new JPanel();
+        radioPanel.setLayout(new BoxLayout(radioPanel, BoxLayout.X_AXIS));
+        radioPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        radioPanel.add(pathByHops);
+        radioPanel.add(pathByWeight);
+
+        // Buttons
+        pathFindButton = new JButton("Select Nodes");
+        pathFindButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        pathFindButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (!pathFindingMode) {
+                    enablePathFindingMode();
+                } else {
+                    disablePathFindingMode();
+                }
+            }
+        });
+
+        pathClearButton = new JButton("Clear Path");
+        pathClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        pathClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearPath();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(pathFindButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(pathClearButton);
+
+        pathPanel.add(pathSourceLabel);
+        pathPanel.add(pathTargetLabel);
+        pathPanel.add(Box.createVerticalStrut(4));
+        pathPanel.add(radioPanel);
+        pathPanel.add(Box.createVerticalStrut(4));
+        pathPanel.add(buttonPanel);
+        pathPanel.add(Box.createVerticalStrut(4));
+        pathPanel.add(pathResultLabel);
+    }
+
+    /**
+     * Enables path-finding mode — switches to PICKING mode and listens for
+     * two node clicks (source, then target).
+     */
+    private void enablePathFindingMode() {
+        pathFindingMode = true;
+        pathSource = null;
+        pathTarget = null;
+        pathVertices.clear();
+        pathEdges.clear();
+        pathFindButton.setText("Cancel");
+        pathSourceLabel.setText("Source: (click a node...)");
+        pathTargetLabel.setText("Target: (waiting...)");
+        pathResultLabel.setText("<html>Click the source node on the graph.</html>");
+
+        // Switch to picking mode for node selection
+        DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
+        gm.setMode(ModalGraphMouse.Mode.PICKING);
+        vv.setGraphMouse(gm);
+
+        vv.addMouseListener(pathMouseListener);
+        refreshGraph();
+    }
+
+    /**
+     * Disables path-finding mode and restores normal interaction.
+     */
+    private void disablePathFindingMode() {
+        pathFindingMode = false;
+        pathFindButton.setText("Select Nodes");
+        vv.removeMouseListener(pathMouseListener);
+
+        // Restore transform mode
+        DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
+        gm.setMode(ModalGraphMouse.Mode.TRANSFORMING);
+        vv.setGraphMouse(gm);
+    }
+
+    /**
+     * Clears the current path highlight and resets the path panel.
+     */
+    private void clearPath() {
+        pathSource = null;
+        pathTarget = null;
+        pathVertices.clear();
+        pathEdges.clear();
+        pathSourceLabel.setText("Source: (none)");
+        pathTargetLabel.setText("Target: (none)");
+        pathResultLabel.setText("<html>Click 'Select Nodes' then click two nodes on the graph.</html>");
+
+        if (pathFindingMode) {
+            disablePathFindingMode();
+        }
+        refreshGraph();
+    }
+
+    /**
+     * Finds the closest graph vertex to the given screen coordinates.
+     */
+    private String findClosestVertex(int screenX, int screenY) {
+        String closest = null;
+        double minDist = Double.MAX_VALUE;
+
+        for (String vertex : g.getVertices()) {
+            java.awt.geom.Point2D layoutPoint = graphLayout.transform(vertex);
+            java.awt.geom.Point2D screenPoint = vv.getRenderContext()
+                    .getMultiLayerTransformer()
+                    .transform(layoutPoint);
+
+            double dx = screenPoint.getX() - screenX;
+            double dy = screenPoint.getY() - screenY;
+            double dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist && dist < 30) { // 30px click radius
+                minDist = dist;
+                closest = vertex;
+            }
+        }
+        return closest;
+    }
+
+    /**
+     * Runs the shortest path algorithm and highlights the result.
+     */
+    private void computeAndHighlightPath() {
+        if (pathSource == null || pathTarget == null) return;
+
+        ShortestPathFinder finder = new ShortestPathFinder(g);
+        ShortestPathFinder.PathResult result;
+
+        if (pathByWeight.isSelected()) {
+            result = finder.findShortestByWeight(pathSource, pathTarget);
+        } else {
+            result = finder.findShortestByHops(pathSource, pathTarget);
+        }
+
+        pathVertices.clear();
+        pathEdges.clear();
+
+        if (result == null) {
+            pathResultLabel.setText("<html><b style='color:red'>No path found!</b><br/>"
+                    + "Nodes are in disconnected components.</html>");
+        } else {
+            pathVertices.addAll(result.getVertices());
+            pathEdges.addAll(result.getEdges());
+
+            String mode = pathByWeight.isSelected() ? "weight-optimal" : "hop-optimal";
+            StringBuilder edgeTypes = new StringBuilder();
+            for (edge e : result.getEdges()) {
+                if (edgeTypes.length() > 0) edgeTypes.append("→");
+                edgeTypes.append(e.getType());
+            }
+
+            pathResultLabel.setText(String.format(
+                    "<html><b style='color:#00FF00'>Path found!</b> (%s)<br/>"
+                    + "Hops: %d<br/>"
+                    + "Total weight: %.1f<br/>"
+                    + "Edge types: %s<br/>"
+                    + "Path: %s</html>",
+                    mode,
+                    result.getHopCount(),
+                    result.getTotalWeight(),
+                    edgeTypes.toString(),
+                    buildPathString(result)));
+        }
+
+        disablePathFindingMode();
+        refreshGraph();
+    }
+
+    private String buildPathString(ShortestPathFinder.PathResult result) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < result.getVertices().size(); i++) {
+            if (i > 0) sb.append("→");
+            sb.append(result.getVertices().get(i));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Refreshes the graph visualization to show/hide path highlighting.
+     */
+    private void refreshGraph() {
+        if (imagePanel != null) {
+            imagePanel.setVisible(false);
+            imagePanel.setVisible(true);
+        }
+    }
+
+    /**
+     * Mouse listener for path node selection.
+     */
+    private final MouseListener pathMouseListener = new MouseListener() {
+        public void mouseClicked(MouseEvent e) {
+            if (!pathFindingMode) return;
+
+            String clicked = findClosestVertex(e.getX(), e.getY());
+            if (clicked == null) return;
+
+            if (pathSource == null) {
+                pathSource = clicked;
+                pathSourceLabel.setText("Source: Node " + clicked);
+                pathTargetLabel.setText("Target: (click another node...)");
+                pathResultLabel.setText("<html>Now click the target node.</html>");
+                refreshGraph();
+            } else if (pathTarget == null) {
+                if (clicked.equals(pathSource)) {
+                    pathResultLabel.setText("<html>Same node — pick a different target.</html>");
+                    return;
+                }
+                pathTarget = clicked;
+                pathTargetLabel.setText("Target: Node " + clicked);
+                computeAndHighlightPath();
+            }
+        }
+        public void mousePressed(MouseEvent e) {}
+        public void mouseReleased(MouseEvent e) {}
+        public void mouseEntered(MouseEvent e) {}
+        public void mouseExited(MouseEvent e) {}
+    };
 
     /**
      * Initializes the network statistics panel showing real-time graph metrics.
@@ -808,12 +1118,17 @@ public class Main extends JFrame {
         JSplitPane splitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPane, notesPanel);
 
-        // Add stats panel between communities and notes
+        // Add path panel between notes and stats
+        JSplitPane splitPanePath = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPane1, pathPanel);
+
+        // Add stats panel below path panel
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPane1, statsPanel);
+                splitPanePath, statsPanel);
 
         splitPane1.setDividerLocation(400);
-        splitPane2.setDividerLocation(580);
+        splitPanePath.setDividerLocation(510);
+        splitPane2.setDividerLocation(700);
         add(splitPane2, BorderLayout.EAST);
 
     }

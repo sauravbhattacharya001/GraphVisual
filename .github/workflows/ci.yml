@@ -58,4 +58,5 @@ jobs:
             org.junit.runner.JUnitCore \
             app.UtilMethodsTest \
             gvisual.EdgeTest \
-            gvisual.GraphStatsTest
+            gvisual.GraphStatsTest \
+            gvisual.ShortestPathFinderTest
