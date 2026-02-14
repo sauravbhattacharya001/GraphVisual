@@ -46,6 +46,10 @@ public class findMeetings {
     }
 
     public static void addMeeting(Connection conn, String devicePair, String startTime, String endTime, String month, String date) throws Exception {
+        addMeeting(conn, devicePair, startTime, endTime, month, date, "unknown");
+    }
+
+    public static void addMeeting(Connection conn, String devicePair, String startTime, String endTime, String month, String date, String locationType) throws Exception {
         String[] imeiArr = devicePair.split("#");
         String imei1, imei2;
         if (imeiArr[0].compareTo(imeiArr[1]) > 0) {
@@ -55,7 +59,7 @@ public class findMeetings {
             imei2 = imeiArr[1];
             imei1 = imeiArr[0];
         }
-        String apType = "";
+        String apType = (locationType != null && !locationType.isEmpty()) ? locationType : "unknown";
 
         String sql = "INSERT INTO meeting (imei1, imei2, starttime, endtime, location, month, date, duration) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
