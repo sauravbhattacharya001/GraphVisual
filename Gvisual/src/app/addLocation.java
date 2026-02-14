@@ -5,6 +5,7 @@
 package app;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
@@ -23,56 +24,102 @@ public class addLocation {
         return result;
     }
 
-    
+    // SQL: find common access points between two IMEIs in a time window (intersection)
+    private static final String COMMON_AP_SQL =
+            "SELECT * FROM ("
+            + "SELECT DISTINCT ap, ssi FROM event AS a, trace AS b "
+            + "WHERE a.trace = b.id AND imei = ? AND timestamp >= ? AND timestamp <= ? "
+            + "INTERSECT "
+            + "SELECT DISTINCT ap, ssi FROM event AS a, trace AS b "
+            + "WHERE a.trace = b.id AND imei = ? AND timestamp >= ? AND timestamp <= ?"
+            + ") AS d ORDER BY ssi DESC LIMIT 1";
+
+    // SQL: find access points for a single IMEI in a time window
+    private static final String SINGLE_AP_SQL =
+            "SELECT * FROM ("
+            + "SELECT DISTINCT ap, ssi FROM event AS a, trace AS b "
+            + "WHERE a.trace = b.id AND imei = ? AND timestamp >= ? AND timestamp <= ?"
+            + ") AS d ORDER BY ssi DESC LIMIT 1";
+
+    // SQL: update the meeting location
+    private static final String UPDATE_LOCATION_SQL =
+            "UPDATE meeting SET location = ? "
+            + "WHERE imei1 = ? AND imei2 = ? AND starttime = ? AND endtime = ? "
+            + "AND month = ? AND date = ?";
+
     public static void main(String[] argv) throws Exception {
         Connection azialaConn = Util.getAzialaConnection();
-        java.sql.Statement azialaStmt = azialaConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-
         Connection appConn = Util.getAppConnection();
-        java.sql.Statement appStmt = appConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        java.sql.Statement appStmt1 = appConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
+        // Use a plain Statement only for the read-only meeting scan
+        java.sql.Statement appStmt = appConn.createStatement(
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
-        String query;
-        query = "select * from meeting";
+        String query = "select * from meeting";
         ResultSet meetings = appStmt.executeQuery(query);
+
+        // Prepare parameterized statements for the aziala and app databases
+        PreparedStatement commonApPs = azialaConn.prepareStatement(COMMON_AP_SQL,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        PreparedStatement singleApPs = azialaConn.prepareStatement(SINGLE_AP_SQL,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        PreparedStatement updatePs = appConn.prepareStatement(UPDATE_LOCATION_SQL);
 
         int count = 0;
         while (meetings.next()) {
             count++;
-            System.out.println("finding location for meeting # "+count);
+            System.out.println("finding location for meeting # " + count);
             String imei1 = meetings.getString("imei1");
             String imei2 = meetings.getString("imei2");
 
             String startTime = meetings.getString("starttime");
             String endTime = meetings.getString("endtime");
-            String startTimeStamp = getTimeStamp(meetings.getString("month"), meetings.getString("date"), meetings.getString("starttime"));
-            String endTimeStamp = getTimeStamp(meetings.getString("month"), meetings.getString("date"), meetings.getString("endtime"));
-        
-            query = "select * from (select DISTINCT ap,ssi from event as a,trace as b where a.trace = b.id and imei = '" + imei1 + "' and timestamp >= '" + startTimeStamp + "' and timestamp <= '" + endTimeStamp
-                    + "' intersect "
-                    + "select DISTINCT ap,ssi from event as a,trace as b where a.trace = b.id and imei = '" + imei2 + "' and timestamp >= '" + startTimeStamp + "' and timestamp <= '" + endTimeStamp + "') as d order by ssi desc limit 1";
+            String month = meetings.getString("month");
+            String date = meetings.getString("date");
+            String startTimeStamp = getTimeStamp(month, date, startTime);
+            String endTimeStamp = getTimeStamp(month, date, endTime);
 
-            //System.out.println(query);
-            ResultSet rs = azialaStmt.executeQuery(query);
+            // Try intersection of both IMEIs first
+            commonApPs.setString(1, imei1);
+            commonApPs.setString(2, startTimeStamp);
+            commonApPs.setString(3, endTimeStamp);
+            commonApPs.setString(4, imei2);
+            commonApPs.setString(5, startTimeStamp);
+            commonApPs.setString(6, endTimeStamp);
+
             int ap = 0;
-            while(rs.next()) ap = rs.getInt("ap");
+            try (ResultSet rs = commonApPs.executeQuery()) {
+                while (rs.next()) {
+                    ap = rs.getInt("ap");
+                }
+            }
 
-            if(ap == 0)
-            {
-                query = "select * from (select DISTINCT ap,ssi from event as a,trace as b where a.trace = b.id and imei = '" + imei1 + "' and timestamp >= '" + startTimeStamp + "' and timestamp <= '" + endTimeStamp+"') as d order by ssi desc limit 1";
-                rs = azialaStmt.executeQuery(query);
-                while(rs.next()) ap = rs.getInt("ap");
+            // Fallback: try imei1 alone
+            if (ap == 0) {
+                singleApPs.setString(1, imei1);
+                singleApPs.setString(2, startTimeStamp);
+                singleApPs.setString(3, endTimeStamp);
+                try (ResultSet rs = singleApPs.executeQuery()) {
+                    while (rs.next()) {
+                        ap = rs.getInt("ap");
+                    }
+                }
             }
-            if(ap == 0)
-            {
-                query = "select * from (select DISTINCT ap,ssi from event as a,trace as b where a.trace = b.id and imei = '" + imei2 + "' and timestamp >= '" + startTimeStamp + "' and timestamp <= '" + endTimeStamp+"') as d order by ssi desc limit 1";
-                rs = azialaStmt.executeQuery(query);
-                while(rs.next()) ap = rs.getInt("ap");
+
+            // Fallback: try imei2 alone
+            if (ap == 0) {
+                singleApPs.setString(1, imei2);
+                singleApPs.setString(2, startTimeStamp);
+                singleApPs.setString(3, endTimeStamp);
+                try (ResultSet rs = singleApPs.executeQuery()) {
+                    while (rs.next()) {
+                        ap = rs.getInt("ap");
+                    }
+                }
             }
+
             String apType;
-
-            System.out.println("common access point # "+ap);
+            System.out.println("common access point # " + ap);
             switch (ap) {
                 case 0:
                     apType = "";
@@ -99,14 +146,21 @@ public class addLocation {
                     break;
             }
 
-            query = "update meeting set location = '"+apType+"' where imei1 = '" + imei1 + "' and imei2 = '" + imei2 + "' and starttime = '" + startTime + "' and endtime = '" + endTime + "' and month = '" + meetings.getString("month") + "' and date = '" + meetings.getString("date") + "'";
-            appStmt1.executeUpdate(query);
+            updatePs.setString(1, apType);
+            updatePs.setString(2, imei1);
+            updatePs.setString(3, imei2);
+            updatePs.setString(4, startTime);
+            updatePs.setString(5, endTime);
+            updatePs.setString(6, month);
+            updatePs.setString(7, date);
+            updatePs.executeUpdate();
         }
 
+        commonApPs.close();
+        singleApPs.close();
+        updatePs.close();
         appStmt.close();
-        appStmt1.close();
         appConn.close();
-        azialaStmt.close();
         azialaConn.close();
     }
 }
