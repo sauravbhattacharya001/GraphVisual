@@ -1,0 +1,14 @@
+# Build output
+Gvisual/build/
+Gvisual/dist/
+
+# JVM crash logs
+hs_err_pid*.log
+
+# IDE - NetBeans
+Gvisual/nbproject/private/
+*.class
+
+# OS generated
+.DS_Store
+Thumbs.db
