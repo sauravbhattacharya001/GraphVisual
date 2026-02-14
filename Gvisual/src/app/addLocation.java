@@ -76,6 +76,7 @@ public class addLocation {
             switch (ap) {
                 case 0:
                     apType = "";
+                    break;
                 case 7:
                 case 16:
                 case 20:
