@@ -1,0 +1,38 @@
+# Copilot Setup Steps for GraphVisual
+# This workflow installs dependencies and builds the project so GitHub Copilot
+# coding agents (Claude, Codex) can autonomously work on issues and PRs.
+
+name: "Copilot Setup"
+
+on: workflow_dispatch
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Install Ant
+        run: sudo apt-get update && sudo apt-get install -y ant
+
+      - name: Build project
+        working-directory: Gvisual
+        run: |
+          # The project uses Ant with NetBeans build configuration
+          # Compile the main source code
+          ant -f build.xml compile
+        continue-on-error: true
+
+      - name: Run tests
+        working-directory: Gvisual
+        run: |
+          # Run JUnit tests if configured
+          ant -f build.xml test
+        continue-on-error: true
