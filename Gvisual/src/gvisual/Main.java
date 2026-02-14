@@ -1564,18 +1564,15 @@ public class Main extends JFrame {
      */
     private void copyfile(File srFile, File dtFile) throws FileNotFoundException, IOException {
 
-        InputStream in = new FileInputStream(srFile);
+        try (InputStream in = new FileInputStream(srFile);
+             OutputStream out = new FileOutputStream(dtFile, true)) {
 
-        OutputStream out = new FileOutputStream(dtFile, true);
-
-
-        byte[] buf = new byte[1024];
-        int len;
-        while ((len = in.read(buf)) > 0) {
-            out.write(buf, 0, len);
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
         }
-        in.close();
-        out.close();
     }
 
     /**
