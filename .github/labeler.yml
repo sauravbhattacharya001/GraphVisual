@@ -1,0 +1,50 @@
+# Auto-labeler configuration for pull requests
+# Labels are applied based on changed file paths
+
+"ci/cd":
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.md'
+          - 'docs/**'
+          - 'DATABASE.md'
+          - 'CHANGELOG.md'
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/dependabot.yml'
+          - 'Gvisual/lib/**'
+
+"visualization":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Gvisual/src/gvisual/**'
+          - 'Gvisual/images/**'
+
+"database":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Gvisual/src/app/Util.java'
+          - 'Gvisual/src/app/Network.java'
+          - 'DATABASE.md'
+
+"data-pipeline":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Gvisual/src/app/findMeetings.java'
+          - 'Gvisual/src/app/addLocation.java'
+          - 'Gvisual/src/app/matchImei.java'
+
+"tests":
+  - changed-files:
+      - any-glob-to-any-file: 'Gvisual/test/**'
+
+"security":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/codeql.yml'
+          - 'Gvisual/src/app/Util.java'
