@@ -38,8 +38,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
@@ -179,6 +181,30 @@ public class Main extends JFrame {
     private JRadioButton pathByHops;
     private JRadioButton pathByWeight;
 
+    // --- Community detection fields ---
+    private JPanel communityPanel;
+    private JButton communityDetectButton;
+    private JButton communityClearButton;
+    private JLabel communityCountLabel;
+    private JLabel communityModularityLabel;
+    private JLabel communityDetailsLabel;
+    private boolean communityOverlayActive;
+    private Map<String, Integer> nodeCommunityMap;
+    private static final Color[] COMMUNITY_COLORS = {
+        new Color(0, 200, 120),    // Emerald green
+        new Color(65, 135, 255),   // Bright blue
+        new Color(255, 100, 100),  // Coral red
+        new Color(255, 200, 50),   // Golden yellow
+        new Color(200, 100, 255),  // Purple
+        new Color(255, 150, 50),   // Orange
+        new Color(100, 220, 220),  // Teal
+        new Color(255, 100, 200),  // Pink
+        new Color(180, 220, 80),   // Lime
+        new Color(150, 130, 255),  // Lavender
+        new Color(255, 180, 150),  // Salmon
+        new Color(100, 180, 150),  // Sea green
+    };
+
     /**
      * Constructor
      * @throws FileNotFoundException
@@ -190,6 +216,7 @@ public class Main extends JFrame {
         initializeLegendSpace();
         initializeStatsPanel();
         initializePathPanel();
+        initializeCommunityPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -561,6 +588,17 @@ public class Main extends JFrame {
                 if (pathEdges != null && pathEdges.contains(edge)) {
                     return Color.YELLOW;
                 }
+                // Community overlay mode — color edges by community
+                if (communityOverlayActive && nodeCommunityMap != null) {
+                    Integer c1 = nodeCommunityMap.get(edge.getVertex1());
+                    Integer c2 = nodeCommunityMap.get(edge.getVertex2());
+                    if (c1 != null && c2 != null && c1.equals(c2)) {
+                        Color base = COMMUNITY_COLORS[c1 % COMMUNITY_COLORS.length];
+                        // Slightly transparent version for edges
+                        return new Color(base.getRed(), base.getGreen(), base.getBlue(), 180);
+                    }
+                    return new Color(100, 100, 100, 80); // cross-community edges are dim
+                }
                 if (edge.getType().equalsIgnoreCase("f")) {
                     return FRIEND_COLOR;
                 } else if (edge.getType().equalsIgnoreCase("fs")) {
@@ -579,6 +617,13 @@ public class Main extends JFrame {
         Transformer<String, Paint> vertexPaint = new Transformer<String, Paint>() {
 
             public Paint transform(String vertex) {
+                // Community overlay mode — color by community
+                if (communityOverlayActive && nodeCommunityMap != null) {
+                    Integer cid = nodeCommunityMap.get(vertex);
+                    if (cid != null) {
+                        return COMMUNITY_COLORS[cid % COMMUNITY_COLORS.length];
+                    }
+                }
                 // Highlight source node in cyan, target in magenta, path nodes in yellow
                 if (pathSource != null && vertex.equals(pathSource)) {
                     return Color.CYAN;
@@ -1006,6 +1051,149 @@ public class Main extends JFrame {
     };
 
     /**
+     * Initializes the community detection panel with detect/clear buttons
+     * and a results display area.
+     */
+    public final void initializeCommunityPanel() {
+        communityOverlayActive = false;
+        nodeCommunityMap = null;
+
+        communityPanel = new JPanel();
+        communityPanel.setLayout(new BoxLayout(communityPanel, BoxLayout.Y_AXIS));
+        communityPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Community Detection",
+                TitledBorder.CENTER,
+                TitledBorder.TOP));
+
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+
+        communityCountLabel = new JLabel("Communities: —");
+        communityCountLabel.setFont(labelFont);
+        communityCountLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        communityModularityLabel = new JLabel("Modularity: —");
+        communityModularityLabel.setFont(labelFont);
+        communityModularityLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        communityDetailsLabel = new JLabel("<html>Click 'Detect' to find communities.</html>");
+        communityDetailsLabel.setFont(labelFont);
+        communityDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        communityDetectButton = new JButton("Detect");
+        communityDetectButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        communityDetectButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                runCommunityDetection();
+            }
+        });
+
+        communityClearButton = new JButton("Clear");
+        communityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        communityClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearCommunityOverlay();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(communityDetectButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(communityClearButton);
+
+        communityPanel.add(communityCountLabel);
+        communityPanel.add(communityModularityLabel);
+        communityPanel.add(Box.createVerticalStrut(4));
+        communityPanel.add(buttonPanel);
+        communityPanel.add(Box.createVerticalStrut(4));
+        communityPanel.add(communityDetailsLabel);
+    }
+
+    /**
+     * Runs community detection on the current graph and activates the
+     * community color overlay.
+     */
+    private void runCommunityDetection() {
+        if (g == null || g.getVertexCount() == 0) {
+            communityDetailsLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+
+        CommunityDetector detector = new CommunityDetector(g);
+        CommunityDetector.DetectionResult result = detector.detect();
+
+        communityOverlayActive = true;
+        nodeCommunityMap = new HashMap<String, Integer>(result.getNodeToCommunity());
+
+        int total = result.getCommunityCount();
+        List<CommunityDetector.Community> significant = result.getSignificantCommunities(2);
+        double modularity = result.getModularity(g);
+
+        communityCountLabel.setText("Communities: " + total
+                + " (" + significant.size() + " with 2+ members)");
+        communityModularityLabel.setText(String.format("Modularity: %.4f", modularity));
+
+        StringBuilder details = new StringBuilder("<html>");
+        if (significant.isEmpty()) {
+            details.append("No communities with 2+ members found.");
+        } else {
+            int shown = Math.min(significant.size(), 8);
+            for (int i = 0; i < shown; i++) {
+                CommunityDetector.Community c = significant.get(i);
+                Color col = COMMUNITY_COLORS[c.getId() % COMMUNITY_COLORS.length];
+                String hex = String.format("#%02x%02x%02x", col.getRed(), col.getGreen(), col.getBlue());
+                details.append(String.format(
+                        "<b style='color:%s'>■</b> C%d: %d nodes, %d edges, density=%.3f<br/>"
+                        + "&nbsp;&nbsp;dominant: %s, avg wt: %.1f<br/>",
+                        hex, c.getId(), c.getSize(), c.getInternalEdges(),
+                        c.getDensity(), getDominantLabel(c.getDominantType()),
+                        c.getAverageWeight()));
+            }
+            if (significant.size() > shown) {
+                details.append("...and ").append(significant.size() - shown).append(" more<br/>");
+            }
+        }
+        int isolatedCount = total - significant.size();
+        if (isolatedCount > 0) {
+            details.append("<i>").append(isolatedCount).append(" isolated node(s)</i>");
+        }
+        details.append("</html>");
+        communityDetailsLabel.setText(details.toString());
+
+        communityPanel.revalidate();
+        communityPanel.repaint();
+        refreshGraph();
+    }
+
+    /**
+     * Returns a human-readable label for edge type codes.
+     */
+    private String getDominantLabel(String typeCode) {
+        if ("f".equals(typeCode)) return "Friend";
+        if ("fs".equals(typeCode)) return "Fam. Stranger";
+        if ("c".equals(typeCode)) return "Classmate";
+        if ("s".equals(typeCode)) return "Stranger";
+        if ("sg".equals(typeCode)) return "Study Group";
+        return typeCode;
+    }
+
+    /**
+     * Clears the community overlay and resets the panel.
+     */
+    private void clearCommunityOverlay() {
+        communityOverlayActive = false;
+        nodeCommunityMap = null;
+        communityCountLabel.setText("Communities: —");
+        communityModularityLabel.setText("Modularity: —");
+        communityDetailsLabel.setText("<html>Click 'Detect' to find communities.</html>");
+        communityPanel.revalidate();
+        communityPanel.repaint();
+        refreshGraph();
+    }
+
+    /**
      * Initializes the network statistics panel showing real-time graph metrics.
      */
     public final void initializeStatsPanel() {
@@ -1122,13 +1310,18 @@ public class Main extends JFrame {
         JSplitPane splitPanePath = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPane1, pathPanel);
 
-        // Add stats panel below path panel
+        // Add community panel below path panel
+        JSplitPane splitPaneCommunity = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPanePath, communityPanel);
+
+        // Add stats panel below community panel
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPanePath, statsPanel);
+                splitPaneCommunity, statsPanel);
 
         splitPane1.setDividerLocation(400);
         splitPanePath.setDividerLocation(510);
-        splitPane2.setDividerLocation(700);
+        splitPaneCommunity.setDividerLocation(640);
+        splitPane2.setDividerLocation(820);
         add(splitPane2, BorderLayout.EAST);
 
     }
