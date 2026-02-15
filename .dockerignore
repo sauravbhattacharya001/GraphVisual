@@ -1,0 +1,29 @@
+# Build artifacts
+Gvisual/build/
+Gvisual/dist/
+Gvisual/sources.txt
+Gvisual/test-sources.txt
+
+# IDE files
+Gvisual/nbproject/private/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+
+# GitHub
+.github/
+
+# Documentation (not needed in image)
+docs/
+*.md
+LICENSE

@@ -11,6 +11,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Java](https://img.shields.io/badge/Java-8%2B-orange?logo=openjdk)](https://openjdk.org/)
 [![JUNG](https://img.shields.io/badge/JUNG-2.0.1-blue)](http://jung.sourceforge.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE)
+[![Docker](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml)
 [![GitHub repo size](https://img.shields.io/github/repo-size/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual)
 
 </div>
@@ -202,6 +203,34 @@ javac -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
 java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
   org.junit.runner.JUnitCore app.UtilMethodsTest gvisual.EdgeTest
 ```
+
+## Docker
+
+### Build
+
+```bash
+docker build -t graphvisual .
+```
+
+### Run with X11 (Linux/macOS — GUI mode)
+
+```bash
+# Allow X11 forwarding
+xhost +local:docker
+
+docker run --rm \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  graphvisual
+```
+
+### Pull from GitHub Container Registry
+
+```bash
+docker pull ghcr.io/sauravbhattacharya001/graphvisual:latest
+```
+
+> **Note:** The Dockerfile builds a fat JAR with all dependencies, compiles source, runs tests during build, and packages a minimal JRE-based runtime image (~300MB). X11 libraries are included for optional GUI support via display forwarding.
 
 ## Research Context
 
