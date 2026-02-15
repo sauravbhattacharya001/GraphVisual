@@ -10,7 +10,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![CodeQL](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/codeql.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/codeql.yml)
 [![Java](https://img.shields.io/badge/Java-8%2B-orange?logo=openjdk)](https://openjdk.org/)
 [![JUNG](https://img.shields.io/badge/JUNG-2.0.1-blue)](http://jung.sourceforge.net/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sauravbhattacharya001/GraphVisual/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE)
 [![GitHub repo size](https://img.shields.io/github/repo-size/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual)
 
 </div>
