@@ -244,16 +244,11 @@ The visualization tool enables researchers to explore these questions interactiv
 
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for full details on:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Make your changes with tests
-4. Submit a pull request
+- Development setup and building
+- Code style and architecture overview
+- Testing guidelines
+- Pull request process and commit conventions
 
-### Development Notes
-
-- The project uses NetBeans project structure (`nbproject/`)
-- Database schema is implied by the SQL queries — no migration scripts are included
-- All database credentials must be set via environment variables (`DB_HOST`, `DB_USER`, `DB_PASS`)
-- CI runs on JDK 11 and 17 via GitHub Actions
+Quick start: fork → branch → make changes with tests → submit PR.
