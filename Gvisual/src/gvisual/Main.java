@@ -35,9 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -310,9 +308,7 @@ public class Main extends JFrame {
         int curY = y * 200 + 100;
         int signX = 0; //0  is +ve
         int signY = 1; // 1 is -ve
-        Calendar calendar = new GregorianCalendar();
-        int second = calendar.get(Calendar.SECOND);
-        Random generator = new Random(second);
+        Random generator = new Random(System.nanoTime());
 
 
         for (String v : vertices) {
@@ -357,32 +353,29 @@ public class Main extends JFrame {
     }
 
     /**
-     * updates the timestamp of the currently selected graph
+     * updates the timestamp of the currently selected graph.
+     *
+     * The timeline slider value (1..92) maps to calendar dates
+     * March 1 – May 31, 2011.  March has 31 days, April has 30,
+     * May has 31.
      */
     public void updateTime() {
-        month = "03";
-        date = null;
-        int day = timeline.getValue();
-        while (true) {
-            if ((day == 31 && month.equals("03")) || day < 31) {
-                date = Integer.toString(day);
-                if (day < 10) {
-                    date = "0" + date;
-                }
-                break;
-            } else {
-                if (month.equals("03")) {
-                    day = day - 31;
-                } else {
-                    day = day - 30;
-                }
-                if (month.equals("03")) {
-                    month = "04";
-                } else {
-                    month = "05";
-                }
-            }
+        int day = timeline.getValue();  // 1..92
+
+        if (day <= 31) {
+            // March: days 1–31
+            month = "03";
+        } else if (day <= 61) {
+            // April: days 32–61 → April 1–30
+            month = "04";
+            day = day - 31;
+        } else {
+            // May: days 62–92 → May 1–31
+            month = "05";
+            day = day - 61;
         }
+
+        date = (day < 10) ? ("0" + day) : Integer.toString(day);
         timeStamp = "2011-" + month + "-" + date;
     }
 
@@ -701,7 +694,7 @@ public class Main extends JFrame {
                 }
                 float dash[] = {1.0f};
                 float width = i.getWeight() / 40 + 1.0f;
-                return new BasicStroke(width, BasicStroke.JOIN_BEVEL, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
+                return new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 10.0f, dash, 0.0f);
             }
         };
         vv.getRenderContext().setEdgeStrokeTransformer(edgeWeight);
@@ -2194,7 +2187,7 @@ public class Main extends JFrame {
     private void copyfile(File srFile, File dtFile) throws FileNotFoundException, IOException {
 
         try (InputStream in = new FileInputStream(srFile);
-             OutputStream out = new FileOutputStream(dtFile, true)) {
+             OutputStream out = new FileOutputStream(dtFile, false)) {
 
             byte[] buf = new byte[8192];
             int len;
