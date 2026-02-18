@@ -12,6 +12,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![JUNG](https://img.shields.io/badge/JUNG-2.0.1-blue)](http://jung.sourceforge.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE)
 [![Docker](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml)
+[![Coverage](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/coverage.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/coverage.yml)
 [![GitHub repo size](https://img.shields.io/github/repo-size/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual)
 
 </div>
