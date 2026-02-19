@@ -104,35 +104,79 @@ public class GraphStats {
         return (2.0 * e) / v;
     }
 
-    /** Maximum degree among all visible nodes. */
-    public int getMaxDegree() {
-        int max = 0;
+    /**
+     * Cached per-vertex statistics computed once, reused by multiple methods.
+     * Avoids iterating all vertices 3+ separate times for max degree, isolated
+     * count, and top-N queries.
+     */
+    private int cachedMaxDegree = -1;
+    private int cachedIsolatedCount = -1;
+    private List<Map.Entry<String, Integer>> cachedDegreeEntries;
+
+    /**
+     * Computes and caches per-vertex degree data in a single pass.
+     * Subsequent calls to getMaxDegree(), getIsolatedNodeCount(), and
+     * getTopNodes() all reuse this cache instead of each iterating
+     * all vertices independently.
+     */
+    private void ensureVertexStatsComputed() {
+        if (cachedMaxDegree >= 0) return; // already computed
+
+        cachedMaxDegree = 0;
+        cachedIsolatedCount = 0;
+        cachedDegreeEntries = new ArrayList<Map.Entry<String, Integer>>();
+
         for (String node : graph.getVertices()) {
             int deg = graph.degree(node);
-            if (deg > max) max = deg;
+            cachedDegreeEntries.add(new AbstractMap.SimpleEntry<String, Integer>(node, deg));
+            if (deg > cachedMaxDegree) cachedMaxDegree = deg;
+            if (deg == 0) cachedIsolatedCount++;
         }
-        return max;
+    }
+
+    /** Maximum degree among all visible nodes. */
+    public int getMaxDegree() {
+        ensureVertexStatsComputed();
+        return cachedMaxDegree;
     }
 
     /**
      * Returns the top-N nodes by degree (most connected).
      * Each entry is "nodeId (degree)".
+     *
+     * <p>Uses a partial-sort (min-heap of size N) instead of fully sorting
+     * all vertices. For graphs with many nodes but small N, this reduces
+     * complexity from O(V log V) to O(V log N).</p>
      */
     public List<String> getTopNodes(int n) {
-        List<Map.Entry<String, Integer>> entries = new ArrayList<Map.Entry<String, Integer>>();
-        for (String node : graph.getVertices()) {
-            entries.add(new AbstractMap.SimpleEntry<String, Integer>(node, graph.degree(node)));
+        ensureVertexStatsComputed();
+
+        if (n <= 0 || cachedDegreeEntries.isEmpty()) {
+            return new ArrayList<String>();
         }
-        Collections.sort(entries, new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
-                return b.getValue().compareTo(a.getValue());
+
+        // Use a min-heap of size n for O(V log N) partial sort
+        PriorityQueue<Map.Entry<String, Integer>> minHeap =
+                new PriorityQueue<Map.Entry<String, Integer>>(n + 1,
+                        new Comparator<Map.Entry<String, Integer>>() {
+                            public int compare(Map.Entry<String, Integer> a,
+                                               Map.Entry<String, Integer> b) {
+                                return a.getValue().compareTo(b.getValue());
+                            }
+                        });
+
+        for (Map.Entry<String, Integer> entry : cachedDegreeEntries) {
+            minHeap.add(entry);
+            if (minHeap.size() > n) {
+                minHeap.poll(); // evict smallest
             }
-        });
-        List<String> result = new ArrayList<String>();
-        int count = Math.min(n, entries.size());
-        for (int i = 0; i < count; i++) {
-            Map.Entry<String, Integer> entry = entries.get(i);
-            result.add("Node " + entry.getKey() + " (" + entry.getValue() + ")");
+        }
+
+        // Extract in descending order
+        List<String> result = new ArrayList<String>(minHeap.size());
+        while (!minHeap.isEmpty()) {
+            Map.Entry<String, Integer> entry = minHeap.poll();
+            result.add(0, "Node " + entry.getKey() + " (" + entry.getValue() + ")");
         }
         return result;
     }
@@ -141,22 +185,28 @@ public class GraphStats {
      * Number of isolated nodes (degree 0) in the visible graph.
      */
     public int getIsolatedNodeCount() {
-        int count = 0;
-        for (String node : graph.getVertices()) {
-            if (graph.degree(node) == 0) count++;
-        }
-        return count;
+        ensureVertexStatsComputed();
+        return cachedIsolatedCount;
     }
 
     /**
+     * Cached edge weight statistics computed once.
+     */
+    private double cachedTotalWeight = -1.0;
+
+    /**
      * Average edge weight across all visible edges.
+     * Caches the total weight sum to avoid re-iterating edges if called
+     * multiple times.
      */
     public double getAverageWeight() {
         if (graph.getEdgeCount() == 0) return 0.0;
-        double total = 0;
-        for (edge e : graph.getEdges()) {
-            total += e.getWeight();
+        if (cachedTotalWeight < 0) {
+            cachedTotalWeight = 0;
+            for (edge e : graph.getEdges()) {
+                cachedTotalWeight += e.getWeight();
+            }
         }
-        return total / graph.getEdgeCount();
+        return cachedTotalWeight / graph.getEdgeCount();
     }
 }

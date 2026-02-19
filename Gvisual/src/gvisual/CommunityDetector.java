@@ -191,6 +191,11 @@ public class CommunityDetector {
      * Each connected component is treated as a community. Communities are
      * ranked by size (largest first) and enriched with edge-type breakdowns.
      *
+     * <p>Edge metrics are computed during the BFS traversal itself: each edge
+     * is counted when the second endpoint is discovered (or when revisiting
+     * an already-visited member). This avoids a separate O(V*E) post-pass
+     * and eliminates the per-community HashSet of counted edges.</p>
+     *
      * @return detection result with communities and node mappings
      */
     public DetectionResult detect() {
@@ -199,7 +204,10 @@ public class CommunityDetector {
         Map<String, Integer> nodeToCommunity = new HashMap<String, Integer>();
         int communityId = 0;
 
-        // Find connected components via BFS
+        // Track which edges have been counted globally to avoid double-counting
+        Set<edge> countedEdges = new HashSet<edge>();
+
+        // Find connected components via BFS, computing edge metrics inline
         for (String vertex : graph.getVertices()) {
             if (visited.contains(vertex)) continue;
 
@@ -215,26 +223,22 @@ public class CommunityDetector {
 
                 for (edge e : graph.getIncidentEdges(current)) {
                     String neighbor = getOtherEnd(e, current);
-                    if (neighbor != null && !visited.contains(neighbor)) {
-                        visited.add(neighbor);
-                        queue.add(neighbor);
-                    }
-                }
-            }
+                    if (neighbor == null) continue;
 
-            // Compute internal edge metrics
-            Set<edge> counted = new HashSet<edge>();
-            for (String member : community.members) {
-                for (edge e : graph.getIncidentEdges(member)) {
-                    if (counted.contains(e)) continue;
-                    String other = getOtherEnd(e, member);
-                    if (other != null && community.members.contains(other)) {
-                        counted.add(e);
+                    // Count this edge if both endpoints are in this component
+                    // and we haven't counted it yet
+                    if (visited.contains(neighbor) && !countedEdges.contains(e)) {
+                        countedEdges.add(e);
                         community.internalEdges++;
                         community.totalWeight += e.getWeight();
                         String type = e.getType();
                         Integer count = community.edgeTypeCounts.get(type);
                         community.edgeTypeCounts.put(type, count == null ? 1 : count + 1);
+                    }
+
+                    if (!visited.contains(neighbor)) {
+                        visited.add(neighbor);
+                        queue.add(neighbor);
                     }
                 }
             }

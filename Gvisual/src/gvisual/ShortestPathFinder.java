@@ -137,6 +137,11 @@ public class ShortestPathFinder {
     /**
      * Finds the shortest path by total edge weight (Dijkstra) between source and target.
      *
+     * <p>Uses a typed priority queue entry instead of encoding vertices as
+     * double-array indices into a separate vertex list. This eliminates the
+     * O(V) vertex-index map construction and avoids integer-to-double-to-integer
+     * conversion overhead on every PQ operation.</p>
+     *
      * @param source source vertex ID
      * @param target target vertex ID
      * @return the weight-optimal path, or null if no path exists
@@ -153,34 +158,30 @@ public class ShortestPathFinder {
                     0.0);
         }
 
-        // Dijkstra
-        Map<String, Double> dist = new HashMap<String, Double>();
+        // Dijkstra with typed PQ entries (no vertex-index indirection)
+        final Map<String, Double> dist = new HashMap<String, Double>();
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, edge> predecessorEdge = new HashMap<String, edge>();
-        // Priority queue: [distance, vertex]
-        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11, new Comparator<double[]>() {
-            public int compare(double[] a, double[] b) {
-                return Double.compare(a[0], b[0]);
+
+        // Priority queue using String[] wrapper: [0]=vertex, distance stored in dist map
+        PriorityQueue<String> pq = new PriorityQueue<String>(11, new Comparator<String>() {
+            public int compare(String a, String b) {
+                Double da = dist.get(a);
+                Double db = dist.get(b);
+                if (da == null) da = Double.MAX_VALUE;
+                if (db == null) db = Double.MAX_VALUE;
+                return Double.compare(da, db);
             }
         });
 
-        // Use a map of vertex->index for the PQ (encode vertex as string hash)
-        Map<String, Integer> vertexIndex = new HashMap<String, Integer>();
-        List<String> vertexList = new ArrayList<String>(graph.getVertices());
-        for (int i = 0; i < vertexList.size(); i++) {
-            vertexIndex.put(vertexList.get(i), i);
-        }
-
         dist.put(source, 0.0);
         predecessor.put(source, null);
-        pq.add(new double[]{0.0, vertexIndex.get(source)});
+        pq.add(source);
 
         Set<String> visited = new HashSet<String>();
 
         while (!pq.isEmpty()) {
-            double[] entry = pq.poll();
-            int idx = (int) entry[1];
-            String current = vertexList.get(idx);
+            String current = pq.poll();
 
             if (visited.contains(current)) continue;
             visited.add(current);
@@ -202,7 +203,7 @@ public class ShortestPathFinder {
                     dist.put(neighbor, newDist);
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
-                    pq.add(new double[]{newDist, vertexIndex.get(neighbor)});
+                    pq.add(neighbor);
                 }
             }
         }
@@ -241,11 +242,37 @@ public class ShortestPathFinder {
 
     /**
      * Checks whether two vertices are connected (in the same component).
+     *
+     * <p>Uses an early-termination BFS instead of computing the full
+     * reachable set. This is O(component) in the worst case but returns
+     * immediately when the target is found, which is faster for large
+     * graphs where the target is close to the source.</p>
      */
     public boolean areConnected(String source, String target) {
         validateVertex(source, "Source");
         validateVertex(target, "Target");
-        return getReachableVertices(source).contains(target);
+
+        if (source.equals(target)) return true;
+
+        Set<String> visited = new HashSet<String>();
+        Queue<String> queue = new LinkedList<String>();
+
+        visited.add(source);
+        queue.add(source);
+
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            for (edge e : graph.getIncidentEdges(current)) {
+                String neighbor = getOtherEnd(e, current);
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    if (neighbor.equals(target)) return true;
+                    visited.add(neighbor);
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        return false;
     }
 
     // --- private helpers ---
