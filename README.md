@@ -205,6 +205,59 @@ java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':
   org.junit.runner.JUnitCore app.UtilMethodsTest gvisual.EdgeTest
 ```
 
+## Maven / GitHub Packages
+
+GraphVisual is published to [GitHub Packages](https://github.com/sauravbhattacharya001/GraphVisual/packages) as a Maven artifact. You can use it as a library dependency or download the fat JAR directly.
+
+### Add as a Maven dependency
+
+1. Configure GitHub Packages in your `~/.m2/settings.xml`:
+
+```xml
+<servers>
+  <server>
+    <id>github</id>
+    <username>YOUR_GITHUB_USERNAME</username>
+    <password>YOUR_GITHUB_TOKEN</password>
+  </server>
+</servers>
+```
+
+2. Add the repository and dependency to your `pom.xml`:
+
+```xml
+<repositories>
+  <repository>
+    <id>github</id>
+    <url>https://maven.pkg.github.com/sauravbhattacharya001/GraphVisual</url>
+  </repository>
+</repositories>
+
+<dependency>
+  <groupId>com.github.sauravbhattacharya001</groupId>
+  <artifactId>graphvisual</artifactId>
+  <version>1.1.0</version>
+</dependency>
+```
+
+### Download the fat JAR
+
+Each [release](https://github.com/sauravbhattacharya001/GraphVisual/releases) includes a standalone `graphvisual-*-all.jar` with all dependencies bundled:
+
+```bash
+java -jar graphvisual-1.1.0-all.jar
+```
+
+### Build with Maven locally
+
+```bash
+# Install vendored local JARs first
+mvn initialize -P install-local-deps
+
+# Build the project
+mvn package -B
+```
+
 ## Docker
 
 ### Build
