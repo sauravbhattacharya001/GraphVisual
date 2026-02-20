@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference — GraphVisual Docs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link active"><span class="icon">📖</span>API Reference</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">💻</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">📦</span>Releases</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>📖 API Reference
+    <span class="subtitle">Public classes and methods in GraphVisual</span>
+</h1>
+
+<div class="toc">
+    <div class="toc-title">Classes</div>
+    <a href="#edge">gvisual.edge</a>
+    <a href="#graphstats">gvisual.GraphStats</a>
+    <a href="#centrality">gvisual.NodeCentralityAnalyzer</a>
+    <a href="#centrality-result">  ↳ CentralityResult (inner class)</a>
+    <a href="#community">gvisual.CommunityDetector</a>
+    <a href="#community-class">  ↳ Community (inner class)</a>
+    <a href="#detection-result">  ↳ DetectionResult (inner class)</a>
+    <a href="#pathfinder">gvisual.ShortestPathFinder</a>
+    <a href="#path-result">  ↳ PathResult (inner class)</a>
+    <a href="#graphml">gvisual.GraphMLExporter</a>
+    <a href="#util">app.Util</a>
+    <a href="#network">app.Network</a>
+</div>
+
+<div class="callout">
+    For generated Javadoc with full signature details, see <a href="javadoc/index.html">Javadoc</a> (generated during CI build).
+</div>
+
+<!-- ======================================= -->
+<!-- edge -->
+<!-- ======================================= -->
+
+<h2 id="edge"><code>gvisual.edge</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class edge</code>
+    </div>
+    <p>Edge model representing a connection between two vertices in the social network graph. Each edge has a type code, two vertex IDs, a numeric weight, and an optional label.</p>
+
+    <h4>Edge Type Codes</h4>
+    <table>
+        <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td><code>f</code></td><td>Friend</td></tr>
+            <tr><td><code>fs</code></td><td>Familiar Stranger</td></tr>
+            <tr><td><code>c</code></td><td>Classmate</td></tr>
+            <tr><td><code>s</code></td><td>Stranger</td></tr>
+            <tr><td><code>sg</code></td><td>Study Group</td></tr>
+        </tbody>
+    </table>
+
+    <div class="api-method">
+        <div class="method-signature">edge()</div>
+        <p class="method-desc">Default constructor.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">edge(String edgeType, String vertex1, String vertex2)</div>
+        <p class="method-desc">Constructs an edge with the specified type and endpoint vertices.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String getType()</div>
+        <p class="method-desc">Returns the edge type code: one of <code>f</code>, <code>fs</code>, <code>c</code>, <code>s</code>, <code>sg</code>.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String getVertex1() / getVertex2()</div>
+        <p class="method-desc">Returns the first/second vertex ID of this edge.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">void setWeight(float weight) / float getWeight()</div>
+        <p class="method-desc">Get/set the numeric weight (interaction frequency × duration).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">void setLabel(String label) / String getLabel()</div>
+        <p class="method-desc">Get/set an optional text label for the edge.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphStats -->
+<!-- ======================================= -->
+
+<h2 id="graphstats"><code>gvisual.GraphStats</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphStats</code>
+    </div>
+    <p>Computes network analysis metrics for a JUNG graph. Provides node/edge counts, per-category breakdowns, density, degree statistics, and hub identification. Uses single-pass vertex computation with cached results for efficiency.</p>
+
+    <div class="api-method">
+        <div class="method-signature">GraphStats(Graph&lt;String, edge&gt; graph, Vector&lt;edge&gt; friendEdges, Vector&lt;edge&gt; fsEdges, Vector&lt;edge&gt; classmateEdges, Vector&lt;edge&gt; strangerEdges, Vector&lt;edge&gt; studyGEdges)</div>
+        <p class="method-desc">Constructs a GraphStats instance with the graph and per-category edge vectors.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getNodeCount()</div>
+        <p class="method-desc">Total number of nodes in the visible graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getVisibleEdgeCount()</div>
+        <p class="method-desc">Total number of edges currently in the graph (may exclude filtered categories).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getTotalEdgeCount()</div>
+        <p class="method-desc">Total edges across all categories including filtered-out ones.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getFriendCount() / getFsCount() / getClassmateCount() / getStrangerCount() / getStudyGroupCount()</div>
+        <p class="method-desc">Edge count per relationship category.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getDensity()</div>
+        <p class="method-desc">Graph density: <code>2·|E| / (|V|·(|V|−1))</code>. Returns 0 if fewer than 2 nodes.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getAverageDegree()</div>
+        <p class="method-desc">Average degree of visible nodes: <code>2·|E| / |V|</code>.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getMaxDegree()</div>
+        <p class="method-desc">Maximum degree among all visible nodes. Computed in single pass with cached result.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getTopNodes(int n)</div>
+        <p class="method-desc">Returns the top-N nodes by degree (most connected). Uses min-heap for O(V log N) partial sort. Each entry is formatted as <code>"Node {id} ({degree})"</code>.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getIsolatedNodeCount()</div>
+        <p class="method-desc">Number of nodes with degree 0 in the visible graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getAverageWeight()</div>
+        <p class="method-desc">Average edge weight across all visible edges. Cached after first computation.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- NodeCentralityAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="centrality"><code>gvisual.NodeCentralityAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class NodeCentralityAnalyzer</code>
+    </div>
+    <p>Computes degree, betweenness (Brandes' algorithm, O(V·E)), and closeness centrality (Wasserman-Faust normalization) for all nodes. Results are returned as ranked <code>CentralityResult</code> objects.</p>
+
+    <div class="api-method">
+        <div class="method-signature">NodeCentralityAnalyzer(Graph&lt;String, edge&gt; graph)</div>
+        <p class="method-desc">Creates analyzer for the given graph. Throws <code>IllegalArgumentException</code> if graph is null.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">void compute()</div>
+        <p class="method-desc">Computes all three centrality metrics. Automatically skips recomputation if already called.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">CentralityResult getResult(String nodeId)</div>
+        <p class="method-desc">Returns centrality metrics for a specific node. Returns null if node not in graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;CentralityResult&gt; getRankedResults()</div>
+        <p class="method-desc">All node results sorted by combined score (highest first).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;CentralityResult&gt; getTopNodes(int n)</div>
+        <p class="method-desc">Top-N most central nodes by combined score.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;CentralityResult&gt; getTopByMetric(int n, String metric)</div>
+        <p class="method-desc">Top-N nodes by a specific metric. <code>metric</code>: <code>"degree"</code>, <code>"betweenness"</code>, or <code>"closeness"</code>.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Double&gt; getDegreeCentralityMap() / getBetweennessCentralityMap() / getClosenessCentralityMap()</div>
+        <p class="method-desc">Returns unmodifiable map of node → centrality value for each metric.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Object&gt; getSummary()</div>
+        <p class="method-desc">Summary statistics: averages and maximums for each centrality metric with node IDs.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String classifyTopology()</div>
+        <p class="method-desc">Classifies network as: <code>"Trivial"</code>, <code>"Disconnected"</code>, <code>"Hub-and-Spoke"</code>, <code>"Distributed"</code>, or <code>"Hierarchical"</code>.</p>
+    </div>
+</div>
+
+<h3 id="centrality-result"><code>CentralityResult</code> (inner class)</h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class CentralityResult implements Comparable&lt;CentralityResult&gt;</code>
+    </div>
+    <p>Holds all three centrality metrics for a single node.</p>
+
+    <div class="api-method">
+        <div class="method-signature">String getNodeId()</div>
+        <p class="method-desc">Vertex ID.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getDegree()</div>
+        <p class="method-desc">Raw degree (number of connections).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getDegreeCentrality()</div>
+        <p class="method-desc">Degree centrality: <code>degree / (V−1)</code>. Range [0, 1].</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getBetweennessCentrality()</div>
+        <p class="method-desc">Fraction of shortest paths through this node. Range [0, 1].</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getClosenessCentrality()</div>
+        <p class="method-desc">Inverse of average shortest-path distance to reachable nodes.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getCombinedScore()</div>
+        <p class="method-desc">Weighted average: 30% degree + 40% betweenness + 30% closeness.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- CommunityDetector -->
+<!-- ======================================= -->
+
+<h2 id="community"><code>gvisual.CommunityDetector</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class CommunityDetector</code>
+    </div>
+    <p>Detects communities using connected-component analysis (BFS). Communities are ranked by size and enriched with edge-type breakdowns, density, and weight metrics.</p>
+
+    <div class="api-method">
+        <div class="method-signature">CommunityDetector(Graph&lt;String, edge&gt; graph)</div>
+        <p class="method-desc">Creates detector for the given graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">DetectionResult detect()</div>
+        <p class="method-desc">Runs BFS-based community detection. Returns communities sorted largest-first with edge metrics computed inline during traversal.</p>
+    </div>
+</div>
+
+<h3 id="community-class"><code>Community</code> (inner class)</h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class Community implements Comparable&lt;Community&gt;</code>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getId() / int getSize()</div>
+        <p class="method-desc">Community ID (0-based, ranked by size) and member count.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getMembers()</div>
+        <p class="method-desc">Unmodifiable set of vertex IDs in this community.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getInternalEdges() / double getTotalWeight()</div>
+        <p class="method-desc">Count and total weight of edges internal to the community.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getDensity()</div>
+        <p class="method-desc">Internal density: <code>2·|E| / (|V|·(|V|−1))</code>.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getAverageWeight()</div>
+        <p class="method-desc">Average weight of internal edges.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getEdgeTypeCounts()</div>
+        <p class="method-desc">Breakdown of edge types within the community (e.g., <code>{"f": 5, "c": 3}</code>).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String getDominantType()</div>
+        <p class="method-desc">The most common edge type in this community.</p>
+    </div>
+</div>
+
+<h3 id="detection-result"><code>DetectionResult</code> (inner class)</h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class DetectionResult</code>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;Community&gt; getCommunities()</div>
+        <p class="method-desc">All communities sorted largest-first.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getNodeToCommunity()</div>
+        <p class="method-desc">Maps each vertex ID to its community ID.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;Community&gt; getSignificantCommunities(int minSize)</div>
+        <p class="method-desc">Returns only communities with at least <code>minSize</code> members.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Community getCommunityOf(String node)</div>
+        <p class="method-desc">Returns the community a given node belongs to.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getModularity(Graph&lt;String, edge&gt; graph)</div>
+        <p class="method-desc">Modularity score Q — measures partitioning quality. Higher values (→1) indicate stronger community structure.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- ShortestPathFinder -->
+<!-- ======================================= -->
+
+<h2 id="pathfinder"><code>gvisual.ShortestPathFinder</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class ShortestPathFinder</code>
+    </div>
+    <p>Finds shortest paths using BFS (unweighted) and Dijkstra (weighted). Provides reachability analysis.</p>
+
+    <div class="api-method">
+        <div class="method-signature">ShortestPathFinder(Graph&lt;String, edge&gt; graph)</div>
+        <p class="method-desc">Creates path finder for the given graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">PathResult findShortestByHops(String source, String target)</div>
+        <p class="method-desc">BFS shortest path (minimum hop count). Returns null if no path exists.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">PathResult findShortestByWeight(String source, String target)</div>
+        <p class="method-desc">Dijkstra shortest path (minimum total edge weight). Returns null if no path exists.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getReachableVertices(String source)</div>
+        <p class="method-desc">All vertices reachable from source via BFS (includes source).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">boolean areConnected(String source, String target)</div>
+        <p class="method-desc">Whether two vertices are in the same connected component. Uses early-termination BFS.</p>
+    </div>
+</div>
+
+<h3 id="path-result"><code>PathResult</code> (inner class)</h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class PathResult</code>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getVertices()</div>
+        <p class="method-desc">Ordered vertex IDs from source to target.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;edge&gt; getEdges()</div>
+        <p class="method-desc">Ordered edges from source to target.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getHopCount()</div>
+        <p class="method-desc">Number of edges in the path.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">double getTotalWeight()</div>
+        <p class="method-desc">Sum of edge weights along the path.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String toString()</div>
+        <p class="method-desc">Human-readable format: <code>"A → B → C (3 hops, weight 42.5)"</code></p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphMLExporter -->
+<!-- ======================================= -->
+
+<h2 id="graphml"><code>gvisual.GraphMLExporter</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphMLExporter</code>
+    </div>
+    <p>Exports JUNG graphs to GraphML XML format compatible with Gephi, Cytoscape, NetworkX, and yEd. Includes all vertices, edges with type/weight/label attributes, and graph metadata.</p>
+
+    <div class="api-method">
+        <div class="method-signature">GraphMLExporter(Graph&lt;String, edge&gt; graph, List&lt;edge&gt; allEdges)</div>
+        <p class="method-desc">Creates exporter. <code>allEdges</code> may include filtered-out edges for complete export.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">void setTimestamp(String timestamp) / void setDescription(String description)</div>
+        <p class="method-desc">Set metadata included in the GraphML output.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">void export(File file)</div>
+        <p class="method-desc">Writes GraphML XML to a file (UTF-8 encoded).</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String exportToString()</div>
+        <p class="method-desc">Returns the complete GraphML XML as a string. Includes all loaded edges.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">String exportVisibleToString()</div>
+        <p class="method-desc">Returns GraphML XML with only edges currently visible in the graph.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">int getVertexCount() / int getEdgeCount()</div>
+        <p class="method-desc">Number of vertices/edges that will be exported.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">static String getTypeLabel(String typeCode)</div>
+        <p class="method-desc">Converts edge type code to human-readable label (e.g., <code>"f"</code> → <code>"Friend"</code>).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- Util -->
+<!-- ======================================= -->
+
+<h2 id="util"><code>app.Util</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class Util</code>
+    </div>
+    <p>Database connection factory. Reads credentials from environment variables <code>DB_HOST</code>, <code>DB_USER</code>, <code>DB_PASS</code>.</p>
+
+    <div class="api-method">
+        <div class="method-signature">static Connection getAppConnection()</div>
+        <p class="method-desc">Returns a JDBC connection to the <code>nic_apps</code> database.</p>
+    </div>
+
+    <div class="api-method">
+        <div class="method-signature">static Connection getAzialaConnection()</div>
+        <p class="method-desc">Returns a JDBC connection to the <code>nic_aziala</code> database (WiFi traces).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- Network -->
+<!-- ======================================= -->
+
+<h2 id="network"><code>app.Network</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class Network</code>
+    </div>
+    <p>Generates edge-list files from the meeting database using parameterized SQL queries. Classifies relationships based on location, duration, and frequency thresholds.</p>
+
+    <div class="api-method">
+        <div class="method-signature">void generateFile(String month, String date, int durThreshold, int countThreshold)</div>
+        <p class="method-desc">Queries the <code>meeting</code> table for the given day, classifies edges by relationship type using the provided thresholds, and writes an edge-list file.</p>
+    </div>
+</div>
+
+<footer>
+    <p>
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> •
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> •
+        Licensed under <a href="https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE">MIT</a>
+    </p>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>

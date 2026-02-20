@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture — GraphVisual Docs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link active"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">💻</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">📦</span>Releases</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🏗️ Architecture
+    <span class="subtitle">Project structure, data pipeline, and component design</span>
+</h1>
+
+<div class="toc">
+    <div class="toc-title">On this page</div>
+    <a href="#project-structure">Project Structure</a>
+    <a href="#packages">Package Organization</a>
+    <a href="#data-pipeline">Data Pipeline</a>
+    <a href="#gui-components">GUI Components</a>
+    <a href="#analysis-engine">Analysis Engine</a>
+    <a href="#algorithms">Key Algorithms</a>
+    <a href="#export">Export System</a>
+</div>
+
+<h2 id="project-structure">Project Structure</h2>
+
+<pre><code>GraphVisual/
+├── Gvisual/
+│   ├── src/
+│   │   ├── gvisual/                    # Core visualization & analysis
+│   │   │   ├── Main.java              # Swing GUI entry point
+│   │   │   ├── edge.java              # Edge model (type, weight, vertices)
+│   │   │   ├── GraphStats.java        # Network metrics calculator
+│   │   │   ├── NodeCentralityAnalyzer.java  # Centrality metrics (Brandes')
+│   │   │   ├── CommunityDetector.java # Connected-component communities
+│   │   │   ├── ShortestPathFinder.java # BFS & Dijkstra path finding
+│   │   │   └── GraphMLExporter.java   # GraphML XML export
+│   │   └── app/                        # Data pipeline
+│   │       ├── Network.java           # Edge-list generation from DB
+│   │       ├── Util.java              # Database connection factory
+│   │       ├── findMeetings.java      # Bluetooth → meeting extraction
+│   │       ├── addLocation.java       # Meeting location classification
+│   │       └── matchImei.java         # Device → IMEI matching
+│   ├── test/                           # JUnit 4 test suites
+│   ├── lib/                            # Vendored dependencies (JUNG, JDBC, etc.)
+│   └── images/                         # UI icons (play, pause, stop, etc.)
+├── docs/                               # This documentation site
+├── .github/
+│   ├── workflows/                      # CI, CodeQL, Pages, Docker, etc.
+│   ├── copilot-setup-steps.yml        # Copilot agent configuration
+│   └── copilot-instructions.md        # Copilot context
+├── pom.xml                             # Maven build configuration
+├── Dockerfile                          # Multi-stage Docker build
+├── DATABASE.md                         # Database schema reference
+├── CONTRIBUTING.md                     # Contribution guidelines
+├── CHANGELOG.md                        # Version history
+└── LICENSE                             # MIT License</code></pre>
+
+<h2 id="packages">Package Organization</h2>
+
+<div class="card-grid">
+    <div class="card">
+        <h4><code>gvisual</code></h4>
+        <p>Core package — GUI, graph models, analysis algorithms, and export. This is the visualization and analysis engine.</p>
+    </div>
+    <div class="card">
+        <h4><code>app</code></h4>
+        <p>Data pipeline package — database utilities, Bluetooth event processing, meeting extraction, and edge-list generation.</p>
+    </div>
+</div>
+
+<h2 id="data-pipeline">Data Pipeline</h2>
+
+<p>The data pipeline transforms raw Bluetooth proximity events into classified social network edges. Each step must run in order:</p>
+
+<div class="pipeline">
+    <div class="pipeline-step">
+        <h4>📡 1. Bluetooth Events (<code>event_3</code> table)</h4>
+        <p>Raw proximity data: IMEI pairs with timestamps and RSSI values. Events with <code>rssi &lt; -60</code> are filtered out.</p>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-step">
+        <h4>🔗 2. <code>matchImei.java</code> — Device Mapping</h4>
+        <p>Maps device hardware nodes from <code>device_1</code> to IMEI identifiers, populating the <code>deviceID</code> lookup table.</p>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-step">
+        <h4>🔍 3. <code>findMeetings.java</code> — Meeting Extraction</h4>
+        <p>Groups Bluetooth events into meetings using a 5-minute sliding window. Each meeting records the IMEI pair, start/end time, and duration. Scans March–May 2011 (92 days).</p>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-step">
+        <h4>📍 4. <code>addLocation.java</code> — Location Classification</h4>
+        <p>Cross-references meeting timestamps with WiFi access point data (from <code>nic_aziala</code> database) to classify each meeting location as <code>public</code>, <code>class</code>, or <code>path</code>.</p>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-step">
+        <h4>🌐 5. <code>Network.java</code> — Edge Generation</h4>
+        <p>Queries the classified meetings with configurable duration/frequency thresholds. JOINs with <code>deviceID</code> to produce edge-list files with human-readable node IDs.</p>
+    </div>
+    <div class="pipeline-arrow">↓</div>
+    <div class="pipeline-step">
+        <h4>📊 6. <code>Main.java</code> — Interactive Visualization</h4>
+        <p>Reads edge-list files, constructs JUNG graphs, and renders the interactive Swing GUI with timeline playback.</p>
+    </div>
+</div>
+
+<h3>Meeting Extraction Algorithm</h3>
+
+<p>The <code>findMeetings</code> class uses a <strong>5-minute sliding window</strong> (<code>WINDOW_SIZE = 5.0</code>):</p>
+
+<ol>
+    <li>For each day (March 1 – May 31, 2011), query all Bluetooth events with <code>rssi ≥ -60</code></li>
+    <li>Group events by device pair (IMEI₁#IMEI₂, lexicographically ordered)</li>
+    <li>Sort timestamps within each pair</li>
+    <li>If the gap between consecutive timestamps exceeds 5 minutes, the current meeting ends and a new one begins</li>
+    <li>Insert each meeting with calculated duration into the <code>meeting</code> table</li>
+</ol>
+
+<h3>Location Classification Strategy</h3>
+
+<p>The <code>addLocation</code> class tries three strategies in order to classify a meeting's physical location:</p>
+
+<ol>
+    <li><strong>Intersection</strong> — Find common WiFi access points visible to both IMEIs during the meeting time window</li>
+    <li><strong>Fallback IMEI₁</strong> — Use the strongest AP for just the first device</li>
+    <li><strong>Fallback IMEI₂</strong> — Use the strongest AP for the second device</li>
+</ol>
+
+<p>Access points are classified by their ID:</p>
+<table>
+    <thead><tr><th>AP IDs</th><th>Location Type</th></tr></thead>
+    <tbody>
+        <tr><td>7, 16, 20, 35, 38, 39</td><td><code>public</code> — Public areas</td></tr>
+        <tr><td>29–34, 36</td><td><code>class</code> — Classrooms</td></tr>
+        <tr><td>All others (non-zero)</td><td><code>path</code> — Corridors</td></tr>
+    </tbody>
+</table>
+
+<h2 id="gui-components">GUI Components</h2>
+
+<p>The <code>Main.java</code> class builds a Swing desktop application with these panels:</p>
+
+<table>
+    <thead><tr><th>Component</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Image Panel</strong></td><td>Main graph canvas powered by JUNG's <code>VisualizationViewer</code>. Supports drag, zoom, and rotation via <code>DefaultModalGraphMouse</code>.</td></tr>
+        <tr><td><strong>Timeline Panel</strong></td><td>Day slider (1–92) with play/pause/stop and skip controls. Speed is adjustable. Timer triggers graph reload on each tick.</td></tr>
+        <tr><td><strong>Toolbar</strong></td><td>Left-side tools: transform/pick mode toggle, PNG export, edge-list export, GraphML export.</td></tr>
+        <tr><td><strong>Category Panel</strong></td><td>Toggle visibility of each relationship type. Expandable sections with duration/frequency threshold sliders.</td></tr>
+        <tr><td><strong>Notes Pane</strong></td><td>Free-text area for annotating the currently viewed graph timestamp.</td></tr>
+        <tr><td><strong>Statistics Panel</strong></td><td>Live network metrics — node/edge counts, density, degree stats, hub identification.</td></tr>
+        <tr><td><strong>Centrality Panel</strong></td><td>Compute and rank nodes by degree, betweenness, and closeness centrality with sortable metric selector.</td></tr>
+        <tr><td><strong>Community Panel</strong></td><td>Connected-component detection with community size, density, dominant type, and modularity score.</td></tr>
+    </tbody>
+</table>
+
+<h2 id="analysis-engine">Analysis Engine</h2>
+
+<p>The analysis engine consists of four core classes that operate on JUNG graph instances:</p>
+
+<div class="card-grid">
+    <div class="card">
+        <h4>GraphStats</h4>
+        <p>Network-level metrics: node/edge counts, density, average/max degree, isolated nodes, top-N hubs, average edge weight. Uses single-pass vertex computation with cached results.</p>
+    </div>
+    <div class="card">
+        <h4>NodeCentralityAnalyzer</h4>
+        <p>Per-node centrality: degree, betweenness (Brandes' O(V·E)), closeness (Wasserman-Faust normalization). Combined weighted scoring and topology classification.</p>
+    </div>
+    <div class="card">
+        <h4>CommunityDetector</h4>
+        <p>Connected-component community detection with edge-type breakdown, internal density, average weight, dominant type, and modularity scoring.</p>
+    </div>
+    <div class="card">
+        <h4>ShortestPathFinder</h4>
+        <p>BFS (hop-count optimal) and Dijkstra (weight-optimal) path finding. Component reachability analysis with early-termination BFS.</p>
+    </div>
+</div>
+
+<h2 id="algorithms">Key Algorithms</h2>
+
+<h3>Brandes' Betweenness Centrality</h3>
+
+<p>The <code>NodeCentralityAnalyzer</code> implements <a href="https://doi.org/10.1080/0022250X.2001.9990249">Brandes' algorithm (2001)</a> for computing betweenness centrality in O(V·E) time:</p>
+
+<ol>
+    <li>For each source vertex <code>s</code>, run BFS to compute shortest path counts (σ) and distances</li>
+    <li>On the back-sweep (reverse BFS order), accumulate dependency scores (δ)</li>
+    <li>Each node's betweenness is the sum of dependencies from all sources</li>
+    <li>Normalize by <code>(V-1)(V-2)</code> for undirected graphs to produce values in [0, 1]</li>
+</ol>
+
+<h3>Topology Classification</h3>
+
+<p>The centrality analyzer classifies network topology based on degree distribution:</p>
+
+<table>
+    <thead><tr><th>Topology</th><th>Condition</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Trivial</strong></td><td>≤ 1 node</td></tr>
+        <tr><td><strong>Disconnected</strong></td><td>&gt; 50% isolated nodes or no edges</td></tr>
+        <tr><td><strong>Hub-and-Spoke</strong></td><td>Max degree &gt; 4× average and &gt; 30% of nodes</td></tr>
+        <tr><td><strong>Distributed</strong></td><td>Coefficient of variation of degree &lt; 0.5</td></tr>
+        <tr><td><strong>Hierarchical</strong></td><td>Moderate degree variance (default)</td></tr>
+    </tbody>
+</table>
+
+<h3>Community Modularity</h3>
+
+<p>The <code>CommunityDetector</code> computes modularity Q using:</p>
+
+<pre><code>Q = Σ_c [ (e_c / m) − (d_c / 2m)² ]
+
+where:
+  e_c = internal edges in community c
+  m   = total edges in graph
+  d_c = sum of degrees in community c</code></pre>
+
+<p>Values closer to 1.0 indicate stronger community structure. Values near 0 indicate random partitioning.</p>
+
+<h2 id="export">Export System</h2>
+
+<h3>GraphML Export</h3>
+
+<p>The <code>GraphMLExporter</code> produces standard GraphML XML files compatible with:</p>
+<ul>
+    <li><strong>Gephi</strong> — Open-source graph visualization platform</li>
+    <li><strong>Cytoscape</strong> — Network data integration and visualization</li>
+    <li><strong>NetworkX</strong> — Python graph analysis library</li>
+    <li><strong>yEd</strong> — Graph editor and diagram tool</li>
+</ul>
+
+<p>Exported attributes per edge:</p>
+<table>
+    <thead><tr><th>Attribute</th><th>Key</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>type</code></td><td>d1</td><td>Edge type code (f, fs, c, s, sg)</td></tr>
+        <tr><td><code>type_label</code></td><td>d2</td><td>Human-readable label (Friend, Stranger, etc.)</td></tr>
+        <tr><td><code>weight</code></td><td>d3</td><td>Edge weight (interaction frequency × duration)</td></tr>
+        <tr><td><code>label</code></td><td>d4</td><td>Optional edge label</td></tr>
+    </tbody>
+</table>
+
+<p>The exporter supports exporting all loaded edges or only currently visible edges (filtered by category toggles).</p>
+
+<footer>
+    <p>
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> •
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> •
+        Licensed under <a href="https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE">MIT</a>
+    </p>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>

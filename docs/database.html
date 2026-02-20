@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Schema — GraphVisual Docs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link active"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">💻</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">📦</span>Releases</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🗄️ Database Schema
+    <span class="subtitle">PostgreSQL table structures and query patterns</span>
+</h1>
+
+<div class="toc">
+    <div class="toc-title">On this page</div>
+    <a href="#databases">Database Overview</a>
+    <a href="#event_3">event_3 — Bluetooth Events</a>
+    <a href="#meeting">meeting — Extracted Meetings</a>
+    <a href="#deviceid">deviceID — Device Mapping</a>
+    <a href="#device_1">device_1 — Device Registry</a>
+    <a href="#wifi">WiFi Tables (nic_aziala)</a>
+    <a href="#pipeline-order">Pipeline Order</a>
+    <a href="#relationship-queries">Relationship Queries</a>
+</div>
+
+<h2 id="databases">Database Overview</h2>
+
+<p>GraphVisual uses two PostgreSQL databases:</p>
+
+<table>
+    <thead><tr><th>Database</th><th>Connection</th><th>Purpose</th></tr></thead>
+    <tbody>
+        <tr><td><strong><code>nic_apps</code></strong></td><td><code>Util.getAppConnection()</code></td><td>Main application — meetings, devices, edge generation</td></tr>
+        <tr><td><strong><code>nic_aziala</code></strong></td><td><code>Util.getAzialaConnection()</code></td><td>WiFi trace data — meeting location classification</td></tr>
+    </tbody>
+</table>
+
+<p>Both require environment variables <code>DB_HOST</code>, <code>DB_USER</code>, <code>DB_PASS</code>.</p>
+
+<h2 id="event_3"><code>event_3</code> — Raw Bluetooth Proximity Events</h2>
+
+<p>Source table for the meeting extraction pipeline (<code>findMeetings</code>).</p>
+
+<table>
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>rcvrimei</code></td><td><code>text</code></td><td>IMEI of the receiving device</td></tr>
+        <tr><td><code>sndrimei</code></td><td><code>text</code></td><td>IMEI of the sending device (empty = no sender)</td></tr>
+        <tr><td><code>time</code></td><td><code>text</code></td><td>Timestamp: <code>HH.MM:SS.mmm</code></td></tr>
+        <tr><td><code>month</code></td><td><code>text</code></td><td>Zero-padded month (<code>"03"</code>–<code>"05"</code>)</td></tr>
+        <tr><td><code>date</code></td><td><code>text</code></td><td>Zero-padded day (<code>"01"</code>–<code>"31"</code>)</td></tr>
+        <tr><td><code>rssi</code></td><td><code>int</code></td><td>Signal strength (dBm). Events with <code>rssi &lt; -60</code> are filtered</td></tr>
+    </tbody>
+</table>
+
+<h4>Key Query Pattern</h4>
+<pre><code>SELECT DISTINCT rcvrimei, sndrimei, time
+FROM event_3
+WHERE month = ? AND date = ? AND sndrimei != '' AND rssi >= ?</code></pre>
+
+<h2 id="meeting"><code>meeting</code> — Extracted Meetings</h2>
+
+<p>Populated by <code>findMeetings</code>, classified by <code>addLocation</code>, queried by <code>Network</code>.</p>
+
+<table>
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>imei1</code></td><td><code>text</code></td><td>First IMEI (lexicographically smaller)</td></tr>
+        <tr><td><code>imei2</code></td><td><code>text</code></td><td>Second IMEI (lexicographically larger)</td></tr>
+        <tr><td><code>starttime</code></td><td><code>text</code></td><td>Meeting start: <code>HH.MM:SS.mmm</code></td></tr>
+        <tr><td><code>endtime</code></td><td><code>text</code></td><td>Meeting end: <code>HH.MM:SS.mmm</code></td></tr>
+        <tr><td><code>location</code></td><td><code>text</code></td><td>Location type (see below)</td></tr>
+        <tr><td><code>month</code></td><td><code>text</code></td><td>Zero-padded month</td></tr>
+        <tr><td><code>date</code></td><td><code>text</code></td><td>Zero-padded day</td></tr>
+        <tr><td><code>duration</code></td><td><code>int</code></td><td>Duration in minutes (truncated integer)</td></tr>
+    </tbody>
+</table>
+
+<div class="callout">
+    <strong>IMEI ordering invariant:</strong> <code>imei1 &lt; imei2</code> (lexicographic). Both <code>findMeetings</code> and <code>Network</code> enforce this before insert/query.
+</div>
+
+<h4>Location Values</h4>
+<table>
+    <thead><tr><th>Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>'public'</code></td><td>Public areas (WiFi AP IDs: 7, 16, 20, 35, 38, 39)</td></tr>
+        <tr><td><code>'class'</code></td><td>Classrooms (WiFi AP IDs: 29–34, 36)</td></tr>
+        <tr><td><code>'path'</code></td><td>Corridors (all other resolved AP IDs)</td></tr>
+        <tr><td><code>'unknown'</code></td><td>No WiFi AP matched (default before <code>addLocation</code>)</td></tr>
+        <tr><td><code>''</code></td><td>Empty — no AP data available</td></tr>
+    </tbody>
+</table>
+
+<h2 id="deviceid"><code>deviceID</code> — Device Identifier Mapping</h2>
+
+<p>Maps IMEI numbers to human-readable node IDs for graph rendering.</p>
+
+<table>
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>imei</code></td><td><code>text</code></td><td>Device IMEI number</td></tr>
+        <tr><td><code>id</code></td><td><code>text</code></td><td>Human-readable node ID (vertex label in graph)</td></tr>
+    </tbody>
+</table>
+
+<p>Used in JOIN queries by <code>Network.generateFile()</code> to resolve IMEI pairs into node IDs for edge lists.</p>
+
+<h2 id="device_1"><code>device_1</code> — Device Node Registry</h2>
+
+<p>Referenced by <code>matchImei</code> for IMEI-to-node matching. This table maps hardware device nodes to IMEI identifiers and is used to populate the <code>deviceID</code> table.</p>
+
+<h2 id="wifi">WiFi Tables (<code>nic_aziala</code> Database)</h2>
+
+<h3><code>trace</code> — WiFi Scan Traces</h3>
+
+<table>
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>id</code></td><td><code>int</code></td><td>Primary key</td></tr>
+        <tr><td><code>imei</code></td><td><code>text</code></td><td>Device IMEI</td></tr>
+        <tr><td><code>timestamp</code></td><td><code>timestamp</code></td><td>When the scan was recorded</td></tr>
+    </tbody>
+</table>
+
+<h3><code>event</code> — WiFi Scan Events</h3>
+
+<table>
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>trace</code></td><td><code>int</code></td><td>Foreign key → <code>trace.id</code></td></tr>
+        <tr><td><code>ap</code></td><td><code>int</code></td><td>Access point identifier</td></tr>
+        <tr><td><code>ssi</code></td><td><code>int</code></td><td>Signal strength (higher = stronger)</td></tr>
+    </tbody>
+</table>
+
+<h4>Location Classification Query</h4>
+<pre><code>-- Find common access points between two IMEIs in a time window
+SELECT DISTINCT ap, ssi FROM event AS a, trace AS b
+WHERE a.trace = b.id AND imei = ? AND timestamp >= ? AND timestamp <= ?
+INTERSECT
+SELECT DISTINCT ap, ssi FROM event AS a, trace AS b
+WHERE a.trace = b.id AND imei = ? AND timestamp >= ? AND timestamp <= ?
+ORDER BY ssi DESC LIMIT 1</code></pre>
+
+<h2 id="pipeline-order">Pipeline Order</h2>
+
+<p>Tables must be populated in this sequence:</p>
+
+<table>
+    <thead><tr><th>Step</th><th>Operation</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>1</td><td><code>event_3</code></td><td>Pre-loaded: raw Bluetooth proximity data</td></tr>
+        <tr><td>2</td><td><code>device_1</code></td><td>Pre-loaded: device hardware registry</td></tr>
+        <tr><td>3</td><td><code>matchImei</code></td><td>Populates <code>deviceID</code> from <code>device_1</code></td></tr>
+        <tr><td>4</td><td><code>findMeetings</code></td><td>Populates <code>meeting</code> from <code>event_3</code></td></tr>
+        <tr><td>5</td><td><code>addLocation</code></td><td>Updates <code>meeting.location</code> using WiFi data</td></tr>
+        <tr><td>6</td><td><code>Network</code></td><td>Reads <code>meeting</code> + <code>deviceID</code> → edge-list files</td></tr>
+    </tbody>
+</table>
+
+<h2 id="relationship-queries">Relationship Classification Queries</h2>
+
+<p><code>Network.generateFile()</code> classifies edges using parameterized SQL with duration and frequency thresholds:</p>
+
+<table>
+    <thead><tr><th>Relationship</th><th>Location Filter</th><th>Duration</th><th>Count</th><th>Edge Code</th></tr></thead>
+    <tbody>
+        <tr><td><span class="dot dot-green"></span>Friends</td><td><code>location = 'public'</code></td><td><code>&gt; threshold</code></td><td><code>≥ threshold</code></td><td><code>f</code></td></tr>
+        <tr><td><span class="dot dot-blue"></span>Classmates</td><td><code>location = 'class'</code></td><td><code>&gt; threshold</code></td><td><code>≥ threshold</code></td><td><code>c</code></td></tr>
+        <tr><td><span class="dot dot-orange"></span>Study Groups</td><td><code>location = 'class'</code></td><td><code>&gt; threshold</code></td><td><code>≤ threshold</code></td><td><code>sg</code></td></tr>
+        <tr><td><span class="dot dot-red"></span>Strangers</td><td><code>NOT IN ('class','unknown','')</code></td><td><code>&lt; threshold</code></td><td><code>&lt; threshold</code></td><td><code>s</code></td></tr>
+        <tr><td><span class="dot dot-gray"></span>Familiar Strangers</td><td><code>NOT IN ('class','unknown','')</code></td><td><code>&lt; threshold</code></td><td><code>&gt; threshold</code></td><td><code>fs</code></td></tr>
+    </tbody>
+</table>
+
+<p>Default thresholds are configurable via the GUI sliders in <code>Main.java</code>.</p>
+
+<footer>
+    <p>
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> •
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> •
+        Licensed under <a href="https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE">MIT</a>
+    </p>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>

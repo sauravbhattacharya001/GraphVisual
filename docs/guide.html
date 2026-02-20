@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Guide — GraphVisual Docs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link active"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">💻</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">📦</span>Releases</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🚀 Setup Guide
+    <span class="subtitle">Install, configure, build, and run GraphVisual</span>
+</h1>
+
+<div class="toc">
+    <div class="toc-title">On this page</div>
+    <a href="#prerequisites">Prerequisites</a>
+    <a href="#clone">Clone the Repository</a>
+    <a href="#database">Configure Database</a>
+    <a href="#build-maven">Build with Maven</a>
+    <a href="#build-ant">Build with Ant</a>
+    <a href="#pipeline">Run the Data Pipeline</a>
+    <a href="#launch">Launch the Visualizer</a>
+    <a href="#docker">Docker</a>
+    <a href="#maven-dep">Use as Maven Dependency</a>
+    <a href="#testing">Testing</a>
+</div>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<table>
+    <thead><tr><th>Requirement</th><th>Version</th><th>Notes</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Java JDK</strong></td><td>11+</td><td>OpenJDK or Oracle JDK</td></tr>
+        <tr><td><strong>PostgreSQL</strong></td><td>8.3+</td><td>For Bluetooth event data</td></tr>
+        <tr><td><strong>Maven</strong></td><td>3.6+</td><td>Recommended build system</td></tr>
+        <tr><td><strong>Apache Ant</strong></td><td>1.10+</td><td>Alternative build (NetBeans)</td></tr>
+    </tbody>
+</table>
+
+<h2 id="clone">Clone the Repository</h2>
+
+<pre><code>git clone https://github.com/sauravbhattacharya001/GraphVisual.git
+cd GraphVisual</code></pre>
+
+<h2 id="database">Configure Database</h2>
+
+<p>GraphVisual reads PostgreSQL credentials from environment variables — no hardcoded secrets:</p>
+
+<pre><code>export DB_HOST=localhost    # PostgreSQL host (default: localhost)
+export DB_USER=your_user    # Required
+export DB_PASS=your_pass    # Required</code></pre>
+
+<div class="callout">
+    <strong>Database schema:</strong> See the <a href="database.html">Database Schema</a> page for the required table structures. The application expects two databases: <code>nic_apps</code> (main data) and <code>nic_aziala</code> (WiFi traces).
+</div>
+
+<h2 id="build-maven">Build with Maven</h2>
+
+<p>The recommended approach uses Maven, which handles dependency resolution and produces a fat JAR:</p>
+
+<pre><code># Step 1: Install vendored JARs not on Maven Central
+mvn initialize -P install-local-deps
+
+# Step 2: Build the project (compile, test, package)
+mvn package -B</code></pre>
+
+<p>This produces:</p>
+<ul>
+    <li><code>target/graphvisual-1.1.0.jar</code> — standard JAR</li>
+    <li><code>target/graphvisual-1.1.0-all.jar</code> — fat JAR with all dependencies</li>
+    <li><code>target/graphvisual-1.1.0-sources.jar</code> — source code JAR</li>
+    <li><code>target/graphvisual-1.1.0-javadoc.jar</code> — Javadoc JAR</li>
+</ul>
+
+<h2 id="build-ant">Build with Ant</h2>
+
+<p>The original NetBeans-based build uses Ant:</p>
+
+<pre><code>cd Gvisual
+ant build</code></pre>
+
+<p>Or compile manually without Ant:</p>
+
+<pre><code>cd Gvisual
+mkdir -p build/classes
+find src -name '*.java' > sources.txt
+javac -cp "$(find lib -name '*.jar' | tr '\n' ':')" -d build/classes @sources.txt</code></pre>
+
+<h2 id="pipeline">Run the Data Pipeline</h2>
+
+<p>Before launching the visualizer, you need to populate the meeting database. Execute these steps in order:</p>
+
+<pre><code># Step 1: Match device nodes to IMEIs
+java -cp "build/classes:lib/*" app.matchImei
+
+# Step 2: Extract meetings from Bluetooth events
+java -cp "build/classes:lib/*" app.findMeetings
+
+# Step 3: Classify meeting locations via WiFi
+java -cp "build/classes:lib/*" app.addLocation</code></pre>
+
+<div class="callout-warn callout">
+    <strong>Order matters:</strong> <code>matchImei</code> must run before <code>findMeetings</code>, and <code>addLocation</code> runs last to classify locations using WiFi trace data.
+</div>
+
+<h2 id="launch">Launch the Visualizer</h2>
+
+<h3>From Maven build</h3>
+<pre><code>java -jar target/graphvisual-1.1.0-all.jar</code></pre>
+
+<h3>From Ant build</h3>
+<pre><code>java -cp "build/classes:lib/*" gvisual.Main</code></pre>
+
+<h2 id="docker">Docker</h2>
+
+<h3>Build the image</h3>
+<pre><code>docker build -t graphvisual .</code></pre>
+
+<h3>Run with X11 forwarding (Linux/macOS)</h3>
+<pre><code># Allow X11 forwarding
+xhost +local:docker
+
+docker run --rm \
+  -e DISPLAY=$DISPLAY \
+  -e DB_HOST=host.docker.internal \
+  -e DB_USER=your_user \
+  -e DB_PASS=your_pass \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  graphvisual</code></pre>
+
+<h3>Pull from GitHub Container Registry</h3>
+<pre><code>docker pull ghcr.io/sauravbhattacharya001/graphvisual:latest</code></pre>
+
+<div class="callout">
+    The Dockerfile builds a fat JAR with all dependencies, compiles source, runs tests during build, and packages a minimal JRE-based runtime image (~300MB). X11 libraries are included for GUI support.
+</div>
+
+<h2 id="maven-dep">Use as Maven Dependency</h2>
+
+<p>GraphVisual is published to <a href="https://github.com/sauravbhattacharya001/GraphVisual/packages">GitHub Packages</a>. You can add it as a library dependency:</p>
+
+<h4>1. Configure GitHub Packages in <code>~/.m2/settings.xml</code></h4>
+
+<pre><code>&lt;servers&gt;
+  &lt;server&gt;
+    &lt;id&gt;github&lt;/id&gt;
+    &lt;username&gt;YOUR_GITHUB_USERNAME&lt;/username&gt;
+    &lt;password&gt;YOUR_GITHUB_TOKEN&lt;/password&gt;
+  &lt;/server&gt;
+&lt;/servers&gt;</code></pre>
+
+<h4>2. Add repository and dependency to <code>pom.xml</code></h4>
+
+<pre><code>&lt;repositories&gt;
+  &lt;repository&gt;
+    &lt;id&gt;github&lt;/id&gt;
+    &lt;url&gt;https://maven.pkg.github.com/sauravbhattacharya001/GraphVisual&lt;/url&gt;
+  &lt;/repository&gt;
+&lt;/repositories&gt;
+
+&lt;dependency&gt;
+  &lt;groupId&gt;com.github.sauravbhattacharya001&lt;/groupId&gt;
+  &lt;artifactId&gt;graphvisual&lt;/artifactId&gt;
+  &lt;version&gt;1.1.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+<h2 id="testing">Testing</h2>
+
+<h3>With Maven</h3>
+<pre><code>mvn test</code></pre>
+
+<h3>With JUnit directly</h3>
+<pre><code>cd Gvisual
+mkdir -p build/test/classes
+
+# Download JUnit (if not present)
+curl -sL -o lib/test/junit-4.13.2.jar \
+  https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar
+curl -sL -o lib/test/hamcrest-core-1.3.jar \
+  https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+
+# Compile and run
+find test -name '*.java' > test-sources.txt
+javac -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+  -d build/test/classes @test-sources.txt
+
+java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+  org.junit.runner.JUnitCore gvisual.EdgeTest gvisual.GraphStatsTest \
+  gvisual.NodeCentralityAnalyzerTest gvisual.ShortestPathFinderTest</code></pre>
+
+<p>The test suite covers:</p>
+
+<table>
+    <thead><tr><th>Test Class</th><th>Coverage</th></tr></thead>
+    <tbody>
+        <tr><td><code>EdgeTest</code></td><td>Edge model — type, weight, label, vertices</td></tr>
+        <tr><td><code>GraphStatsTest</code></td><td>Network metrics — density, degree, hubs, isolated nodes</td></tr>
+        <tr><td><code>NodeCentralityAnalyzerTest</code></td><td>Centrality — degree, betweenness, closeness</td></tr>
+        <tr><td><code>ShortestPathFinderTest</code></td><td>Path algorithms — BFS, Dijkstra, reachability</td></tr>
+        <tr><td><code>GraphMLExporterTest</code></td><td>GraphML export — XML generation, escaping</td></tr>
+        <tr><td><code>CommunityDetectorTest</code></td><td>Community detection — components, modularity</td></tr>
+        <tr><td><code>UtilMethodsTest</code></td><td>Utility methods — DB connection factory</td></tr>
+    </tbody>
+</table>
+
+<footer>
+    <p>
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> •
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> •
+        Licensed under <a href="https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE">MIT</a>
+    </p>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>

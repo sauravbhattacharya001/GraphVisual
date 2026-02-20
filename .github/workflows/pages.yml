@@ -1,10 +1,12 @@
-name: Deploy to GitHub Pages
+name: Deploy Documentation
 
 on:
   push:
     branches: [master]
     paths:
       - 'docs/**'
+      - 'Gvisual/src/**'
+      - 'pom.xml'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -18,14 +20,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Install local dependencies
+        run: mvn initialize -P install-local-deps -B
+
+      - name: Generate Javadoc
+        run: mvn javadoc:javadoc -B -Dmaven.javadoc.failOnError=false
+
+      - name: Copy Javadoc to docs site
+        run: |
+          mkdir -p docs/javadoc
+          if [ -d "target/site/apidocs" ]; then
+            cp -r target/site/apidocs/* docs/javadoc/
+          else
+            echo '<html><body><h1>Javadoc</h1><p>Javadoc generation pending. Build locally with <code>mvn javadoc:javadoc</code>.</p></body></html>' > docs/javadoc/index.html
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -35,6 +55,13 @@ jobs:
         with:
           path: docs
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
