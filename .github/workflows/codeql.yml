@@ -36,7 +36,7 @@ jobs:
           distribution: "temurin"
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # Use extended security queries for deeper analysis
@@ -59,6 +59,6 @@ jobs:
             @sources.txt || echo "Build completed with warnings (non-fatal for CodeQL)"
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
