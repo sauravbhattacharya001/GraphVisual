@@ -60,4 +60,6 @@ jobs:
             gvisual.EdgeTest \
             gvisual.GraphStatsTest \
             gvisual.ShortestPathFinderTest \
-            gvisual.GraphMLExporterTest
+            gvisual.GraphMLExporterTest \
+            gvisual.CommunityDetectorTest \
+            gvisual.NodeCentralityAnalyzerTest

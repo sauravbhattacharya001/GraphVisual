@@ -2,6 +2,20 @@
 
 All notable changes to GraphVisual will be documented in this file.
 
+## [1.2.0] — 2026-02-20
+
+### ✨ Node Centrality Analysis
+
+- **NodeCentralityAnalyzer** — Computes three classic centrality metrics for all nodes:
+  - **Degree centrality** — normalized node degree (connections / max possible)
+  - **Betweenness centrality** — Brandes' algorithm (O(V*E)), measures how often a node lies on shortest paths between other pairs
+  - **Closeness centrality** — inverse of average shortest-path distance (Wasserman-Faust normalization for disconnected graphs)
+- **Combined score** — weighted average (0.3 degree + 0.4 betweenness + 0.3 closeness) for overall importance ranking
+- **Network topology classification** — auto-classifies graph as Trivial, Disconnected, Hub-and-Spoke, Distributed, or Hierarchical
+- **Interactive centrality panel** — Compute button, metric dropdown (Combined/Degree/Betweenness/Closeness), top-10 ranking with medal icons, summary stats (averages + most central nodes per metric)
+- **Programmatic API** — `getResult(nodeId)`, `getRankedResults()`, `getTopNodes(n)`, `getTopByMetric(n, metric)`, centrality maps, `getSummary()`, `classifyTopology()`
+- 45 new tests covering all algorithms, edge cases, auto-compute, and CentralityResult model
+
 ## [1.0.0] — 2026-02-14
 
 ### 🎉 First Release

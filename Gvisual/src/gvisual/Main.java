@@ -36,6 +36,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -179,6 +181,17 @@ public class Main extends JFrame {
     private JRadioButton pathByHops;
     private JRadioButton pathByWeight;
 
+    // --- Centrality analysis fields ---
+    private JPanel centralityPanel;
+    private JButton centralityComputeButton;
+    private JButton centralityClearButton;
+    private JComboBox<String> centralityMetricCombo;
+    private JLabel centralityTopologyLabel;
+    private JLabel centralitySummaryLabel;
+    private JLabel centralityRankingLabel;
+    private boolean centralityActive;
+    private Map<String, NodeCentralityAnalyzer.CentralityResult> centralityResults;
+
     // --- Community detection fields ---
     private JPanel communityPanel;
     private JButton communityDetectButton;
@@ -215,6 +228,7 @@ public class Main extends JFrame {
         initializeStatsPanel();
         initializePathPanel();
         initializeCommunityPanel();
+        initializeCentralityPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -1187,6 +1201,203 @@ public class Main extends JFrame {
     }
 
     /**
+     * Initializes the centrality analysis panel with compute/clear buttons,
+     * metric selector, and ranked results display.
+     */
+    public final void initializeCentralityPanel() {
+        centralityActive = false;
+        centralityResults = new HashMap<String, NodeCentralityAnalyzer.CentralityResult>();
+
+        centralityPanel = new JPanel();
+        centralityPanel.setLayout(new BoxLayout(centralityPanel, BoxLayout.Y_AXIS));
+        centralityPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Centrality Analysis",
+                TitledBorder.CENTER,
+                TitledBorder.TOP));
+
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+
+        centralityTopologyLabel = new JLabel("Topology: —");
+        centralityTopologyLabel.setFont(labelFont);
+        centralityTopologyLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        centralitySummaryLabel = new JLabel("<html>Click 'Compute' to analyze node centrality.</html>");
+        centralitySummaryLabel.setFont(labelFont);
+        centralitySummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        centralityRankingLabel = new JLabel("");
+        centralityRankingLabel.setFont(labelFont);
+        centralityRankingLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        // Metric selector combo box
+        centralityMetricCombo = new JComboBox<String>(
+                new String[] { "Combined", "Degree", "Betweenness", "Closeness" });
+        centralityMetricCombo.setAlignmentX(JComboBox.LEFT_ALIGNMENT);
+        centralityMetricCombo.setMaximumSize(new Dimension(200, 25));
+        centralityMetricCombo.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (centralityActive) {
+                    updateCentralityRanking();
+                }
+            }
+        });
+
+        JPanel metricPanel = new JPanel();
+        metricPanel.setLayout(new BoxLayout(metricPanel, BoxLayout.X_AXIS));
+        metricPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        JLabel sortLabel = new JLabel("Sort by: ");
+        sortLabel.setFont(labelFont);
+        metricPanel.add(sortLabel);
+        metricPanel.add(centralityMetricCombo);
+
+        // Buttons
+        centralityComputeButton = new JButton("Compute");
+        centralityComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        centralityComputeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                runCentralityAnalysis();
+            }
+        });
+
+        centralityClearButton = new JButton("Clear");
+        centralityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        centralityClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearCentralityAnalysis();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(centralityComputeButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(centralityClearButton);
+
+        centralityPanel.add(centralityTopologyLabel);
+        centralityPanel.add(Box.createVerticalStrut(4));
+        centralityPanel.add(metricPanel);
+        centralityPanel.add(Box.createVerticalStrut(4));
+        centralityPanel.add(buttonPanel);
+        centralityPanel.add(Box.createVerticalStrut(4));
+        centralityPanel.add(centralitySummaryLabel);
+        centralityPanel.add(Box.createVerticalStrut(4));
+        centralityPanel.add(centralityRankingLabel);
+    }
+
+    /**
+     * Runs centrality analysis on the current graph and displays results.
+     */
+    private void runCentralityAnalysis() {
+        if (g == null || g.getVertexCount() == 0) {
+            centralitySummaryLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+
+        NodeCentralityAnalyzer analyzer = new NodeCentralityAnalyzer(g);
+        analyzer.compute();
+
+        centralityActive = true;
+        centralityResults.clear();
+
+        // Cache results
+        for (NodeCentralityAnalyzer.CentralityResult r : analyzer.getRankedResults()) {
+            centralityResults.put(r.getNodeId(), r);
+        }
+
+        // Topology classification
+        String topology = analyzer.classifyTopology();
+        centralityTopologyLabel.setText("Topology: " + topology);
+
+        // Summary stats
+        Map<String, Object> summary = analyzer.getSummary();
+        StringBuilder sb = new StringBuilder("<html>");
+        sb.append(String.format("<b>Avg Degree C:</b> %.3f<br/>", summary.get("avgDegreeCentrality")));
+        sb.append(String.format("<b>Avg Betweenness C:</b> %.3f<br/>", summary.get("avgBetweennessCentrality")));
+        sb.append(String.format("<b>Avg Closeness C:</b> %.3f<br/>", summary.get("avgClosenessCentrality")));
+        sb.append(String.format("<b>Most Connected:</b> Node %s (%.3f)<br/>",
+                summary.get("maxDegreeCentralityNode"), summary.get("maxDegreeCentrality")));
+        sb.append(String.format("<b>Most Central:</b> Node %s (%.3f)<br/>",
+                summary.get("maxBetweennessCentralityNode"), summary.get("maxBetweennessCentrality")));
+        sb.append(String.format("<b>Most Reachable:</b> Node %s (%.3f)",
+                summary.get("maxClosenessCentralityNode"), summary.get("maxClosenessCentrality")));
+        sb.append("</html>");
+        centralitySummaryLabel.setText(sb.toString());
+
+        updateCentralityRanking();
+
+        centralityPanel.revalidate();
+        centralityPanel.repaint();
+    }
+
+    /**
+     * Updates the centrality ranking display based on the selected metric.
+     */
+    private void updateCentralityRanking() {
+        if (!centralityActive || centralityResults.isEmpty()) return;
+
+        String metric = (String) centralityMetricCombo.getSelectedItem();
+        List<NodeCentralityAnalyzer.CentralityResult> sorted =
+                new ArrayList<NodeCentralityAnalyzer.CentralityResult>(centralityResults.values());
+
+        final String m = metric.toLowerCase();
+        Collections.sort(sorted, new Comparator<NodeCentralityAnalyzer.CentralityResult>() {
+            public int compare(NodeCentralityAnalyzer.CentralityResult a,
+                               NodeCentralityAnalyzer.CentralityResult b) {
+                double va, vb;
+                if ("degree".equals(m)) {
+                    va = a.getDegreeCentrality();
+                    vb = b.getDegreeCentrality();
+                } else if ("betweenness".equals(m)) {
+                    va = a.getBetweennessCentrality();
+                    vb = b.getBetweennessCentrality();
+                } else if ("closeness".equals(m)) {
+                    va = a.getClosenessCentrality();
+                    vb = b.getClosenessCentrality();
+                } else {
+                    va = a.getCombinedScore();
+                    vb = b.getCombinedScore();
+                }
+                return Double.compare(vb, va);
+            }
+        });
+
+        int shown = Math.min(sorted.size(), 10);
+        StringBuilder sb = new StringBuilder("<html><b>Top " + shown + " by " + metric + ":</b><br/>");
+        for (int i = 0; i < shown; i++) {
+            NodeCentralityAnalyzer.CentralityResult r = sorted.get(i);
+            String medal = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "&nbsp;&nbsp;";
+            double value;
+            if ("degree".equals(m)) value = r.getDegreeCentrality();
+            else if ("betweenness".equals(m)) value = r.getBetweennessCentrality();
+            else if ("closeness".equals(m)) value = r.getClosenessCentrality();
+            else value = r.getCombinedScore();
+
+            sb.append(String.format("%s #%d Node %s: %.3f (deg=%d)<br/>",
+                    medal, i + 1, r.getNodeId(), value, r.getDegree()));
+        }
+        sb.append("</html>");
+        centralityRankingLabel.setText(sb.toString());
+
+        centralityPanel.revalidate();
+        centralityPanel.repaint();
+    }
+
+    /**
+     * Clears the centrality analysis and resets the panel.
+     */
+    private void clearCentralityAnalysis() {
+        centralityActive = false;
+        centralityResults.clear();
+        centralityTopologyLabel.setText("Topology: —");
+        centralitySummaryLabel.setText("<html>Click 'Compute' to analyze node centrality.</html>");
+        centralityRankingLabel.setText("");
+        centralityPanel.revalidate();
+        centralityPanel.repaint();
+    }
+
+    /**
      * Initializes the network statistics panel showing real-time graph metrics.
      */
     public final void initializeStatsPanel() {
@@ -1307,14 +1518,19 @@ public class Main extends JFrame {
         JSplitPane splitPaneCommunity = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPanePath, communityPanel);
 
-        // Add stats panel below community panel
+        // Add centrality panel below community panel
+        JSplitPane splitPaneCentrality = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPaneCommunity, centralityPanel);
+
+        // Add stats panel below centrality panel
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneCommunity, statsPanel);
+                splitPaneCentrality, statsPanel);
 
         splitPane1.setDividerLocation(400);
         splitPanePath.setDividerLocation(510);
         splitPaneCommunity.setDividerLocation(640);
-        splitPane2.setDividerLocation(820);
+        splitPaneCentrality.setDividerLocation(820);
+        splitPane2.setDividerLocation(1050);
         add(splitPane2, BorderLayout.EAST);
 
     }

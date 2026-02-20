@@ -37,6 +37,7 @@ The tool was developed for research on **social network analysis** — specifica
 - **Notes panel** — Annotate each timestamp during analysis
 - **Graph export** — Save visualizations as PNG images and edge lists
 - **Network statistics panel** — Real-time metrics including node/edge counts, per-category breakdowns, graph density, average/max degree, average edge weight, isolated node count, and top-3 hub nodes
+- **Centrality analysis** — Compute degree, betweenness (Brandes' algorithm), and closeness centrality for all nodes. Interactive panel with metric sorting, top-10 ranking with medals, network topology classification, and per-metric averages/maximums
 
 ## Architecture
 
@@ -47,6 +48,7 @@ GraphVisual/
 │   │   ├── Main.java          # Swing GUI — graph panel, timeline, controls, legend
 │   │   ├── edge.java          # Edge model (type, vertices, weight, label)
 │   │   └── GraphStats.java    # Network metrics calculator (density, degree, hubs)
+│   │   └── NodeCentralityAnalyzer.java # Centrality metrics (degree, betweenness, closeness)
 │   └── app/
 │       ├── Network.java       # Generates edge-list files from DB meeting queries
 │       ├── Util.java          # Database connection factory (env-based credentials)
@@ -154,6 +156,7 @@ java -cp "build/classes:lib/*" gvisual.Main
 | **Category Panel** | Toggle visibility of each relationship type. Expand to adjust duration/frequency thresholds. |
 | **Notes Pane** | Free-text area for annotating the currently viewed graph timestamp. |
 | **Statistics Panel** | Live network metrics — node/edge counts, density, degree stats, and hub identification. |
+| **Centrality Panel** | Compute and rank nodes by degree, betweenness, and closeness centrality with sortable metric selector. |
 
 ## Relationship Classification
 
