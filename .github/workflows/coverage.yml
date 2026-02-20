@@ -69,7 +69,8 @@ jobs:
             gvisual.EdgeTest \
             gvisual.GraphStatsTest \
             gvisual.ShortestPathFinderTest \
-            gvisual.CommunityDetectorTest
+            gvisual.CommunityDetectorTest \
+            gvisual.GraphMLExporterTest
 
       - name: Generate coverage report
         working-directory: Gvisual

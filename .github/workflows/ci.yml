@@ -59,4 +59,5 @@ jobs:
             app.UtilMethodsTest \
             gvisual.EdgeTest \
             gvisual.GraphStatsTest \
-            gvisual.ShortestPathFinderTest
+            gvisual.ShortestPathFinderTest \
+            gvisual.GraphMLExporterTest

@@ -2173,6 +2173,59 @@ public class Main extends JFrame {
         });
         toolPanel.add(exportButton);
 
+        JButton graphmlButton = new JButton("<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>");
+        graphmlButton.setPreferredSize(new Dimension(140, 100));
+        graphmlButton.addActionListener(new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                // Collect all edges from all categories
+                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
+                allEdges.addAll(friendEdges);
+                allEdges.addAll(fsEdges);
+                allEdges.addAll(classmateEdges);
+                allEdges.addAll(strangerEdges);
+                allEdges.addAll(studyGEdges);
+
+                GraphMLExporter exporter = new GraphMLExporter(g, allEdges);
+                exporter.setTimestamp(timeStamp);
+                exporter.setDescription("GraphVisual network — student community evolution");
+
+                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+                fileChooser.setDialogTitle("Export as GraphML");
+                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".graphml"));
+                int returnVal = fileChooser.showSaveDialog(null);
+                if (returnVal != JFileChooser.APPROVE_OPTION) return;
+
+                File outFile = fileChooser.getSelectedFile();
+                if (!outFile.getName().endsWith(".graphml")) {
+                    outFile = new File(outFile.getAbsolutePath() + ".graphml");
+                }
+
+                if (outFile.exists()) {
+                    int confirm = JOptionPane.showConfirmDialog(null,
+                            "File already exists. Overwrite?",
+                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+                    if (confirm != JOptionPane.YES_OPTION) return;
+                }
+
+                try {
+                    exporter.export(outFile);
+                    JOptionPane.showMessageDialog(null,
+                            "GraphML exported successfully!\n"
+                            + "Nodes: " + exporter.getVertexCount() + "\n"
+                            + "Edges: " + exporter.getEdgeCount() + "\n"
+                            + "File: " + outFile.getName(),
+                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex1) {
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex1);
+                    JOptionPane.showMessageDialog(null,
+                            "Export failed: " + ex1.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        toolPanel.add(graphmlButton);
+
         toolPanel.add(legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }
