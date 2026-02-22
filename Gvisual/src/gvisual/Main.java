@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package gvisual;
 
 import app.Network;
@@ -44,8 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Vector;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -100,11 +94,11 @@ public class Main extends JFrame {
     private Graph<String, edge> g;
     private VisualizationViewer<String, edge> vv;
     private Layout<String, edge> graphLayout;
-    private Vector<edge> friendEdges = new Vector<edge>();
-    private Vector<edge> fsEdges = new Vector<edge>();
-    private Vector<edge> classmateEdges = new Vector<edge>();
-    private Vector<edge> strangerEdges = new Vector<edge>();
-    private Vector<edge> studyGEdges = new Vector<edge>();
+    private List<edge> friendEdges = new ArrayList<>();
+    private List<edge> fsEdges = new ArrayList<>();
+    private List<edge> classmateEdges = new ArrayList<>();
+    private List<edge> strangerEdges = new ArrayList<>();
+    private List<edge> studyGEdges = new ArrayList<>();
     private String fileName;
     private Box parameterSpace;
     private JPanel notesPanel;
@@ -265,10 +259,10 @@ public class Main extends JFrame {
      */
     public void createLayout() {
         graphLayout = new StaticLayout<String, edge>(g);
-        Vector<Vector<String>> clusters = new Vector<Vector<String>>();
+        List<List<String>> clusters = new ArrayList<>();
 
         for (int i = 0; i < 9; i++) {
-            clusters.add(new Vector<String>());
+            clusters.add(new ArrayList<>());
         }
 
         for (String x : g.getVertices()) {
@@ -322,11 +316,11 @@ public class Main extends JFrame {
 
     /**
      * Positions a given set of vertices at certain location, but at random positions in that area
-     * @param vertices vector of vertices to cluster
+     * @param vertices list of vertices to cluster
      * @param y y-position of cluster
      * @param x x-position of cluster
      */
-    public void positionCluster(Vector<String> vertices, int y, int x) {
+    public void positionCluster(List<String> vertices, int y, int x) {
         int delX = 0;
         int delY = 0;
         int curX = x * 300 + 150;
@@ -359,11 +353,11 @@ public class Main extends JFrame {
 
     /**
      * Positions a given set of vertices at certain location
-     * @param vertices vector of vertices to cluster
+     * @param vertices list of vertices to cluster
      * @param y y-position of cluster
      * @param x x-position of cluster
      */
-    public void back_positionCluster(Vector<String> vertices, int y, int x) {
+    public void back_positionCluster(List<String> vertices, int y, int x) {
         int curX = x * 300 + 20;
         int curY = y * 200 + 20;
         for (String v : vertices) {

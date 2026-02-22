@@ -13,11 +13,11 @@ import java.util.*;
 public class GraphStats {
 
     private final Graph<String, edge> graph;
-    private final Vector<edge> friendEdges;
-    private final Vector<edge> fsEdges;
-    private final Vector<edge> classmateEdges;
-    private final Vector<edge> strangerEdges;
-    private final Vector<edge> studyGEdges;
+    private final List<edge> friendEdges;
+    private final List<edge> fsEdges;
+    private final List<edge> classmateEdges;
+    private final List<edge> strangerEdges;
+    private final List<edge> studyGEdges;
 
     /**
      * @param graph         the current JUNG graph
@@ -28,11 +28,11 @@ public class GraphStats {
      * @param studyGEdges   study group edges
      */
     public GraphStats(Graph<String, edge> graph,
-                      Vector<edge> friendEdges,
-                      Vector<edge> fsEdges,
-                      Vector<edge> classmateEdges,
-                      Vector<edge> strangerEdges,
-                      Vector<edge> studyGEdges) {
+                      List<edge> friendEdges,
+                      List<edge> fsEdges,
+                      List<edge> classmateEdges,
+                      List<edge> strangerEdges,
+                      List<edge> studyGEdges) {
         this.graph = graph;
         this.friendEdges = friendEdges;
         this.fsEdges = fsEdges;
