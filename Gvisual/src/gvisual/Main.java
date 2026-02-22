@@ -181,6 +181,16 @@ public class Main extends JFrame {
     private JRadioButton pathByHops;
     private JRadioButton pathByWeight;
 
+    // --- MST fields ---
+    private JPanel mstPanel;
+    private JButton mstComputeButton;
+    private JButton mstClearButton;
+    private JLabel mstSummaryLabel;
+    private JLabel mstStatsLabel;
+    private JLabel mstComponentsLabel;
+    private boolean mstOverlayActive;
+    private Set<edge> mstEdges;
+
     // --- Centrality analysis fields ---
     private JPanel centralityPanel;
     private JButton centralityComputeButton;
@@ -228,6 +238,7 @@ public class Main extends JFrame {
         initializeStatsPanel();
         initializePathPanel();
         initializeCommunityPanel();
+        initializeMSTPanel();
         initializeCentralityPanel();
         initializeTimeLine();
         initializeToolBar();
@@ -595,6 +606,10 @@ public class Main extends JFrame {
                 if (pathEdges != null && pathEdges.contains(edge)) {
                     return Color.YELLOW;
                 }
+                // MST overlay — highlight MST edges in bright green
+                if (mstOverlayActive && mstEdges != null && mstEdges.contains(edge)) {
+                    return new Color(0, 255, 100);
+                }
                 // Community overlay mode — color edges by community
                 if (communityOverlayActive && nodeCommunityMap != null) {
                     Integer c1 = nodeCommunityMap.get(edge.getVertex1());
@@ -605,6 +620,10 @@ public class Main extends JFrame {
                         return new Color(base.getRed(), base.getGreen(), base.getBlue(), 180);
                     }
                     return new Color(100, 100, 100, 80); // cross-community edges are dim
+                }
+                // MST overlay — dim non-MST edges
+                if (mstOverlayActive && mstEdges != null && !mstEdges.contains(edge)) {
+                    return new Color(80, 80, 80, 60);
                 }
                 if (edge.getType().equalsIgnoreCase("f")) {
                     return FRIEND_COLOR;
@@ -705,6 +724,10 @@ public class Main extends JFrame {
                 // Highlight path edges with thicker solid stroke
                 if (pathEdges != null && pathEdges.contains(i)) {
                     return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+                }
+                // MST edges get thicker solid stroke
+                if (mstOverlayActive && mstEdges != null && mstEdges.contains(i)) {
+                    return new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
                 }
                 float dash[] = {1.0f};
                 float width = i.getWeight() / 40 + 1.0f;
@@ -1201,6 +1224,164 @@ public class Main extends JFrame {
     }
 
     /**
+     * Initializes the Minimum Spanning Tree panel with compute/clear buttons
+     * and result display.
+     */
+    public final void initializeMSTPanel() {
+        mstOverlayActive = false;
+        mstEdges = new HashSet<edge>();
+
+        mstPanel = new JPanel();
+        mstPanel.setLayout(new BoxLayout(mstPanel, BoxLayout.Y_AXIS));
+        mstPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Minimum Spanning Tree",
+                TitledBorder.CENTER,
+                TitledBorder.TOP));
+
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+
+        mstSummaryLabel = new JLabel("<html>Click 'Compute' to find the MST.</html>");
+        mstSummaryLabel.setFont(labelFont);
+        mstSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        mstStatsLabel = new JLabel("");
+        mstStatsLabel.setFont(labelFont);
+        mstStatsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        mstComponentsLabel = new JLabel("");
+        mstComponentsLabel.setFont(labelFont);
+        mstComponentsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        // Buttons
+        mstComputeButton = new JButton("Compute");
+        mstComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        mstComputeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                runMSTComputation();
+            }
+        });
+
+        mstClearButton = new JButton("Clear");
+        mstClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        mstClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearMSTOverlay();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+        buttonPanel.add(mstComputeButton);
+        buttonPanel.add(Box.createHorizontalStrut(4));
+        buttonPanel.add(mstClearButton);
+
+        mstPanel.add(mstSummaryLabel);
+        mstPanel.add(Box.createVerticalStrut(4));
+        mstPanel.add(buttonPanel);
+        mstPanel.add(Box.createVerticalStrut(4));
+        mstPanel.add(mstStatsLabel);
+        mstPanel.add(Box.createVerticalStrut(4));
+        mstPanel.add(mstComponentsLabel);
+    }
+
+    /**
+     * Computes the MST and activates the edge highlight overlay.
+     */
+    private void runMSTComputation() {
+        if (g == null || g.getVertexCount() == 0) {
+            mstSummaryLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+
+        MinimumSpanningTree mstComputer = new MinimumSpanningTree(g);
+        MinimumSpanningTree.MSTResult result = mstComputer.compute();
+
+        mstOverlayActive = true;
+        mstEdges.clear();
+        mstEdges.addAll(result.getEdges());
+
+        // Summary
+        mstSummaryLabel.setText("<html><b style='color:#00FF00'>"
+                + result.getSummary() + "</b></html>");
+
+        // Stats
+        StringBuilder stats = new StringBuilder("<html>");
+        stats.append(String.format("<b>Vertices:</b> %d<br/>", result.getVertexCount()));
+        stats.append(String.format("<b>MST Edges:</b> %d<br/>", result.getEdgeCount()));
+        stats.append(String.format("<b>Total Weight:</b> %.1f<br/>", result.getTotalWeight()));
+        stats.append(String.format("<b>Avg Weight:</b> %.1f<br/>", result.getAverageWeight()));
+
+        if (result.getHeaviestEdge() != null) {
+            edge heavy = result.getHeaviestEdge();
+            stats.append(String.format("<b>Bottleneck:</b> %s↔%s (%.1f)<br/>",
+                    heavy.getVertex1(), heavy.getVertex2(), heavy.getWeight()));
+        }
+        if (result.getLightestEdge() != null) {
+            edge light = result.getLightestEdge();
+            stats.append(String.format("<b>Lightest:</b> %s↔%s (%.1f)<br/>",
+                    light.getVertex1(), light.getVertex2(), light.getWeight()));
+        }
+
+        // Edge type distribution
+        Map<String, Integer> dist = result.getEdgeTypeDistribution();
+        if (!dist.isEmpty()) {
+            stats.append("<b>Types:</b> ");
+            boolean first = true;
+            for (Map.Entry<String, Integer> entry : dist.entrySet()) {
+                if (!first) stats.append(", ");
+                stats.append(getDominantLabel(entry.getKey())).append("=").append(entry.getValue());
+                first = false;
+            }
+            stats.append("<br/>");
+        }
+        stats.append("</html>");
+        mstStatsLabel.setText(stats.toString());
+
+        // Component breakdown (for forests)
+        if (result.getComponentCount() > 1) {
+            StringBuilder comps = new StringBuilder("<html><b>Components:</b><br/>");
+            int shown = Math.min(result.getComponents().size(), 6);
+            for (int i = 0; i < shown; i++) {
+                MinimumSpanningTree.MSTComponent comp = result.getComponents().get(i);
+                comps.append(String.format("&nbsp;C%d: %d nodes, %d edges, wt=%.1f",
+                        comp.getId(), comp.getSize(), comp.getEdges().size(), comp.getTotalWeight()));
+                String dominant = comp.getDominantType();
+                if (dominant != null) {
+                    comps.append(" (").append(getDominantLabel(dominant)).append(")");
+                }
+                comps.append("<br/>");
+            }
+            if (result.getComponents().size() > shown) {
+                comps.append("...and ").append(result.getComponents().size() - shown).append(" more<br/>");
+            }
+            comps.append("</html>");
+            mstComponentsLabel.setText(comps.toString());
+        } else {
+            mstComponentsLabel.setText("");
+        }
+
+        mstPanel.revalidate();
+        mstPanel.repaint();
+        refreshGraph();
+    }
+
+    /**
+     * Clears the MST overlay and resets the panel.
+     */
+    private void clearMSTOverlay() {
+        mstOverlayActive = false;
+        mstEdges.clear();
+        mstSummaryLabel.setText("<html>Click 'Compute' to find the MST.</html>");
+        mstStatsLabel.setText("");
+        mstComponentsLabel.setText("");
+        mstPanel.revalidate();
+        mstPanel.repaint();
+        refreshGraph();
+    }
+
+    /**
      * Initializes the centrality analysis panel with compute/clear buttons,
      * metric selector, and ranked results display.
      */
@@ -1518,9 +1699,13 @@ public class Main extends JFrame {
         JSplitPane splitPaneCommunity = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPanePath, communityPanel);
 
-        // Add centrality panel below community panel
+        // Add MST panel below community panel
+        JSplitPane splitPaneMST = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPaneCommunity, mstPanel);
+
+        // Add centrality panel below MST panel
         JSplitPane splitPaneCentrality = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneCommunity, centralityPanel);
+                splitPaneMST, centralityPanel);
 
         // Add stats panel below centrality panel
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
@@ -1529,8 +1714,9 @@ public class Main extends JFrame {
         splitPane1.setDividerLocation(400);
         splitPanePath.setDividerLocation(510);
         splitPaneCommunity.setDividerLocation(640);
-        splitPaneCentrality.setDividerLocation(820);
-        splitPane2.setDividerLocation(1050);
+        splitPaneMST.setDividerLocation(760);
+        splitPaneCentrality.setDividerLocation(920);
+        splitPane2.setDividerLocation(1150);
         add(splitPane2, BorderLayout.EAST);
 
     }
