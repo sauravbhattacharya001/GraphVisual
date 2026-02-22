@@ -61,22 +61,7 @@ import org.xml.sax.SAXException;
 public class Main extends JFrame {
 
     private static final Color DEFAULT_BG_COLOR = Color.BLACK;
-    private static final Color FRIEND_COLOR = Color.GREEN;
-    private static final Color FS_COLOR = Color.GRAY;
-    private static final Color CLASSMATES_COLOR = Color.BLUE;
-    private static final Color STRANGER_COLOR = Color.RED;
-    private static final Color STUDYG_COLOR = Color.ORANGE;
     private static final Color Vertex_COLOR = Color.WHITE;
-    private static final int FRIEND_DUR_THRESHOLD = 10;
-    private static final int FRIEND_NUM_MEET_THRESHOLD = 2;
-    private static final int CLASSMATE_DUR_THRESHOLD = 30;
-    private static final int CLASSMATE_NUM_MEET_THRESHOLD = 1;
-    private static final int FS_DUR_THRESHOLD = 2;
-    private static final int FS_NUM_MEET_THRESHOLD = 1;
-    private static final int STRANGER_DUR_THRESHOLD = 2;
-    private static final int STRANGER_NUM_MEET_THRESHOLD = 2;
-    private static final int STUDY_DUR_THRESHOLD = 20;
-    private static final int STUDY_NUM_MEET_THRESHOLD = 1;
     private static int DELAY = 2048;
     private JSlider friendDurThreshold;
     private JSlider friendNumMeetThreshold;
@@ -139,11 +124,6 @@ public class Main extends JFrame {
     private JButton fastButton;
     private Collection<String> OldVertices;
     private int prevTimeline;
-    private boolean fLabelled;
-    private boolean fsLabelled;
-    private boolean cLabelled;
-    private boolean sLabelled;
-    private boolean sgLabelled;
     private JPanel legendPanel;
     private JPanel statsPanel;
     private JLabel statsNodeCount;
@@ -252,6 +232,38 @@ public class Main extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
 
+    }
+
+    /**
+     * Returns the edge list for the given edge type.
+     * Used to replace the cascading if/else chain in addGraph().
+     */
+    private List<edge> getEdgeList(EdgeType type) {
+        switch (type) {
+            case FRIEND:      return friendEdges;
+            case CLASSMATE:   return classmateEdges;
+            case FAMILIAR:    return fsEdges;
+            case STRANGER:    return strangerEdges;
+            case STUDY_GROUP: return studyGEdges;
+            default:          return null;
+        }
+    }
+
+    /**
+     * Returns whether the given edge type code is currently visible
+     * (its checkbox is selected).
+     */
+    private boolean isEdgeTypeVisible(String typeCode) {
+        EdgeType type = EdgeType.fromCode(typeCode);
+        if (type == null) return true; // unknown types are visible by default
+        switch (type) {
+            case FRIEND:      return showFriend.isSelected();
+            case CLASSMATE:   return showClassmate.isSelected();
+            case FAMILIAR:    return showFS.isSelected();
+            case STRANGER:    return showStranger.isSelected();
+            case STUDY_GROUP: return showStudy.isSelected();
+            default:          return true;
+        }
     }
 
     /**
@@ -489,11 +501,6 @@ public class Main extends JFrame {
         File database = new File(fileName);
         LineIterator lineIterator = null;
 
-        fLabelled = false;
-        fsLabelled = false;
-        cLabelled = false;
-        sLabelled = false;
-        sgLabelled = false;
         try {
             lineIterator = FileUtils.lineIterator(database);
             int count = 0;   // count =0 for nodes and count = 1 for edges
@@ -516,39 +523,22 @@ public class Main extends JFrame {
                         edge curEdge = new edge(edgeParam[0], edgeParam[1], edgeParam[2]);
                         curEdge.setWeight(Float.parseFloat(edgeParam[3]));
 
-                        if (edgeParam[0].equals("f")) {
-                            if (!fLabelled) {
-                                curEdge.setLabel("friend");
-                                fLabelled = true;
+                        // Classify edge by type and add to the appropriate list
+                        EdgeType edgeType = EdgeType.fromCode(edgeParam[0]);
+                        if (edgeType != null) {
+                            List<edge> targetList = getEdgeList(edgeType);
+                            if (targetList != null) {
+                                // Set label on first edge of each type for the legend
+                                boolean alreadyLabelled = !targetList.isEmpty()
+                                    && targetList.stream().anyMatch(e -> e.getLabel() != null);
+                                if (!alreadyLabelled) {
+                                    curEdge.setLabel(edgeType.getDisplayLabel());
+                                }
+                                targetList.add(curEdge);
                             }
-                            friendEdges.add(curEdge);
-                        } else if (edgeParam[0].equals("fs")) {
-                            if (!fsLabelled) {
-                                curEdge.setLabel("familair Stranger");
-                                fsLabelled = true;
-                            }
-                            fsEdges.add(curEdge);
-                        } else if (edgeParam[0].equals("c")) {
-                            if (!cLabelled) {
-                                curEdge.setLabel("Classmate");
-                                cLabelled = true;
-                            }
-                            classmateEdges.add(curEdge);
-                        } else if (edgeParam[0].equals("s")) {
-                            if (!sLabelled) {
-                                curEdge.setLabel("Stranger");
-                                sLabelled = true;
-                            }
-                            strangerEdges.add(curEdge);
-                        } else if (edgeParam[0].equals("sg")) {
-                            if (!sgLabelled) {
-                                curEdge.setLabel("Study Groups");
-                                sgLabelled = true;
-                            }
-                            studyGEdges.add(curEdge);
                         }
 
-                        if ((edgeParam[0].equals("f") && !showFriend.isSelected()) || (edgeParam[0].equals("fs") && !showFS.isSelected()) || (edgeParam[0].equals("c") && !showClassmate.isSelected()) || (edgeParam[0].equals("s") && !showStranger.isSelected()) || (edgeParam[0].equals("sg") && !showStudy.isSelected())) {
+                        if (!isEdgeTypeVisible(edgeParam[0])) {
                             continue;
                         }
 
@@ -619,17 +609,7 @@ public class Main extends JFrame {
                 if (mstOverlayActive && mstEdges != null && !mstEdges.contains(edge)) {
                     return new Color(80, 80, 80, 60);
                 }
-                if (edge.getType().equalsIgnoreCase("f")) {
-                    return FRIEND_COLOR;
-                } else if (edge.getType().equalsIgnoreCase("fs")) {
-                    return FS_COLOR;
-                } else if (edge.getType().equalsIgnoreCase("c")) {
-                    return CLASSMATES_COLOR;
-                } else if (edge.getType().equalsIgnoreCase("sg")) {
-                    return STUDYG_COLOR;
-                } else {
-                    return STRANGER_COLOR;
-                }
+                return EdgeType.colorForCode(edge.getType());
             }
         };
         vv.getRenderContext().setEdgeDrawPaintTransformer(edgePaint);
@@ -654,32 +634,20 @@ public class Main extends JFrame {
                 if (pathVertices != null && pathVertices.contains(vertex)) {
                     return Color.YELLOW;
                 }
-                int f = 0, c = 0, fs = 0, s = 0, sg = 0;
+                // Determine vertex colour based on connected edge types
+                Set<EdgeType> connectedTypes = new HashSet<>();
                 for (edge x : g.getOutEdges(vertex)) {
-                    if (x.getType().equals("f")) {
-                        f = 1;
-                    } else if (x.getType().equals("fs")) {
-                        fs = 1;
-                    } else if (x.getType().equals("c")) {
-                        c = 1;
-                    } else if (x.getType().equals("s")) {
-                        s = 1;
-                    } else if (x.getType().equals("sg")) {
-                        sg = 1;
+                    EdgeType et = EdgeType.fromCode(x.getType());
+                    if (et != null) {
+                        connectedTypes.add(et);
                     }
                 }
-                if (f + c + fs + s + sg > 1) {
+                if (connectedTypes.size() > 1) {
                     return Vertex_COLOR;
-                } else if (f == 1) {
-                    return FRIEND_COLOR;
-                } else if (fs == 1) {
-                    return FS_COLOR;
-                } else if (s == 1) {
-                    return STRANGER_COLOR;
-                } else if (c == 1) {
-                    return CLASSMATES_COLOR;
+                } else if (connectedTypes.size() == 1) {
+                    return connectedTypes.iterator().next().getColor();
                 } else {
-                    return STUDYG_COLOR;
+                    return Vertex_COLOR;
                 }
             }
         };
@@ -1195,12 +1163,8 @@ public class Main extends JFrame {
      * Returns a human-readable label for edge type codes.
      */
     private String getDominantLabel(String typeCode) {
-        if ("f".equals(typeCode)) return "Friend";
-        if ("fs".equals(typeCode)) return "Fam. Stranger";
-        if ("c".equals(typeCode)) return "Classmate";
-        if ("s".equals(typeCode)) return "Stranger";
-        if ("sg".equals(typeCode)) return "Study Group";
-        return typeCode;
+        EdgeType type = EdgeType.fromCode(typeCode);
+        return type != null ? type.getDisplayLabel() : typeCode;
     }
 
     /**
@@ -1590,15 +1554,15 @@ public class Main extends JFrame {
         statsNodeCount = createStatsLabel("Nodes: 0", labelFont);
         statsEdgeCount = createStatsLabel("Edges: 0 (visible) / 0 (total)", labelFont);
         statsFriendCount = createStatsLabel("  Friends: 0", labelFont);
-        statsFriendCount.setForeground(FRIEND_COLOR);
+        statsFriendCount.setForeground(EdgeType.FRIEND.getColor());
         statsClassmateCount = createStatsLabel("  Classmates: 0", labelFont);
-        statsClassmateCount.setForeground(CLASSMATES_COLOR);
+        statsClassmateCount.setForeground(EdgeType.CLASSMATE.getColor());
         statsFsCount = createStatsLabel("  Fam. Strangers: 0", labelFont);
-        statsFsCount.setForeground(FS_COLOR);
+        statsFsCount.setForeground(EdgeType.FAMILIAR.getColor());
         statsStrangerCount = createStatsLabel("  Strangers: 0", labelFont);
-        statsStrangerCount.setForeground(STRANGER_COLOR);
+        statsStrangerCount.setForeground(EdgeType.STRANGER.getColor());
         statsStudyGCount = createStatsLabel("  Study Groups: 0", labelFont);
-        statsStudyGCount.setForeground(STUDYG_COLOR);
+        statsStudyGCount.setForeground(EdgeType.STUDY_GROUP.getColor());
         statsDensity = createStatsLabel("Density: 0.000", labelFont);
         statsAvgDegree = createStatsLabel("Avg Degree: 0.00", labelFont);
         statsMaxDegree = createStatsLabel("Max Degree: 0", labelFont);
@@ -2052,11 +2016,11 @@ public class Main extends JFrame {
 
 
 
-        friendLabel.setForeground(FRIEND_COLOR);
+        friendLabel.setForeground(EdgeType.FRIEND.getColor());
         friendLabel.setFont(new Font("SANS_SERIF", 0, 14));
 
-        friendDurThreshold = new JSlider(0, 50, FRIEND_DUR_THRESHOLD);
-        friendNumMeetThreshold = new JSlider(0, 5, FRIEND_NUM_MEET_THRESHOLD);
+        friendDurThreshold = new JSlider(0, 50, EdgeType.FRIEND.getDefaultDurationThreshold());
+        friendNumMeetThreshold = new JSlider(0, 5, EdgeType.FRIEND.getDefaultMeetingThreshold());
 
         friendDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
         friendNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
@@ -2140,11 +2104,11 @@ public class Main extends JFrame {
         });
         cHpanel = new JPanel();
         JLabel classmateLabel = new JLabel("<html>CLASSMATES (Location : classroom)", JLabel.CENTER);
-        classmateLabel.setForeground(CLASSMATES_COLOR);
+        classmateLabel.setForeground(EdgeType.CLASSMATE.getColor());
         classmateLabel.setFont(new Font("SANS_SERIF", 0, 14));
 
-        classmateDurThreshold = new JSlider(0, 50, CLASSMATE_DUR_THRESHOLD);
-        classmateNumMeetThreshold = new JSlider(0, 5, CLASSMATE_NUM_MEET_THRESHOLD);
+        classmateDurThreshold = new JSlider(0, 50, EdgeType.CLASSMATE.getDefaultDurationThreshold());
+        classmateNumMeetThreshold = new JSlider(0, 5, EdgeType.CLASSMATE.getDefaultMeetingThreshold());
         classmateDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
         classmateNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
         classmateDurThreshold.addChangeListener(new ChangeListener() {
@@ -2226,11 +2190,11 @@ public class Main extends JFrame {
 
         fsHpanel = new JPanel();
         JLabel fsLabel = new JLabel("FAM STRANGERS (Location : public,pathways)", JLabel.CENTER);
-        fsLabel.setForeground(FS_COLOR);
+        fsLabel.setForeground(EdgeType.FAMILIAR.getColor());
         fsLabel.setFont(new Font("SANS_SERIF", 0, 14));
 
-        fsDurThreshold = new JSlider(0, 25, FS_DUR_THRESHOLD);
-        fsNumMeetThreshold = new JSlider(0, 5, FS_NUM_MEET_THRESHOLD);
+        fsDurThreshold = new JSlider(0, 25, EdgeType.FAMILIAR.getDefaultDurationThreshold());
+        fsNumMeetThreshold = new JSlider(0, 5, EdgeType.FAMILIAR.getDefaultMeetingThreshold());
         fsDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
         fsNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
 
@@ -2314,12 +2278,12 @@ public class Main extends JFrame {
 
         sHpanel = new JPanel();
         JLabel strangerLabel = new JLabel("STRANGERS (Location : public,pathways)", JLabel.CENTER);
-        strangerLabel.setForeground(STRANGER_COLOR);
+        strangerLabel.setForeground(EdgeType.STRANGER.getColor());
         strangerLabel.setFont(new Font("SANS_SERIF", 0, 14));
 
 
-        strangerDurThreshold = new JSlider(0, 25, STRANGER_DUR_THRESHOLD);
-        strangerNumMeetThreshold = new JSlider(0, 5, STRANGER_NUM_MEET_THRESHOLD);
+        strangerDurThreshold = new JSlider(0, 25, EdgeType.STRANGER.getDefaultDurationThreshold());
+        strangerNumMeetThreshold = new JSlider(0, 5, EdgeType.STRANGER.getDefaultMeetingThreshold());
         strangerDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
         strangerNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
         strangerDurThreshold.addChangeListener(new ChangeListener() {
@@ -2402,11 +2366,11 @@ public class Main extends JFrame {
 
         sgHpanel = new JPanel();
         JLabel sgLabel = new JLabel("STUDY GROUPS (Location : public)", JLabel.CENTER);
-        sgLabel.setForeground(STUDYG_COLOR);
+        sgLabel.setForeground(EdgeType.STUDY_GROUP.getColor());
         sgLabel.setFont(new Font("SANS_SERIF", 0, 14));
 
-        studyGDurThreshold = new JSlider(0, 50, STUDY_DUR_THRESHOLD);
-        studyGNumMeetThreshold = new JSlider(0, 5, STUDY_NUM_MEET_THRESHOLD);
+        studyGDurThreshold = new JSlider(0, 50, EdgeType.STUDY_GROUP.getDefaultDurationThreshold());
+        studyGNumMeetThreshold = new JSlider(0, 5, EdgeType.STUDY_GROUP.getDefaultMeetingThreshold());
         studyGDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
         studyGNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
         studyGDurThreshold.setSize(10, 100);
