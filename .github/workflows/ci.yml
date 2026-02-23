@@ -62,4 +62,5 @@ jobs:
             gvisual.ShortestPathFinderTest \
             gvisual.GraphMLExporterTest \
             gvisual.CommunityDetectorTest \
-            gvisual.NodeCentralityAnalyzerTest
+            gvisual.NodeCentralityAnalyzerTest \
+            gvisual.ArticulationPointAnalyzerTest

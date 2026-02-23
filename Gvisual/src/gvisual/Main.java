@@ -185,6 +185,18 @@ public class Main extends JFrame {
     private JLabel communityDetailsLabel;
     private boolean communityOverlayActive;
     private Map<String, Integer> nodeCommunityMap;
+
+    // --- Articulation point analysis fields ---
+    private JPanel articulationPanel;
+    private JButton articulationComputeButton;
+    private JButton articulationClearButton;
+    private JLabel articulationSummaryLabel;
+    private JLabel articulationResilienceLabel;
+    private JLabel articulationDetailsLabel;
+    private boolean articulationOverlayActive;
+    private Set<String> articulationPoints;
+    private Set<edge> bridgeEdges;
+
     private static final Color[] COMMUNITY_COLORS = {
         new Color(0, 200, 120),    // Emerald green
         new Color(65, 135, 255),   // Bright blue
@@ -214,6 +226,7 @@ public class Main extends JFrame {
         initializeCommunityPanel();
         initializeMSTPanel();
         initializeCentralityPanel();
+        initializeArticulationPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -594,6 +607,10 @@ public class Main extends JFrame {
                 if (mstOverlayActive && mstEdges != null && mstEdges.contains(edge)) {
                     return new Color(0, 255, 100);
                 }
+                // Articulation overlay — highlight bridge edges in red-orange
+                if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(edge)) {
+                    return new Color(255, 80, 40);
+                }
                 // Community overlay mode — color edges by community
                 if (communityOverlayActive && nodeCommunityMap != null) {
                     Integer c1 = nodeCommunityMap.get(edge.getVertex1());
@@ -623,6 +640,11 @@ public class Main extends JFrame {
                     if (cid != null) {
                         return COMMUNITY_COLORS[cid % COMMUNITY_COLORS.length];
                     }
+                }
+                // Articulation overlay — highlight cut vertices in red-orange
+                if (articulationOverlayActive && articulationPoints != null
+                        && articulationPoints.contains(vertex)) {
+                    return new Color(255, 80, 40);
                 }
                 // Highlight source node in cyan, target in magenta, path nodes in yellow
                 if (pathSource != null && vertex.equals(pathSource)) {
@@ -666,6 +688,11 @@ public class Main extends JFrame {
                 if (pathVertices != null && pathVertices.contains(vertex)) {
                     return new Ellipse2D.Double(-6, -6, 12, 12);
                 }
+                // Enlarge articulation points
+                if (articulationOverlayActive && articulationPoints != null
+                        && articulationPoints.contains(vertex)) {
+                    return new Ellipse2D.Double(-8, -8, 16, 16);
+                }
                 if (OldVertices != null) {
                     if (OldVertices.contains(vertex)) {
                         return new Ellipse2D.Double(-5, -5, 10, 10);
@@ -690,6 +717,12 @@ public class Main extends JFrame {
                 // MST edges get thicker solid stroke
                 if (mstOverlayActive && mstEdges != null && mstEdges.contains(i)) {
                     return new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+                }
+                // Bridge edges get thick dashed stroke for visibility
+                if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(i)) {
+                    float[] dashPattern = {6.0f, 4.0f};
+                    return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+                            10.0f, dashPattern, 0.0f);
                 }
                 float dash[] = {1.0f};
                 float width = i.getWeight() / 40 + 1.0f;
@@ -1537,6 +1570,153 @@ public class Main extends JFrame {
     }
 
     /**
+     * Initializes the articulation point and bridge analysis panel.
+     */
+    public final void initializeArticulationPanel() {
+        articulationOverlayActive = false;
+        articulationPoints = new HashSet<>();
+        bridgeEdges = new HashSet<>();
+
+        articulationPanel = new JPanel();
+        articulationPanel.setLayout(new BoxLayout(articulationPanel, BoxLayout.Y_AXIS));
+        articulationPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Articulation Points & Bridges",
+                TitledBorder.LEFT, TitledBorder.TOP));
+
+        articulationResilienceLabel = new JLabel("Resilience: —");
+        articulationResilienceLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+        articulationSummaryLabel = new JLabel("<html>Click 'Analyze' to find critical nodes and edges.</html>");
+        articulationSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+        articulationDetailsLabel = new JLabel("");
+        articulationDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+
+        articulationComputeButton = new JButton("Analyze");
+        articulationComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        articulationComputeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                runArticulationAnalysis();
+            }
+        });
+
+        articulationClearButton = new JButton("Clear");
+        articulationClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
+        articulationClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                clearArticulationAnalysis();
+            }
+        });
+
+        buttonPanel.add(articulationComputeButton);
+        buttonPanel.add(Box.createHorizontalStrut(5));
+        buttonPanel.add(articulationClearButton);
+
+        articulationPanel.add(articulationResilienceLabel);
+        articulationPanel.add(articulationSummaryLabel);
+        articulationPanel.add(Box.createVerticalStrut(4));
+        articulationPanel.add(buttonPanel);
+        articulationPanel.add(Box.createVerticalStrut(4));
+        articulationPanel.add(articulationDetailsLabel);
+    }
+
+    /**
+     * Runs the articulation point and bridge analysis.
+     */
+    private void runArticulationAnalysis() {
+        if (g == null || g.getVertexCount() == 0) {
+            articulationSummaryLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+
+        ArticulationPointAnalyzer analyzer = new ArticulationPointAnalyzer(g);
+        ArticulationPointAnalyzer.AnalysisResult result = analyzer.analyze();
+
+        articulationOverlayActive = true;
+        articulationPoints.clear();
+        bridgeEdges.clear();
+        articulationPoints.addAll(result.getArticulationPoints());
+        for (ArticulationPointAnalyzer.Bridge b : result.getBridges()) {
+            bridgeEdges.add(b.getEdge());
+        }
+
+        // Resilience label
+        articulationResilienceLabel.setText(String.format(
+                "Resilience: %.0f/100 (%s)", result.getResilienceScore(),
+                result.getVulnerabilityLevel()));
+
+        // Summary
+        StringBuilder sb = new StringBuilder("<html>");
+        sb.append(String.format("<b>Cut vertices:</b> %d (%.1f%%)<br/>",
+                result.getArticulationPointCount(),
+                result.getArticulationPointPercentage()));
+        sb.append(String.format("<b>Bridges:</b> %d<br/>", result.getBridgeCount()));
+        sb.append(String.format("<b>Components:</b> %d", result.getConnectedComponents()));
+        sb.append("</html>");
+        articulationSummaryLabel.setText(sb.toString());
+
+        // Details: top articulation points and bridges
+        StringBuilder details = new StringBuilder("<html>");
+        List<ArticulationPointAnalyzer.ArticulationPointInfo> apDetails =
+                result.getArticulationPointDetails();
+        if (!apDetails.isEmpty()) {
+            details.append("<b>Critical nodes:</b><br/>");
+            int shown = Math.min(5, apDetails.size());
+            for (int i = 0; i < shown; i++) {
+                ArticulationPointAnalyzer.ArticulationPointInfo info = apDetails.get(i);
+                details.append(String.format("  Node %s (deg=%d, crit=%.1f)<br/>",
+                        info.getVertex(), info.getDegree(), info.getCriticality()));
+            }
+            if (apDetails.size() > 5) {
+                details.append(String.format("  ... and %d more<br/>", apDetails.size() - 5));
+            }
+        }
+        List<ArticulationPointAnalyzer.Bridge> bridges = result.getBridges();
+        if (!bridges.isEmpty()) {
+            details.append("<b>Bridges:</b><br/>");
+            int shown = Math.min(5, bridges.size());
+            for (int i = 0; i < shown; i++) {
+                ArticulationPointAnalyzer.Bridge bridge = bridges.get(i);
+                details.append(String.format("  %s—%s (sev=%.2f, split=%d/%d)<br/>",
+                        bridge.getEndpoint1(), bridge.getEndpoint2(),
+                        bridge.getSeverity(),
+                        bridge.getComponentSizeA(), bridge.getComponentSizeB()));
+            }
+            if (bridges.size() > 5) {
+                details.append(String.format("  ... and %d more<br/>", bridges.size() - 5));
+            }
+        }
+        if (apDetails.isEmpty() && bridges.isEmpty()) {
+            details.append("<i>No critical elements — network is robust.</i>");
+        }
+        details.append("</html>");
+        articulationDetailsLabel.setText(details.toString());
+
+        // Refresh visualization to highlight critical elements
+        if (vv != null) vv.repaint();
+        articulationPanel.revalidate();
+        articulationPanel.repaint();
+    }
+
+    /**
+     * Clears the articulation point analysis and resets the panel.
+     */
+    private void clearArticulationAnalysis() {
+        articulationOverlayActive = false;
+        articulationPoints.clear();
+        bridgeEdges.clear();
+        articulationResilienceLabel.setText("Resilience: —");
+        articulationSummaryLabel.setText("<html>Click 'Analyze' to find critical nodes and edges.</html>");
+        articulationDetailsLabel.setText("");
+        if (vv != null) vv.repaint();
+        articulationPanel.revalidate();
+        articulationPanel.repaint();
+    }
+
+    /**
      * Initializes the network statistics panel showing real-time graph metrics.
      */
     public final void initializeStatsPanel() {
@@ -1665,16 +1845,21 @@ public class Main extends JFrame {
         JSplitPane splitPaneCentrality = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 splitPaneMST, centralityPanel);
 
-        // Add stats panel below centrality panel
+        // Add articulation panel below centrality panel
+        JSplitPane splitPaneArticulation = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                splitPaneCentrality, articulationPanel);
+
+        // Add stats panel below articulation panel
         JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneCentrality, statsPanel);
+                splitPaneArticulation, statsPanel);
 
         splitPane1.setDividerLocation(400);
         splitPanePath.setDividerLocation(510);
         splitPaneCommunity.setDividerLocation(640);
         splitPaneMST.setDividerLocation(760);
         splitPaneCentrality.setDividerLocation(920);
-        splitPane2.setDividerLocation(1150);
+        splitPaneArticulation.setDividerLocation(1070);
+        splitPane2.setDividerLocation(1250);
         add(splitPane2, BorderLayout.EAST);
 
     }
