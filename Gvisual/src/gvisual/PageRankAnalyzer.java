@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import java.util.Arrays;
 
 /**
  * Computes PageRank scores for nodes in a JUNG graph using the power-iteration
@@ -185,6 +186,12 @@ public class PageRankAnalyzer {
     /**
      * Runs the PageRank power-iteration algorithm.
      * Automatically skips recomputation if already computed.
+     *
+     * <p>Uses array-based computation internally for performance: vertex
+     * names are mapped to integer indices and ranks are stored in
+     * {@code double[]} arrays, eliminating HashMap lookups, Double
+     * autoboxing, and per-iteration allocation in the hot loop.
+     * Final results are copied back into the public {@code ranks} map.</p>
      */
     public void compute() {
         if (computed) return;
@@ -197,75 +204,87 @@ public class PageRankAnalyzer {
             return;
         }
 
-        // Initialize uniform distribution
-        double initial = 1.0 / n;
-        for (String node : graph.getVertices()) {
-            ranks.put(node, initial);
+        // Build vertex index mapping for array-based computation
+        List<String> vertexList = new ArrayList<String>(graph.getVertices());
+        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
         }
 
-        // Pre-compute neighbor lists for efficiency
-        Map<String, List<String>> neighbors = new HashMap<String, List<String>>();
-        Set<String> danglingNodes = new HashSet<String>();
-        for (String node : graph.getVertices()) {
-            List<String> nodeNeighbors = new ArrayList<String>();
+        // Build adjacency lists using integer indices
+        int[][] adjLists = new int[n][];
+        int[] degrees = new int[n];
+        boolean[] isDangling = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            String node = vertexList.get(i);
             Collection<edge> edges = graph.getIncidentEdges(node);
+            List<Integer> nodeAdj = new ArrayList<Integer>();
             if (edges != null) {
                 for (edge e : edges) {
                     String other = getOtherEnd(e, node);
                     if (other != null) {
-                        nodeNeighbors.add(other);
+                        Integer idx = vertexIndex.get(other);
+                        if (idx != null) nodeAdj.add(idx);
                     }
                 }
             }
-            neighbors.put(node, nodeNeighbors);
-            if (nodeNeighbors.isEmpty()) {
-                danglingNodes.add(node);
+            adjLists[i] = new int[nodeAdj.size()];
+            for (int j = 0; j < nodeAdj.size(); j++) {
+                adjLists[i][j] = nodeAdj.get(j);
             }
+            degrees[i] = adjLists[i].length;
+            isDangling[i] = degrees[i] == 0;
         }
+
+        // Initialize uniform distribution using arrays
+        double[] rankArr = new double[n];
+        double[] newRankArr = new double[n];
+        double initial = 1.0 / n;
+        Arrays.fill(rankArr, initial);
 
         double teleport = (1.0 - dampingFactor) / n;
 
-        // Power iteration
+        // Power iteration with arrays
         for (int iter = 0; iter < maxIterations; iter++) {
-            Map<String, Double> newRanks = new LinkedHashMap<String, Double>();
-
-            // Compute dangling node rank sum (distributed uniformly)
+            // Dangling node contribution
             double danglingSum = 0.0;
-            for (String dNode : danglingNodes) {
-                danglingSum += ranks.get(dNode);
+            for (int i = 0; i < n; i++) {
+                if (isDangling[i]) danglingSum += rankArr[i];
             }
             double danglingContrib = dampingFactor * danglingSum / n;
 
-            // Compute new rank for each node
-            for (String node : graph.getVertices()) {
+            // Compute new ranks
+            for (int i = 0; i < n; i++) {
                 double incomingRank = 0.0;
-
-                // Sum contributions from all neighbors
-                List<String> nodeNeighbors = neighbors.get(node);
-                // In undirected graph, neighbors = predecessors
-                for (String neighbor : nodeNeighbors) {
-                    int neighborDegree = neighbors.get(neighbor).size();
-                    if (neighborDegree > 0) {
-                        incomingRank += ranks.get(neighbor) / neighborDegree;
+                for (int j : adjLists[i]) {
+                    if (degrees[j] > 0) {
+                        incomingRank += rankArr[j] / degrees[j];
                     }
                 }
-
-                newRanks.put(node, teleport + danglingContrib + dampingFactor * incomingRank);
+                newRankArr[i] = teleport + danglingContrib + dampingFactor * incomingRank;
             }
 
             // Check convergence (L1 norm)
             double diff = 0.0;
-            for (String node : graph.getVertices()) {
-                diff += Math.abs(newRanks.get(node) - ranks.get(node));
+            for (int i = 0; i < n; i++) {
+                diff += Math.abs(newRankArr[i] - rankArr[i]);
             }
 
-            ranks = newRanks;
-            iterationsUsed = iter + 1;
+            // Swap arrays (avoid allocation)
+            double[] tmp = rankArr;
+            rankArr = newRankArr;
+            newRankArr = tmp;
 
+            iterationsUsed = iter + 1;
             if (diff < tolerance) {
                 converged = true;
                 break;
             }
+        }
+
+        // Store results in the map for query methods
+        for (int i = 0; i < n; i++) {
+            ranks.put(vertexList.get(i), rankArr[i]);
         }
 
         computed = true;

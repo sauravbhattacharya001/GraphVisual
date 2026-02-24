@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: gvisual.MinimumSpanningTreeTest
 -------------------------------------------------------------------------------
-Tests run: 41, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in gvisual.MinimumSpanningTreeTest
+Tests run: 41, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in gvisual.MinimumSpanningTreeTest
