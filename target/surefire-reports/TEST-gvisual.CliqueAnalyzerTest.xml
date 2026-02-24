@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="gvisual.ArticulationPointAnalyzerTest" time="0.072" tests="34" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="gvisual.CliqueAnalyzerTest" time="0.043" tests="70" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="17"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -56,38 +56,74 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="61.0"/>
   </properties>
-  <testcase name="testStarTopology" classname="gvisual.ArticulationPointAnalyzerTest" time="0.005"/>
-  <testcase name="testDisconnectedComponents" classname="gvisual.ArticulationPointAnalyzerTest" time="0.003"/>
-  <testcase name="testEmptyGraph" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testArticulationPointSetImmutable" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testResilienceScoreFragile" classname="gvisual.ArticulationPointAnalyzerTest" time="0.02"/>
-  <testcase name="testBiconnectedComponentCount" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testSingleVertex" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testBridgeListImmutable" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testResilienceScoreBounded" classname="gvisual.ArticulationPointAnalyzerTest" time="0.003"/>
-  <testcase name="testDiamondGraphNoAP" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testResilienceScoreSingleVertex" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testBridgeSeverity" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testCycleNoCritical" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testArticulationPointPercentage" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testLinearChainAllBridges" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testTwoVerticesOneBridge" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testTriangleNoCriticalElements" classname="gvisual.ArticulationPointAnalyzerTest" time="0.001"/>
-  <testcase name="testCriticalityScore" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testResilienceScoreEmptyGraph" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testMixedEdgeTypes" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testArticulationPointDegree" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testSummaryNotEmpty" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testArticulationPointEdgeTypes" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testButterflyGraph" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testArticulationPointPercentageEmpty" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testResilienceScoreRobust" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testVulnerabilityLevelValues" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testDetailsListImmutable" classname="gvisual.ArticulationPointAnalyzerTest" time="0.004"/>
-  <testcase name="testBridgeBetweenTriangles" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testBridgeComponentSizes" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testCompleteGraphK4NoCritical" classname="gvisual.ArticulationPointAnalyzerTest" time="0.002"/>
-  <testcase name="testIsolatedVertices" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testNullGraphThrows" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
-  <testcase name="testArticulationPointsSortedByCriticality" classname="gvisual.ArticulationPointAnalyzerTest" time="0.0"/>
+  <testcase name="testK5CliqueNumber5" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCliqueGraphEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTriangleCliqueSize3" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTopParticipantsOrdering" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK4CliqueNumber4" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesContainingNonexistentVertex" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testBowtieCliqueCount" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTriangleCoverage" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCliqueGraphDisconnected" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testConstructorValid" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testBowtieContainsExpectedCliques" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testResultToString" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesContainingLeafVertex" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyGraphZeroCliques" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testDisconnectedCliqueNumber" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyGraphCliqueNumberZero" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testOverlappingCliquesMultiple" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testMultipleIsolatedVertices" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK5SingleClique" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testNodeParticipationCorrectCounts" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testNodeParticipationAllVerticesPresent" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTopParticipantsEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK4ContainsAllVertices" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testOverlapsLimited" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTopParticipantsNLargerThanVertices" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCliqueGraphHighThreshold" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testPathGraphCliqueCount" classname="gvisual.CliqueAnalyzerTest" time="0.002"/>
+  <testcase name="testBowtieSharedVertex" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testPathGraphAllCliquesSize2" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesOfSizeBasic" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testDisconnectedContainsIsolated" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesOfSizeZeroResult" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testStarGraphMaxCliqueSize2" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCoverageEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testPathGraphNoLargeClique" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTriangleParticipation" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCliqueGraphBasic" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryContainsKeyInfo" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesContainingBasic" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyGraphEmptyDistribution" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCliquesSortedBySizeDescending" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testSingleVertexCliqueSize1" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testSingleVertexOneClique" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK5Distribution" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testSingleEdgeCliqueSize2" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testLazyComputation" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testIdempotentCompute" classname="gvisual.CliqueAnalyzerTest" time="0.015"/>
+  <testcase name="testOverlapsNoOverlap" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK4Distribution" classname="gvisual.CliqueAnalyzerTest" time="0.001"/>
+  <testcase name="testAverageCliqueSizeEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testConstructorNullGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesOfSizeMultiple" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testGetCliquesOfSizeOne" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryNonEmpty" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testSingleEdgeOneClique" classname="gvisual.CliqueAnalyzerTest" time="0.003"/>
+  <testcase name="testOverlapsFindsSharedVertices" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testStarGraphHubHighestParticipation" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCoverageOnlyCountsNontrivial" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testOverlappingCliquesCorrectContent" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testOverlapToString" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testLargestCliqueEmptyGraph" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testTriangleOneClique" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testCoverageFraction" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testK4OneClique" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testResultAllFieldsPopulated" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testDisconnectedCliqueCount" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testBowtieCliqueNumber3" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testStarGraphCliqueCount" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
+  <testcase name="testAverageCliqueSize" classname="gvisual.CliqueAnalyzerTest" time="0.0"/>
 </testsuite>

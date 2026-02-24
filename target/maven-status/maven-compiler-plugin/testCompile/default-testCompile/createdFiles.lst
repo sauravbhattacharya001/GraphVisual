@@ -1,12 +1,13 @@
 gvisual\CommunityDetectorTest.class
-gvisual\MinimumSpanningTreeTest.class
 gvisual\PageRankAnalyzerTest.class
-gvisual\GraphColoringAnalyzerTest.class
-gvisual\ArticulationPointAnalyzerTest.class
 gvisual\NodeCentralityAnalyzerTest.class
 gvisual\GraphMLExporterTest.class
-gvisual\ShortestPathFinderTest.class
 gvisual\KCoreDecompositionTest.class
 gvisual\EdgeTest.class
 gvisual\GraphStatsTest.class
 app\UtilMethodsTest.class
+gvisual\MinimumSpanningTreeTest.class
+gvisual\GraphColoringAnalyzerTest.class
+gvisual\ArticulationPointAnalyzerTest.class
+gvisual\ShortestPathFinderTest.class
+gvisual\CliqueAnalyzerTest.class
