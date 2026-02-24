@@ -375,4 +375,98 @@ public class CommunityDetectorTest {
         assertEquals(1, c.getEdgeTypeCounts().get("fs").intValue());
         assertEquals(1, c.getEdgeTypeCounts().get("sg").intValue());
     }
+
+    // --- Tests for getCommunityOf O(1) direct indexing ---
+
+    @Test
+    public void testGetCommunityOfNullNode() {
+        graph.addVertex("A");
+        CommunityDetector detector = new CommunityDetector(graph);
+        CommunityDetector.DetectionResult result = detector.detect();
+        assertNull(result.getCommunityOf(null));
+    }
+
+    @Test
+    public void testGetCommunityOfNonExistentNode() {
+        graph.addVertex("A");
+        CommunityDetector detector = new CommunityDetector(graph);
+        CommunityDetector.DetectionResult result = detector.detect();
+        assertNull(result.getCommunityOf("NONEXISTENT"));
+    }
+
+    @Test
+    public void testGetCommunityOfValidNodeAfterDetect() {
+        // Build two communities: {A,B,C} and {D,E}
+        graph.addVertex("A");
+        graph.addVertex("B");
+        graph.addVertex("C");
+        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
+        graph.addEdge(e1, "A", "B");
+        graph.addEdge(e2, "B", "C");
+
+        graph.addVertex("D");
+        graph.addVertex("E");
+        edge e3 = new edge("c", "D", "E"); e3.setWeight(1.0f);
+        graph.addEdge(e3, "D", "E");
+
+        CommunityDetector detector = new CommunityDetector(graph);
+        CommunityDetector.DetectionResult result = detector.detect();
+
+        // Community 0 should be the larger one (A,B,C)
+        CommunityDetector.Community ca = result.getCommunityOf("A");
+        assertNotNull(ca);
+        assertEquals(0, ca.getId());
+        assertEquals(3, ca.getSize());
+        assertTrue(ca.getMembers().contains("A"));
+        assertTrue(ca.getMembers().contains("B"));
+        assertTrue(ca.getMembers().contains("C"));
+
+        // D and E should be in community 1
+        CommunityDetector.Community cd = result.getCommunityOf("D");
+        assertNotNull(cd);
+        assertEquals(1, cd.getId());
+        assertEquals(2, cd.getSize());
+        assertTrue(cd.getMembers().contains("D"));
+        assertTrue(cd.getMembers().contains("E"));
+    }
+
+    @Test
+    public void testGetCommunityOfConsistentWithDirectIndex() {
+        // Verify getCommunityOf returns same object as communities.get(id)
+        graph.addVertex("A");
+        graph.addVertex("B");
+        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        graph.addEdge(e1, "A", "B");
+        graph.addVertex("C"); // isolated
+
+        CommunityDetector detector = new CommunityDetector(graph);
+        CommunityDetector.DetectionResult result = detector.detect();
+
+        for (Map.Entry<String, Integer> entry : result.getNodeToCommunity().entrySet()) {
+            CommunityDetector.Community byMethod = result.getCommunityOf(entry.getKey());
+            CommunityDetector.Community byIndex = result.getCommunities().get(entry.getValue());
+            assertSame("getCommunityOf should return same object as direct index",
+                       byIndex, byMethod);
+        }
+    }
+
+    @Test
+    public void testDetectInPlaceIdReassignment() {
+        // After detect, community IDs should be 0,1,2,... matching list index
+        graph.addVertex("A");
+        graph.addVertex("B");
+        graph.addVertex("C");
+        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        graph.addEdge(e1, "A", "B");
+        // C is isolated → two communities
+
+        CommunityDetector detector = new CommunityDetector(graph);
+        CommunityDetector.DetectionResult result = detector.detect();
+
+        for (int i = 0; i < result.getCommunities().size(); i++) {
+            assertEquals("Community ID should match list index", i,
+                         result.getCommunities().get(i).getId());
+        }
+    }
 }

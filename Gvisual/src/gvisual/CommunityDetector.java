@@ -35,7 +35,7 @@ public class CommunityDetector {
      * Represents a single detected community with its members and metrics.
      */
     public static class Community implements Comparable<Community> {
-        private final int id;
+        private int id;
         private final Set<String> members;
         private final Map<String, Integer> edgeTypeCounts;
         private int internalEdges;
@@ -51,6 +51,9 @@ public class CommunityDetector {
 
         /** Unique community identifier (0-based, ranked by size). */
         public int getId() { return id; }
+
+        /** Package-private setter for reassigning IDs after sorting. */
+        void setId(int newId) { this.id = newId; }
 
         /** Set of vertex IDs belonging to this community. */
         public Set<String> getMembers() { return Collections.unmodifiableSet(members); }
@@ -155,11 +158,8 @@ public class CommunityDetector {
          */
         public Community getCommunityOf(String node) {
             Integer id = nodeToCommunity.get(node);
-            if (id == null) return null;
-            for (Community c : communities) {
-                if (c.getId() == id) return c;
-            }
-            return null;
+            if (id == null || id < 0 || id >= communities.size()) return null;
+            return communities.get(id);
         }
 
         /**
@@ -247,24 +247,17 @@ public class CommunityDetector {
             communityId++;
         }
 
-        // Sort by size (largest first) and reassign IDs
+        // Sort by size (largest first) and reassign IDs in-place
         Collections.sort(communities);
-        List<Community> sorted = new ArrayList<Community>();
         Map<String, Integer> updatedMapping = new HashMap<String, Integer>();
         for (int i = 0; i < communities.size(); i++) {
-            Community old = communities.get(i);
-            Community reindexed = new Community(i);
-            reindexed.members.addAll(old.members);
-            reindexed.internalEdges = old.internalEdges;
-            reindexed.totalWeight = old.totalWeight;
-            reindexed.edgeTypeCounts.putAll(old.edgeTypeCounts);
-            sorted.add(reindexed);
-            for (String member : reindexed.members) {
+            communities.get(i).setId(i);
+            for (String member : communities.get(i).getMembers()) {
                 updatedMapping.put(member, i);
             }
         }
 
-        return new DetectionResult(sorted, updatedMapping);
+        return new DetectionResult(communities, updatedMapping);
     }
 
     private String getOtherEnd(edge e, String current) {
