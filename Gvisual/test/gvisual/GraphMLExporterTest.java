@@ -147,7 +147,7 @@ public class GraphMLExporterTest {
         assertEquals("Familiar Stranger", GraphMLExporter.getTypeLabel("fs"));
         assertEquals("Classmate", GraphMLExporter.getTypeLabel("c"));
         assertEquals("Stranger", GraphMLExporter.getTypeLabel("s"));
-        assertEquals("Study Group", GraphMLExporter.getTypeLabel("sg"));
+        assertEquals("Study Groups", GraphMLExporter.getTypeLabel("sg"));
         assertEquals("Unknown", GraphMLExporter.getTypeLabel(null));
         assertEquals("xyz", GraphMLExporter.getTypeLabel("xyz"));
     }

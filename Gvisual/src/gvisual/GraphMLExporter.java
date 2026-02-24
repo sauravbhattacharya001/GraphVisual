@@ -108,6 +108,28 @@ public class GraphMLExporter {
      * @return the complete GraphML XML as a string
      */
     public String exportToString() {
+        List<edge> edgesToExport = !allEdges.isEmpty()
+                ? allEdges
+                : new ArrayList<edge>(graph.getEdges());
+        return exportToString(edgesToExport);
+    }
+
+    /**
+     * Exports only the edges currently visible in the graph (not all loaded edges).
+     *
+     * @return GraphML XML string with only visible edges
+     */
+    public String exportVisibleToString() {
+        return exportToString(new ArrayList<edge>(graph.getEdges()));
+    }
+
+    /**
+     * Internal: exports the graph to a GraphML XML string using the given edge list.
+     *
+     * @param edgesToExport the edges to include in the export
+     * @return the complete GraphML XML as a string
+     */
+    private String exportToString(List<edge> edgesToExport) {
         StringBuilder sb = new StringBuilder();
 
         // XML header
@@ -153,13 +175,7 @@ public class GraphMLExporter {
             sb.append("    </node>\n");
         }
 
-        // Edges — use allEdges if provided (includes filtered edges), otherwise graph edges
-        List<edge> edgesToExport;
-        if (!allEdges.isEmpty()) {
-            edgesToExport = allEdges;
-        } else {
-            edgesToExport = new ArrayList<edge>(graph.getEdges());
-        }
+        // Edges — use the provided edgesToExport list
 
         int edgeIndex = 0;
         for (edge e : edgesToExport) {
@@ -192,35 +208,22 @@ public class GraphMLExporter {
     }
 
     /**
-     * Exports only the edges currently visible in the graph (not all loaded edges).
-     *
-     * @return GraphML XML string with only visible edges
-     */
-    public String exportVisibleToString() {
-        // Temporarily swap allEdges to only graph edges
-        List<edge> saved = new ArrayList<edge>(allEdges);
-        allEdges.clear();
-        String result = exportToString();
-        allEdges.addAll(saved);
-        return result;
-    }
-
-    /**
      * Returns a human-readable label for an edge type code.
      *
      * @param typeCode the edge type code (f, fs, c, s, sg)
      * @return human-readable label
      */
     static String getTypeLabel(String typeCode) {
-        if (typeCode == null) return "Unknown";
-        switch (typeCode) {
-            case "f":  return "Friend";
-            case "fs": return "Familiar Stranger";
-            case "c":  return "Classmate";
-            case "s":  return "Stranger";
-            case "sg": return "Study Group";
-            default:   return typeCode;
+        EdgeType type = EdgeType.fromCode(typeCode);
+        if (type != null) {
+            String label = type.getDisplayLabel();
+            // Capitalise first letter for consistent title-case output
+            if (!label.isEmpty()) {
+                label = Character.toUpperCase(label.charAt(0)) + label.substring(1);
+            }
+            return label;
         }
+        return typeCode != null ? typeCode : "Unknown";
     }
 
     /**
