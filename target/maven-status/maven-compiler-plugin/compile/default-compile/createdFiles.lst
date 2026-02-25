@@ -48,6 +48,7 @@ gvisual\KCoreDecomposition.class
 gvisual\PageRankAnalyzer$3.class
 gvisual\Main$12.class
 gvisual\Main$22.class
+gvisual\DegreeDistributionAnalyzer.class
 gvisual\NodeCentralityAnalyzer$1.class
 gvisual\GraphMLExporter.class
 gvisual\CommunityDetector$Community.class
@@ -62,6 +63,7 @@ gvisual\Main$18.class
 gvisual\CliqueAnalyzer$CliqueOverlap.class
 app\matchImei.class
 gvisual\ArticulationPointAnalyzer$ArticulationPointInfo.class
+gvisual\DegreeDistributionAnalyzer$DegreeDistributionResult.class
 gvisual\Main$15.class
 gvisual\Main$1.class
 gvisual\Main$32.class
@@ -97,3 +99,4 @@ gvisual\PageRankAnalyzer$PageRankResult.class
 gvisual\MinimumSpanningTree$UnionFind.class
 gvisual\PageRankAnalyzer.class
 gvisual\Main$25.class
+gvisual\DegreeDistributionAnalyzer$1.class

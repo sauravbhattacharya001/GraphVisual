@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="gvisual.GraphStatsTest" time="0.0" tests="9" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="gvisual.DegreeDistributionAnalyzerTest" time="0.031" tests="55" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="17"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -56,13 +56,59 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="61.0"/>
   </properties>
-  <testcase name="testEmptyGraph" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testCategoryCountsIndependent" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testTopNodes" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testSingleEdge" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testIsolatedNodes" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testAverageDegree" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testDensityTriangle" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testAverageWeight" classname="gvisual.GraphStatsTest" time="0.0"/>
-  <testcase name="testDensitySingleNode" classname="gvisual.GraphStatsTest" time="0.0"/>
+  <testcase name="testSimplePair" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testVarianceSingleNode" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testStarGraphFrequency" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryContainsHubs" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testAssortativityRange" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.005"/>
+  <testcase name="testSkewnessRegularGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryContainsNetworkType" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.002"/>
+  <testcase name="testPowerLawRegularGraphNotScaleFree" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testComputeIdempotent" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testStarGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.002"/>
+  <testcase name="testCDF" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testIQR" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testPDF" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testConstructorValid" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testTrivialNetworkType" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.002"/>
+  <testcase name="testCCDF" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testBipartiteLikeGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testDegreesImmutable" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testResultPowerLawAccessors" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testRegularNetworkType" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testPositiveSkewness" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.005"/>
+  <testcase name="testLargerGraphStats" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testDegreeRange" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFrequencyMapSortedByDegree" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testAssortativityEmptyGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testHubDetection" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testCVWithZeroMean" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testPowerLawExponentExists" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testNoHubsInRegularGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testDistinctDegreeCount" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.005"/>
+  <testcase name="testPathGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testMixedIsolatedAndConnected" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testRegularGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFrequencyMapImmutable" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testCompleteGraphRegular" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyGraphPercentiles" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryEmptyGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testPercentiles" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testPercentilesImmutable" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testAssortativityRegularGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testResultObject" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testSingleIsolatedVertex" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testDegreesAreSorted" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testNetworkTypeNotNull" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testMultipleHubs" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testResultIsScaleFree" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testConstructorNullGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testFormatSummaryNotEmpty" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.01"/>
+  <testcase name="testKurtosisRegularGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testIsolatedNodesOnlyGraph" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testHubsImmutable" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testGettersBeforeCompute" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testEmptyNetworkType" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
+  <testcase name="testRegularGraphCV" classname="gvisual.DegreeDistributionAnalyzerTest" time="0.0"/>
 </testsuite>

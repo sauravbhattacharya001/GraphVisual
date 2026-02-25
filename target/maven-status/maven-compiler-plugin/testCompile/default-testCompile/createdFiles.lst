@@ -11,3 +11,4 @@ gvisual\GraphColoringAnalyzerTest.class
 gvisual\ArticulationPointAnalyzerTest.class
 gvisual\ShortestPathFinderTest.class
 gvisual\CliqueAnalyzerTest.class
+gvisual\DegreeDistributionAnalyzerTest.class
