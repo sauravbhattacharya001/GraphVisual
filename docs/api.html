@@ -57,6 +57,21 @@
     <a href="#pathfinder">gvisual.ShortestPathFinder</a>
     <a href="#path-result">  ↳ PathResult (inner class)</a>
     <a href="#graphml">gvisual.GraphMLExporter</a>
+    <a href="#mst">gvisual.MinimumSpanningTree</a>
+    <a href="#mst-component">&nbsp;&nbsp;↳ MSTComponent (inner class)</a>
+    <a href="#coloring">gvisual.GraphColoringAnalyzer</a>
+    <a href="#coloring-result">&nbsp;&nbsp;↳ ColoringResult (inner class)</a>
+    <a href="#articulation">gvisual.ArticulationPointAnalyzer</a>
+    <a href="#articulation-result">&nbsp;&nbsp;↳ AnalysisResult (inner class)</a>
+    <a href="#pagerank">gvisual.PageRankAnalyzer</a>
+    <a href="#pagerank-result">&nbsp;&nbsp;↳ RankedNode (inner class)</a>
+    <a href="#kcore">gvisual.KCoreDecomposition</a>
+    <a href="#kcore-result">&nbsp;&nbsp;↳ KCoreResult (inner class)</a>
+    <a href="#clique">gvisual.CliqueAnalyzer</a>
+    <a href="#clique-result">&nbsp;&nbsp;↳ CliqueResult (inner class)</a>
+    <a href="#degree">gvisual.DegreeDistributionAnalyzer</a>
+    <a href="#degree-result">&nbsp;&nbsp;↳ DegreeDistributionResult (inner class)</a>
+    <a href="#edgetype">gvisual.EdgeType</a>
     <a href="#util">app.Util</a>
     <a href="#network">app.Network</a>
 </div>
@@ -510,6 +525,484 @@
     <div class="api-method">
         <div class="method-signature">static String getTypeLabel(String typeCode)</div>
         <p class="method-desc">Converts edge type code to human-readable label (e.g., <code>"f"</code> → <code>"Friend"</code>).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- MinimumSpanningTree -->
+<!-- ======================================= -->
+
+<h2 id="mst"><code>gvisual.MinimumSpanningTree</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class MinimumSpanningTree</code>
+    </div>
+    <p>Computes the Minimum Spanning Forest using Kruskal's algorithm with Union-Find. Handles disconnected graphs by computing a spanning tree per connected component.</p>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;edge&gt; getEdges()</div>
+        <p class="method-desc">Returns all MST edges across all components.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;MSTComponent&gt; getComponents()</div>
+        <p class="method-desc">Returns each connected component's spanning tree as an <code>MSTComponent</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getComponentCount()</div>
+        <p class="method-desc">Returns the number of connected components.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">float getTotalWeight()</div>
+        <p class="method-desc">Returns the total weight of all MST edges.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getEdgeCount()</div>
+        <p class="method-desc">Returns the total number of edges in the MST.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getVertexCount()</div>
+        <p class="method-desc">Returns the total number of vertices spanned.</p>
+    </div>
+</div>
+
+<h3 id="mst-component"><code>MinimumSpanningTree.MSTComponent</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class MSTComponent</code>
+    </div>
+    <p>Represents a single connected component's spanning tree.</p>
+
+    <div class="api-method">
+        <div class="method-signature">int getId()</div>
+        <p class="method-desc">Component identifier (0-indexed).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getVertices()</div>
+        <p class="method-desc">Vertices in this component.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;edge&gt; getEdges()</div>
+        <p class="method-desc">Spanning tree edges for this component.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">float getTotalWeight()</div>
+        <p class="method-desc">Sum of edge weights in this component's spanning tree.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getSize()</div>
+        <p class="method-desc">Number of vertices in this component.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphColoringAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="coloring"><code>gvisual.GraphColoringAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphColoringAnalyzer</code>
+    </div>
+    <p>Welsh-Powell greedy graph coloring. Assigns integer colors to vertices so no two adjacent vertices share the same color, using a degree-descending ordering heuristic.</p>
+
+    <div class="api-method">
+        <div class="method-signature">ColoringResult compute()</div>
+        <p class="method-desc">Computes a coloring using the default Welsh-Powell (degree-descending) vertex order. Returns a <code>ColoringResult</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">ColoringResult computeWithOrder(List&lt;String&gt; vertexOrder)</div>
+        <p class="method-desc">Computes a coloring using a custom vertex ordering.</p>
+    </div>
+</div>
+
+<h3 id="coloring-result"><code>GraphColoringAnalyzer.ColoringResult</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class ColoringResult</code>
+    </div>
+    <p>Immutable result of a graph coloring computation.</p>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getColorAssignment()</div>
+        <p class="method-desc">Returns vertex → color number mapping.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getColor(String vertex)</div>
+        <p class="method-desc">Returns the color assigned to a specific vertex, or <code>-1</code> if not found.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;Integer, List&lt;String&gt;&gt; getColorClasses()</div>
+        <p class="method-desc">Returns color number → list of vertices with that color.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getVerticesWithColor(int color)</div>
+        <p class="method-desc">Returns all vertices assigned a specific color.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getChromaticBound()</div>
+        <p class="method-desc">Returns the number of colors used (upper bound on chromatic number).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">boolean isValid()</div>
+        <p class="method-desc">Validates the coloring — returns <code>true</code> if no adjacent vertices share a color.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Object&gt; getSummary()</div>
+        <p class="method-desc">Returns summary statistics: vertex count, chromatic bound, class sizes, validity.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- ArticulationPointAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="articulation"><code>gvisual.ArticulationPointAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class ArticulationPointAnalyzer</code>
+    </div>
+    <p>Identifies articulation points (cut vertices) and bridges (cut edges) using Tarjan's DFS algorithm. These are vertices/edges whose removal disconnects the graph.</p>
+</div>
+
+<h3 id="articulation-result"><code>ArticulationPointAnalyzer.AnalysisResult</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class AnalysisResult</code>
+    </div>
+    <p>Immutable result containing articulation points, bridges, and graph connectivity info.</p>
+
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getArticulationPoints()</div>
+        <p class="method-desc">Returns the set of articulation point vertex IDs.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;Bridge&gt; getBridges()</div>
+        <p class="method-desc">Returns the list of bridge edges with component size information.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getTotalVertices()</div>
+        <p class="method-desc">Total vertex count in the analyzed graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getTotalEdges()</div>
+        <p class="method-desc">Total edge count in the analyzed graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getConnectedComponents()</div>
+        <p class="method-desc">Number of connected components.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getArticulationPointCount()</div>
+        <p class="method-desc">Number of articulation points found.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getBridgeCount()</div>
+        <p class="method-desc">Number of bridges found.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- PageRankAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="pagerank"><code>gvisual.PageRankAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class PageRankAnalyzer</code>
+    </div>
+    <p>Computes PageRank scores using the power-iteration method with configurable damping factor, tolerance, and maximum iterations. Uses array-based computation for performance.</p>
+
+    <div class="api-method">
+        <div class="method-signature">static final double DEFAULT_DAMPING = 0.85</div>
+        <p class="method-desc">Standard damping factor (probability of following a link vs. random jump).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static final double DEFAULT_TOLERANCE = 1e-6</div>
+        <p class="method-desc">Convergence threshold for L1 norm between iterations.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static final int DEFAULT_MAX_ITERATIONS = 100</div>
+        <p class="method-desc">Maximum number of power-iteration steps.</p>
+    </div>
+</div>
+
+<h3 id="pagerank-result"><code>PageRankAnalyzer.RankedNode</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class RankedNode</code>
+    </div>
+    <p>A node's PageRank result with rank value and degree information.</p>
+
+    <div class="api-method">
+        <div class="method-signature">String getNodeId()</div>
+        <p class="method-desc">The vertex identifier.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getRank()</div>
+        <p class="method-desc">Raw PageRank score.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getDegree()</div>
+        <p class="method-desc">Vertex degree (number of edges).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getNormalizedRank()</div>
+        <p class="method-desc">PageRank normalized to [0, 1] range relative to the highest-ranked node.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- KCoreDecomposition -->
+<!-- ======================================= -->
+
+<h2 id="kcore"><code>gvisual.KCoreDecomposition</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class KCoreDecomposition</code>
+    </div>
+    <p>Computes the k-core decomposition of a graph — iteratively removes vertices with degree less than k to find dense subgraphs. Identifies the degeneracy, shell structure, and density profile.</p>
+</div>
+
+<h3 id="kcore-result"><code>KCoreDecomposition.KCoreResult</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class KCoreResult</code>
+    </div>
+    <p>Immutable decomposition result with coreness values, shell structure, and density analysis.</p>
+
+    <div class="api-method">
+        <div class="method-signature">int getDegeneracy()</div>
+        <p class="method-desc">Maximum k for which a non-empty k-core exists.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getNumberOfShells()</div>
+        <p class="method-desc">Number of distinct k-shells in the decomposition.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getCohesionScore()</div>
+        <p class="method-desc">Overall cohesion metric (0–1) based on coreness distribution.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getAverageCoreness()</div>
+        <p class="method-desc">Mean coreness across all vertices.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String getStructureClassification()</div>
+        <p class="method-desc">Graph structure classification based on k-core properties.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getCoreness()</div>
+        <p class="method-desc">Returns vertex → coreness number mapping.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SortedMap&lt;Integer, List&lt;String&gt;&gt; getShells()</div>
+        <p class="method-desc">Returns k → list of vertices in that shell (vertices with coreness exactly k).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SortedMap&lt;Integer, Integer&gt; getDistribution()</div>
+        <p class="method-desc">Returns k → number of vertices with coreness k.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;CoreDensity&gt; getDensityProfile()</div>
+        <p class="method-desc">Returns density metrics for each k-core level.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- CliqueAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="clique"><code>gvisual.CliqueAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class CliqueAnalyzer</code>
+    </div>
+    <p>Finds all maximal cliques using the Bron-Kerbosch algorithm with pivot selection. A clique is a complete subgraph — every vertex is connected to every other vertex in the clique.</p>
+</div>
+
+<h3 id="clique-result"><code>CliqueAnalyzer.CliqueResult</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class CliqueResult</code>
+    </div>
+    <p>Immutable result containing all maximal cliques and summary statistics.</p>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;Set&lt;String&gt;&gt; cliques</div>
+        <p class="method-desc">All maximal cliques found, each as a set of vertex IDs.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int cliqueNumber</div>
+        <p class="method-desc">Size of the largest clique (graph's clique number ω(G)).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int cliqueCount</div>
+        <p class="method-desc">Total number of maximal cliques found.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double averageSize</div>
+        <p class="method-desc">Average size of maximal cliques.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double coverage</div>
+        <p class="method-desc">Fraction of vertices that appear in at least one clique.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SortedMap&lt;Integer, Integer&gt; sizeDistribution</div>
+        <p class="method-desc">Clique size → count distribution.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; nodeParticipation</div>
+        <p class="method-desc">Vertex → number of cliques the vertex belongs to.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- DegreeDistributionAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="degree"><code>gvisual.DegreeDistributionAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class DegreeDistributionAnalyzer</code>
+    </div>
+    <p>Comprehensive degree distribution analysis including statistical moments, power-law fitting (log-log OLS), scale-free detection, network type classification, hub identification, and degree assortativity.</p>
+
+    <div class="api-method">
+        <div class="method-signature">int getMinDegree()</div>
+        <p class="method-desc">Minimum vertex degree in the graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getMaxDegree()</div>
+        <p class="method-desc">Maximum vertex degree.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getMeanDegree()</div>
+        <p class="method-desc">Arithmetic mean of all vertex degrees.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getMedianDegree()</div>
+        <p class="method-desc">Median vertex degree.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getVariance() / getStdDev()</div>
+        <p class="method-desc">Population variance and standard deviation of the degree sequence.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getSkewness() / getKurtosis()</div>
+        <p class="method-desc">Third and fourth standardized moments — skewness measures tail asymmetry, kurtosis measures tail heaviness.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getPowerLawExponent()</div>
+        <p class="method-desc">Estimated power-law exponent γ from log-log OLS regression on the degree distribution.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getPowerLawRSquared()</div>
+        <p class="method-desc">R² goodness-of-fit for the power-law model.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">boolean isScaleFree()</div>
+        <p class="method-desc">Returns <code>true</code> if the network fits a scale-free model (γ ∈ [1.5, 3.5] and R² ≥ 0.7).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String getNetworkType()</div>
+        <p class="method-desc">Classifies the network: Empty, Trivial, Regular, Random, Scale-Free, Hub-Dominated, Heavy-Tailed, or Heterogeneous.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getAssortativity()</div>
+        <p class="method-desc">Degree assortativity coefficient (Pearson correlation of degrees at edge endpoints). Positive = assortative, negative = disassortative.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getHubs()</div>
+        <p class="method-desc">Vertices with degree exceeding mean + 2σ (hub detection).</p>
+    </div>
+</div>
+
+<h3 id="degree-result"><code>DegreeDistributionAnalyzer.DegreeDistributionResult</code></h3>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-inner">Inner Class</span>
+        <code>public static class DegreeDistributionResult</code>
+    </div>
+    <p>Immutable snapshot of all degree distribution metrics. Contains all statistics, frequency map, percentiles, and hub list.</p>
+
+    <div class="api-method">
+        <div class="method-signature">Map&lt;Integer, Integer&gt; getFrequencyMap()</div>
+        <p class="method-desc">Degree → count frequency distribution (the raw degree histogram).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Double&gt; getPercentiles()</div>
+        <p class="method-desc">Named percentiles (P10, P25, P50, P75, P90, P95, P99).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- EdgeType -->
+<!-- ======================================= -->
+
+<h2 id="edgetype"><code>gvisual.EdgeType</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-enum">Enum</span>
+        <code>public enum EdgeType</code>
+    </div>
+    <p>Enumerates the five relationship categories: <code>FRIEND</code> (<code>"f"</code>), <code>CLASSMATE</code> (<code>"c"</code>), <code>FAMILIAR</code> (<code>"fs"</code>), <code>STRANGER</code> (<code>"s"</code>), <code>STUDY_GROUP</code> (<code>"sg"</code>). Each carries a display label, color, and default threshold values.</p>
+
+    <div class="api-method">
+        <div class="method-signature">String getCode()</div>
+        <p class="method-desc">Short code used in data files (e.g. <code>"f"</code>, <code>"fs"</code>).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String getDisplayLabel()</div>
+        <p class="method-desc">Human-readable label for graph legends.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Color getColor()</div>
+        <p class="method-desc">Default rendering color for this edge type.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getDefaultDurationThreshold()</div>
+        <p class="method-desc">Default minimum meeting duration (minutes) threshold.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getDefaultMeetingThreshold()</div>
+        <p class="method-desc">Default minimum number of meetings threshold.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static EdgeType fromCode(String code)</div>
+        <p class="method-desc">Looks up an <code>EdgeType</code> by code string. Returns <code>null</code> for unknown codes.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Color colorForCode(String typeCode)</div>
+        <p class="method-desc">Returns the color for a type code, falling back to <code>Color.RED</code> for unknown codes.</p>
     </div>
 </div>
 

@@ -2,6 +2,87 @@
 
 All notable changes to GraphVisual will be documented in this file.
 
+## [1.9.0] — 2026-02-24
+
+### 📊 Degree Distribution Analysis
+
+- **DegreeDistributionAnalyzer** — comprehensive degree distribution analysis:
+  - Statistical moments: min, max, mean, median, mode, variance, std dev, skewness, kurtosis
+  - Power-law fitting via log-log OLS regression with γ exponent and R² goodness-of-fit
+  - Scale-free network detection (γ ∈ [1.5, 3.5] and R² ≥ 0.7)
+  - Network type classification (8 types: Empty, Trivial, Regular, Random, Scale-Free, Hub-Dominated, Heavy-Tailed, Heterogeneous)
+  - Hub detection (degree > mean + 2σ)
+  - Degree assortativity (Pearson correlation at edge endpoints)
+  - Percentiles (P10–P99), frequency map, PDF/CDF/CCDF
+- **DegreeDistributionResult** — immutable result object with all metrics
+- 55 new tests
+
+## [1.8.0] — 2026-02-24
+
+### 🔗 Maximal Clique Finder
+
+- **CliqueAnalyzer** — finds all maximal cliques using Bron-Kerbosch with pivot selection
+  - Clique number ω(G), clique count, average size, coverage
+  - Size distribution and node participation tracking
+  - Clique overlap detection between pairs
+- **CliqueResult** — immutable result with summary statistics
+- 47 new tests
+
+## [1.7.0] — 2026-02-22
+
+### 🧅 K-Core Decomposition
+
+- **KCoreDecomposition** — identifies dense subgraphs via iterative peeling
+  - Degeneracy computation, shell structure, density profile
+  - Cohesion scoring and structure classification
+  - Coreness mapping for all vertices
+- **KCoreResult** — immutable result with shells, distribution, and analysis
+- 47 new tests
+
+## [1.6.0] — 2026-02-22
+
+### 📈 PageRank Analysis
+
+- **PageRankAnalyzer** — power-iteration PageRank with array-based computation
+  - Configurable damping factor, tolerance, and max iterations
+  - Normalized ranks, hidden influence detection
+  - PageRank vs. degree comparison (position shift analysis)
+- **RankedNode**, **HiddenInfluence**, **RankComparison** — typed result objects
+- 45 new tests
+
+## [1.5.0] — 2026-02-22
+
+### 🔴 Articulation Point & Bridge Analysis
+
+- **ArticulationPointAnalyzer** — Tarjan's DFS for cut vertices and cut edges
+  - Identifies vertices and edges whose removal disconnects the graph
+  - Per-bridge component size analysis
+  - Per-articulation-point degree and biconnected component counts
+- **AnalysisResult**, **Bridge**, **ArticulationPointInfo** — typed result objects
+- 45 new tests
+
+## [1.4.0] — 2026-02-22
+
+### 🎨 Graph Coloring
+
+- **GraphColoringAnalyzer** — Welsh-Powell greedy vertex coloring
+  - Degree-descending heuristic for near-optimal coloring
+  - Custom vertex ordering support via `computeWithOrder()`
+  - Color classes, chromatic bound, validation
+- **ColoringResult** — immutable result with color assignment and summary
+- 45 new tests
+
+## [1.3.0] — 2026-02-21
+
+### 🌲 Minimum Spanning Tree
+
+- **MinimumSpanningTree** — Kruskal's algorithm with Union-Find
+  - Handles disconnected graphs (spanning forest)
+  - Per-component breakdown with vertex list, edges, and weight
+- **MSTComponent** — individual component spanning tree
+- **EdgeType** enum — centralised edge type codes, labels, colors, and thresholds (replaces scattered if/else chains)
+- 45 new tests
+
 ## [1.2.0] — 2026-02-20
 
 ### ✨ Node Centrality Analysis
