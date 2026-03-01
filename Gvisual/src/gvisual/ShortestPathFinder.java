@@ -158,30 +158,37 @@ public class ShortestPathFinder {
                     0.0);
         }
 
-        // Dijkstra with typed PQ entries (no vertex-index indirection)
+        // Dijkstra with immutable PQ entries to avoid heap corruption.
+        // Java's PriorityQueue does not re-heapify when a comparator's
+        // backing data changes, so each entry must capture its distance
+        // at insertion time. Stale entries are skipped via the visited set.
         final Map<String, Double> dist = new HashMap<String, Double>();
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, edge> predecessorEdge = new HashMap<String, edge>();
 
-        // Priority queue using String[] wrapper: [0]=vertex, distance stored in dist map
-        PriorityQueue<String> pq = new PriorityQueue<String>(11, new Comparator<String>() {
-            public int compare(String a, String b) {
-                Double da = dist.get(a);
-                Double db = dist.get(b);
-                if (da == null) da = Double.MAX_VALUE;
-                if (db == null) db = Double.MAX_VALUE;
-                return Double.compare(da, db);
+        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11, new Comparator<double[]>() {
+            public int compare(double[] a, double[] b) {
+                return Double.compare(a[0], b[0]);
             }
         });
+        // Vertex names indexed by insertion order
+        List<String> vertexIndex = new ArrayList<String>();
+        // Map vertex name -> index for O(1) lookup
+        Map<String, Integer> vertexToIndex = new HashMap<String, Integer>();
 
+        int sourceIdx = 0;
+        vertexIndex.add(source);
+        vertexToIndex.put(source, sourceIdx);
         dist.put(source, 0.0);
         predecessor.put(source, null);
-        pq.add(source);
+        pq.add(new double[]{0.0, sourceIdx});
 
         Set<String> visited = new HashSet<String>();
 
         while (!pq.isEmpty()) {
-            String current = pq.poll();
+            double[] entry = pq.poll();
+            double entryDist = entry[0];
+            String current = vertexIndex.get((int) entry[1]);
 
             if (visited.contains(current)) continue;
             visited.add(current);
@@ -190,20 +197,25 @@ public class ShortestPathFinder {
                 return buildPath(source, target, predecessor, predecessorEdge);
             }
 
-            double currentDist = dist.get(current);
-
             for (edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor == null || visited.contains(neighbor)) continue;
 
-                double newDist = currentDist + Math.max(e.getWeight(), 0.001);
+                double newDist = entryDist + Math.max(e.getWeight(), 0.001);
                 Double oldDist = dist.get(neighbor);
 
                 if (oldDist == null || newDist < oldDist) {
                     dist.put(neighbor, newDist);
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
-                    pq.add(neighbor);
+
+                    Integer idx = vertexToIndex.get(neighbor);
+                    if (idx == null) {
+                        idx = vertexIndex.size();
+                        vertexIndex.add(neighbor);
+                        vertexToIndex.put(neighbor, idx);
+                    }
+                    pq.add(new double[]{newDist, idx});
                 }
             }
         }
