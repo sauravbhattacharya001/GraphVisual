@@ -163,25 +163,23 @@ public class ShortestPathFinder {
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, edge> predecessorEdge = new HashMap<String, edge>();
 
-        // Priority queue using String[] wrapper: [0]=vertex, distance stored in dist map
-        PriorityQueue<String> pq = new PriorityQueue<String>(11, new Comparator<String>() {
-            public int compare(String a, String b) {
-                Double da = dist.get(a);
-                Double db = dist.get(b);
-                if (da == null) da = Double.MAX_VALUE;
-                if (db == null) db = Double.MAX_VALUE;
-                return Double.compare(da, db);
+        // Priority queue with captured distances — avoids mutable-comparator heap corruption.
+        // Each entry is Object[]{Double distance, String vertex} with distance frozen at insertion.
+        PriorityQueue<Object[]> pq = new PriorityQueue<Object[]>(11, new Comparator<Object[]>() {
+            public int compare(Object[] a, Object[] b) {
+                return Double.compare((Double) a[0], (Double) b[0]);
             }
         });
 
         dist.put(source, 0.0);
         predecessor.put(source, null);
-        pq.add(source);
+        pq.add(new Object[]{0.0, source});
 
         Set<String> visited = new HashSet<String>();
 
         while (!pq.isEmpty()) {
-            String current = pq.poll();
+            Object[] entry = pq.poll();
+            String current = (String) entry[1];
 
             if (visited.contains(current)) continue;
             visited.add(current);
@@ -203,7 +201,7 @@ public class ShortestPathFinder {
                     dist.put(neighbor, newDist);
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
-                    pq.add(neighbor);
+                    pq.add(new Object[]{newDist, neighbor});
                 }
             }
         }
