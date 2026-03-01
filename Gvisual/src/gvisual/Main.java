@@ -106,11 +106,6 @@ public class Main extends JFrame {
     private JButton cShowParam;
     private JButton sShowParam;
     private JButton sgShowParam;
-    private boolean frShowParamFlag;
-    private boolean fsShowParamFlag;
-    private boolean cShowParamFlag;
-    private boolean sShowParamFlag;
-    private boolean sgShowParamFlag;
     private Box[] categoryPanel;
     private JPanel frHpanel;
     private JPanel fsHpanel;
@@ -421,6 +416,128 @@ public class Main extends JFrame {
 
         date = (day < 10) ? ("0" + day) : Integer.toString(day);
         timeStamp = "2011-" + month + "-" + date;
+    }
+
+    /**
+     * Creates a ChangeListener that refreshes the graph when the slider
+     * stops adjusting.  Replaces the identical anonymous listener that was
+     * duplicated 10+ times across the category sliders and timeline.
+     *
+     * @param slider the slider whose {@code getValueIsAdjusting()} is checked
+     * @return a reusable ChangeListener
+     */
+    private ChangeListener createGraphRefreshListener(final JSlider slider) {
+        return new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                if (!slider.getValueIsAdjusting()) {
+                    try {
+                        addGraph();
+                    } catch (ParserConfigurationException ex) {
+                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (SAXException ex) {
+                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        };
+    }
+
+    /**
+     * Holds the UI components for a single edge-type category row.
+     */
+    private static class CategoryRow {
+        final JCheckBox checkbox;
+        final JPanel headerPanel;
+        final JSlider durationSlider;
+        final JSlider meetingSlider;
+        final JButton settingsButton;
+        boolean showParams;
+
+        CategoryRow(JCheckBox checkbox, JPanel headerPanel,
+                    JSlider durationSlider, JSlider meetingSlider,
+                    JButton settingsButton) {
+            this.checkbox = checkbox;
+            this.headerPanel = headerPanel;
+            this.durationSlider = durationSlider;
+            this.meetingSlider = meetingSlider;
+            this.settingsButton = settingsButton;
+            this.showParams = false;
+        }
+    }
+
+    /** All five category rows, indexed by EdgeType ordinal. */
+    private CategoryRow[] categoryRows;
+
+    /**
+     * Creates a fully-wired category row (checkbox + label + sliders + settings
+     * button) for the given edge type.  This replaces the five near-identical
+     * blocks that previously lived in {@code initializeCategoryPanel()}.
+     *
+     * @param type        the edge type this row controls
+     * @param edgeList    the corresponding edge list (e.g. {@code friendEdges})
+     * @param labelText   the display text for the label
+     * @param durMax      maximum value for the duration slider
+     * @return a fully-initialised {@code CategoryRow}
+     */
+    private CategoryRow createCategoryRow(final EdgeType type,
+                                          final List<edge> edgeList,
+                                          String labelText,
+                                          int durMax) {
+        JButton settingsBtn = new JButton(new ImageIcon("./images/settings.png"));
+        settingsBtn.setBorder(null);
+
+        final JCheckBox cb = new JCheckBox();
+        cb.setSelected(true);
+        cb.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (cb.isSelected()) {
+                    for (edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
+                } else {
+                    for (edge x : edgeList) { g.removeEdge(x); }
+                }
+                imagePanel.setVisible(false);
+                imagePanel.setVisible(true);
+            }
+        });
+
+        JPanel header = new JPanel();
+        JLabel label = new JLabel(labelText, JLabel.CENTER);
+        label.setForeground(type.getColor());
+        label.setFont(new Font("SANS_SERIF", 0, 14));
+        header.add(cb);
+        header.add(label);
+        header.add(settingsBtn);
+
+        JSlider durSlider = new JSlider(0, durMax, type.getDefaultDurationThreshold());
+        JSlider meetSlider = new JSlider(0, 5, type.getDefaultMeetingThreshold());
+        durSlider.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
+        meetSlider.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
+
+        int durMajor = durMax <= 25 ? 5 : 10;
+        durSlider.setMajorTickSpacing(durMajor);
+        durSlider.setMinorTickSpacing(1);
+        meetSlider.setMajorTickSpacing(1);
+        meetSlider.setMinorTickSpacing(1);
+        durSlider.setPaintTicks(true);
+        durSlider.setPaintLabels(true);
+        meetSlider.setPaintTicks(true);
+        meetSlider.setPaintLabels(true);
+
+        durSlider.addChangeListener(createGraphRefreshListener(durSlider));
+        meetSlider.addChangeListener(createGraphRefreshListener(meetSlider));
+
+        final CategoryRow row = new CategoryRow(cb, header, durSlider, meetSlider, settingsBtn);
+
+        settingsBtn.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                row.showParams = !row.showParams;
+                paintCategoryPanel();
+            }
+        });
+
+        return row;
     }
 
     /**
@@ -2097,51 +2214,23 @@ public class Main extends JFrame {
     }
 
     /**
-     * repaint the category panel showing neccesary settings section
+     * Repaint the category panel, showing/hiding parameter sliders based on
+     * each row's {@code showParams} flag.
      */
     private void paintCategoryPanel() {
-
         categoryPanel = new Box[5];
         for (int i = 0; i < 5; i++) {
             categoryPanel[i] = Box.createVerticalBox();
             categoryPanel[i].setBorder(BorderFactory.createEtchedBorder(1));
-            
-        }
 
-        categoryPanel[0].add(frHpanel);
-        if (frShowParamFlag) {
-            categoryPanel[0].add(friendDurThreshold);
-            categoryPanel[0].add(friendNumMeetThreshold);
-        }
-
-
-        categoryPanel[1].add(cHpanel);
-        if (cShowParamFlag) {
-            categoryPanel[1].add(classmateDurThreshold);
-            categoryPanel[1].add(classmateNumMeetThreshold);
-        }
-
-
-        categoryPanel[2].add(fsHpanel);
-        if (fsShowParamFlag) {
-            categoryPanel[2].add(fsDurThreshold);
-            categoryPanel[2].add(fsNumMeetThreshold);
-        }
-
-        categoryPanel[3].add(sHpanel);
-        if (sShowParamFlag) {
-            categoryPanel[3].add(strangerDurThreshold);
-            categoryPanel[3].add(strangerNumMeetThreshold);
-        }
-
-        categoryPanel[4].add(sgHpanel);
-        if (sgShowParamFlag) {
-            categoryPanel[4].add(studyGDurThreshold);
-            categoryPanel[4].add(studyGNumMeetThreshold);
+            categoryPanel[i].add(categoryRows[i].headerPanel);
+            if (categoryRows[i].showParams) {
+                categoryPanel[i].add(categoryRows[i].durationSlider);
+                categoryPanel[i].add(categoryRows[i].meetingSlider);
+            }
         }
 
         parameterSpace.removeAll();
-
         for (int i = 0; i < 5; i++) {
             parameterSpace.add(categoryPanel[i]);
         }
@@ -2150,472 +2239,55 @@ public class Main extends JFrame {
     }
 
     /**
-     * initialize the category panel
+     * initialize the category panel — creates one {@link CategoryRow}
+     * per edge type using the shared {@code createCategoryRow()} helper.
      */
     public final void initializeCategoryPanel() {
-
-        ////////////////////////////////////////////
-        frShowParam = new JButton(new ImageIcon("./images/settings.png"));
-        fsShowParam = new JButton(new ImageIcon("./images/settings.png"));
-        cShowParam = new JButton(new ImageIcon("./images/settings.png"));
-        sShowParam = new JButton(new ImageIcon("./images/settings.png"));
-        sgShowParam = new JButton(new ImageIcon("./images/settings.png"));
-
-        frShowParam.setBorder(null);
-        fsShowParam.setBorder(null);
-        cShowParam.setBorder(null);
-        sShowParam.setBorder(null);
-        sgShowParam.setBorder(null);
-
-        sgShowParamFlag = false;
-        frShowParamFlag = false;
-        fsShowParamFlag = false;
-        cShowParamFlag = false;
-        sShowParamFlag = false;
-
-
-        showFriend = new JCheckBox();
-        showFriend.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                if (showFriend.isSelected()) {
-                    for (edge x : friendEdges) {
-                        System.out.println("adding edge");
-                        g.addEdge(x, x.getVertex1(), x.getVertex2());
-                    }
-                } else {
-                    for (edge x : friendEdges) {
-                        System.out.println("removing edge" + x);
-                        g.removeEdge(x);
-                    }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
-            }
-        });
-        showFriend.setSelected(true);
-
-        frHpanel = new JPanel();
-
-        JLabel friendLabel = new JLabel("FRIENDS (Location : public)", JLabel.CENTER);
-
-
-
-        friendLabel.setForeground(EdgeType.FRIEND.getColor());
-        friendLabel.setFont(new Font("SANS_SERIF", 0, 14));
-
-        friendDurThreshold = new JSlider(0, 50, EdgeType.FRIEND.getDefaultDurationThreshold());
-        friendNumMeetThreshold = new JSlider(0, 5, EdgeType.FRIEND.getDefaultMeetingThreshold());
-
-        friendDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
-        friendNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
-
-        friendDurThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-
-                if (!friendDurThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        friendNumMeetThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!friendNumMeetThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        friendDurThreshold.setMajorTickSpacing(10);
-        friendDurThreshold.setMinorTickSpacing(1);
-        friendNumMeetThreshold.setMajorTickSpacing(1);
-        friendNumMeetThreshold.setMinorTickSpacing(1);
-        friendDurThreshold.setPaintLabels(true);
-        friendNumMeetThreshold.setPaintLabels(true);
-        friendDurThreshold.setPaintTicks(true);
-        friendNumMeetThreshold.setPaintTicks(true);
-
-
-        frHpanel.add(showFriend);
-        frHpanel.add(friendLabel);
-        frHpanel.add(frShowParam);
-        frShowParam.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                frShowParamFlag = !frShowParamFlag;
-                paintCategoryPanel();
-            }
-        });
-
-        //////////////////////////////////////////
-
-        showClassmate = new JCheckBox();
-        showClassmate.setSelected(true);
-
-        showClassmate.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                if (showClassmate.isSelected()) {
-                    for (edge x : classmateEdges) {
-                        g.addEdge(x, x.getVertex1(), x.getVertex2());
-                    }
-                } else {
-                    for (edge x : classmateEdges) {
-                        g.removeEdge(x);
-                    }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
-            }
-        });
-        cHpanel = new JPanel();
-        JLabel classmateLabel = new JLabel("<html>CLASSMATES (Location : classroom)", JLabel.CENTER);
-        classmateLabel.setForeground(EdgeType.CLASSMATE.getColor());
-        classmateLabel.setFont(new Font("SANS_SERIF", 0, 14));
-
-        classmateDurThreshold = new JSlider(0, 50, EdgeType.CLASSMATE.getDefaultDurationThreshold());
-        classmateNumMeetThreshold = new JSlider(0, 5, EdgeType.CLASSMATE.getDefaultMeetingThreshold());
-        classmateDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
-        classmateNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
-        classmateDurThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!classmateDurThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        classmateNumMeetThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!classmateNumMeetThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        classmateDurThreshold.setMajorTickSpacing(10);
-        classmateNumMeetThreshold.setMajorTickSpacing(1);
-        classmateNumMeetThreshold.setMinorTickSpacing(1);
-        classmateDurThreshold.setMinorTickSpacing(1);
-        classmateDurThreshold.setPaintLabels(true);
-        classmateNumMeetThreshold.setPaintLabels(true);
-        classmateDurThreshold.setPaintTicks(true);
-        classmateNumMeetThreshold.setPaintTicks(true);
-
-        cHpanel.add(showClassmate);
-        cHpanel.add(classmateLabel);
-        cHpanel.add(cShowParam);
-
-        cShowParam.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                cShowParamFlag = !cShowParamFlag;
-                paintCategoryPanel();
-            }
-        });
-
-        /////////////////////////////////////////////////
-
-        showFS = new JCheckBox();
-        showFS.setSelected(true);
-
-        showFS.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                if (showFS.isSelected()) {
-                    for (edge x : fsEdges) {
-                        g.addEdge(x, x.getVertex1(), x.getVertex2());
-                    }
-                } else {
-                    for (edge x : fsEdges) {
-                        g.removeEdge(x);
-                    }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
-            }
-        });
-
-        fsHpanel = new JPanel();
-        JLabel fsLabel = new JLabel("FAM STRANGERS (Location : public,pathways)", JLabel.CENTER);
-        fsLabel.setForeground(EdgeType.FAMILIAR.getColor());
-        fsLabel.setFont(new Font("SANS_SERIF", 0, 14));
-
-        fsDurThreshold = new JSlider(0, 25, EdgeType.FAMILIAR.getDefaultDurationThreshold());
-        fsNumMeetThreshold = new JSlider(0, 5, EdgeType.FAMILIAR.getDefaultMeetingThreshold());
-        fsDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
-        fsNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
-
-        fsDurThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!fsDurThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        fsNumMeetThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!fsNumMeetThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        fsDurThreshold.setMajorTickSpacing(5);
-        fsDurThreshold.setMinorTickSpacing(1);
-        fsNumMeetThreshold.setMajorTickSpacing(1);
-        fsNumMeetThreshold.setMinorTickSpacing(1);
-        fsDurThreshold.setPaintTicks(true);
-        fsNumMeetThreshold.setPaintTicks(true);
-        fsDurThreshold.setPaintLabels(true);
-        fsNumMeetThreshold.setPaintLabels(true);
-
-        fsHpanel.add(showFS);
-        fsHpanel.add(fsLabel);
-        fsHpanel.add(fsShowParam);
-
-        fsShowParam.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                fsShowParamFlag = !fsShowParamFlag;
-                paintCategoryPanel();
-            }
-        });
-
-
-        ////////////////////////////////////////////////////////
-
-        showStranger = new JCheckBox();
-        showStranger.setSelected(true);
-
-        showStranger.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                if (showStranger.isSelected()) {
-                    for (edge x : strangerEdges) {
-                        g.addEdge(x, x.getVertex1(), x.getVertex2());
-                    }
-                } else {
-                    for (edge x : strangerEdges) {
-                        g.removeEdge(x);
-                    }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
-            }
-        });
-
-        sHpanel = new JPanel();
-        JLabel strangerLabel = new JLabel("STRANGERS (Location : public,pathways)", JLabel.CENTER);
-        strangerLabel.setForeground(EdgeType.STRANGER.getColor());
-        strangerLabel.setFont(new Font("SANS_SERIF", 0, 14));
-
-
-        strangerDurThreshold = new JSlider(0, 25, EdgeType.STRANGER.getDefaultDurationThreshold());
-        strangerNumMeetThreshold = new JSlider(0, 5, EdgeType.STRANGER.getDefaultMeetingThreshold());
-        strangerDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
-        strangerNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
-        strangerDurThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!strangerDurThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        strangerNumMeetThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!strangerNumMeetThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        strangerDurThreshold.setMajorTickSpacing(5);
-        strangerDurThreshold.setMinorTickSpacing(1);
-        strangerNumMeetThreshold.setMajorTickSpacing(1);
-        strangerNumMeetThreshold.setMinorTickSpacing(1);
-
-        strangerDurThreshold.setPaintTicks(true);
-        strangerDurThreshold.setPaintLabels(true);
-        strangerNumMeetThreshold.setPaintTicks(true);
-        strangerNumMeetThreshold.setPaintLabels(true);
-
-        sHpanel.add(showStranger);
-        sHpanel.add(strangerLabel);
-        sHpanel.add(sShowParam);
-
-        sShowParam.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                sShowParamFlag = !sShowParamFlag;
-                paintCategoryPanel();
-            }
-        });
-        //////////////////////////////////////////////////
-
-        showStudy = new JCheckBox();
-        showStudy.setSelected(true);
-
-        showStudy.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                if (showStudy.isSelected()) {
-                    for (edge x : studyGEdges) {
-                        g.addEdge(x, x.getVertex1(), x.getVertex2());
-                    }
-                } else {
-                    for (edge x : studyGEdges) {
-                        g.removeEdge(x);
-                    }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
-                ;
-            }
-        });
-
-        sgHpanel = new JPanel();
-        JLabel sgLabel = new JLabel("STUDY GROUPS (Location : public)", JLabel.CENTER);
-        sgLabel.setForeground(EdgeType.STUDY_GROUP.getColor());
-        sgLabel.setFont(new Font("SANS_SERIF", 0, 14));
-
-        studyGDurThreshold = new JSlider(0, 50, EdgeType.STUDY_GROUP.getDefaultDurationThreshold());
-        studyGNumMeetThreshold = new JSlider(0, 5, EdgeType.STUDY_GROUP.getDefaultMeetingThreshold());
-        studyGDurThreshold.setBorder(BorderFactory.createTitledBorder("Duration of meeting (min)"));
-        studyGNumMeetThreshold.setBorder(BorderFactory.createTitledBorder("Number of meetings in a day"));
-        studyGDurThreshold.setSize(10, 100);
-        studyGNumMeetThreshold.setSize(10, 100);
-
-        studyGDurThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!studyGDurThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        studyGNumMeetThreshold.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
-                if (!studyGNumMeetThreshold.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        });
-
-        studyGDurThreshold.setMajorTickSpacing(5);
-        studyGDurThreshold.setMinorTickSpacing(1);
-        studyGNumMeetThreshold.setMajorTickSpacing(1);
-        studyGNumMeetThreshold.setMinorTickSpacing(1);
-
-        studyGDurThreshold.setPaintTicks(true);
-        studyGNumMeetThreshold.setPaintTicks(true);
-        studyGDurThreshold.setPaintLabels(true);
-        studyGNumMeetThreshold.setPaintLabels(true);
-
-        sgHpanel.add(showStudy);
-        sgHpanel.add(sgLabel);
-        sgHpanel.add(sgShowParam);
-
-        sgShowParam.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                sgShowParamFlag = !sgShowParamFlag;
-                paintCategoryPanel();
-            }
-        });
+        categoryRows = new CategoryRow[5];
+
+        categoryRows[0] = createCategoryRow(EdgeType.FRIEND,      friendEdges,
+                "FRIENDS (Location : public)",                     50);
+        categoryRows[1] = createCategoryRow(EdgeType.CLASSMATE,   classmateEdges,
+                "<html>CLASSMATES (Location : classroom)",         50);
+        categoryRows[2] = createCategoryRow(EdgeType.FAMILIAR,    fsEdges,
+                "FAM STRANGERS (Location : public,pathways)",      25);
+        categoryRows[3] = createCategoryRow(EdgeType.STRANGER,    strangerEdges,
+                "STRANGERS (Location : public,pathways)",           25);
+        categoryRows[4] = createCategoryRow(EdgeType.STUDY_GROUP, studyGEdges,
+                "STUDY GROUPS (Location : public)",                 50);
+
+        // Alias the sliders/checkboxes/panels to existing fields so that the
+        // rest of Main.java (addGraph, generateFile calls, etc.) still compiles.
+        showFriend              = categoryRows[0].checkbox;
+        friendDurThreshold      = categoryRows[0].durationSlider;
+        friendNumMeetThreshold  = categoryRows[0].meetingSlider;
+        frShowParam             = categoryRows[0].settingsButton;
+        frHpanel                = categoryRows[0].headerPanel;
+
+        showClassmate               = categoryRows[1].checkbox;
+        classmateDurThreshold       = categoryRows[1].durationSlider;
+        classmateNumMeetThreshold   = categoryRows[1].meetingSlider;
+        cShowParam                  = categoryRows[1].settingsButton;
+        cHpanel                     = categoryRows[1].headerPanel;
+
+        showFS              = categoryRows[2].checkbox;
+        fsDurThreshold      = categoryRows[2].durationSlider;
+        fsNumMeetThreshold  = categoryRows[2].meetingSlider;
+        fsShowParam         = categoryRows[2].settingsButton;
+        fsHpanel            = categoryRows[2].headerPanel;
+
+        showStranger              = categoryRows[3].checkbox;
+        strangerDurThreshold      = categoryRows[3].durationSlider;
+        strangerNumMeetThreshold  = categoryRows[3].meetingSlider;
+        sShowParam                = categoryRows[3].settingsButton;
+        sHpanel                   = categoryRows[3].headerPanel;
+
+        showStudy               = categoryRows[4].checkbox;
+        studyGDurThreshold      = categoryRows[4].durationSlider;
+        studyGNumMeetThreshold  = categoryRows[4].meetingSlider;
+        sgShowParam             = categoryRows[4].settingsButton;
+        sgHpanel                = categoryRows[4].headerPanel;
+    }
     }
 
     /**
