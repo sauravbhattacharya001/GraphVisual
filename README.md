@@ -41,48 +41,35 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-```
-GraphVisual/
-├── src/
-│   ├── gvisual/
-│   │   ├── Main.java          # Swing GUI — graph panel, timeline, controls, legend
-│   │   ├── edge.java          # Edge model (type, vertices, weight, label)
-│   │   └── GraphStats.java    # Network metrics calculator (density, degree, hubs)
-│   │   └── NodeCentralityAnalyzer.java # Centrality metrics (degree, betweenness, closeness)
-│   └── app/
-│       ├── Network.java       # Generates edge-list files from DB meeting queries
-│       ├── Util.java          # Database connection factory (env-based credentials)
-│       ├── findMeetings.java  # Bluetooth event → meeting extraction pipeline
-│       ├── addLocation.java   # Meeting location classification (public/class/path)
-│       └── matchImei.java     # Device node → IMEI matching
-├── test/
-│   ├── gvisual/EdgeTest.java  # Edge model unit tests
-│   ├── gvisual/GraphStatsTest.java # Network metrics unit tests
-│   └── app/UtilMethodsTest.java # Utility method tests
-├── lib/                       # JUNG 2.0.1, PostgreSQL JDBC, Commons IO, Java3D
-└── images/                    # UI icons (play, pause, stop, etc.) and legend colors
-```
-
-### Data Pipeline
+GraphVisual consists of 18 source classes (~8,000 lines), 12 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for full details including the analyzer reference table, design patterns, and dependency map.
 
 ```
-Bluetooth events (event_3)
-    │
-    ▼
-findMeetings.java ──→ meeting table (imei pairs, start/end time, duration)
-    │
-    ▼
-matchImei.java ──→ maps device nodes to IMEI identifiers
-    │
-    ▼
-addLocation.java ──→ classifies meeting locations via WiFi access points
-    │
-    ▼
-Network.java ──→ generates edge-list file with parameterized SQL queries
-    │
-    ▼
-Main.java ──→ renders interactive JUNG graph visualization
+Gvisual/src/
+├── gvisual/           # 18 classes — GUI, edge model, 12 analyzers, utilities
+│   ├── Main.java      # Swing GUI (2145 lines) — graph panel, timeline, controls
+│   ├── edge.java      # Edge model (type, vertices, weight, label)
+│   ├── EdgeType.java  # Enum — relationship categories, colors, defaults
+│   ├── GraphStats.java           # Network metrics (density, degree, hubs)
+│   ├── GraphMLExporter.java      # GraphML XML export
+│   ├── GraphGenerator.java       # 10 synthetic graph topologies
+│   ├── ArticulationPointAnalyzer.java  # Cut vertices/bridges (Tarjan's)
+│   ├── CliqueAnalyzer.java             # Maximal cliques (Bron-Kerbosch)
+│   ├── CommunityDetector.java          # Connected component communities
+│   ├── DegreeDistributionAnalyzer.java # Degree stats + power-law fitting
+│   ├── GraphColoringAnalyzer.java      # Welsh-Powell vertex coloring
+│   ├── GraphDiameterAnalyzer.java      # Diameter, radius, eccentricity
+│   ├── KCoreDecomposition.java         # K-core peeling
+│   ├── LinkPredictionAnalyzer.java     # Edge prediction metrics
+│   ├── MinimumSpanningTree.java        # Kruskal's MST
+│   ├── NodeCentralityAnalyzer.java     # Degree/betweenness/closeness
+│   ├── PageRankAnalyzer.java           # PageRank (power iteration)
+│   ├── ShortestPathFinder.java         # BFS + weighted Dijkstra
+│   └── TopologicalSortAnalyzer.java    # Topo sort + cycle detection
+└── app/               # Data pipeline — Bluetooth → meetings → edge files
+    ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
+
+17 test classes with **~650 tests** cover all analyzers and utilities.
 
 ## Requirements
 
