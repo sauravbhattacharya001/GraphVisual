@@ -643,6 +643,9 @@ public class Main extends JFrame {
                 } else {
                     if (count == 0) {
                         final String[] nodeParam = line.split(" ");
+                        if (nodeParam.length < 1 || nodeParam[0].isEmpty()) {
+                            continue; // skip malformed node lines
+                        }
                         g.addVertex(nodeParam[0]);
                         //graphLayout.setLocation(nodeParam[0], new Point(Integer.parseInt(nodeParam[1]), Integer.parseInt(nodeParam[2])));
                     } else {
@@ -650,8 +653,25 @@ public class Main extends JFrame {
 
 
                         String[] edgeParam = line.split(" ");
+                        // Validate edge line: need at least 4 fields
+                        // (type, vertex1, vertex2, weight)
+                        if (edgeParam.length < 4) {
+                            System.err.println("Skipping malformed edge line: " + line);
+                            continue;
+                        }
+                        float weight;
+                        try {
+                            weight = Float.parseFloat(edgeParam[3]);
+                        } catch (NumberFormatException nfe) {
+                            System.err.println("Skipping edge with invalid weight: " + line);
+                            continue;
+                        }
+                        if (Float.isNaN(weight) || Float.isInfinite(weight)) {
+                            System.err.println("Skipping edge with non-finite weight: " + line);
+                            continue;
+                        }
                         edge curEdge = new edge(edgeParam[0], edgeParam[1], edgeParam[2]);
-                        curEdge.setWeight(Float.parseFloat(edgeParam[3]));
+                        curEdge.setWeight(weight);
 
                         // Classify edge by type and add to the appropriate list
                         EdgeType edgeType = EdgeType.fromCode(edgeParam[0]);

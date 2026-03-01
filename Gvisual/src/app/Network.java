@@ -19,7 +19,10 @@ public class Network {
      * Connects to database and writes out the edge-list from the meeting DB table, forming edges of kind:
      * friends, classmates, study-groups, strangers and familiar strangers (depending upon parameters).
      *
-     * @param path
+     * <p>The output path is validated to prevent directory traversal —
+     * it must resolve to a location within the current working directory.</p>
+     *
+     * @param path output file path (must be within the working directory)
      * @param Month
      * @param Date
      * @param dThresF
@@ -35,6 +38,15 @@ public class Network {
      * @throws Exception
      */
     public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
+
+        // Validate output path — prevent directory traversal attacks
+        File outputFile = new File(path).getCanonicalFile();
+        File workingDir = new File(".").getCanonicalFile();
+        if (!outputFile.toPath().startsWith(workingDir.toPath())) {
+            throw new SecurityException(
+                "Output path must be within the working directory. "
+                + "Resolved path: " + outputFile.getAbsolutePath());
+        }
 
         System.out.println("connecting...");
 
