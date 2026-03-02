@@ -431,7 +431,7 @@ public class GraphMLExporterTest {
         GraphMLExporter exporter = new GraphMLExporter(graph, allEdges);
         String xml = exporter.exportToString();
 
-        assertTrue(xml.contains("xmlns=\"http://graphml.graphstruct.org/xmlns\""));
+        assertTrue(xml.contains("xmlns=\"http://graphml.graphdrawing.org/xmlns\""));
         assertTrue(xml.contains("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""));
     }
 
