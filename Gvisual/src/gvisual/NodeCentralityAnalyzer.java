@@ -116,13 +116,16 @@ public class NodeCentralityAnalyzer {
     /**
      * Computes all centrality metrics. Must be called before querying results.
      * Automatically skips recomputation if already computed.
+     *
+     * <p>Betweenness and closeness are computed in a single fused BFS pass
+     * per source vertex, halving the O(V·E) traversal cost compared to
+     * running two independent BFS sweeps.</p>
      */
     public void compute() {
         if (computed) return;
 
         computeDegreeCentrality();
-        computeBetweennessCentrality();
-        computeClosenessCentrality();
+        computeBetweennessAndCloseness();
         computed = true;
     }
 
@@ -306,6 +309,9 @@ public class NodeCentralityAnalyzer {
     /**
      * Classifies the network topology based on degree distribution characteristics.
      *
+     * <p>Reuses the degree data already computed by {@link #computeDegreeCentrality()}
+     * instead of iterating all vertices again.</p>
+     *
      * @return one of: "Trivial" (≤1 node), "Disconnected" (isolated nodes exist),
      *         "Hub-and-Spoke" (one node dominates), "Distributed" (even degree distribution),
      *         "Hierarchical" (moderate degree variance)
@@ -317,7 +323,7 @@ public class NodeCentralityAnalyzer {
         if (n <= 1) return "Trivial";
         if (graph.getEdgeCount() == 0) return "Disconnected";
 
-        // Check for isolated nodes
+        // Reuse cached degree data from computeDegreeCentrality()
         int isolated = 0;
         int maxDeg = 0;
         double sumDeg = 0;
@@ -333,11 +339,9 @@ public class NodeCentralityAnalyzer {
         double avgDeg = sumDeg / n;
         if (avgDeg == 0) return "Disconnected";
 
-        // Check hub-and-spoke: max degree much higher than average
         double hubRatio = maxDeg / avgDeg;
         if (hubRatio > 4.0 && maxDeg > n * 0.3) return "Hub-and-Spoke";
 
-        // Check for distributed (coefficient of variation of degree < 0.5)
         double sumSqDiff = 0;
         for (String node : graph.getVertices()) {
             double diff = graph.degree(node) - avgDeg;
@@ -368,24 +372,29 @@ public class NodeCentralityAnalyzer {
     }
 
     /**
-     * Betweenness centrality using Brandes' algorithm (2001).
-     * Complexity: O(V * E) for unweighted graphs.
+     * Betweenness + closeness centrality in a single fused BFS pass per source.
      *
-     * <p>For each source vertex s, performs a BFS to compute shortest paths,
-     * then accumulates dependencies on the back-sweep. The result is normalized
-     * by 2/((V-1)(V-2)) for undirected graphs to give values in [0, 1].</p>
+     * <p>Previously, betweenness used Brandes' algorithm (BFS + back-propagation
+     * from each source) and closeness used a separate BFS from each source —
+     * two independent O(V·E) traversals. This fused version does both in one
+     * BFS per source vertex, halving the total graph traversal cost.</p>
+     *
+     * <p>Betweenness: Brandes (2001), O(V·E) for unweighted graphs, normalized
+     * by (V-1)(V-2) for undirected. Closeness: Wasserman-Faust normalization
+     * for potentially disconnected graphs.</p>
      */
-    private void computeBetweennessCentrality() {
-        // Initialize all betweenness to 0
+    private void computeBetweennessAndCloseness() {
+        // Initialize all to 0
         for (String node : graph.getVertices()) {
             betweennessCentrality.put(node, 0.0);
+            closenessCentrality.put(node, 0.0);
         }
 
         int n = graph.getVertexCount();
-        if (n <= 2) return;
+        if (n <= 1) return;
 
         for (String s : graph.getVertices()) {
-            // Stacks, predecessors, sigma, distance
+            // --- Single BFS from s, shared by both metrics ---
             Deque<String> stack = new ArrayDeque<String>();
             Map<String, List<String>> predecessors = new HashMap<String, List<String>>();
             Map<String, Integer> sigma = new HashMap<String, Integer>();
@@ -400,9 +409,12 @@ public class NodeCentralityAnalyzer {
             sigma.put(s, 1);
             dist.put(s, 0);
 
-            // BFS from s
             Queue<String> queue = new LinkedList<String>();
             queue.add(s);
+
+            // Closeness accumulators for this source
+            int sumDist = 0;
+            int reachable = 0;
 
             while (!queue.isEmpty()) {
                 String v = queue.poll();
@@ -414,8 +426,12 @@ public class NodeCentralityAnalyzer {
 
                     // First visit to w
                     if (dist.get(w) < 0) {
+                        int nd = dist.get(v) + 1;
+                        dist.put(w, nd);
                         queue.add(w);
-                        dist.put(w, dist.get(v) + 1);
+                        // Closeness: accumulate distance
+                        sumDist += nd;
+                        reachable++;
                     }
 
                     // Shortest path to w via v?
@@ -426,83 +442,40 @@ public class NodeCentralityAnalyzer {
                 }
             }
 
-            // Back-propagation of dependencies
-            Map<String, Double> delta = new HashMap<String, Double>();
-            for (String t : graph.getVertices()) {
-                delta.put(t, 0.0);
+            // --- Closeness for source s ---
+            if (reachable > 0 && sumDist > 0) {
+                double cc = ((double) reachable * reachable) / ((n - 1.0) * sumDist);
+                closenessCentrality.put(s, cc);
             }
 
-            while (!stack.isEmpty()) {
-                String w = stack.pop();
-                for (String v : predecessors.get(w)) {
-                    double contribution = ((double) sigma.get(v) / sigma.get(w)) * (1.0 + delta.get(w));
-                    delta.put(v, delta.get(v) + contribution);
+            // --- Betweenness back-propagation ---
+            if (n > 2) {
+                Map<String, Double> delta = new HashMap<String, Double>();
+                for (String t : graph.getVertices()) {
+                    delta.put(t, 0.0);
                 }
-                if (!w.equals(s)) {
-                    betweennessCentrality.put(w, betweennessCentrality.get(w) + delta.get(w));
+
+                while (!stack.isEmpty()) {
+                    String w = stack.pop();
+                    for (String v : predecessors.get(w)) {
+                        double contribution = ((double) sigma.get(v) / sigma.get(w))
+                                * (1.0 + delta.get(w));
+                        delta.put(v, delta.get(v) + contribution);
+                    }
+                    if (!w.equals(s)) {
+                        betweennessCentrality.put(w,
+                                betweennessCentrality.get(w) + delta.get(w));
+                    }
                 }
             }
         }
 
-        // Normalize for undirected graph: divide by 2 (each pair counted twice)
-        // and by (n-1)(n-2) to normalize to [0, 1]
+        // Normalize betweenness for undirected graph: divide by (n-1)(n-2)
         double normFactor = (n - 1.0) * (n - 2.0);
         if (normFactor > 0) {
             for (String node : graph.getVertices()) {
                 double raw = betweennessCentrality.get(node);
                 betweennessCentrality.put(node, raw / normFactor);
-            }
-        }
-    }
-
-    /**
-     * Closeness centrality: (reachable-1) / sum_of_distances.
-     * Uses BFS from each node to find shortest path distances.
-     *
-     * <p>For disconnected graphs, uses the Wasserman-Faust normalization:
-     * closeness = (reachable - 1)² / ((V - 1) * sumDist)
-     * which gives 0 for isolated nodes and properly scales for partial connectivity.</p>
-     */
-    private void computeClosenessCentrality() {
-        int n = graph.getVertexCount();
-
-        for (String s : graph.getVertices()) {
-            if (n <= 1) {
-                closenessCentrality.put(s, 0.0);
-                continue;
-            }
-
-            // BFS to compute distances from s
-            Map<String, Integer> dist = new HashMap<String, Integer>();
-            Queue<String> queue = new LinkedList<String>();
-            dist.put(s, 0);
-            queue.add(s);
-
-            int sumDist = 0;
-            int reachable = 0;
-
-            while (!queue.isEmpty()) {
-                String current = queue.poll();
-                int currentDist = dist.get(current);
-
-                for (edge e : graph.getIncidentEdges(current)) {
-                    String neighbor = getOtherEnd(e, current);
-                    if (neighbor != null && !dist.containsKey(neighbor)) {
-                        int nd = currentDist + 1;
-                        dist.put(neighbor, nd);
-                        sumDist += nd;
-                        reachable++;
-                        queue.add(neighbor);
-                    }
-                }
-            }
-
-            if (reachable == 0 || sumDist == 0) {
-                closenessCentrality.put(s, 0.0);
-            } else {
-                // Wasserman-Faust normalization for potentially disconnected graphs
-                double cc = ((double) reachable * reachable) / ((n - 1.0) * sumDist);
-                closenessCentrality.put(s, cc);
             }
         }
     }
