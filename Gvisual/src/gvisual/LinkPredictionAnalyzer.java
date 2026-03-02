@@ -56,7 +56,9 @@ public class LinkPredictionAnalyzer {
         /** Sum of 1/log(degree) for each common neighbor. */
         ADAMIC_ADAR,
         /** Product of the two nodes' degrees. */
-        PREFERENTIAL_ATTACHMENT
+        PREFERENTIAL_ATTACHMENT,
+        /** Weighted average across multiple prediction methods. */
+        ENSEMBLE
     }
 
     // ── Result classes ──────────────────────────────────────────
@@ -275,7 +277,7 @@ public class LinkPredictionAnalyzer {
 
             String[] verts = pairVertices.get(entry.getKey());
             candidates.add(new PredictedLink(verts[0], verts[1], avg,
-                    Method.COMMON_NEIGHBORS, pairCommon.get(entry.getKey())));
+                    Method.ENSEMBLE, pairCommon.get(entry.getKey())));
         }
 
         Collections.sort(candidates, new Comparator<PredictedLink>() {
@@ -289,7 +291,7 @@ public class LinkPredictionAnalyzer {
                 0, Math.min(topK, candidates.size()));
 
         return new PredictionResult(new ArrayList<PredictedLink>(top),
-                Method.COMMON_NEIGHBORS, n, existingEdges, possibleEdges, evaluated);
+                Method.ENSEMBLE, n, existingEdges, possibleEdges, evaluated);
     }
 
     // ── Scoring functions ───────────────────────────────────────
