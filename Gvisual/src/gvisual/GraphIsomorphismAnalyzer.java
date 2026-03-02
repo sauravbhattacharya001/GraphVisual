@@ -167,9 +167,10 @@ public class GraphIsomorphismAnalyzer {
 
         // Backtracking search
         Map<String, String> mapping = new LinkedHashMap<String, String>();
+        Map<String, String> reverseMapping = new HashMap<String, String>();
         Set<String> used2 = new HashSet<String>();
 
-        if (backtrack(vertices1, 0, mapping, used2, adj1, adj2, byDegree2)) {
+        if (backtrack(vertices1, 0, mapping, reverseMapping, used2, adj1, adj2, byDegree2)) {
             return new IsomorphismResult(true, mapping, null,
                     degSeq1, degSeq2);
         }
@@ -236,15 +237,22 @@ public class GraphIsomorphismAnalyzer {
     }
 
     /**
-     * Backtracking search with degree-based candidate filtering.
+     * Backtracking search with degree-based candidate filtering and
+     * incremental reverse-mapping maintenance.
      *
      * For each vertex in graph1 (in order), try mapping it to each
      * candidate vertex in graph2 that has the same degree and hasn't
      * been used yet. Check feasibility (all already-mapped neighbors
      * must correspond) before recursing.
+     *
+     * <p>The reverse mapping (graph2 → graph1) is maintained incrementally
+     * alongside the forward mapping to avoid rebuilding it from scratch
+     * in every feasibility check — reducing per-check cost from O(|mapping|)
+     * to O(1) for the reverse lookup.</p>
      */
     private boolean backtrack(List<String> vertices1, int idx,
                               Map<String, String> mapping,
+                              Map<String, String> reverseMapping,
                               Set<String> used2,
                               Map<String, Set<String>> adj1,
                               Map<String, Set<String>> adj2,
@@ -264,16 +272,18 @@ public class GraphIsomorphismAnalyzer {
             // Feasibility check: for every neighbor of v1 that is
             // already mapped, the corresponding mapped vertex must
             // be a neighbor of v2
-            if (isFeasible(v1, v2, mapping, adj1, adj2)) {
+            if (isFeasible(v1, v2, mapping, reverseMapping, adj1, adj2)) {
                 mapping.put(v1, v2);
+                reverseMapping.put(v2, v1);
                 used2.add(v2);
 
-                if (backtrack(vertices1, idx + 1, mapping, used2,
-                        adj1, adj2, byDegree2)) {
+                if (backtrack(vertices1, idx + 1, mapping, reverseMapping,
+                        used2, adj1, adj2, byDegree2)) {
                     return true;
                 }
 
                 mapping.remove(v1);
+                reverseMapping.remove(v2);
                 used2.remove(v2);
             }
         }
@@ -288,9 +298,13 @@ public class GraphIsomorphismAnalyzer {
      * the mapped vertex mapping[n1] must be a neighbor of v2.
      * Also, for every neighbor n2 of v2 whose preimage is mapped,
      * the preimage must be a neighbor of v1.
+     *
+     * <p>Uses the incrementally-maintained reverse mapping for O(1)
+     * preimage lookups instead of rebuilding it from scratch each call.</p>
      */
     private boolean isFeasible(String v1, String v2,
                                 Map<String, String> mapping,
+                                Map<String, String> reverseMapping,
                                 Map<String, Set<String>> adj1,
                                 Map<String, Set<String>> adj2) {
         Set<String> neighbors1 = adj1.get(v1);
@@ -305,12 +319,8 @@ public class GraphIsomorphismAnalyzer {
         }
 
         // Reverse check: mapped neighbors of v2 must come from neighbors of v1
-        Map<String, String> reverse = new HashMap<String, String>();
-        for (Map.Entry<String, String> entry : mapping.entrySet()) {
-            reverse.put(entry.getValue(), entry.getKey());
-        }
         for (String n2 : neighbors2) {
-            String preimage = reverse.get(n2);
+            String preimage = reverseMapping.get(n2);
             if (preimage != null && !neighbors1.contains(preimage)) {
                 return false;
             }

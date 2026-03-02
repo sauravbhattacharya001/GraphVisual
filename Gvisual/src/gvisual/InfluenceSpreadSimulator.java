@@ -108,6 +108,14 @@ public class InfluenceSpreadSimulator {
 
     // ─── Linear Threshold ───────────────────────────────────────
 
+    /**
+     * Linear Threshold simulation.
+     *
+     * <p>Uses synchronous activation: all nodes are evaluated against
+     * the current round's state, and newly activated nodes only become
+     * visible in the next round.  This prevents activation order within
+     * a single round from affecting results.</p>
+     */
     public SimulationResult simulateLT(Collection<String> seeds, int maxRounds) {
         validateSeeds(seeds);
 
@@ -129,6 +137,10 @@ public class InfluenceSpreadSimulator {
             if (maxRounds > 0 && round > maxRounds) break;
             changed = false;
 
+            // Collect all activations for this round before applying any
+            List<String> toActivate = new ArrayList<>();
+            Map<String, String> activatedBy = new LinkedHashMap<>();
+
             for (String node : graph.getVertices()) {
                 if (state.get(node) != NodeState.SUSCEPTIBLE) continue;
 
@@ -136,26 +148,36 @@ public class InfluenceSpreadSimulator {
                 if (neighbors.isEmpty()) continue;
 
                 int activeNeighbors = 0;
+                String anActiveNeighbor = null;
                 for (String neighbor : neighbors) {
                     if (state.get(neighbor) == NodeState.INFECTED ||
                         state.get(neighbor) == NodeState.RECOVERED) {
                         activeNeighbors++;
+                        if (anActiveNeighbor == null) {
+                            anActiveNeighbor = neighbor;
+                        }
                     }
                 }
 
                 double fraction = (double) activeNeighbors / neighbors.size();
                 if (fraction >= thresholds.get(node)) {
-                    state.put(node, NodeState.INFECTED);
-                    changed = true;
-                    for (String neighbor : neighbors) {
-                        if (state.get(neighbor) == NodeState.INFECTED ||
-                            state.get(neighbor) == NodeState.RECOVERED) {
-                            timeline.add(new InfectionEvent(neighbor, node, round));
-                            break;
-                        }
+                    toActivate.add(node);
+                    if (anActiveNeighbor != null) {
+                        activatedBy.put(node, anActiveNeighbor);
                     }
                 }
             }
+
+            // Apply all activations simultaneously
+            for (String node : toActivate) {
+                state.put(node, NodeState.INFECTED);
+                changed = true;
+                String source = activatedBy.get(node);
+                if (source != null) {
+                    timeline.add(new InfectionEvent(source, node, round));
+                }
+            }
+
             snapshots.add(createSnapshot(round, state));
         }
 
