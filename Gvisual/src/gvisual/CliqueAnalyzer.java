@@ -31,6 +31,7 @@ import java.util.*;
 public class CliqueAnalyzer {
 
     private final Graph<String, edge> graph;
+    private Map<String, Set<String>> neighborCache;
     private List<Set<String>> cliques;
     private boolean computed;
 
@@ -45,6 +46,7 @@ public class CliqueAnalyzer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
+        this.neighborCache = new HashMap<String, Set<String>>();
         this.cliques = new ArrayList<Set<String>>();
         this.computed = false;
     }
@@ -66,6 +68,20 @@ public class CliqueAnalyzer {
         if (vertices.isEmpty()) {
             computed = true;
             return this;
+        }
+
+        // Pre-build neighbor sets once so the recursive hot-path never
+        // allocates temporary collections.  Without this cache each
+        // getNeighbors() call created a new LinkedHashSet — O(V^2)
+        // allocations in the worst case during pivot selection alone.
+        neighborCache = new HashMap<String, Set<String>>(vertices.size() * 2);
+        for (String v : vertices) {
+            Collection<String> neighbors = graph.getNeighbors(v);
+            if (neighbors == null) {
+                neighborCache.put(v, new LinkedHashSet<String>());
+            } else {
+                neighborCache.put(v, new LinkedHashSet<String>(neighbors));
+            }
         }
 
         // For isolated vertices (no neighbors), each is a trivial maximal clique
@@ -166,6 +182,10 @@ public class CliqueAnalyzer {
     }
 
     private Set<String> getNeighbors(String vertex) {
+        Set<String> cached = neighborCache.get(vertex);
+        if (cached != null) return cached;
+        // Fallback for vertices not in the cache (should not happen
+        // after compute() builds the cache, but defensive).
         Collection<String> neighbors = graph.getNeighbors(vertex);
         if (neighbors == null) return new LinkedHashSet<String>();
         return new LinkedHashSet<String>(neighbors);
