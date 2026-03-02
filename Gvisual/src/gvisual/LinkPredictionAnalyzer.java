@@ -328,22 +328,11 @@ public class LinkPredictionAnalyzer {
     // ── Helpers ─────────────────────────────────────────────────
 
     private Map<String, Set<String>> buildAdjacency(Collection<String> vertices) {
-        Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
-        for (String v : vertices) {
-            Set<String> neighbors = new HashSet<String>();
-            Collection<String> graphNeighbors = graph.getNeighbors(v);
-            if (graphNeighbors != null) {
-                neighbors.addAll(graphNeighbors);
-            }
-            adj.put(v, neighbors);
-        }
-        return adj;
+        return GraphUtils.buildAdjacencyMap(graph);
     }
 
     private Set<String> getCommonNeighbors(Map<String, Set<String>> adjacency,
                                            String u, String v) {
-        Set<String> common = new HashSet<String>(adjacency.get(u));
-        common.retainAll(adjacency.get(v));
-        return common;
+        return GraphUtils.getCommonNeighbors(adjacency, u, v);
     }
 }

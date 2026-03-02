@@ -760,10 +760,6 @@ public class PageRankAnalyzer {
     // ──────────────── Private helpers ────────────────
 
     private String getOtherEnd(edge e, String current) {
-        String v1 = e.getVertex1();
-        String v2 = e.getVertex2();
-        if (current.equals(v1)) return v2;
-        if (current.equals(v2)) return v1;
-        return null;
+        return GraphUtils.getOtherEnd(e, current);
     }
 }

@@ -203,7 +203,7 @@ public class GraphDiameterAnalyzer {
     // --- Private helpers ---
 
     private int computeEccentricity(String source, Set<String> component) {
-        Map<String, Integer> distances = bfsDistances(source);
+        Map<String, Integer> distances = GraphUtils.bfsDistances(graph, source);
         int maxDist = 0;
         for (String v : component) {
             Integer d = distances.get(v);
@@ -214,67 +214,12 @@ public class GraphDiameterAnalyzer {
         return maxDist;
     }
 
-    private Map<String, Integer> bfsDistances(String source) {
-        Map<String, Integer> distances = new HashMap<String, Integer>();
-        Queue<String> queue = new LinkedList<String>();
-        distances.put(source, 0);
-        queue.add(source);
-
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            int currentDist = distances.get(current);
-            for (edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
-                if (neighbor != null && !distances.containsKey(neighbor)) {
-                    distances.put(neighbor, currentDist + 1);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return distances;
-    }
-
     private Set<String> findLargestComponent() {
-        Set<String> visited = new HashSet<String>();
-        Set<String> largest = Collections.emptySet();
-
-        for (String vertex : graph.getVertices()) {
-            if (!visited.contains(vertex)) {
-                Set<String> component = bfsComponent(vertex);
-                visited.addAll(component);
-                if (component.size() > largest.size()) {
-                    largest = component;
-                }
-            }
-        }
-        return largest;
-    }
-
-    private Set<String> bfsComponent(String source) {
-        Set<String> component = new LinkedHashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
-        component.add(source);
-        queue.add(source);
-
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            for (edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
-                if (neighbor != null && !component.contains(neighbor)) {
-                    component.add(neighbor);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return component;
+        return GraphUtils.findLargestComponent(graph);
     }
 
     private String getOtherEnd(edge e, String current) {
-        String v1 = e.getVertex1();
-        String v2 = e.getVertex2();
-        if (current.equals(v1)) return v2;
-        if (current.equals(v2)) return v1;
-        return null;
+        return GraphUtils.getOtherEnd(e, current);
     }
 
     private String formatSet(Set<String> set, int max) {
