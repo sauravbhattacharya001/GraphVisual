@@ -26,7 +26,8 @@ graphs. Its security posture is shaped by two distinct surfaces:
 | SQL injection | Database queries | ✅ Mitigated — all queries use `PreparedStatement` with parameterized bindings |
 | Credential exposure | Database connection | ✅ Mitigated — credentials read from `DB_HOST`, `DB_USER`, `DB_PASS` environment variables; never hardcoded |
 | XML injection in exports | GraphML export | ✅ Mitigated — `GraphMLExporter.escapeXml()` escapes `&`, `<`, `>`, `"`, `'` |
-| Path traversal | File output | ✅ Mitigated — `Network.generateFile()` validates output path is within working directory |
+| Path traversal | File output | ✅ Mitigated — `Network.generateFile()` validates output path is within working directory; uses validated canonical path for all I/O |
+| JDBC connection string injection | Database connection | ✅ Mitigated — `Util.validateHost()` enforces hostname format via regex, rejecting `/`, `?`, `&`, `=`, `;` and other injection characters |
 | Malformed input files | Edge-list parser | ✅ Mitigated — validates field count and weight format before constructing edge objects |
 | NaN/Infinity weights | Edge-list parser | ✅ Mitigated — rejects `NaN` and `Infinity` weight values |
 | Denial of service (large graphs) | Graph analysis | ⚠️ Partial — analyzers have no built-in size limits; very large graphs can exhaust memory |
@@ -49,7 +50,7 @@ Database credentials are loaded exclusively from environment variables
 via `Util.java`:
 
 ```java
-String host = envOrDefault("DB_HOST", DEFAULT_HOST);
+String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
 String user = requireEnv("DB_USER");  // throws if missing
 String pass = requireEnv("DB_PASS");  // throws if missing
 ```
@@ -58,19 +59,35 @@ Missing required variables cause an immediate `IllegalStateException`
 with a clear error message rather than falling through to a default
 or null credential.
 
+### Host Validation
+
+The `DB_HOST` environment variable is validated against a strict regex
+pattern (`^[a-zA-Z0-9._-]+(:[0-9]{1,5})?$`) before being interpolated
+into the JDBC connection URL. This prevents **JDBC connection string
+injection** attacks where a malicious host value containing `/`, `?`,
+`&`, or `=` characters could inject arbitrary driver parameters.
+
+PostgreSQL JDBC driver parameters like `socketFactory` and
+`socketFactoryArg` have been used in the wild for remote code execution
+via deserialization gadgets. The host validation closes this vector.
+
 ## File I/O Security
 
 ### Output Path Validation
 
 `Network.generateFile()` validates that the output file path resolves
 to a location within the current working directory using canonical path
-comparison:
+comparison, and uses the validated `File` object for all subsequent I/O:
 
 ```java
 File outputFile = new File(path).getCanonicalFile();
 File workingDir = new File(".").getCanonicalFile();
 if (!outputFile.toPath().startsWith(workingDir.toPath())) {
     throw new SecurityException("Output path must be within the working directory.");
+}
+// ... later ...
+try (BufferedWriter out = new BufferedWriter(new FileWriter(outputFile))) {
+    out.write(sb.toString());  // uses validated outputFile, not raw path
 }
 ```
 
@@ -131,3 +148,10 @@ prevent mutation after creation.
 
 This repository has [CodeQL](https://github.com/sauravbhattacharya001/GraphVisual/actions)
 configured for automated security scanning on every push.
+
+## Security Audit Trail
+
+| Date | Finding | Severity | Fix |
+|------|---------|----------|-----|
+| 2026-03-02 | `Network.generateFile()` path traversal bypass — validation used canonical `outputFile` but file write used raw `path` | High | Changed file write to use validated `outputFile` |
+| 2026-03-02 | `Util` JDBC connection string injection — `DB_HOST` env var concatenated into JDBC URL without sanitization, enabling parameter injection and potential RCE via `socketFactory` gadgets | High | Added `validateHost()` with strict hostname regex |

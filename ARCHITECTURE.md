@@ -139,7 +139,7 @@ See [DATABASE.md](DATABASE.md) for full schema documentation.
 
 ## Testing
 
-17 test classes with ~650 tests covering all analyzers:
+18 test classes with ~670 tests covering all analyzers and security:
 
 | Test Class | Tests | Covers |
 |------------|-------|--------|
@@ -158,6 +158,7 @@ See [DATABASE.md](DATABASE.md) for full schema documentation.
 | `MinimumSpanningTreeTest` | 41 | Kruskal's MST, forest components |
 | `NodeCentralityAnalyzerTest` | 46 | Degree, betweenness, closeness centrality |
 | `PageRankAnalyzerTest` | 77 | PageRank convergence, damping factor |
+| `SecurityTest` | 17 | JDBC host validation, path traversal protection |
 | `ShortestPathFinderTest` | 24 | BFS and weighted shortest paths |
 | `TopologicalSortAnalyzerTest` | 42 | Topo sort, cycle detection, critical path |
 

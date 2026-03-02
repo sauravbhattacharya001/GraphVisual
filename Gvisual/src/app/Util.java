@@ -18,6 +18,14 @@ public class Util {
 
     private static final String DEFAULT_HOST = "localhost";
 
+    /**
+     * Pattern for a safe hostname: alphanumeric, dots, hyphens, and optional
+     * port (e.g. "db.example.com", "192.168.1.5:5432").  Rejects any JDBC
+     * parameter injection characters (/, ?, &amp;, =).
+     */
+    private static final java.util.regex.Pattern SAFE_HOST =
+        java.util.regex.Pattern.compile("^[a-zA-Z0-9._-]+(:[0-9]{1,5})?$");
+
     private static String envOrDefault(String key, String fallback) {
         String val = System.getenv(key);
         return (val != null && !val.isEmpty()) ? val : fallback;
@@ -33,8 +41,26 @@ public class Util {
         return val;
     }
 
+    /**
+     * Validates that a hostname string is safe for use in a JDBC URL.
+     * Prevents JDBC connection string injection via characters like
+     * /, ?, &amp;, or = that could add arbitrary driver parameters.
+     *
+     * @param host the hostname to validate
+     * @return the validated hostname
+     * @throws IllegalStateException if the hostname contains unsafe characters
+     */
+    private static String validateHost(String host) {
+        if (!SAFE_HOST.matcher(host).matches()) {
+            throw new IllegalStateException(
+                "DB_HOST contains invalid characters: " + host
+                + ". Expected hostname[:port] (e.g. localhost, db.example.com:5432).");
+        }
+        return host;
+    }
+
     public static Connection getAppConnection() throws Exception {
-        String host = envOrDefault("DB_HOST", DEFAULT_HOST);
+        String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
         String user = requireEnv("DB_USER");
         String pass = requireEnv("DB_PASS");
 
@@ -46,7 +72,7 @@ public class Util {
     }
 
     public static Connection getAzialaConnection() throws Exception {
-        String host = envOrDefault("DB_HOST", DEFAULT_HOST);
+        String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
         String user = requireEnv("DB_USER");
         String pass = requireEnv("DB_PASS");
 

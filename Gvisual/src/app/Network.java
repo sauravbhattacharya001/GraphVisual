@@ -180,12 +180,11 @@ public class Network {
                 }
             }
 
-            // Write output file
-            File f = new File(path);
-            if (f.exists()) {
-                f.delete();
+            // Write output file — use validated outputFile, not raw path
+            if (outputFile.exists()) {
+                outputFile.delete();
             }
-            try (BufferedWriter out = new BufferedWriter(new FileWriter(f))) {
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(outputFile))) {
                 out.write(sb.toString());
             }
         }
