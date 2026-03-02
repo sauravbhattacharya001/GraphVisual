@@ -411,25 +411,8 @@ public class GraphPartitioner {
             return result;
         }
 
-        Map<String, Integer> index = new HashMap<>();
-        for (int i = 0; i < n; i++) {
-            index.put(vertices.get(i), i);
-        }
-
         // Build Laplacian matrix for the subgraph
-        double[][] laplacian = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            String v = vertices.get(i);
-            int degree = 0;
-            for (String neighbor : graph.getNeighbors(v)) {
-                Integer j = index.get(neighbor);
-                if (j != null) {
-                    laplacian[i][j] = -1.0;
-                    degree++;
-                }
-            }
-            laplacian[i][i] = degree;
-        }
+        double[][] laplacian = LaplacianBuilder.buildSubgraphLaplacian(graph, vertices);
 
         // Compute Fiedler vector (eigenvector of 2nd smallest eigenvalue)
         double[] fiedler = computeFiedlerVector(laplacian, n);

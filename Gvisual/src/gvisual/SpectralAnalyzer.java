@@ -242,38 +242,11 @@ public class SpectralAnalyzer {
     // ═══════════════════════════════════════════════════════════════
 
     private double[][] buildAdjacencyMatrix(int n) {
-        double[][] A = new double[n][n];
-        Map<String, Integer> indexMap = new HashMap<String, Integer>();
-        for (int i = 0; i < n; i++) {
-            indexMap.put(vertexList.get(i), i);
-        }
-
-        for (edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            Iterator<String> it = endpoints.iterator();
-            String u = it.next();
-            String v = it.hasNext() ? it.next() : u;
-            Integer ui = indexMap.get(u);
-            Integer vi = indexMap.get(v);
-            if (ui != null && vi != null && !ui.equals(vi)) {
-                A[ui][vi] = 1.0;
-                A[vi][ui] = 1.0;
-            }
-        }
-        return A;
+        return LaplacianBuilder.buildAdjacencyMatrix(graph, vertexList);
     }
 
     private double[][] buildLaplacianMatrix(double[][] A, int n) {
-        double[][] L = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            double degree = 0.0;
-            for (int j = 0; j < n; j++) {
-                L[i][j] = -A[i][j];
-                degree += A[i][j];
-            }
-            L[i][i] = degree;
-        }
-        return L;
+        return LaplacianBuilder.buildLaplacian(A, n);
     }
 
     // ═══════════════════════════════════════════════════════════════
