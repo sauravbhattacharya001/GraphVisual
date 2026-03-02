@@ -50,6 +50,10 @@ public class GraphDiffAnalyzer {
 
     /**
      * Holds the complete diff result between two graphs.
+     * <p>
+     * Includes node/edge differences, similarity metrics, edit distance,
+     * and degree changes — all computed in a single pass by
+     * {@link GraphDiffAnalyzer#computeDiff()}.
      */
     public static class DiffResult {
         private final Set<String> addedNodes;
@@ -60,11 +64,14 @@ public class GraphDiffAnalyzer {
         private final List<EdgeDiff> commonEdges;
         private final double nodeJaccard;
         private final double edgeJaccard;
+        private final int editDistance;
+        private final Map<String, int[]> degreeChanges;
 
         public DiffResult(Set<String> addedNodes, Set<String> removedNodes,
                           Set<String> commonNodes, List<EdgeDiff> addedEdges,
                           List<EdgeDiff> removedEdges, List<EdgeDiff> commonEdges,
-                          double nodeJaccard, double edgeJaccard) {
+                          double nodeJaccard, double edgeJaccard,
+                          int editDistance, Map<String, int[]> degreeChanges) {
             this.addedNodes = Collections.unmodifiableSet(addedNodes);
             this.removedNodes = Collections.unmodifiableSet(removedNodes);
             this.commonNodes = Collections.unmodifiableSet(commonNodes);
@@ -73,6 +80,8 @@ public class GraphDiffAnalyzer {
             this.commonEdges = Collections.unmodifiableList(commonEdges);
             this.nodeJaccard = nodeJaccard;
             this.edgeJaccard = edgeJaccard;
+            this.editDistance = editDistance;
+            this.degreeChanges = Collections.unmodifiableMap(degreeChanges);
         }
 
         /** Nodes present in B but not in A. */
@@ -99,6 +108,19 @@ public class GraphDiffAnalyzer {
         /** Jaccard similarity of edge sets: |A∩B| / |A∪B|. */
         public double getEdgeJaccard() { return edgeJaccard; }
 
+        /**
+         * Graph edit distance: total additions + removals (nodes and edges)
+         * needed to transform A into B.
+         */
+        public int getEditDistance() { return editDistance; }
+
+        /**
+         * Nodes whose degree changed between graphs A and B.
+         * Keys are node IDs; values are {@code [degreeInA, degreeInB]}.
+         * Only includes nodes present in both graphs.
+         */
+        public Map<String, int[]> getDegreeChanges() { return degreeChanges; }
+
         /** True if the two graphs are structurally identical. */
         public boolean isIdentical() {
             return addedNodes.isEmpty() && removedNodes.isEmpty()
@@ -115,6 +137,10 @@ public class GraphDiffAnalyzer {
                     addedNodes.size(), removedNodes.size(), commonNodes.size(), nodeJaccard));
             sb.append(String.format("Edges: %d added, %d removed, %d common (Jaccard: %.4f)%n",
                     addedEdges.size(), removedEdges.size(), commonEdges.size(), edgeJaccard));
+            sb.append(String.format("Edit distance: %d%n", editDistance));
+            if (!degreeChanges.isEmpty()) {
+                sb.append(String.format("Degree changes: %d nodes%n", degreeChanges.size()));
+            }
             if (isIdentical()) {
                 sb.append("Graphs are structurally identical.\n");
             }
@@ -169,6 +195,12 @@ public class GraphDiffAnalyzer {
 
     /**
      * Compute the full diff between graphA and graphB.
+     * <p>
+     * This single call computes all node/edge differences, Jaccard
+     * similarity, edit distance, and degree changes. Use the returned
+     * {@link DiffResult} to access everything — there is no need to call
+     * {@link #findDegreeChanges()} or {@link #computeEditDistance()}
+     * separately unless you specifically want to avoid the full diff.
      *
      * @return a DiffResult with all differences and similarity scores
      */
@@ -200,45 +232,55 @@ public class GraphDiffAnalyzer {
         double nodeJaccard = jaccard(nodesA.size(), nodesB.size(), commonNodes.size());
         double edgeJaccard = jaccard(edgesA.size(), edgesB.size(), commonEdgeSet.size());
 
+        // Edit distance: total structural changes to transform A into B
+        int editDistance = addedNodes.size() + removedNodes.size()
+                + addedEdgeSet.size() + removedEdgeSet.size();
+
+        // Degree changes for common nodes
+        Map<String, int[]> degreeChanges = new TreeMap<>();
+        for (String node : commonNodes) {
+            int degA = graphA.degree(node);
+            int degB = graphB.degree(node);
+            if (degA != degB) {
+                degreeChanges.put(node, new int[]{degA, degB});
+            }
+        }
+
         return new DiffResult(
                 addedNodes, removedNodes, commonNodes,
                 new ArrayList<>(addedEdgeSet),
                 new ArrayList<>(removedEdgeSet),
                 new ArrayList<>(commonEdgeSet),
-                nodeJaccard, edgeJaccard
+                nodeJaccard, edgeJaccard,
+                editDistance, degreeChanges
         );
     }
 
     /**
      * Find nodes that exist in both graphs but whose degree changed.
+     * <p>
+     * Convenience method — delegates to {@link #computeDiff()} internally.
+     * Prefer calling {@code computeDiff().getDegreeChanges()} if you also
+     * need other diff information, to avoid redundant work.
      *
      * @return map of node to [degreeInA, degreeInB] for changed nodes
      */
     public Map<String, int[]> findDegreeChanges() {
-        Set<String> common = new HashSet<>(graphA.getVertices());
-        common.retainAll(graphB.getVertices());
-
-        Map<String, int[]> changes = new TreeMap<>();
-        for (String node : common) {
-            int degA = graphA.degree(node);
-            int degB = graphB.degree(node);
-            if (degA != degB) {
-                changes.put(node, new int[]{degA, degB});
-            }
-        }
-        return changes;
+        return computeDiff().getDegreeChanges();
     }
 
     /**
      * Compute the edit distance: total node/edge additions + removals
      * needed to transform A into B.
+     * <p>
+     * Convenience method — delegates to {@link #computeDiff()} internally.
+     * Prefer calling {@code computeDiff().getEditDistance()} if you also
+     * need other diff information, to avoid redundant work.
      *
      * @return the graph edit distance
      */
     public int computeEditDistance() {
-        DiffResult diff = computeDiff();
-        return diff.getAddedNodes().size() + diff.getRemovedNodes().size()
-                + diff.getAddedEdges().size() + diff.getRemovedEdges().size();
+        return computeDiff().getEditDistance();
     }
 
     // ── Helpers ─────────────────────────────────────────────────
