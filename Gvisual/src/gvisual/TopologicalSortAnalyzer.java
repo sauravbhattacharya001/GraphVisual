@@ -216,7 +216,7 @@ public class TopologicalSortAnalyzer {
             inDegree.put(v, predecessors.get(v).size());
         }
 
-        Queue<String> queue = new LinkedList<String>();
+        PriorityQueue<String> queue = new PriorityQueue<String>(); // min-heap for lexicographic determinism
         List<String> roots = new ArrayList<String>();
         for (String v : allVertices) {
             if (inDegree.get(v) == 0) {
@@ -224,27 +224,16 @@ public class TopologicalSortAnalyzer {
                 roots.add(v);
             }
         }
-        Collections.sort(roots); // deterministic ordering
-
-        // Re-queue in sorted order for deterministic output
-        queue.clear();
-        queue.addAll(roots);
+        Collections.sort(roots); // deterministic ordering for the roots list
 
         List<String> sortedOrder = new ArrayList<String>();
         while (!queue.isEmpty()) {
-            // Among ready vertices, pick lexicographically smallest for determinism
-            List<String> readyList = new ArrayList<String>(queue);
-            Collections.sort(readyList);
-            queue.clear();
-
-            String v = readyList.remove(0);
-            queue.addAll(readyList);
+            // PriorityQueue.poll() returns lexicographically smallest — O(log V) vs old O(V log V)
+            String v = queue.poll();
 
             sortedOrder.add(v);
 
-            List<String> succs = new ArrayList<String>(successors.get(v));
-            Collections.sort(succs);
-            for (String w : succs) {
+            for (String w : successors.get(v)) {
                 int newDeg = inDegree.get(w) - 1;
                 inDegree.put(w, newDeg);
                 if (newDeg == 0) {
@@ -422,7 +411,7 @@ public class TopologicalSortAnalyzer {
             }
         }
 
-        List<String> ready = new ArrayList<String>();
+        PriorityQueue<String> ready = new PriorityQueue<String>();
         for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
             if (entry.getValue() == 0) {
                 ready.add(entry.getKey());
@@ -434,8 +423,7 @@ public class TopologicalSortAnalyzer {
             if (ready.size() > 1) {
                 choicePoints++;
             }
-            Collections.sort(ready);
-            String v = ready.remove(0);
+            String v = ready.poll();
             for (String w : successors.get(v)) {
                 int newDeg = inDegree.get(w) - 1;
                 inDegree.put(w, newDeg);
