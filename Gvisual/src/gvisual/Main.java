@@ -2308,7 +2308,6 @@ public class Main extends JFrame {
         sgShowParam             = categoryRows[4].settingsButton;
         sgHpanel                = categoryRows[4].headerPanel;
     }
-    }
 
     /**
      * initialize the toolbar

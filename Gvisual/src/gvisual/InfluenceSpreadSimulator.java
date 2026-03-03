@@ -357,10 +357,28 @@ public class InfluenceSpreadSimulator {
         degrees.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
 
         List<String> targets = new ArrayList<>();
-        int totalEdgesBlocked = 0;
+        Set<String> targetSet = new HashSet<>();
         for (int i = 0; i < Math.min(k, degrees.size()); i++) {
             targets.add(degrees.get(i).getKey());
-            totalEdgesBlocked += degrees.get(i).getValue();
+            targetSet.add(degrees.get(i).getKey());
+        }
+
+        // Count distinct edges blocked: an edge is blocked if at least one
+        // of its endpoints is a vaccination target. Counting by degree
+        // double-counts edges where both endpoints are vaccinated.
+        int totalEdgesBlocked = 0;
+        for (edge e : graph.getEdges()) {
+            Collection<String> endpoints = graph.getEndpoints(e);
+            boolean blocked = false;
+            for (String ep : endpoints) {
+                if (targetSet.contains(ep)) {
+                    blocked = true;
+                    break;
+                }
+            }
+            if (blocked) {
+                totalEdgesBlocked++;
+            }
         }
 
         int totalEdges = graph.getEdgeCount();
