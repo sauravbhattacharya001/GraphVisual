@@ -9,7 +9,6 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.screencap.PNGDump;
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -22,7 +21,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.geom.Ellipse2D;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -75,6 +73,20 @@ public class Main extends JFrame {
     private Graph<String, edge> g;
     private VisualizationViewer<String, edge> vv;
     private Layout<String, edge> graphLayout;
+    private final GraphRenderers renderers = new GraphRenderers();
+
+    /**
+     * Push current overlay state to the GraphRenderers instance so that
+     * transformers see up-to-date values on every render pass.
+     */
+    private void syncRenderers() {
+        renderers.setGraph(g);
+        renderers.setPathState(pathEdges, pathVertices, pathSource, pathTarget);
+        renderers.setMstState(mstOverlayActive, mstEdges);
+        renderers.setCommunityState(communityOverlayActive, nodeCommunityMap);
+        renderers.setArticulationState(articulationOverlayActive, articulationPoints, bridgeEdges);
+        renderers.setOldVertices(OldVertices);
+    }
     private List<edge> friendEdges = new ArrayList<>();
     private List<edge> fsEdges = new ArrayList<>();
     private List<edge> classmateEdges = new ArrayList<>();
@@ -729,140 +741,13 @@ public class Main extends JFrame {
         vv.getRenderContext().setVertexLabelTransformer(vertexLabel);
 
 
-        Transformer<edge, Paint> edgePaint = new Transformer<edge, Paint>() {
+        // Sync overlay state and set up rendering transformers
+        syncRenderers();
 
-            public Paint transform(edge edge) {
-                // Highlight edges in the shortest path
-                if (pathEdges != null && pathEdges.contains(edge)) {
-                    return Color.YELLOW;
-                }
-                // MST overlay — highlight MST edges in bright green
-                if (mstOverlayActive && mstEdges != null && mstEdges.contains(edge)) {
-                    return new Color(0, 255, 100);
-                }
-                // Articulation overlay — highlight bridge edges in red-orange
-                if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(edge)) {
-                    return new Color(255, 80, 40);
-                }
-                // Community overlay mode — color edges by community
-                if (communityOverlayActive && nodeCommunityMap != null) {
-                    Integer c1 = nodeCommunityMap.get(edge.getVertex1());
-                    Integer c2 = nodeCommunityMap.get(edge.getVertex2());
-                    if (c1 != null && c2 != null && c1.equals(c2)) {
-                        Color base = COMMUNITY_COLORS[c1 % COMMUNITY_COLORS.length];
-                        // Slightly transparent version for edges
-                        return new Color(base.getRed(), base.getGreen(), base.getBlue(), 180);
-                    }
-                    return new Color(100, 100, 100, 80); // cross-community edges are dim
-                }
-                // MST overlay — dim non-MST edges
-                if (mstOverlayActive && mstEdges != null && !mstEdges.contains(edge)) {
-                    return new Color(80, 80, 80, 60);
-                }
-                return EdgeType.colorForCode(edge.getType());
-            }
-        };
-        vv.getRenderContext().setEdgeDrawPaintTransformer(edgePaint);
-
-        Transformer<String, Paint> vertexPaint = new Transformer<String, Paint>() {
-
-            public Paint transform(String vertex) {
-                // Community overlay mode — color by community
-                if (communityOverlayActive && nodeCommunityMap != null) {
-                    Integer cid = nodeCommunityMap.get(vertex);
-                    if (cid != null) {
-                        return COMMUNITY_COLORS[cid % COMMUNITY_COLORS.length];
-                    }
-                }
-                // Articulation overlay — highlight cut vertices in red-orange
-                if (articulationOverlayActive && articulationPoints != null
-                        && articulationPoints.contains(vertex)) {
-                    return new Color(255, 80, 40);
-                }
-                // Highlight source node in cyan, target in magenta, path nodes in yellow
-                if (pathSource != null && vertex.equals(pathSource)) {
-                    return Color.CYAN;
-                }
-                if (pathTarget != null && vertex.equals(pathTarget)) {
-                    return Color.MAGENTA;
-                }
-                if (pathVertices != null && pathVertices.contains(vertex)) {
-                    return Color.YELLOW;
-                }
-                // Determine vertex colour based on connected edge types
-                Set<EdgeType> connectedTypes = new HashSet<>();
-                for (edge x : g.getOutEdges(vertex)) {
-                    EdgeType et = EdgeType.fromCode(x.getType());
-                    if (et != null) {
-                        connectedTypes.add(et);
-                    }
-                }
-                if (connectedTypes.size() > 1) {
-                    return Vertex_COLOR;
-                } else if (connectedTypes.size() == 1) {
-                    return connectedTypes.iterator().next().getColor();
-                } else {
-                    return Vertex_COLOR;
-                }
-            }
-        };
-        vv.getRenderContext().setVertexFillPaintTransformer(vertexPaint);
-
-        Transformer<String, Shape> vertexShape = new Transformer<String, Shape>() {
-
-            public Shape transform(String vertex) {
-                // Make path source/target/intermediate nodes larger and distinct
-                if (pathSource != null && vertex.equals(pathSource)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
-                }
-                if (pathTarget != null && vertex.equals(pathTarget)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
-                }
-                if (pathVertices != null && pathVertices.contains(vertex)) {
-                    return new Ellipse2D.Double(-6, -6, 12, 12);
-                }
-                // Enlarge articulation points
-                if (articulationOverlayActive && articulationPoints != null
-                        && articulationPoints.contains(vertex)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
-                }
-                if (OldVertices != null) {
-                    if (OldVertices.contains(vertex)) {
-                        return new Ellipse2D.Double(-5, -5, 10, 10);
-                    } else {
-                        return new Ellipse2D.Double(-5, -5, 20, 20);
-                    }
-                } else {
-                    return new Ellipse2D.Double(-5, -5, 10, 10);
-                }
-            }
-        };
-
-        vv.getRenderContext().setVertexShapeTransformer(vertexShape);
-
-        Transformer<edge, Stroke> edgeWeight = new Transformer<edge, Stroke>() {
-
-            public Stroke transform(edge i) {
-                // Highlight path edges with thicker solid stroke
-                if (pathEdges != null && pathEdges.contains(i)) {
-                    return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
-                }
-                // MST edges get thicker solid stroke
-                if (mstOverlayActive && mstEdges != null && mstEdges.contains(i)) {
-                    return new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
-                }
-                // Bridge edges get thick dashed stroke for visibility
-                if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(i)) {
-                    float[] dashPattern = {6.0f, 4.0f};
-                    return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-                            10.0f, dashPattern, 0.0f);
-                }
-                float dash[] = {1.0f};
-                float width = i.getWeight() / 40 + 1.0f;
-                return new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 10.0f, dash, 0.0f);
-            }
-        };
-        vv.getRenderContext().setEdgeStrokeTransformer(edgeWeight);
+        vv.getRenderContext().setEdgeDrawPaintTransformer(renderers.edgePaintTransformer());
+        vv.getRenderContext().setVertexFillPaintTransformer(renderers.vertexPaintTransformer());
+        vv.getRenderContext().setVertexShapeTransformer(renderers.vertexShapeTransformer());
+        vv.getRenderContext().setEdgeStrokeTransformer(renderers.edgeStrokeTransformer());
 
         imagePanel.add(vv);
 
@@ -1214,6 +1099,7 @@ public class Main extends JFrame {
      */
     public final void initializeCommunityPanel() {
         communityOverlayActive = false;
+        syncRenderers();
         nodeCommunityMap = null;
 
         communityPanel = new JPanel();
@@ -1283,6 +1169,7 @@ public class Main extends JFrame {
         CommunityDetector.DetectionResult result = detector.detect();
 
         communityOverlayActive = true;
+        syncRenderers();
         nodeCommunityMap = new HashMap<String, Integer>(result.getNodeToCommunity());
 
         int total = result.getCommunityCount();
@@ -1338,6 +1225,7 @@ public class Main extends JFrame {
      */
     private void clearCommunityOverlay() {
         communityOverlayActive = false;
+        syncRenderers();
         nodeCommunityMap = null;
         communityCountLabel.setText("Communities: —");
         communityModularityLabel.setText("Modularity: —");
@@ -1353,6 +1241,7 @@ public class Main extends JFrame {
      */
     public final void initializeMSTPanel() {
         mstOverlayActive = false;
+        syncRenderers();
         mstEdges = new HashSet<edge>();
 
         mstPanel = new JPanel();
@@ -1423,6 +1312,7 @@ public class Main extends JFrame {
         MinimumSpanningTree.MSTResult result = mstComputer.compute();
 
         mstOverlayActive = true;
+        syncRenderers();
         mstEdges.clear();
         mstEdges.addAll(result.getEdges());
 
@@ -1496,6 +1386,7 @@ public class Main extends JFrame {
      */
     private void clearMSTOverlay() {
         mstOverlayActive = false;
+        syncRenderers();
         mstEdges.clear();
         mstSummaryLabel.setText("<html>Click 'Compute' to find the MST.</html>");
         mstStatsLabel.setText("");
@@ -1707,6 +1598,7 @@ public class Main extends JFrame {
      */
     public final void initializeArticulationPanel() {
         articulationOverlayActive = false;
+        syncRenderers();
         articulationPoints = new HashSet<>();
         bridgeEdges = new HashSet<>();
 
@@ -1769,6 +1661,7 @@ public class Main extends JFrame {
         ArticulationPointAnalyzer.AnalysisResult result = analyzer.analyze();
 
         articulationOverlayActive = true;
+        syncRenderers();
         articulationPoints.clear();
         bridgeEdges.clear();
         articulationPoints.addAll(result.getArticulationPoints());
@@ -1829,7 +1722,7 @@ public class Main extends JFrame {
         articulationDetailsLabel.setText(details.toString());
 
         // Refresh visualization to highlight critical elements
-        if (vv != null) vv.repaint();
+        if (vv != null) { syncRenderers(); vv.repaint(); }
         articulationPanel.revalidate();
         articulationPanel.repaint();
     }
@@ -1839,12 +1732,13 @@ public class Main extends JFrame {
      */
     private void clearArticulationAnalysis() {
         articulationOverlayActive = false;
+        syncRenderers();
         articulationPoints.clear();
         bridgeEdges.clear();
         articulationResilienceLabel.setText("Resilience: —");
         articulationSummaryLabel.setText("<html>Click 'Analyze' to find critical nodes and edges.</html>");
         articulationDetailsLabel.setText("");
-        if (vv != null) vv.repaint();
+        if (vv != null) { syncRenderers(); vv.repaint(); }
         articulationPanel.revalidate();
         articulationPanel.repaint();
     }
