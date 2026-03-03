@@ -216,7 +216,7 @@ public class TopologicalSortAnalyzer {
             inDegree.put(v, predecessors.get(v).size());
         }
 
-        Queue<String> queue = new LinkedList<String>();
+        PriorityQueue<String> queue = new PriorityQueue<String>();
         List<String> roots = new ArrayList<String>();
         for (String v : allVertices) {
             if (inDegree.get(v) == 0) {
@@ -224,21 +224,12 @@ public class TopologicalSortAnalyzer {
                 roots.add(v);
             }
         }
-        Collections.sort(roots); // deterministic ordering
-
-        // Re-queue in sorted order for deterministic output
-        queue.clear();
-        queue.addAll(roots);
+        // PriorityQueue maintains heap order; no manual sort needed
 
         List<String> sortedOrder = new ArrayList<String>();
         while (!queue.isEmpty()) {
-            // Among ready vertices, pick lexicographically smallest for determinism
-            List<String> readyList = new ArrayList<String>(queue);
-            Collections.sort(readyList);
-            queue.clear();
-
-            String v = readyList.remove(0);
-            queue.addAll(readyList);
+            // PriorityQueue.poll() returns lexicographically smallest in O(log V)
+            String v = queue.poll();
 
             sortedOrder.add(v);
 
