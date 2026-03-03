@@ -24,12 +24,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.Ellipse2D;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1955,50 +1951,71 @@ public class Main extends JFrame {
     /**
      * creates the right pane containing the communities and notes section
      */
+    /**
+     * creates the right pane containing the communities and notes section.
+     *
+     * <p>Uses {@link #chainSplitPanes} to avoid deeply nested manual
+     * JSplitPane construction — adding/removing panels now requires
+     * only editing the array and heights, not restructuring nesting.</p>
+     */
     public final void showRightPane() {
-
 
         JLabel parameterHeading = new JLabel("Communities", JLabel.CENTER);
         parameterHeading.setPreferredSize(new Dimension(300, 30));
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+        JSplitPane headerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 parameterHeading, parameterSpace);
 
-        JSplitPane splitPane1 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPane, notesPanel);
+        // Panels in display order, with their preferred divider heights.
+        // To add a new panel, just add an entry here — no nesting changes needed.
+        java.awt.Component[] panels = {
+            headerSplit,
+            notesPanel,
+            pathPanel,
+            communityPanel,
+            mstPanel,
+            centralityPanel,
+            articulationPanel,
+            statsPanel,
+        };
+        int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250 };
 
-        // Add path panel between notes and stats
-        JSplitPane splitPanePath = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPane1, pathPanel);
+        JSplitPane root = chainSplitPanes(panels, dividerLocations);
+        add(root, BorderLayout.EAST);
+    }
 
-        // Add community panel below path panel
-        JSplitPane splitPaneCommunity = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPanePath, communityPanel);
+    /**
+     * Chains an array of components into nested vertical JSplitPanes.
+     *
+     * <p>Given components [A, B, C, D], produces:
+     * <pre>
+     *   Split(Split(Split(A, B), C), D)
+     * </pre>
+     * with divider locations applied in order.</p>
+     *
+     * @param components       the panels to chain (at least 2)
+     * @param dividerLocations divider positions; length must be components.length - 1
+     * @return the outermost JSplitPane
+     */
+    private static JSplitPane chainSplitPanes(java.awt.Component[] components, int[] dividerLocations) {
+        if (components.length < 2) {
+            throw new IllegalArgumentException("Need at least 2 components to chain");
+        }
+        if (dividerLocations.length != components.length - 1) {
+            throw new IllegalArgumentException("Need exactly (components.length - 1) divider locations");
+        }
 
-        // Add MST panel below community panel
-        JSplitPane splitPaneMST = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneCommunity, mstPanel);
+        JSplitPane current = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                components[0], components[1]);
+        current.setDividerLocation(dividerLocations[0]);
 
-        // Add centrality panel below MST panel
-        JSplitPane splitPaneCentrality = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneMST, centralityPanel);
+        for (int i = 2; i < components.length; i++) {
+            JSplitPane next = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                    current, components[i]);
+            next.setDividerLocation(dividerLocations[i - 1]);
+            current = next;
+        }
 
-        // Add articulation panel below centrality panel
-        JSplitPane splitPaneArticulation = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneCentrality, articulationPanel);
-
-        // Add stats panel below articulation panel
-        JSplitPane splitPane2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                splitPaneArticulation, statsPanel);
-
-        splitPane1.setDividerLocation(400);
-        splitPanePath.setDividerLocation(510);
-        splitPaneCommunity.setDividerLocation(640);
-        splitPaneMST.setDividerLocation(760);
-        splitPaneCentrality.setDividerLocation(920);
-        splitPaneArticulation.setDividerLocation(1070);
-        splitPane2.setDividerLocation(1250);
-        add(splitPane2, BorderLayout.EAST);
-
+        return current;
     }
 
     /**
@@ -2399,7 +2416,9 @@ public class Main extends JFrame {
                     Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 try {
-                    copyfile(new File("./graph.txt"), fileChooser.getSelectedFile());
+                    // Use commons-io FileUtils (already a project dependency)
+                    // instead of the hand-rolled byte-copy loop.
+                    FileUtils.copyFile(new File("./graph.txt"), fileChooser.getSelectedFile());
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
@@ -2476,25 +2495,10 @@ public class Main extends JFrame {
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }
 
-    /**
-     * Copies the contents of one file to another
-     * @param srFile source file from which contents are copied
-     * @param dtFile destination file to which contents are copied 
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    private void copyfile(File srFile, File dtFile) throws FileNotFoundException, IOException {
-
-        try (InputStream in = new FileInputStream(srFile);
-             OutputStream out = new FileOutputStream(dtFile, false)) {
-
-            byte[] buf = new byte[8192];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
-        }
-    }
+    // copyfile() removed — replaced with FileUtils.copyFile() from commons-io
+    // (which was already a project dependency). The hand-rolled byte-copy loop
+    // duplicated well-tested library code and missed features like atomic
+    // writes and proper error cleanup.
 
     /**
      *main function
