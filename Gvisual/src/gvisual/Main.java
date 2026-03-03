@@ -2462,6 +2462,16 @@ public class Main extends JFrame {
         });
         toolPanel.add(graphmlButton);
 
+        JButton heatmapButton = new JButton("<html><center>Adjacency Matrix<br/>View graph as a<br/> color-coded<br/> heatmap matrix<br/> with zoom/pan</center></html>");
+        heatmapButton.setPreferredSize(new Dimension(140, 100));
+        heatmapButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JDialog heatmapDialog = AdjacencyMatrixHeatmap.createDialog(Main.this, g);
+                heatmapDialog.setVisible(true);
+            }
+        });
+        toolPanel.add(heatmapButton);
+
         toolPanel.add(legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }
