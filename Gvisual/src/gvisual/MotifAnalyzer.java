@@ -90,15 +90,7 @@ public class MotifAnalyzer {
         }
 
         // Build neighbor cache for O(1) lookups
-        neighborCache = new HashMap<String, Set<String>>(vertices.size() * 2);
-        for (String v : vertices) {
-            Collection<String> neighbors = graph.getNeighbors(v);
-            Set<String> set = new HashSet<String>();
-            if (neighbors != null) {
-                set.addAll(neighbors);
-            }
-            neighborCache.put(v, set);
-        }
+        neighborCache = GraphUtils.buildAdjacencyMap(graph);
 
         // Initialize participation counts
         for (String v : vertices) {

@@ -150,8 +150,8 @@ public class GraphIsomorphismAnalyzer {
         }
 
         // Build adjacency sets for fast lookup
-        Map<String, Set<String>> adj1 = buildAdjacencyMap(graph1);
-        Map<String, Set<String>> adj2 = buildAdjacencyMap(graph2);
+        Map<String, Set<String>> adj1 = GraphUtils.buildAdjacencyMap(graph1);
+        Map<String, Set<String>> adj2 = GraphUtils.buildAdjacencyMap(graph2);
 
         // Group vertices by degree for pruning
         Map<Integer, List<String>> byDegree1 = groupByDegree(graph1, vertices1);
@@ -209,14 +209,6 @@ public class GraphIsomorphismAnalyzer {
     /**
      * Build adjacency map: vertex → set of neighbors.
      */
-    private Map<String, Set<String>> buildAdjacencyMap(Graph<String, edge> g) {
-        Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
-        for (String v : g.getVertices()) {
-            adj.put(v, new HashSet<String>(g.getNeighbors(v)));
-        }
-        return adj;
-    }
-
     /**
      * Group vertices by their degree.
      */
