@@ -3,7 +3,6 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Analyzes network resilience by simulating node removal attacks and measuring

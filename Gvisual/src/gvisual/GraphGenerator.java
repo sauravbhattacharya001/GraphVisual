@@ -151,13 +151,6 @@ public class GraphGenerator {
         return e;
     }
 
-    private edge createWeightedEdge(String v1, String v2, float weight) {
-        edge e = new edge("f", v1, v2);
-        e.setLabel("gen_" + (edgeCounter++));
-        e.setWeight(weight);
-        return e;
-    }
-
     private void addNodes(Graph<String, edge> graph, int n) {
         for (int i = 0; i < n; i++) {
             graph.addVertex(nodeName(i));

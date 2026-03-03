@@ -14,9 +14,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.Paint;
-import java.awt.Shape;
-import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -54,6 +51,7 @@ import org.xml.sax.SAXException;
  */
 public class Main extends JFrame {
 
+    private static final Logger LOGGER = LOGGER;
     private static final Color DEFAULT_BG_COLOR = Color.BLACK;
     private static final Color Vertex_COLOR = Color.WHITE;
     private static int DELAY = 2048;
@@ -449,11 +447,11 @@ public class Main extends JFrame {
                     try {
                         addGraph();
                     } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     }
                 }
             }
@@ -596,7 +594,6 @@ public class Main extends JFrame {
                 count++;
             }
 
-            //System.out.println("number of line in the graph = "+count);
             if (count > NUM_EDGES_IMP_GRAPH) {
                 success = true;
             }
@@ -624,7 +621,7 @@ public class Main extends JFrame {
 
 
         } catch (Exception ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            LOGGER.log(Level.SEVERE, null, ex);
         }
 
 
@@ -764,7 +761,7 @@ public class Main extends JFrame {
 
         updateStatsPanel();
 
-        System.out.println("added the graph");
+        LOGGER.fine("Graph added");
     }
 
     /**
@@ -2111,11 +2108,11 @@ public class Main extends JFrame {
                     try {
                         addGraph();
                     } catch (ParserConfigurationException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     } catch (IOException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     } catch (SAXException ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     }
                 }
 
@@ -2168,40 +2165,38 @@ public class Main extends JFrame {
             public void mousePressed(MouseEvent e) {
                 //throw new UnsupportedOperationException("Not supported yet.");
                 if (e.getComponent() == playButton) {
-                    System.out.println("Play pressed");
+                    LOGGER.fine("Play pressed");
                     timer.start();
                 } else if (e.getComponent() == pauseButton) {
-                    System.out.println("Stop pressed");
+                    LOGGER.fine("Pause pressed");
                     timer.stop();
                 } else if (e.getComponent() == stopButton) {
-                    System.out.println("Stop pressed");
+                    LOGGER.fine("Stop pressed");
                     timeline.setValue(1);
                     timer.stop();
                 } else if (e.getComponent() == slowButton) {
-                    System.out.println("Slow pressed");
                     DELAY = DELAY * 2;
                     timer.setDelay(DELAY);
-                    System.out.println(timer.getDelay() + "");
+                    LOGGER.fine("Slow pressed, delay=" + timer.getDelay());
                 } else if (e.getComponent() == fastButton) {
-                    System.out.println("Fast pressed");
                     DELAY = DELAY / 2;
                     timer.setDelay(DELAY);
-                    System.out.println(timer.getDelay() + "");
+                    LOGGER.fine("Fast pressed, delay=" + timer.getDelay());
                 } else if (e.getComponent() == nextButton) {
                     try {
-                        System.out.println("next pressed");
+                        LOGGER.fine("Next pressed");
                         nextOrPrevGraph("next");
                         timer.stop();
                     } catch (Exception ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     }
                 } else if (e.getComponent() == prevButton) {
                     try {
-                        System.out.println("Prev pressed");
+                        LOGGER.fine("Prev pressed");
                         nextOrPrevGraph("prev");
                         timer.stop();
                     } catch (Exception ex) {
-                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        LOGGER.log(Level.SEVERE, null, ex);
                     }
                 }
             }
@@ -2417,7 +2412,7 @@ public class Main extends JFrame {
                 try {
                     curFile.createNewFile();
                 } catch (IOException ex) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    LOGGER.log(Level.SEVERE, null, ex);
                 }
                 PNGDump dumper = new PNGDump();
                 try {
@@ -2449,16 +2444,16 @@ public class Main extends JFrame {
                 try {
                     fileChooser.getSelectedFile().createNewFile();
                 } catch (IOException ex) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    LOGGER.log(Level.SEVERE, null, ex);
                 }
                 try {
                     // Use commons-io FileUtils (already a project dependency)
                     // instead of the hand-rolled byte-copy loop.
                     FileUtils.copyFile(new File("./graph.txt"), fileChooser.getSelectedFile());
                 } catch (FileNotFoundException ex) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    LOGGER.log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    LOGGER.log(Level.SEVERE, null, ex);
                 }
             }
         });
@@ -2508,7 +2503,7 @@ public class Main extends JFrame {
                             + "File: " + outFile.getName(),
                             "Export Complete", JOptionPane.INFORMATION_MESSAGE);
                 } catch (IOException ex1) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex1);
+                    LOGGER.log(Level.SEVERE, null, ex1);
                     JOptionPane.showMessageDialog(null,
                             "Export failed: " + ex1.getMessage(),
                             "Error", JOptionPane.ERROR_MESSAGE);
@@ -2548,7 +2543,7 @@ public class Main extends JFrame {
                     ex = new Main();
                     ex.setVisible(true);
                 } catch (Exception ex1) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex1);
+                    LOGGER.log(Level.SEVERE, null, ex1);
                 }
             }
         });
