@@ -392,4 +392,83 @@ public class ShortestPathFinderTest {
         assertEquals(2, result.getHopCount());
         assertEquals("H", result.getVertices().get(1));
     }
+
+    // ── Zero-weight edge bug fix (previously clamped to 0.001) ────
+
+    @Test
+    public void dijkstraZeroWeightEdge_reportsZeroTotalWeight() {
+        // A --0-- B --0-- C : total weight should be exactly 0.0
+        graph.addEdge(makeEdge("e", "A", "B", 0.0f), "A", "B");
+        graph.addEdge(makeEdge("e", "B", "C", 0.0f), "B", "C");
+
+        ShortestPathFinder finder = new ShortestPathFinder(graph);
+        ShortestPathFinder.PathResult result = finder.findShortestByWeight("A", "C");
+
+        assertNotNull(result);
+        assertEquals(0.0, result.getTotalWeight(), 1e-9);
+        assertEquals(3, result.getVertices().size());
+    }
+
+    @Test
+    public void dijkstraZeroWeightEdge_prefersFreeShortcut() {
+        // A --5-- B --5-- C (heavy path)
+        // A --0-- D --0-- C (free path via D)
+        graph.addEdge(makeEdge("e", "A", "B", 5.0f), "A", "B");
+        graph.addEdge(makeEdge("e", "B", "C", 5.0f), "B", "C");
+        graph.addEdge(makeEdge("e", "A", "D", 0.0f), "A", "D");
+        graph.addEdge(makeEdge("e", "D", "C", 0.0f), "D", "C");
+
+        ShortestPathFinder finder = new ShortestPathFinder(graph);
+        ShortestPathFinder.PathResult result = finder.findShortestByWeight("A", "C");
+
+        assertNotNull(result);
+        // Should pick A→D→C (weight 0) instead of A→B→C (weight 10)
+        assertEquals(0.0, result.getTotalWeight(), 1e-9);
+        assertTrue("Path should go through D",
+                result.getVertices().contains("D"));
+    }
+
+    @Test
+    public void dijkstraMixedZeroAndPositiveWeights() {
+        // A --0-- B --3-- C --0-- D
+        graph.addEdge(makeEdge("e", "A", "B", 0.0f), "A", "B");
+        graph.addEdge(makeEdge("e", "B", "C", 3.0f), "B", "C");
+        graph.addEdge(makeEdge("e", "C", "D", 0.0f), "C", "D");
+
+        ShortestPathFinder finder = new ShortestPathFinder(graph);
+        ShortestPathFinder.PathResult result = finder.findShortestByWeight("A", "D");
+
+        assertNotNull(result);
+        // Total weight = 0 + 3 + 0 = 3.0
+        assertEquals(3.0, result.getTotalWeight(), 1e-9);
+        assertEquals(4, result.getVertices().size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void dijkstraNegativeWeight_throws() {
+        graph.addEdge(makeEdge("e", "A", "B", -1.0f), "A", "B");
+        graph.addEdge(makeEdge("e", "B", "C", 5.0f), "B", "C");
+
+        ShortestPathFinder finder = new ShortestPathFinder(graph);
+        finder.findShortestByWeight("A", "C");
+    }
+
+    @Test
+    public void dijkstraZeroWeightSelfConsistentResult() {
+        // Ensure totalWeight in result matches actual edge weights
+        // (was inconsistent: Dijkstra used 0.001 but result used true weight)
+        graph.addEdge(makeEdge("e", "A", "B", 0.0f), "A", "B");
+        graph.addEdge(makeEdge("e", "B", "C", 1.0f), "B", "C");
+        graph.addEdge(makeEdge("e", "A", "C", 2.0f), "A", "C");
+
+        ShortestPathFinder finder = new ShortestPathFinder(graph);
+        ShortestPathFinder.PathResult result = finder.findShortestByWeight("A", "C");
+
+        // Should pick A→B→C (weight 0+1=1) over A→C (weight 2)
+        assertNotNull(result);
+        assertEquals(1.0, result.getTotalWeight(), 1e-9);
+        assertEquals(3, result.getVertices().size());
+        assertEquals("B", result.getVertices().get(1));
+    }
 }
+

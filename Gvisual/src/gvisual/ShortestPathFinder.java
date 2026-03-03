@@ -201,7 +201,14 @@ public class ShortestPathFinder {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor == null || visited.contains(neighbor)) continue;
 
-                double newDist = entryDist + Math.max(e.getWeight(), 0.001);
+                double edgeWeight = e.getWeight();
+                if (edgeWeight < 0) {
+                    throw new IllegalArgumentException(
+                            "Dijkstra does not support negative edge weights. " +
+                            "Edge between '" + current + "' and '" + neighbor +
+                            "' has weight " + edgeWeight);
+                }
+                double newDist = entryDist + edgeWeight;
                 Double oldDist = dist.get(neighbor);
 
                 if (oldDist == null || newDist < oldDist) {
