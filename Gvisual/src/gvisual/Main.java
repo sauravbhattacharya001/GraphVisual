@@ -51,7 +51,7 @@ import org.xml.sax.SAXException;
  */
 public class Main extends JFrame {
 
-    private static final Logger LOGGER = LOGGER;
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final Color DEFAULT_BG_COLOR = Color.BLACK;
     private static final Color Vertex_COLOR = Color.WHITE;
     private static int DELAY = 2048;
