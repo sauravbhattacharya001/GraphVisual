@@ -313,6 +313,16 @@ public class InfluenceSpreadSimulator {
             String bestNode = null;
             double bestGain = -1;
 
+            // Hoist base spread computation outside the inner loop:
+            // selected doesn't change while we evaluate candidates,
+            // so recomputing it per-candidate wastes V * numTrials simulations.
+            double baseSpread = 0;
+            if (!selected.isEmpty()) {
+                MonteCarloResult baseResult = monteCarlo(selected, model,
+                        probability, 0.3, 0, numTrials);
+                baseSpread = baseResult.getAverageSpread();
+            }
+
             for (String candidate : graph.getVertices()) {
                 if (selected.contains(candidate)) continue;
 
@@ -321,14 +331,7 @@ public class InfluenceSpreadSimulator {
 
                 MonteCarloResult mcResult = monteCarlo(trial, model,
                         probability, 0.3, 0, numTrials);
-                double avgSpread = mcResult.getAverageSpread();
-
-                double gain = avgSpread;
-                if (!selected.isEmpty()) {
-                    MonteCarloResult baseResult = monteCarlo(selected, model,
-                            probability, 0.3, 0, numTrials);
-                    gain = avgSpread - baseResult.getAverageSpread();
-                }
+                double gain = mcResult.getAverageSpread() - baseSpread;
 
                 if (gain > bestGain) {
                     bestGain = gain;
