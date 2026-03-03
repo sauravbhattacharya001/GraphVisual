@@ -200,6 +200,13 @@ public class Main extends JFrame {
     private Set<String> articulationPoints;
     private Set<edge> bridgeEdges;
 
+    // --- Resilience analysis fields ---
+    private JPanel resiliencePanel;
+    private JButton resilienceAnalyzeButton;
+    private JButton resilienceExportButton;
+    private JLabel resilienceSummaryLabel;
+    private JLabel resilienceDetailsLabel;
+
     private static final Color[] COMMUNITY_COLORS = {
         new Color(0, 200, 120),    // Emerald green
         new Color(65, 135, 255),   // Bright blue
@@ -230,6 +237,7 @@ public class Main extends JFrame {
         initializeMSTPanel();
         initializeCentralityPanel();
         initializeArticulationPanel();
+        initializeResiliencePanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -1649,6 +1657,139 @@ public class Main extends JFrame {
     }
 
     /**
+     * Initializes the network resilience analysis panel.
+     */
+    public final void initializeResiliencePanel() {
+        resiliencePanel = new JPanel();
+        resiliencePanel.setLayout(new BoxLayout(resiliencePanel, BoxLayout.Y_AXIS));
+        resiliencePanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Network Resilience",
+                TitledBorder.LEFT, TitledBorder.TOP));
+
+        resilienceSummaryLabel = new JLabel("<html>Click 'Analyze' to simulate attack scenarios.</html>");
+        resilienceSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+        resilienceDetailsLabel = new JLabel("");
+        resilienceDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+
+        resilienceAnalyzeButton = new JButton("Analyze");
+        resilienceAnalyzeButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { runResilienceAnalysis(); }
+        });
+
+        resilienceExportButton = new JButton("Export CSV");
+        resilienceExportButton.setEnabled(false);
+        resilienceExportButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { exportResilienceCSV(); }
+        });
+
+        buttonPanel.add(resilienceAnalyzeButton);
+        buttonPanel.add(Box.createHorizontalStrut(5));
+        buttonPanel.add(resilienceExportButton);
+
+        resiliencePanel.add(resilienceSummaryLabel);
+        resiliencePanel.add(Box.createVerticalStrut(4));
+        resiliencePanel.add(buttonPanel);
+        resiliencePanel.add(Box.createVerticalStrut(4));
+        resiliencePanel.add(resilienceDetailsLabel);
+    }
+
+    private GraphResilienceAnalyzer lastResilienceAnalyzer;
+
+    private void runResilienceAnalysis() {
+        if (g == null || g.getVertexCount() == 0) {
+            resilienceSummaryLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+        resilienceSummaryLabel.setText("<html><i>Analyzing resilience...</i></html>");
+        resiliencePanel.repaint();
+
+        SwingWorker<GraphResilienceAnalyzer, Void> worker =
+                new SwingWorker<GraphResilienceAnalyzer, Void>() {
+            @Override
+            protected GraphResilienceAnalyzer doInBackground() {
+                GraphResilienceAnalyzer analyzer = new GraphResilienceAnalyzer(g);
+                analyzer.analyze();
+                return analyzer;
+            }
+            @Override
+            protected void done() {
+                try {
+                    GraphResilienceAnalyzer analyzer = get();
+                    lastResilienceAnalyzer = analyzer;
+                    displayResilienceResults(analyzer);
+                    resilienceExportButton.setEnabled(true);
+                } catch (Exception ex) {
+                    resilienceSummaryLabel.setText("<html><b>Error:</b> " + ex.getMessage() + "</html>");
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void displayResilienceResults(GraphResilienceAnalyzer analyzer) {
+        double rRandom = analyzer.computeRobustnessIndex(analyzer.getRandomAttackCurve());
+        double rDegree = analyzer.computeRobustnessIndex(analyzer.getDegreeAttackCurve());
+        double rBetweenness = analyzer.computeRobustnessIndex(analyzer.getBetweennessAttackCurve());
+
+        StringBuilder summary = new StringBuilder("<html>");
+        summary.append("<b>Robustness Index</b> (higher = more resilient):<br/>");
+        summary.append(String.format("&nbsp;&nbsp;Random: <b>%.4f</b><br/>", rRandom));
+        summary.append(String.format("&nbsp;&nbsp;Degree: <b>%.4f</b><br/>", rDegree));
+        summary.append(String.format("&nbsp;&nbsp;Betweenness: <b>%.4f</b>", rBetweenness));
+        summary.append("</html>");
+        resilienceSummaryLabel.setText(summary.toString());
+
+        StringBuilder details = new StringBuilder("<html>");
+        if (rRandom > rDegree * 1.5) {
+            details.append("<b>Scale-free topology:</b> Vulnerable to<br/>targeted attacks on hubs.<br/>");
+        } else if (rRandom < rDegree * 1.1) {
+            details.append("<b>Homogeneous topology:</b> No dominant<br/>hub structure.<br/>");
+        } else {
+            details.append("<b>Moderate hub dependency.</b><br/>");
+        }
+
+        List<GraphResilienceAnalyzer.ResilienceStep> degreeCurve = analyzer.getDegreeAttackCurve();
+        if (degreeCurve.size() > 1) {
+            details.append("<br/><b>Most impactful removals:</b><br/>");
+            int shown = Math.min(5, degreeCurve.size() - 1);
+            for (int i = 1; i <= shown; i++) {
+                GraphResilienceAnalyzer.ResilienceStep step = degreeCurve.get(i);
+                if (step.getRemovedNode() != null) {
+                    int lccDrop = degreeCurve.get(i - 1).getLargestComponentSize()
+                            - step.getLargestComponentSize();
+                    details.append(String.format("&nbsp;&nbsp;%s (LCC -%d)<br/>",
+                            step.getRemovedNode(), lccDrop));
+                }
+            }
+        }
+        details.append("</html>");
+        resilienceDetailsLabel.setText(details.toString());
+    }
+
+    private void exportResilienceCSV() {
+        if (lastResilienceAnalyzer == null) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("resilience_analysis.csv"));
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                java.io.FileWriter writer = new java.io.FileWriter(chooser.getSelectedFile());
+                writer.write(lastResilienceAnalyzer.exportCSV());
+                writer.close();
+                JOptionPane.showMessageDialog(this, "Resilience data exported.",
+                        "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
      * Runs the articulation point and bridge analysis.
      */
     private void runArticulationAnalysis() {
@@ -1869,9 +2010,10 @@ public class Main extends JFrame {
             mstPanel,
             centralityPanel,
             articulationPanel,
+            resiliencePanel,
             statsPanel,
         };
-        int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250 };
+        int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250, 1420 };
 
         JSplitPane root = chainSplitPanes(panels, dividerLocations);
         add(root, BorderLayout.EAST);
