@@ -8,14 +8,14 @@ This document describes the source structure, design patterns, and key component
 GraphVisual/
 ├── Gvisual/
 │   ├── src/
-│   │   ├── gvisual/           # Visualization + analysis (18 classes)
+│   │   ├── gvisual/           # Visualization + analysis (29 classes)
 │   │   │   ├── Main.java      # Swing GUI — graph panel, timeline, controls
 │   │   │   ├── edge.java      # Edge model (type, vertices, weight, label)
 │   │   │   ├── EdgeType.java  # Enum — relationship categories, colors, defaults
 │   │   │   ├── GraphStats.java           # Network metrics (density, degree, hubs)
 │   │   │   ├── GraphMLExporter.java      # GraphML XML export
 │   │   │   ├── GraphGenerator.java       # Synthetic graph topologies
-│   │   │   └── [12 analyzers — see below]
+│   │   │   └── [24 analyzers + utilities — see below]
 │   │   └── app/               # Data pipeline — DB → edge files
 │   │       ├── Network.java       # SQL → edge-list generation
 │   │       ├── Util.java          # Database connection factory
@@ -23,7 +23,7 @@ GraphVisual/
 │   │       ├── addLocation.java   # WiFi-based meeting location classification
 │   │       └── matchImei.java     # Device → IMEI mapping
 │   ├── test/
-│   │   ├── gvisual/           # 17 test classes (~650 tests total)
+│   │   ├── gvisual/           # 30 test classes (~1200+ tests total)
 │   │   └── app/               # Pipeline utility tests
 │   ├── lib/                   # JUNG 2.0.1, PostgreSQL JDBC, Java3D, Commons IO
 │   └── images/                # UI icons (play, pause, stop, legend colors)
@@ -34,7 +34,7 @@ GraphVisual/
 
 ## Analyzers
 
-The analysis engine consists of 12 standalone analyzer classes. Each follows the same pattern:
+The analysis engine consists of 24 standalone analyzer and utility classes. Each follows the same pattern:
 
 1. Constructor takes a `Graph<String, edge>` (JUNG graph)
 2. Validates input (null check → `IllegalArgumentException`)
@@ -46,17 +46,28 @@ The analysis engine consists of 12 standalone analyzer classes. Each follows the
 | Class | Algorithm | Complexity | Purpose |
 |-------|-----------|------------|---------|
 | `ArticulationPointAnalyzer` | Tarjan's DFS | O(V+E) | Cut vertices and bridges — single points of failure |
+| `BipartiteAnalyzer` | BFS 2-coloring + Hopcroft-Karp | O(V+E) / O(E√V) | Bipartiteness test, maximum matching, vertex cover, independent set |
 | `CliqueAnalyzer` | Bron-Kerbosch (Tomita pivot) | O(3^(n/3)) | All maximal cliques — fully connected subgroups |
 | `CommunityDetector` | Connected components | O(V+E) | Community detection with size ranking and metrics |
+| `CycleAnalyzer` | DFS back-edges + BFS girth | O(V+E) | Cycle detection, girth, fundamental cycle basis, bounded enumeration |
 | `DegreeDistributionAnalyzer` | Statistical analysis | O(V) | Degree histogram, power-law fit, network classification |
+| `EulerianPathAnalyzer` | Hierholzer's algorithm | O(V+E) | Euler path/circuit detection, degree classification, Chinese Postman |
 | `GraphColoringAnalyzer` | Welsh-Powell (greedy) | O(V² + E) | Vertex coloring — chromatic number estimation |
 | `GraphDiameterAnalyzer` | All-pairs BFS | O(V(V+E)) | Diameter, radius, eccentricity, center, periphery |
+| `GraphDiffAnalyzer` | Set intersection / symmetric diff | O(V+E) | Structural diff of two graphs — added/removed/shared nodes and edges |
+| `GraphIsomorphismAnalyzer` | Backtracking with degree pruning | O(V!) worst | Graph isomorphism check via vertex mapping enumeration |
+| `GraphResilienceAnalyzer` | Sequential removal simulation | O(V(V+E)) | Random, degree, and betweenness attack resilience with robustness index |
 | `KCoreDecomposition` | Iterative peeling | O(V+E) | K-core shells — dense subgraph hierarchy |
 | `LinkPredictionAnalyzer` | Common Neighbors / Jaccard / Adamic-Adar | O(V²·d) | Predict missing edges from structural similarity |
 | `MinimumSpanningTree` | Kruskal's + Union-Find | O(E log E) | MST / forest with component analysis |
+| `MotifAnalyzer` | Subgraph enumeration | O(V^k) | 3/4-node motif detection, census, z-scores, network characterization |
+| `NetworkFlowAnalyzer` | Edmonds-Karp (BFS augmenting paths) | O(VE²) | Max flow, min cut, flow decomposition into paths |
 | `NodeCentralityAnalyzer` | Brandes + BFS | O(VE) | Degree, betweenness, closeness centrality |
 | `PageRankAnalyzer` | Power iteration | O(k(V+E)) | PageRank scores with convergence control |
+| `RandomWalkAnalyzer` | Monte Carlo simulation | O(walks × steps) | Random walk statistics, hitting times, stationary distribution |
 | `ShortestPathFinder` | BFS / Dijkstra | O(V+E) / O((V+E) log V) | Shortest paths (unweighted and weighted) |
+| `SpectralAnalyzer` | Eigenvalue decomposition (Jacobi) | O(V³) | Algebraic connectivity, Fiedler vector, spectral gap, Cheeger bound |
+| `StronglyConnectedComponentsAnalyzer` | Tarjan's + Kosaraju's | O(V+E) | SCCs, condensation DAG, bridge edges, connectivity queries |
 | `TopologicalSortAnalyzer` | Kahn's + DFS cycle detection | O(V+E) | Topological ordering, cycle detection, critical path |
 
 ### Utility Classes
@@ -139,7 +150,7 @@ See [DATABASE.md](DATABASE.md) for full schema documentation.
 
 ## Testing
 
-18 test classes with ~670 tests covering all analyzers and security:
+30 test classes with ~1200+ tests covering all analyzers and security:
 
 | Test Class | Tests | Covers |
 |------------|-------|--------|
@@ -194,3 +205,4 @@ cd Gvisual && ant build
 | PostgreSQL JDBC | 8.3-604 | Database connectivity |
 | Java3D vecmath | 1.3.1 | 3D math / rendering support |
 | JUnit | 4.13.2 | Unit testing (test scope) |
+
