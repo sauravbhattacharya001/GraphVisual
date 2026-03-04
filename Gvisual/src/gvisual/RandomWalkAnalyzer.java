@@ -73,10 +73,16 @@ public class RandomWalkAnalyzer {
     public <V, E> double coverTime(Graph<V, E> graph, V source) {
         validateGraph(graph);
         validateNode(graph, source, "source");
+        // Precompute reachable set once (BFS) — avoids redundant O(V+E)
+        // traversal on every simulation.
+        Set<V> reachable = bfsReachable(graph, source);
+        if (reachable.size() <= 1) return 0;
+        // Cache neighbor lists to avoid allocating new ArrayLists per step.
+        Map<V, List<V>> neighborCache = buildNeighborCache(graph, reachable);
         long totalSteps = 0;
         int maxSteps = graph.getVertexCount() * graph.getVertexCount() * 20;
         for (int sim = 0; sim < defaultSimulations; sim++) {
-            totalSteps += simulateCoverWalk(graph, source, maxSteps);
+            totalSteps += simulateCoverWalk(source, reachable, neighborCache, maxSteps);
         }
         return (double) totalSteps / defaultSimulations;
     }
@@ -155,9 +161,9 @@ public class RandomWalkAnalyzer {
         V current = source;
         trace.add(current);
         for (int i = 0; i < steps; i++) {
-            List<V> neighbors = new ArrayList<>(graph.getNeighbors(current));
-            if (neighbors.isEmpty()) break;
-            current = neighbors.get(rng.nextInt(neighbors.size()));
+            Collection<V> neighbors = graph.getNeighbors(current);
+            if (neighbors == null || neighbors.isEmpty()) break;
+            current = pickRandom(neighbors);
             trace.add(current);
         }
         return trace;
@@ -224,27 +230,31 @@ public class RandomWalkAnalyzer {
     private <V, E> int simulateWalkToTarget(Graph<V, E> graph, V source, V target, int maxSteps) {
         V current = source;
         for (int step = 1; step <= maxSteps; step++) {
-            List<V> neighbors = new ArrayList<>(graph.getNeighbors(current));
-            if (neighbors.isEmpty()) return -1;
-            current = neighbors.get(rng.nextInt(neighbors.size()));
+            Collection<V> nbrs = graph.getNeighbors(current);
+            if (nbrs == null || nbrs.isEmpty()) return -1;
+            // Skip to a random neighbor without copying the full collection.
+            int idx = rng.nextInt(nbrs.size());
+            V next = null;
+            if (nbrs instanceof List) {
+                next = ((List<V>) nbrs).get(idx);
+            } else {
+                for (V v : nbrs) { if (idx-- == 0) { next = v; break; } }
+            }
+            current = next;
             if (current.equals(target)) return step;
         }
         return -1;
     }
 
-    private <V, E> long simulateCoverWalk(Graph<V, E> graph, V source, int maxSteps) {
+    private <V> long simulateCoverWalk(V source, Set<V> reachable,
+                                      Map<V, List<V>> neighborCache, int maxSteps) {
         Set<V> visited = new HashSet<>();
         V current = source;
         visited.add(current);
-        Set<V> reachable = new HashSet<>();
-        Queue<V> q = new LinkedList<>();
-        q.add(source); reachable.add(source);
-        while (!q.isEmpty()) { V v = q.poll(); for (V n : graph.getNeighbors(v)) if (reachable.add(n)) q.add(n); }
         int target = reachable.size();
-        if (visited.size() >= target) return 0;
         for (int step = 1; step <= maxSteps; step++) {
-            List<V> nb = new ArrayList<>(graph.getNeighbors(current));
-            if (nb.isEmpty()) return step;
+            List<V> nb = neighborCache.get(current);
+            if (nb == null || nb.isEmpty()) return step;
             current = nb.get(rng.nextInt(nb.size()));
             visited.add(current);
             if (visited.size() >= target) return step;
@@ -252,17 +262,50 @@ public class RandomWalkAnalyzer {
         return maxSteps;
     }
 
+    /** BFS to find all vertices reachable from {@code source}. */
+    private <V, E> Set<V> bfsReachable(Graph<V, E> graph, V source) {
+        Set<V> reachable = new HashSet<>();
+        Queue<V> q = new LinkedList<>();
+        q.add(source);
+        reachable.add(source);
+        while (!q.isEmpty()) {
+            V v = q.poll();
+            for (V n : graph.getNeighbors(v)) {
+                if (reachable.add(n)) q.add(n);
+            }
+        }
+        return reachable;
+    }
+
+    /** Cache neighbor lists for a set of vertices — avoids per-step allocation. */
+    private <V, E> Map<V, List<V>> buildNeighborCache(Graph<V, E> graph, Set<V> vertices) {
+        Map<V, List<V>> cache = new HashMap<>();
+        for (V v : vertices) {
+            Collection<V> neighbors = graph.getNeighbors(v);
+            cache.put(v, neighbors != null ? new ArrayList<>(neighbors) : Collections.<V>emptyList());
+        }
+        return cache;
+    }
+
     private <V, E> long simulateReturnWalk(Graph<V, E> graph, V node, int maxSteps) {
-        List<V> nb = new ArrayList<>(graph.getNeighbors(node));
-        if (nb.isEmpty()) return maxSteps;
-        V current = nb.get(rng.nextInt(nb.size()));
+        Collection<V> nbrs = graph.getNeighbors(node);
+        if (nbrs == null || nbrs.isEmpty()) return maxSteps;
+        V current = pickRandom(nbrs);
         for (int step = 2; step <= maxSteps; step++) {
             if (current.equals(node)) return step;
-            nb = new ArrayList<>(graph.getNeighbors(current));
-            if (nb.isEmpty()) return maxSteps;
-            current = nb.get(rng.nextInt(nb.size()));
+            nbrs = graph.getNeighbors(current);
+            if (nbrs == null || nbrs.isEmpty()) return maxSteps;
+            current = pickRandom(nbrs);
         }
         return maxSteps;
+    }
+
+    /** Pick a random element from a collection without copying it. */
+    private <V> V pickRandom(Collection<V> coll) {
+        int idx = rng.nextInt(coll.size());
+        if (coll instanceof List) return ((List<V>) coll).get(idx);
+        for (V v : coll) { if (idx-- == 0) return v; }
+        throw new AssertionError("unreachable");
     }
 
     private <V, E> double[][] buildTransitionMatrix(Graph<V, E> graph, List<V> nodeList, Map<V, Integer> idx) {
