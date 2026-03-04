@@ -374,98 +374,132 @@ public class NodeCentralityAnalyzer {
     /**
      * Betweenness + closeness centrality in a single fused BFS pass per source.
      *
-     * <p>Previously, betweenness used Brandes' algorithm (BFS + back-propagation
-     * from each source) and closeness used a separate BFS from each source —
-     * two independent O(V·E) traversals. This fused version does both in one
-     * BFS per source vertex, halving the total graph traversal cost.</p>
+     * <p>Uses array-based storage indexed by vertex ordinal instead of
+     * per-source HashMaps.  This eliminates O(V) HashMap.put() calls per
+     * source (V sources × V entries each = V² total), avoids Integer/Double
+     * boxing, and provides better cache locality for the inner BFS loop.
+     * Predecessor lists are still object-based but are allocated only when
+     * an edge is discovered (lazy), not pre-allocated for every vertex.</p>
      *
      * <p>Betweenness: Brandes (2001), O(V·E) for unweighted graphs, normalized
      * by (V-1)(V-2) for undirected. Closeness: Wasserman-Faust normalization
      * for potentially disconnected graphs.</p>
      */
     private void computeBetweennessAndCloseness() {
-        // Initialize all to 0
+        int n = graph.getVertexCount();
+
+        // Initialize result maps
         for (String node : graph.getVertices()) {
             betweennessCentrality.put(node, 0.0);
             closenessCentrality.put(node, 0.0);
         }
-
-        int n = graph.getVertexCount();
         if (n <= 1) return;
 
-        for (String s : graph.getVertices()) {
-            // --- Single BFS from s, shared by both metrics ---
-            Deque<String> stack = new ArrayDeque<String>();
-            Map<String, List<String>> predecessors = new HashMap<String, List<String>>();
-            Map<String, Integer> sigma = new HashMap<String, Integer>();
-            Map<String, Integer> dist = new HashMap<String, Integer>();
+        // Build stable vertex-to-index mapping for array-based BFS
+        List<String> vertexList = new ArrayList<String>(graph.getVertices());
+        Collections.sort(vertexList);
+        Map<String, Integer> idxMap = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            idxMap.put(vertexList.get(i), i);
+        }
 
-            for (String t : graph.getVertices()) {
-                predecessors.put(t, new ArrayList<String>());
-                sigma.put(t, 0);
-                dist.put(t, -1);
+        // Pre-build adjacency as index arrays for cache-friendly traversal
+        @SuppressWarnings("unchecked")
+        List<Integer>[] adj = new List[n];
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<Integer>();
+        }
+        for (edge e : graph.getEdges()) {
+            Integer ui = idxMap.get(e.getVertex1());
+            Integer vi = idxMap.get(e.getVertex2());
+            if (ui != null && vi != null && !ui.equals(vi)) {
+                adj[ui].add(vi);
+                adj[vi].add(ui);
+            }
+        }
+
+        // Accumulator for betweenness (indexed, avoids per-source map lookups)
+        double[] bcAccum = new double[n];
+
+        // Reusable per-source arrays (allocated once, reset each iteration)
+        int[] dist = new int[n];
+        int[] sigma = new int[n];
+        double[] delta = new double[n];
+        int[] bfsOrder = new int[n];  // replaces Deque<String> stack
+
+        @SuppressWarnings("unchecked")
+        List<Integer>[] preds = new List[n];
+
+        for (int s = 0; s < n; s++) {
+            // Reset arrays for this source (Arrays.fill is memset-fast)
+            Arrays.fill(dist, -1);
+            Arrays.fill(sigma, 0);
+            Arrays.fill(delta, 0.0);
+            for (int i = 0; i < n; i++) {
+                preds[i] = null;  // lazy allocation
             }
 
-            sigma.put(s, 1);
-            dist.put(s, 0);
+            dist[s] = 0;
+            sigma[s] = 1;
+            int bfsHead = 0, bfsTail = 0;
+            bfsOrder[bfsTail++] = s;
 
-            Queue<String> queue = new LinkedList<String>();
-            queue.add(s);
-
-            // Closeness accumulators for this source
+            // Closeness accumulators
             int sumDist = 0;
             int reachable = 0;
 
-            while (!queue.isEmpty()) {
-                String v = queue.poll();
-                stack.push(v);
+            // BFS using array-based queue (bfsOrder doubles as stack in reverse)
+            int qHead = 0;
+            int[] bfsQueue = bfsOrder;  // reuse same array
+            // Actually we need a separate queue since bfsOrder is our stack
+            // But we can use bfsOrder as both: BFS fills left-to-right,
+            // back-propagation reads right-to-left (same as stack pop order)
+            int orderIdx = 0;
 
-                for (edge e : graph.getIncidentEdges(v)) {
-                    String w = getOtherEnd(e, v);
-                    if (w == null) continue;
+            // Simple array-based BFS queue
+            int[] queue = new int[n];
+            int qStart = 0, qEnd = 0;
+            queue[qEnd++] = s;
 
-                    // First visit to w
-                    if (dist.get(w) < 0) {
-                        int nd = dist.get(v) + 1;
-                        dist.put(w, nd);
-                        queue.add(w);
-                        // Closeness: accumulate distance
-                        sumDist += nd;
+            while (qStart < qEnd) {
+                int v = queue[qStart++];
+                bfsOrder[orderIdx++] = v;
+
+                for (int w : adj[v]) {
+                    if (dist[w] < 0) {
+                        dist[w] = dist[v] + 1;
+                        queue[qEnd++] = w;
+                        sumDist += dist[w];
                         reachable++;
                     }
-
-                    // Shortest path to w via v?
-                    if (dist.get(w) == dist.get(v) + 1) {
-                        sigma.put(w, sigma.get(w) + sigma.get(v));
-                        predecessors.get(w).add(v);
+                    if (dist[w] == dist[v] + 1) {
+                        sigma[w] += sigma[v];
+                        if (preds[w] == null) {
+                            preds[w] = new ArrayList<Integer>(4);
+                        }
+                        preds[w].add(v);
                     }
                 }
             }
 
-            // --- Closeness for source s ---
+            // Closeness for source s
             if (reachable > 0 && sumDist > 0) {
                 double cc = ((double) reachable * reachable) / ((n - 1.0) * sumDist);
-                closenessCentrality.put(s, cc);
+                closenessCentrality.put(vertexList.get(s), cc);
             }
 
-            // --- Betweenness back-propagation ---
+            // Betweenness back-propagation (traverse BFS order in reverse)
             if (n > 2) {
-                Map<String, Double> delta = new HashMap<String, Double>();
-                for (String t : graph.getVertices()) {
-                    delta.put(t, 0.0);
-                }
-
-                while (!stack.isEmpty()) {
-                    String w = stack.pop();
-                    for (String v : predecessors.get(w)) {
-                        double contribution = ((double) sigma.get(v) / sigma.get(w))
-                                * (1.0 + delta.get(w));
-                        delta.put(v, delta.get(v) + contribution);
+                for (int idx = orderIdx - 1; idx >= 1; idx--) {
+                    int w = bfsOrder[idx];
+                    if (preds[w] != null) {
+                        for (int v : preds[w]) {
+                            double contribution = ((double) sigma[v] / sigma[w])
+                                    * (1.0 + delta[w]);
+                            delta[v] += contribution;
+                        }
                     }
-                    if (!w.equals(s)) {
-                        betweennessCentrality.put(w,
-                                betweennessCentrality.get(w) + delta.get(w));
-                    }
+                    bcAccum[w] += delta[w];
                 }
             }
         }
@@ -473,9 +507,12 @@ public class NodeCentralityAnalyzer {
         // Normalize betweenness for undirected graph: divide by (n-1)(n-2)
         double normFactor = (n - 1.0) * (n - 2.0);
         if (normFactor > 0) {
-            for (String node : graph.getVertices()) {
-                double raw = betweennessCentrality.get(node);
-                betweennessCentrality.put(node, raw / normFactor);
+            for (int i = 0; i < n; i++) {
+                betweennessCentrality.put(vertexList.get(i), bcAccum[i] / normFactor);
+            }
+        } else {
+            for (int i = 0; i < n; i++) {
+                betweennessCentrality.put(vertexList.get(i), bcAccum[i]);
             }
         }
     }
