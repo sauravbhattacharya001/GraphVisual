@@ -34,6 +34,9 @@ public class CliqueAnalyzer {
     private Map<String, Set<String>> neighborCache;
     private List<Set<String>> cliques;
     private boolean computed;
+    private int maxCliques = 100_000;
+    private int maxDepth = 1_000;
+    private boolean truncated = false;
 
     /**
      * Creates a new CliqueAnalyzer for the given graph.
@@ -89,7 +92,8 @@ public class CliqueAnalyzer {
         Set<String> R = new LinkedHashSet<String>();
         Set<String> X = new LinkedHashSet<String>();
 
-        bronKerbosch(R, P, X);
+        truncated = false;
+        bronKerbosch(R, P, X, 0);
 
         // Sort cliques by size descending, then by first element for stability
         Collections.sort(cliques, new Comparator<Set<String>>() {
@@ -109,8 +113,19 @@ public class CliqueAnalyzer {
 
     /**
      * Recursive Bron-Kerbosch with pivot selection.
+     *
+     * @param depth current recursion depth (for safety bound)
      */
-    private void bronKerbosch(Set<String> R, Set<String> P, Set<String> X) {
+    private void bronKerbosch(Set<String> R, Set<String> P, Set<String> X, int depth) {
+        if (cliques.size() >= maxCliques) {
+            truncated = true;
+            return;
+        }
+        if (depth > maxDepth) {
+            truncated = true;
+            return;
+        }
+
         if (P.isEmpty() && X.isEmpty()) {
             cliques.add(new LinkedHashSet<String>(R));
             return;
@@ -140,7 +155,9 @@ public class CliqueAnalyzer {
             Set<String> newX = new LinkedHashSet<String>(X);
             newX.retainAll(neighborsV);
 
-            bronKerbosch(newR, newP, newX);
+            bronKerbosch(newR, newP, newX, depth + 1);
+
+            if (truncated) return;
 
             P.remove(v);
             X.add(v);
@@ -189,6 +206,42 @@ public class CliqueAnalyzer {
         Collection<String> neighbors = graph.getNeighbors(vertex);
         if (neighbors == null) return new LinkedHashSet<String>();
         return new LinkedHashSet<String>(neighbors);
+    }
+
+    // ── Configuration ────────────────────────────────────────────────
+
+    /**
+     * Set maximum number of cliques to find before stopping.
+     * Default: 100,000.
+     *
+     * @param max maximum clique count
+     * @return this analyzer for chaining
+     */
+    public CliqueAnalyzer withMaxCliques(int max) {
+        this.maxCliques = max;
+        return this;
+    }
+
+    /**
+     * Set maximum recursion depth before stopping.
+     * Default: 1,000.
+     *
+     * @param max maximum recursion depth
+     * @return this analyzer for chaining
+     */
+    public CliqueAnalyzer withMaxDepth(int max) {
+        this.maxDepth = max;
+        return this;
+    }
+
+    /**
+     * Whether the computation was truncated due to hitting maxCliques
+     * or maxDepth limits.
+     *
+     * @return true if results are incomplete
+     */
+    public boolean wasTruncated() {
+        return truncated;
     }
 
     // ── Accessors ───────────────────────────────────────────────────
