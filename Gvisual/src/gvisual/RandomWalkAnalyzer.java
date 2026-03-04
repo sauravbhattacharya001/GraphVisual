@@ -56,12 +56,75 @@ public class RandomWalkAnalyzer {
         return reached == 0 ? Double.POSITIVE_INFINITY : (double) totalSteps / reached;
     }
 
+    /**
+     * Computes hitting times from a source to ALL other vertices in a single
+     * batch of simulated walks.
+     *
+     * <p><b>Performance:</b> The previous implementation called
+     * {@link #hittingTime} independently for each target vertex, running
+     * V &times; defaultSimulations walks total. This batched version runs
+     * only defaultSimulations walks, each tracking first-visit times for
+     * every unvisited vertex along the way. For a graph with V vertices
+     * and 10,000 simulations, this reduces total walks from V &times; 10,000
+     * to just 10,000 &mdash; a V&times; speedup.</p>
+     */
     public <V, E> Map<V, Double> hittingTimesFrom(Graph<V, E> graph, V source) {
         validateGraph(graph);
         validateNode(graph, source, "source");
+
+        // Initialize accumulators
+        Map<V, Long> totalSteps = new LinkedHashMap<>();
+        Map<V, Integer> reachedCount = new LinkedHashMap<>();
+        for (V v : graph.getVertices()) {
+            totalSteps.put(v, 0L);
+            reachedCount.put(v, 0);
+        }
+
+        // Self-hitting time is always 0
+        totalSteps.put(source, 0L);
+        reachedCount.put(source, defaultSimulations);
+
+        int maxSteps = graph.getVertexCount() * graph.getVertexCount() * 10;
+
+        // Cache neighbor lists for fast random selection
+        Map<V, List<V>> neighborCache = new HashMap<>();
+        for (V v : graph.getVertices()) {
+            Collection<V> nbrs = graph.getNeighbors(v);
+            neighborCache.put(v, nbrs != null ? new ArrayList<>(nbrs) : Collections.<V>emptyList());
+        }
+
+        int targetCount = graph.getVertexCount() - 1; // exclude source
+
+        for (int sim = 0; sim < defaultSimulations; sim++) {
+            // Track which vertices we haven't visited yet in this walk
+            Set<V> remaining = new HashSet<>(graph.getVertices());
+            remaining.remove(source);
+
+            V current = source;
+            for (int step = 1; step <= maxSteps && !remaining.isEmpty(); step++) {
+                List<V> nbrs = neighborCache.get(current);
+                if (nbrs == null || nbrs.isEmpty()) break;
+                current = nbrs.get(rng.nextInt(nbrs.size()));
+
+                if (remaining.remove(current)) {
+                    // First visit to this vertex in this walk
+                    totalSteps.put(current, totalSteps.get(current) + step);
+                    reachedCount.put(current, reachedCount.get(current) + 1);
+                }
+            }
+        }
+
+        // Compute averages
         Map<V, Double> result = new LinkedHashMap<>();
-        for (V target : graph.getVertices()) {
-            result.put(target, hittingTime(graph, source, target));
+        for (V v : graph.getVertices()) {
+            if (v.equals(source)) {
+                result.put(v, 0.0);
+            } else {
+                int reached = reachedCount.get(v);
+                result.put(v, reached == 0
+                        ? Double.POSITIVE_INFINITY
+                        : (double) totalSteps.get(v) / reached);
+            }
         }
         return result;
     }
@@ -118,13 +181,26 @@ public class RandomWalkAnalyzer {
         double[][] dist = new double[n][n];
         for (int i = 0; i < n; i++) dist[i][i] = 1.0;
 
+        // Pre-allocate second buffer for double-buffered matrix multiply
+        // (avoids O(V^2) allocation on every iteration)
+        double[][] distB = new double[n][n];
+
         for (int t = 1; t <= maxTime; t++) {
-            double[][] newDist = new double[n][n];
+            // Zero the target buffer
+            for (int r = 0; r < n; r++)
+                java.util.Arrays.fill(distB[r], 0.0);
+            // Matrix multiply: distB = dist * P
             for (int start = 0; start < n; start++)
-                for (int j = 0; j < n; j++)
-                    for (int k = 0; k < n; k++)
-                        newDist[start][j] += dist[start][k] * P[k][j];
-            dist = newDist;
+                for (int k = 0; k < n; k++) {
+                    double d = dist[start][k];
+                    if (d == 0.0) continue;  // skip zero contributions
+                    for (int j = 0; j < n; j++)
+                        distB[start][j] += d * P[k][j];
+                }
+            // Swap buffers (no allocation)
+            double[][] tmp = dist;
+            dist = distB;
+            distB = tmp;
 
             double maxTV = 0;
             for (int start = 0; start < n; start++) {

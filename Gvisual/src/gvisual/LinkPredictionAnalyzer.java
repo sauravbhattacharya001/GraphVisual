@@ -160,51 +160,25 @@ public class LinkPredictionAnalyzer {
      * @return prediction result with ranked candidate edges
      */
     public PredictionResult predict(Method method, int topK) {
-        Collection<String> vertices = graph.getVertices();
-        int n = vertices.size();
-        int existingEdges = graph.getEdgeCount();
-        int possibleEdges = n * (n - 1) / 2;
-
-        // Build adjacency sets for fast lookup
-        Map<String, Set<String>> adjacency = buildAdjacency(vertices);
-
-        // Evaluate all non-existing vertex pairs
+        PairEvaluation eval = evaluatePairs();
         List<PredictedLink> candidates = new ArrayList<PredictedLink>();
-        List<String> vertexList = new ArrayList<String>(vertices);
-        int evaluated = 0;
 
-        for (int i = 0; i < vertexList.size(); i++) {
-            for (int j = i + 1; j < vertexList.size(); j++) {
-                String u = vertexList.get(i);
-                String v = vertexList.get(j);
+        for (int idx = 0; idx < eval.pairs.size(); idx++) {
+            String[] pair = eval.pairs.get(idx);
+            Set<String> common = eval.commonNeighbors.get(idx);
+            double score = computeScore(method, eval.adjacency, pair[0], pair[1], common);
 
-                // Skip if edge already exists
-                if (adjacency.get(u).contains(v)) continue;
-
-                evaluated++;
-                Set<String> common = getCommonNeighbors(adjacency, u, v);
-                double score = computeScore(method, adjacency, u, v, common);
-
-                if (score > 0) {
-                    candidates.add(new PredictedLink(u, v, score, method, common));
-                }
+            if (score > 0) {
+                candidates.add(new PredictedLink(pair[0], pair[1], score, method, common));
             }
         }
 
-        // Sort by score descending
-        Collections.sort(candidates, new Comparator<PredictedLink>() {
-            @Override
-            public int compare(PredictedLink a, PredictedLink b) {
-                return Double.compare(b.getScore(), a.getScore());
-            }
-        });
-
-        // Take top K
+        Collections.sort(candidates, SCORE_DESCENDING);
         List<PredictedLink> top = candidates.subList(
                 0, Math.min(topK, candidates.size()));
 
         return new PredictionResult(new ArrayList<PredictedLink>(top),
-                method, n, existingEdges, possibleEdges, evaluated);
+                method, eval.n, eval.existingEdges, eval.possibleEdges, eval.pairs.size());
     }
 
     /**
@@ -215,19 +189,110 @@ public class LinkPredictionAnalyzer {
      * @return prediction result with ensemble scores
      */
     public PredictionResult predictEnsemble(int topK) {
+        PairEvaluation eval = evaluatePairs();
+        Method[] methods = {
+            Method.COMMON_NEIGHBORS, Method.JACCARD,
+            Method.ADAMIC_ADAR, Method.PREFERENTIAL_ATTACHMENT
+        };
+
+        // Score every pair with all four methods
+        double[][] allScores = new double[eval.pairs.size()][4];
+        double[] maxScores = new double[4];
+
+        for (int idx = 0; idx < eval.pairs.size(); idx++) {
+            String[] pair = eval.pairs.get(idx);
+            Set<String> common = eval.commonNeighbors.get(idx);
+            for (int m = 0; m < 4; m++) {
+                double s = computeScore(methods[m], eval.adjacency, pair[0], pair[1], common);
+                allScores[idx][m] = s;
+                maxScores[m] = Math.max(maxScores[m], s);
+            }
+        }
+
+        // Normalize and average
+        List<PredictedLink> candidates = new ArrayList<PredictedLink>();
+        for (int idx = 0; idx < eval.pairs.size(); idx++) {
+            // Skip pairs with no signal
+            if (allScores[idx][0] == 0 && allScores[idx][3] == 0) continue;
+
+            double avg = 0;
+            int count = 0;
+            for (int m = 0; m < 4; m++) {
+                if (maxScores[m] > 0) {
+                    avg += allScores[idx][m] / maxScores[m];
+                    count++;
+                }
+            }
+            avg = count > 0 ? avg / count : 0;
+
+            String[] pair = eval.pairs.get(idx);
+            candidates.add(new PredictedLink(pair[0], pair[1], avg,
+                    Method.ENSEMBLE, eval.commonNeighbors.get(idx)));
+        }
+
+        Collections.sort(candidates, SCORE_DESCENDING);
+        List<PredictedLink> top = candidates.subList(
+                0, Math.min(topK, candidates.size()));
+
+        return new PredictionResult(new ArrayList<PredictedLink>(top),
+                Method.ENSEMBLE, eval.n, eval.existingEdges, eval.possibleEdges,
+                eval.pairs.size());
+    }
+
+    // ── Shared pair enumeration ──────────────────────────────────
+
+    /** Shared comparator for sorting predictions by score descending. */
+    private static final Comparator<PredictedLink> SCORE_DESCENDING =
+            new Comparator<PredictedLink>() {
+                @Override
+                public int compare(PredictedLink a, PredictedLink b) {
+                    return Double.compare(b.getScore(), a.getScore());
+                }
+            };
+
+    /**
+     * Holds the results of enumerating all candidate (non-edge) vertex pairs,
+     * along with precomputed adjacency and common-neighbor sets. This lets
+     * {@link #predict} and {@link #predictEnsemble} share the expensive O(V²)
+     * pair enumeration, adjacency construction, and common-neighbor
+     * computation instead of duplicating it.
+     */
+    private static class PairEvaluation {
+        final int n;
+        final int existingEdges;
+        final int possibleEdges;
+        final Map<String, Set<String>> adjacency;
+        /** Ordered list of candidate pairs as [u, v] arrays. */
+        final List<String[]> pairs;
+        /** Common neighbors for each pair, same indexing as pairs. */
+        final List<Set<String>> commonNeighbors;
+
+        PairEvaluation(int n, int existingEdges, int possibleEdges,
+                       Map<String, Set<String>> adjacency,
+                       List<String[]> pairs, List<Set<String>> commonNeighbors) {
+            this.n = n;
+            this.existingEdges = existingEdges;
+            this.possibleEdges = possibleEdges;
+            this.adjacency = adjacency;
+            this.pairs = pairs;
+            this.commonNeighbors = commonNeighbors;
+        }
+    }
+
+    /**
+     * Enumerates all non-edge vertex pairs, builds adjacency, and computes
+     * common neighbors for each pair. Called once by predict/predictEnsemble.
+     */
+    private PairEvaluation evaluatePairs() {
         Collection<String> vertices = graph.getVertices();
         int n = vertices.size();
         int existingEdges = graph.getEdgeCount();
         int possibleEdges = n * (n - 1) / 2;
-
         Map<String, Set<String>> adjacency = buildAdjacency(vertices);
-        List<String> vertexList = new ArrayList<String>(vertices);
 
-        // Compute scores for all methods
-        Map<String, double[]> pairScores = new LinkedHashMap<String, double[]>();
-        Map<String, Set<String>> pairCommon = new HashMap<String, Set<String>>();
-        Map<String, String[]> pairVertices = new HashMap<String, String[]>();
-        int evaluated = 0;
+        List<String> vertexList = new ArrayList<String>(vertices);
+        List<String[]> pairs = new ArrayList<String[]>();
+        List<Set<String>> commonNeighbors = new ArrayList<Set<String>>();
 
         for (int i = 0; i < vertexList.size(); i++) {
             for (int j = i + 1; j < vertexList.size(); j++) {
@@ -235,63 +300,13 @@ public class LinkPredictionAnalyzer {
                 String v = vertexList.get(j);
                 if (adjacency.get(u).contains(v)) continue;
 
-                evaluated++;
-                String key = u + "|" + v;
-                Set<String> common = getCommonNeighbors(adjacency, u, v);
-
-                double[] scores = new double[4];
-                scores[0] = computeScore(Method.COMMON_NEIGHBORS, adjacency, u, v, common);
-                scores[1] = computeScore(Method.JACCARD, adjacency, u, v, common);
-                scores[2] = computeScore(Method.ADAMIC_ADAR, adjacency, u, v, common);
-                scores[3] = computeScore(Method.PREFERENTIAL_ATTACHMENT, adjacency, u, v, common);
-
-                if (scores[0] > 0 || scores[3] > 0) {
-                    pairScores.put(key, scores);
-                    pairCommon.put(key, common);
-                    pairVertices.put(key, new String[]{u, v});
-                }
+                pairs.add(new String[]{u, v});
+                commonNeighbors.add(getCommonNeighbors(adjacency, u, v));
             }
         }
 
-        // Normalize each method's scores to [0,1]
-        double[] maxScores = new double[4];
-        for (double[] scores : pairScores.values()) {
-            for (int m = 0; m < 4; m++) {
-                maxScores[m] = Math.max(maxScores[m], scores[m]);
-            }
-        }
-
-        // Average normalized scores
-        List<PredictedLink> candidates = new ArrayList<PredictedLink>();
-        for (Map.Entry<String, double[]> entry : pairScores.entrySet()) {
-            double[] scores = entry.getValue();
-            double avg = 0;
-            int count = 0;
-            for (int m = 0; m < 4; m++) {
-                if (maxScores[m] > 0) {
-                    avg += scores[m] / maxScores[m];
-                    count++;
-                }
-            }
-            avg = count > 0 ? avg / count : 0;
-
-            String[] verts = pairVertices.get(entry.getKey());
-            candidates.add(new PredictedLink(verts[0], verts[1], avg,
-                    Method.ENSEMBLE, pairCommon.get(entry.getKey())));
-        }
-
-        Collections.sort(candidates, new Comparator<PredictedLink>() {
-            @Override
-            public int compare(PredictedLink a, PredictedLink b) {
-                return Double.compare(b.getScore(), a.getScore());
-            }
-        });
-
-        List<PredictedLink> top = candidates.subList(
-                0, Math.min(topK, candidates.size()));
-
-        return new PredictionResult(new ArrayList<PredictedLink>(top),
-                Method.ENSEMBLE, n, existingEdges, possibleEdges, evaluated);
+        return new PairEvaluation(n, existingEdges, possibleEdges,
+                adjacency, pairs, commonNeighbors);
     }
 
     // ── Scoring functions ───────────────────────────────────────
