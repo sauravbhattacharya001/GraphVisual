@@ -19,10 +19,34 @@ public class findMeetings {
      */
     private static double WINDOW_SIZE = 5.00;
 
+    /**
+     * Validates that a time string has the expected "HH.MM:SS.mmm" format.
+     *
+     * @param time the time string to validate
+     * @param label context label for error messages (e.g. "endTime")
+     * @throws IllegalArgumentException if the format is invalid
+     */
+    private static void validateTimeFormat(String time, String label) {
+        if (time == null || time.isEmpty()) {
+            throw new IllegalArgumentException(label + " must not be null or empty");
+        }
+        String[] parts = time.split(":");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException(
+                "Invalid " + label + " format (expected one colon): " + time);
+        }
+        if (parts[0].split("\\.").length < 2 || parts[1].split("\\.").length < 2) {
+            throw new IllegalArgumentException(
+                "Invalid " + label + " format (expected dot-separated components): " + time);
+        }
+    }
+
     public static float getTimeDifference(String endTime, String startTime) {
+        validateTimeFormat(endTime, "endTime");
+        validateTimeFormat(startTime, "startTime");
+
         String[] endTimeArr = endTime.split(":");
         String[] startTimeArr = startTime.split(":");
-
 
         String[] endTimeArr1 = endTimeArr[0].split("\\.");
         String[] endTimeArr2 = endTimeArr[1].split("\\.");
@@ -30,16 +54,16 @@ public class findMeetings {
         String[] startTimeArr1 = startTimeArr[0].split("\\.");
         String[] startTimeArr2 = startTimeArr[1].split("\\.");
 
-
         float numMin = (Float.parseFloat(endTimeArr1[0]) - Float.parseFloat(startTimeArr1[0])) * 60 + (Float.parseFloat(endTimeArr1[1]) - Float.parseFloat(startTimeArr1[1])) + (Float.parseFloat(endTimeArr2[0]) - Float.parseFloat(startTimeArr2[0])) / 60;
         return numMin;
     }
 
     public static String getTimeStamp(String month, String date, String time) {
+        validateTimeFormat(time, "time");
+
         String[] timeArr = time.split(":");
         String[] timeArr1 = timeArr[0].split("\\.");
         String[] timeArr2 = timeArr[1].split("\\.");
-
 
         String result = "2011-" + month + "-" + date + " " + timeArr1[0] + ":" + timeArr1[1] + ":" + timeArr2[0] + "." + timeArr2[1];
         return result;

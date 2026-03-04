@@ -10,11 +10,30 @@ import java.sql.ResultSet;
  */
 public class addLocation {
 
+    /**
+     * Validates that a time component string matches the expected
+     * format of "HH.MM:SS.mmm" (two dot-separated parts on each
+     * side of the colon).
+     *
+     * @param time the raw time string from the database
+     * @return formatted timestamp string "2011-MM-DD HH:MM:SS.mmm"
+     * @throws IllegalArgumentException if the format is invalid
+     */
     public static String getTimeStamp(String month, String date, String time) {
+        if (time == null || time.isEmpty()) {
+            throw new IllegalArgumentException("Time string must not be null or empty");
+        }
         String[] timeArr = time.split(":");
+        if (timeArr.length != 2) {
+            throw new IllegalArgumentException(
+                "Invalid time format (expected one colon separator): " + time);
+        }
         String[] timeArr1 = timeArr[0].split("\\.");
         String[] timeArr2 = timeArr[1].split("\\.");
-
+        if (timeArr1.length < 2 || timeArr2.length < 2) {
+            throw new IllegalArgumentException(
+                "Invalid time format (expected dot-separated components): " + time);
+        }
 
         String result = "2011-" + month + "-" + date + " " + timeArr1[0] + ":" + timeArr1[1] + ":" + timeArr2[0] + "." + timeArr2[1];
         return result;
@@ -44,25 +63,21 @@ public class addLocation {
             + "AND month = ? AND date = ?";
 
     public static void main(String[] argv) throws Exception {
-        Connection azialaConn = Util.getAzialaConnection();
-        Connection appConn = Util.getAppConnection();
+        try (Connection azialaConn = Util.getAzialaConnection();
+             Connection appConn = Util.getAppConnection();
+             java.sql.Statement appStmt = appConn.createStatement(
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+             PreparedStatement commonApPs = azialaConn.prepareStatement(COMMON_AP_SQL,
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+             PreparedStatement singleApPs = azialaConn.prepareStatement(SINGLE_AP_SQL,
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+             PreparedStatement updatePs = appConn.prepareStatement(UPDATE_LOCATION_SQL)) {
 
-        // Use a plain Statement only for the read-only meeting scan
-        java.sql.Statement appStmt = appConn.createStatement(
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String query = "select * from meeting";
+            ResultSet meetings = appStmt.executeQuery(query);
 
-        String query = "select * from meeting";
-        ResultSet meetings = appStmt.executeQuery(query);
-
-        // Prepare parameterized statements for the aziala and app databases
-        PreparedStatement commonApPs = azialaConn.prepareStatement(COMMON_AP_SQL,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        PreparedStatement singleApPs = azialaConn.prepareStatement(SINGLE_AP_SQL,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        PreparedStatement updatePs = appConn.prepareStatement(UPDATE_LOCATION_SQL);
-
-        int count = 0;
-        while (meetings.next()) {
+            int count = 0;
+            while (meetings.next()) {
             count++;
             System.out.println("finding location for meeting # " + count);
             String imei1 = meetings.getString("imei1");
@@ -152,11 +167,6 @@ public class addLocation {
             updatePs.executeUpdate();
         }
 
-        commonApPs.close();
-        singleApPs.close();
-        updatePs.close();
-        appStmt.close();
-        appConn.close();
-        azialaConn.close();
+        }
     }
 }
