@@ -196,9 +196,22 @@ public class MotifAnalyzer {
                     int cycles = common * (common - 1) / 2;
                     squareCount += cycles;
 
-                    // Participation: all 4 vertices participate
-                    addParticipation(u, "square", cycles);
-                    addParticipation(w, "square", cycles);
+                    // Track participation for all 4 vertices of each square.
+                    // For each common-neighbor pair (n1, n2) with n1 < n2,
+                    // the square is u - n1 - w - n2.  All four get credit.
+                    // (#33: previously only u and w were tracked.)
+                    List<String> commonNeighbors = new ArrayList<>();
+                    for (String n : uN) {
+                        if (wN.contains(n)) commonNeighbors.add(n);
+                    }
+                    for (int a = 0; a < commonNeighbors.size(); a++) {
+                        for (int b = a + 1; b < commonNeighbors.size(); b++) {
+                            addParticipation(u, "square", 1);
+                            addParticipation(w, "square", 1);
+                            addParticipation(commonNeighbors.get(a), "square", 1);
+                            addParticipation(commonNeighbors.get(b), "square", 1);
+                        }
+                    }
                 }
             }
         }
@@ -218,6 +231,16 @@ public class MotifAnalyzer {
         // Actually let's just not fix participation from the non-adjacent
         // pair loop — recalculate from the final count
         squareCount /= 2;
+
+        // Halve square participation counts to match corrected squareCount (#33).
+        // Each square was found from both non-adjacent pairs, so participation
+        // values are also 2x the true values.
+        for (Map<String, Integer> m : vertexParticipation.values()) {
+            Integer sq = m.get("square");
+            if (sq != null && sq > 0) {
+                m.put("square", sq / 2);
+            }
+        }
     }
 
     // ── Star Counting ───────────────────────────────────────────────
