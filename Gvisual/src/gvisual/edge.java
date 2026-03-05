@@ -14,6 +14,8 @@ public class edge {
     private String vertex2;
     private float weight;
     private String label;
+    private Long timestamp;       // epoch millis (null = static/untimed edge)
+    private Long endTimestamp;     // optional: for interval-based edges
     /**
      * returns the type of the edge
      * @return returns the type of the edge. Values in (f,fs,c,s,sg)
@@ -79,6 +81,74 @@ public class edge {
     public String getLabel()
     {
         return this.label;
+    }
+
+    /**
+     * Sets the timestamp (epoch millis) when this edge was first active.
+     * @param timestamp epoch millis, or null for untimed edges
+     */
+    public void setTimestamp(Long timestamp)
+    {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * Gets the timestamp (epoch millis) when this edge was first active.
+     * @return epoch millis, or null if this is an untimed/static edge
+     */
+    public Long getTimestamp()
+    {
+        return this.timestamp;
+    }
+
+    /**
+     * Sets the end timestamp (epoch millis) for interval-based edges.
+     * @param endTimestamp epoch millis, or null for point-in-time or open-ended edges
+     */
+    public void setEndTimestamp(Long endTimestamp)
+    {
+        this.endTimestamp = endTimestamp;
+    }
+
+    /**
+     * Gets the end timestamp (epoch millis) for interval-based edges.
+     * @return epoch millis, or null if this is a point-in-time or open-ended edge
+     */
+    public Long getEndTimestamp()
+    {
+        return this.endTimestamp;
+    }
+
+    /**
+     * Checks whether this edge is active at a specific point in time.
+     * Untimed edges (null timestamp) are always considered active.
+     * Point-in-time edges (no endTimestamp) are active only at their exact timestamp.
+     * Interval edges are active within [timestamp, endTimestamp].
+     *
+     * @param time the time to check (epoch millis)
+     * @return true if the edge is active at the given time
+     */
+    public boolean isActiveAt(long time)
+    {
+        if (timestamp == null) return true; // untimed = always active
+        if (endTimestamp == null) return timestamp == time;
+        return time >= timestamp && time <= endTimestamp;
+    }
+
+    /**
+     * Checks whether this edge is active during any part of the given time range.
+     * Untimed edges are always considered active.
+     *
+     * @param start range start (epoch millis, inclusive)
+     * @param end range end (epoch millis, inclusive)
+     * @return true if the edge overlaps with [start, end]
+     */
+    public boolean isActiveDuring(long start, long end)
+    {
+        if (timestamp == null) return true; // untimed = always active
+        long edgeStart = timestamp;
+        long edgeEnd = (endTimestamp != null) ? endTimestamp : timestamp;
+        return edgeStart <= end && edgeEnd >= start;
     }
 
 }
