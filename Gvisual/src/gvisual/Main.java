@@ -307,16 +307,15 @@ public class Main extends JFrame {
             boolean isSg = false;
             int areaId;
             for (edge y : g.getOutEdges(x)) {
-                if (y.getType().equals("f")) {
-                    isF = true;
-                } else if (y.getType().equals("fs")) {
-                    isFs = true;
-                } else if (y.getType().equals("c")) {
-                    isC = true;
-                } else if (y.getType().equals("s")) {
-                    isS = true;
-                } else if (y.getType().equals("sg")) {
-                    isSg = true;
+                EdgeType type = EdgeType.fromCode(y.getType());
+                if (type != null) {
+                    switch (type) {
+                        case FRIEND:      isF = true;  break;
+                        case FAMILIAR:    isFs = true; break;
+                        case CLASSMATE:   isC = true;  break;
+                        case STRANGER:    isS = true;  break;
+                        case STUDY_GROUP: isSg = true; break;
+                    }
                 }
             }
             // To be added study groups
@@ -361,7 +360,7 @@ public class Main extends JFrame {
         int curY = y * 200 + 100;
         int signX = 0; //0  is +ve
         int signY = 1; // 1 is -ve
-        Random generator = new Random(System.nanoTime());
+        Random generator = new Random(42);
 
 
         for (String v : vertices) {
@@ -385,25 +384,7 @@ public class Main extends JFrame {
 
     }
 
-    /**
-     * Positions a given set of vertices at certain location
-     * @param vertices list of vertices to cluster
-     * @param y y-position of cluster
-     * @param x x-position of cluster
-     */
-    public void back_positionCluster(List<String> vertices, int y, int x) {
-        int curX = x * 300 + 20;
-        int curY = y * 200 + 20;
-        for (String v : vertices) {
-            graphLayout.setLocation(v, new java.awt.Point(curX, curY));
-            if (curX + 30 > x * 300 + 200) {
-                curX = x * 300 + 20;
-                curY = curY + 30;
-            } else {
-                curX += 50;
-            }
-        }
-    }
+
 
     /**
      * updates the timestamp of the currently selected graph.
