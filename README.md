@@ -41,35 +41,84 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 18 source classes (~8,000 lines), 12 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for full details including the analyzer reference table, design patterns, and dependency map.
+GraphVisual consists of 58 source classes (~25,000+ lines), 38 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
 
 ```
 Gvisual/src/
-├── gvisual/           # 18 classes — GUI, edge model, 12 analyzers, utilities
-│   ├── Main.java      # Swing GUI (2145 lines) — graph panel, timeline, controls
-│   ├── edge.java      # Edge model (type, vertices, weight, label)
-│   ├── EdgeType.java  # Enum — relationship categories, colors, defaults
-│   ├── GraphStats.java           # Network metrics (density, degree, hubs)
-│   ├── GraphMLExporter.java      # GraphML XML export
-│   ├── GraphGenerator.java       # 10 synthetic graph topologies
+├── gvisual/           # 58 classes — GUI, edge model, 38 analyzers, utilities
+│   ├── Main.java                       # Swing GUI — graph panel, timeline, controls
+│   ├── edge.java                       # Edge model (type, vertices, weight, label)
+│   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
+│   ├── GraphStats.java                 # Network metrics (density, degree, hubs)
+│   ├── GraphMLExporter.java            # GraphML XML export
+│   ├── GraphGenerator.java             # 10 synthetic graph topologies
+│   ├── GraphUtils.java                 # BFS, connected components, utility methods
+│   ├── GraphPartitioner.java           # Spectral/Kernighan-Lin partitioning
+│   ├── ForceDirectedLayout.java        # Force-directed graph layout (Barnes-Hut)
+│   ├── AnalysisTask.java               # Async analysis with timeout/cancellation
+│   ├── AnalysisResult.java             # Analysis result container
+│   │
+│   │── # ─── Structural Analyzers ──────────────────
 │   ├── ArticulationPointAnalyzer.java  # Cut vertices/bridges (Tarjan's)
+│   ├── BipartiteAnalyzer.java          # Bipartiteness testing + 2-coloring
+│   ├── ChordalGraphAnalyzer.java       # Chordal graph recognition (PEO)
 │   ├── CliqueAnalyzer.java             # Maximal cliques (Bron-Kerbosch)
-│   ├── CommunityDetector.java          # Connected component communities
-│   ├── DegreeDistributionAnalyzer.java # Degree stats + power-law fitting
-│   ├── GraphColoringAnalyzer.java      # Welsh-Powell vertex coloring
-│   ├── GraphDiameterAnalyzer.java      # Diameter, radius, eccentricity
-│   ├── KCoreDecomposition.java         # K-core peeling
-│   ├── LinkPredictionAnalyzer.java     # Edge prediction metrics
-│   ├── MinimumSpanningTree.java        # Kruskal's MST
+│   ├── CycleAnalyzer.java             # Cycle detection and enumeration
+│   ├── EulerianPathAnalyzer.java       # Euler path/circuit (Hierholzer's)
+│   ├── GraphIsomorphismAnalyzer.java   # Graph isomorphism testing
+│   ├── PlanarGraphAnalyzer.java        # Planarity testing
+│   ├── TreeAnalyzer.java               # Tree properties, LCA, diameter
+│   ├── TopologicalSortAnalyzer.java    # Topo sort + cycle detection
+│   ├── StronglyConnectedComponentsAnalyzer.java  # SCC (Tarjan/Kosaraju)
+│   │
+│   │── # ─── Centrality & Ranking ──────────────────
 │   ├── NodeCentralityAnalyzer.java     # Degree/betweenness/closeness
 │   ├── PageRankAnalyzer.java           # PageRank (power iteration)
+│   ├── DegreeDistributionAnalyzer.java # Degree stats + power-law fitting
+│   │
+│   │── # ─── Community & Clustering ────────────────
+│   ├── CommunityDetector.java          # Connected component communities
+│   ├── MotifAnalyzer.java              # Network motif detection
+│   ├── SignedGraphAnalyzer.java        # Signed graph balance theory
+│   ├── StructuralHoleAnalyzer.java     # Burt's structural holes
+│   │
+│   │── # ─── Optimization & NP-hard ────────────────
+│   ├── DominatingSetAnalyzer.java      # Minimum dominating set
+│   ├── FeedbackVertexSetAnalyzer.java  # Feedback vertex set
+│   ├── GraphColoringAnalyzer.java      # Welsh-Powell vertex coloring
+│   ├── HamiltonianAnalyzer.java        # Hamiltonian path/cycle
+│   ├── IndependentSetAnalyzer.java     # Maximum independent set
+│   ├── MaxCutAnalyzer.java             # Maximum cut problem
+│   ├── SteinerTreeAnalyzer.java        # Steiner tree approximation
+│   ├── TreewidthAnalyzer.java          # Treewidth estimation
+│   ├── VertexConnectivityAnalyzer.java # Vertex connectivity
+│   ├── VertexCoverAnalyzer.java        # Minimum vertex cover
+│   │
+│   │── # ─── Network Analysis ──────────────────────
+│   ├── LinkPredictionAnalyzer.java     # Edge prediction metrics
+│   ├── NetworkFlowAnalyzer.java        # Max-flow/min-cut (Ford-Fulkerson)
+│   ├── GraphResilienceAnalyzer.java    # Attack/failure resilience
+│   ├── InfluenceSpreadSimulator.java   # IC/LT influence models
+│   ├── RandomWalkAnalyzer.java         # Random walks, hitting/cover times
+│   │
+│   │── # ─── Metrics & Comparison ──────────────────
+│   ├── GraphEntropyAnalyzer.java       # 9 entropy measures
+│   ├── GraphSimilarityAnalyzer.java    # Entropy-based graph comparison
+│   ├── GraphDiffAnalyzer.java          # Structural diff between graphs
+│   ├── EdgePersistenceAnalyzer.java    # Edge stability over time
+│   ├── GrowthRateAnalyzer.java         # Network growth modeling
+│   ├── SpectralAnalyzer.java           # Eigenvalue spectral analysis
+│   │
+│   │── # ─── Algorithms ────────────────────────────
+│   ├── KCoreDecomposition.java         # K-core peeling
+│   ├── MinimumSpanningTree.java        # Kruskal's MST
 │   ├── ShortestPathFinder.java         # BFS + weighted Dijkstra
-│   └── TopologicalSortAnalyzer.java    # Topo sort + cycle detection
+│   └── GraphDiameterAnalyzer.java      # Diameter, radius, eccentricity
 └── app/               # Data pipeline — Bluetooth → meetings → edge files
     ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
 
-17 test classes with **~650 tests** cover all analyzers and utilities.
+52 test classes with **2,275+ tests** cover all analyzers and utilities.
 
 ## Requirements
 
