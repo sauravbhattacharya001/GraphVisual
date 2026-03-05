@@ -98,6 +98,11 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(V³) for triangle census
 - **Algorithm:** Enumerates small subgraph patterns (triangles, wedges, etc.) to characterize local connectivity structure. Triangle count normalized to clustering coefficient.
 
+### Clique Detection (Bron-Kerbosch)
+- **File:** `CliqueAnalyzer.java`
+- **Complexity:** O(3^(V/3)) worst case (Bron-Kerbosch with Tomita pivot)
+- **Algorithm:** Finds all maximal cliques using the Bron-Kerbosch algorithm with pivot selection (Tomita variant) to minimize branching. Also provides maximum clique (largest by size), clique cover number, clique graph construction, and k-clique community detection. Fundamental for social network analysis (tight-knit groups) and bioinformatics (protein complexes).
+
 ---
 
 ## Connectivity & Resilience
@@ -184,6 +189,16 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(|T| × V × (V + E)) for metric approximation
 - **Algorithm:** Approximates minimum-cost tree connecting a subset of terminal vertices. Uses shortest-path-based metric closure and MST of the closure graph.
 
+### Graph Partitioning (BFS / Kernighan-Lin / Spectral)
+- **File:** `GraphPartitioner.java`
+- **Complexity:** O(V² log V) for Kernighan-Lin; O(V³) for spectral bisection
+- **Algorithm:** Partitions a graph into k balanced parts while minimizing edge cuts. Three strategies: (1) BFS-based seed growing with balanced allocation, (2) Kernighan-Lin iterative vertex-pair swapping for cut refinement (2-way, applied recursively for k-way), (3) spectral bisection using the Fiedler vector from the graph Laplacian.
+
+### Maximum Cut (MaxCut)
+- **File:** `MaxCutAnalyzer.java`
+- **Complexity:** NP-hard (exact); O(V × E) for greedy heuristic
+- **Algorithm:** Partitions vertices into two sets S and T to maximize crossing edges. Provides greedy heuristic (assigns each vertex to the side maximizing local cut), randomized approximation, and brute-force exact solver for small graphs. Includes cut ratio metric (fraction of edges in the cut).
+
 ### Feedback Vertex Set
 - **File:** `FeedbackVertexSetAnalyzer.java`
 - **Complexity:** NP-hard (exact); O(V + E) for greedy
@@ -211,7 +226,22 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 ### Laplacian Matrix Builder
 - **File:** `LaplacianBuilder.java`
 - **Complexity:** O(V + E)
-- **Algorithm:** Constructs the graph Laplacian L = D - A (degree matrix minus adjacency matrix). Supports both regular and normalized Laplacian.
+- **Algorithm:** Constructs the graph Laplacian L = D − A (degree matrix minus adjacency matrix). Supports standard, normalized (D⁻¹/²LD⁻¹/²), and random walk (I − D⁻¹A) forms. Also provides adjacency matrix extraction, degree vector computation, and subgraph-induced Laplacians for vertex subsets.
+
+### Treewidth Analysis & Tree Decomposition
+- **File:** `TreewidthAnalyzer.java`
+- **Complexity:** O(V²) for greedy heuristics; NP-hard for exact
+- **Algorithm:** Measures how "tree-like" a graph is. Uses greedy elimination orderings (min-degree, min-fill) to compute upper bounds on treewidth. Constructs tree decompositions — a tree of "bags" of vertices where each bag has size ≤ treewidth + 1. Many NP-hard problems become polynomial on bounded-treewidth graphs.
+
+### Vertex & Edge Connectivity
+- **File:** `VertexConnectivityAnalyzer.java`
+- **Complexity:** O(V × (V + E)) for connectivity; O(V × maxflow) for edge connectivity
+- **Algorithm:** Computes vertex connectivity κ (minimum vertices whose removal disconnects the graph) and edge connectivity λ (minimum edges). Uses iterative vertex removal with BFS reachability checks. Also provides minimum vertex/edge cut sets and connectivity classification (1-connected, 2-connected, etc.).
+
+### Structural Hole Analysis
+- **File:** `StructuralHoleAnalyzer.java`
+- **Complexity:** O(V × avg_degree²)
+- **Algorithm:** Implements Ronald Burt's structural holes theory. Computes per-vertex brokerage metrics: effective size (non-redundant contacts), constraint (dependence on single contacts), hierarchy (concentration of constraint), and efficiency (ratio of effective size to actual size). Identifies bridge nodes controlling information flow between otherwise disconnected groups.
 
 ### Graph Isomorphism
 - **File:** `GraphIsomorphismAnalyzer.java`
@@ -236,6 +266,21 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **File:** `GraphDiffAnalyzer.java`
 - **Complexity:** O(V + E)
 - **Algorithm:** Computes symmetric difference between two graphs: added/removed/common vertices and edges. Similarity metrics include Jaccard index and edit distance.
+
+### Temporal Graph (Time-Windowed Views)
+- **File:** `TemporalGraph.java`
+- **Complexity:** O(E) per snapshot
+- **Algorithm:** Lightweight wrapper providing time-windowed views of a graph. Each edge has optional timestamps; snapshots filter to edges active at a specific time point or during a time range. Supports automatic window generation for dividing the timeline into equal intervals. Enables temporal analysis without modifying existing analyzers.
+
+### Edge Persistence Analysis
+- **File:** `EdgePersistenceAnalyzer.java`
+- **Complexity:** O(W × E) where W = number of windows
+- **Algorithm:** Classifies edges by their persistence across time windows: persistent (≥75% of windows), periodic (25–74%), or transient (<25%). Reveals relationship strength in social networks — persistent edges are strong ties, transient edges are one-time encounters.
+
+### Network Growth Rate Analysis
+- **File:** `GrowthRateAnalyzer.java`
+- **Complexity:** O(W × E) where W = number of windows
+- **Algorithm:** Tracks how network metrics (node count, edge count, density, clustering coefficient) change across time windows. Computes growth rates to identify expansion phases, stability periods, and network degradation.
 
 ### Network Statistics
 - **File:** `GraphStats.java`
@@ -283,10 +328,11 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 |----------|-----------|----------------|-----------------|
 | Traversal | BFS, Dijkstra, Toposort | O(V + E) | — |
 | Centrality | Degree, Betweenness, PageRank | O(V) | Betweenness O(V·(V+E)) |
-| Community | Louvain, K-Core, Motifs | O(V + E) | Motifs O(V³) |
-| Connectivity | Tarjan, Kosaraju, Resilience | O(V + E) | Resilience O(V·(V+E)) |
+| Community | Louvain, K-Core, Motifs, Cliques | O(V + E) | Cliques O(3^(V/3)) |
+| Connectivity | Tarjan, Kosaraju, Resilience, κ/λ | O(V + E) | Resilience O(V·(V+E)) |
 | Matching | Hopcroft-Karp, Vertex Cover | O(E√V) | Independent Set (NP-hard) |
 | Coloring | DSatur, Chordal | O(V² + E) | General coloring (NP-hard) |
-| Flow | Edmonds-Karp, Kruskal | O(E log E) | Max Flow O(V·E²) |
+| Flow | Edmonds-Karp, Kruskal, MaxCut, Partitioning | O(E log E) | MaxCut (NP-hard) |
 | Layout | Fruchterman-Reingold | O(iter·(V²+E)) | — |
-| Structural | Diameter, Spectral | O(V + E) | Spectral O(V³) |
+| Structural | Diameter, Spectral, Treewidth, Struct. Holes | O(V + E) | Treewidth (NP-hard) |
+| Temporal | TemporalGraph, Persistence, Growth | O(W × E) | — |

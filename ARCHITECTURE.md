@@ -8,14 +8,14 @@ This document describes the source structure, design patterns, and key component
 GraphVisual/
 ├── Gvisual/
 │   ├── src/
-│   │   ├── gvisual/           # Visualization + analysis (29 classes)
+│   │   ├── gvisual/           # Visualization + analysis (56 classes)
 │   │   │   ├── Main.java      # Swing GUI — graph panel, timeline, controls
 │   │   │   ├── edge.java      # Edge model (type, vertices, weight, label)
 │   │   │   ├── EdgeType.java  # Enum — relationship categories, colors, defaults
 │   │   │   ├── GraphStats.java           # Network metrics (density, degree, hubs)
 │   │   │   ├── GraphMLExporter.java      # GraphML XML export
 │   │   │   ├── GraphGenerator.java       # Synthetic graph topologies
-│   │   │   └── [24 analyzers + utilities — see below]
+│   │   │   └── [50 analyzers + utilities — see below]
 │   │   └── app/               # Data pipeline — DB → edge files
 │   │       ├── Network.java       # SQL → edge-list generation
 │   │       ├── Util.java          # Database connection factory
@@ -23,7 +23,7 @@ GraphVisual/
 │   │       ├── addLocation.java   # WiFi-based meeting location classification
 │   │       └── matchImei.java     # Device → IMEI mapping
 │   ├── test/
-│   │   ├── gvisual/           # 30 test classes (~1200+ tests total)
+│   │   ├── gvisual/           # 49 test classes (~2200+ tests total)
 │   │   └── app/               # Pipeline utility tests
 │   ├── lib/                   # JUNG 2.0.1, PostgreSQL JDBC, Java3D, Commons IO
 │   └── images/                # UI icons (play, pause, stop, legend colors)
