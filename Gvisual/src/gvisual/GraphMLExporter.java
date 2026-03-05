@@ -227,7 +227,10 @@ public class GraphMLExporter {
     }
 
     /**
-     * Escapes special XML characters in a string.
+     * Escapes special XML characters and strips illegal XML control characters.
+     * XML 1.0 only allows: #x9 (tab), #xA (newline), #xD (carriage return),
+     * and characters >= #x20. All other control characters (U+0000-U+0008,
+     * U+000B, U+000C, U+000E-U+001F) are stripped to produce valid XML.
      *
      * @param text the input text
      * @return XML-safe text
@@ -243,7 +246,16 @@ public class GraphMLExporter {
                 case '>':  sb.append("&gt;");   break;
                 case '"':  sb.append("&quot;"); break;
                 case '\'': sb.append("&apos;"); break;
-                default:   sb.append(c);        break;
+                case '\t': // fall through — legal XML whitespace
+                case '\n': // fall through
+                case '\r': sb.append(c);        break;
+                default:
+                    // Strip illegal XML 1.0 control characters
+                    if (c >= 0x20) {
+                        sb.append(c);
+                    }
+                    // else: silently drop illegal control character
+                    break;
             }
         }
         return sb.toString();

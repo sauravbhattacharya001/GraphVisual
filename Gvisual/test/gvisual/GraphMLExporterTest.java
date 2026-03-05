@@ -494,4 +494,72 @@ public class GraphMLExporterTest {
 
         assertEquals(xml1, xml2);
     }
+
+    // ── Security: XML control character stripping ──
+
+    @Test
+    public void testEscapeXml_nullBytesStripped() {
+        String result = GraphMLExporter.escapeXml("hello\0world");
+        assertEquals("helloworld", result);
+        assertFalse(result.contains("\0"));
+    }
+
+    @Test
+    public void testEscapeXml_controlCharsStripped() {
+        StringBuilder input = new StringBuilder();
+        for (char c = 0x00; c < 0x20; c++) {
+            input.append(c);
+        }
+        String result = GraphMLExporter.escapeXml(input.toString());
+        // Only tab, newline, carriage return should survive
+        assertEquals("\t\n\r", result);
+    }
+
+    @Test
+    public void testEscapeXml_legalWhitespacePreserved() {
+        assertEquals("\t", GraphMLExporter.escapeXml("\t"));
+        assertEquals("\n", GraphMLExporter.escapeXml("\n"));
+        assertEquals("\r", GraphMLExporter.escapeXml("\r"));
+    }
+
+    @Test
+    public void testEscapeXml_normalTextUnchanged() {
+        assertEquals("hello world", GraphMLExporter.escapeXml("hello world"));
+    }
+
+    @Test
+    public void testEscapeXml_specialCharsEscaped() {
+        assertEquals("&amp;", GraphMLExporter.escapeXml("&"));
+        assertEquals("&lt;", GraphMLExporter.escapeXml("<"));
+        assertEquals("&gt;", GraphMLExporter.escapeXml(">"));
+        assertEquals("&quot;", GraphMLExporter.escapeXml("\""));
+        assertEquals("&apos;", GraphMLExporter.escapeXml("'"));
+    }
+
+    @Test
+    public void testEscapeXml_mixedControlAndSpecial() {
+        String result = GraphMLExporter.escapeXml("a\0b&c\u0001d<e");
+        assertEquals("ab&amp;cd&lt;e", result);
+    }
+
+    @Test
+    public void testExport_vertexWithControlCharsProducesValidXml() {
+        graph.addVertex("node\0inject");
+        graph.addVertex("B");
+        edge e = new edge("f", "node\0inject", "B");
+        allEdges.add(e);
+        graph.addEdge(e, "node\0inject", "B");
+
+        GraphMLExporter exporter = new GraphMLExporter(graph, allEdges);
+        String xml = exporter.exportToString();
+
+        assertFalse("XML must not contain null bytes", xml.contains("\0"));
+        assertTrue(xml.contains("nodeinject"));
+    }
+
+    @Test
+    public void testEscapeXml_bellCharStripped() {
+        // Bell (0x07) is illegal in XML
+        assertEquals("ab", GraphMLExporter.escapeXml("a\u0007b"));
+    }
 }
