@@ -23,7 +23,7 @@ public class VertexConnectivityAnalyzerTest {
     private void addEdge(Graph<String, edge> g, String u, String v) {
         g.addVertex(u);
         g.addVertex(v);
-        g.addEdge(new edge(edgeCounter++), u, v);
+        g.addEdge(new edge("f", u, v), u, v);
     }
 
     @Test

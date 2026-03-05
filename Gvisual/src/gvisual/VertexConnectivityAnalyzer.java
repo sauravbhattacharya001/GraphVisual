@@ -859,14 +859,13 @@ public class VertexConnectivityAnalyzer {
         for (String v : graph.getVertices()) {
             if (!v.equals(toRemove)) g.addVertex(v);
         }
-        int edgeId = 0;
         for (edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
             String v = it.next();
             if (!u.equals(toRemove) && !v.equals(toRemove)) {
-                g.addEdge(new edge(edgeId++), u, v);
+                g.addEdge(new edge("f", u, v), u, v);
             }
         }
         return g;
