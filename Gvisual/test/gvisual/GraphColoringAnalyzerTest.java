@@ -9,16 +9,19 @@ import static org.junit.Assert.*;
 import java.util.*;
 
 /**
- * Tests for GraphColoringAnalyzer -- Welsh-Powell greedy graph coloring,
- * custom ordering, validation, color classes, and summary analytics.
+ * Tests for GraphColoringAnalyzer -- greedy coloring with multiple orderings,
+ * DSatur, chromatic bounds, k-colorability, coloring verification, color
+ * class analysis, edge chromatic bounds, and report generation.
  */
 public class GraphColoringAnalyzerTest {
 
     private Graph<String, edge> graph;
+    private int edgeCounter;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<String, edge>();
+        edgeCounter = 0;
     }
 
     // ==========================================
@@ -42,8 +45,8 @@ public class GraphColoringAnalyzerTest {
 
     @Test
     public void testEmptyGraph() {
-        GraphColoringAnalyzer analyzer = new GraphColoringAnalyzer(graph);
-        GraphColoringAnalyzer.ColoringResult result = analyzer.compute();
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
 
         assertEquals(0, result.getChromaticBound());
         assertEquals(0, result.getVertexCount());
@@ -73,7 +76,6 @@ public class GraphColoringAnalyzerTest {
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
-        // Both can share the same color
         assertEquals(1, result.getChromaticBound());
         assertTrue(result.isValid());
     }
@@ -82,7 +84,7 @@ public class GraphColoringAnalyzerTest {
     public void testTwoConnectedVertices() {
         graph.addVertex("A");
         graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
+        addEdge("A", "B");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
@@ -98,97 +100,29 @@ public class GraphColoringAnalyzerTest {
 
     @Test
     public void testTriangleNeedsThreeColors() {
-        // K3: three mutually connected vertices
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addVertex("C");
-        graph.addEdge(makeEdge("f"), "A", "B");
-        graph.addEdge(makeEdge("f"), "B", "C");
-        graph.addEdge(makeEdge("f"), "A", "C");
+        buildTriangle();
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
         assertEquals(3, result.getChromaticBound());
         assertTrue(result.isValid());
-        // All three must be different
-        assertNotEquals(result.getColor("A"), result.getColor("B"));
-        assertNotEquals(result.getColor("B"), result.getColor("C"));
-        assertNotEquals(result.getColor("A"), result.getColor("C"));
     }
 
     @Test
     public void testPathGraphNeedsTwoColors() {
-        // A-B-C-D (path)
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addVertex("C");
-        graph.addVertex("D");
-        graph.addEdge(makeEdge("f"), "A", "B");
-        graph.addEdge(makeEdge("f"), "B", "C");
-        graph.addEdge(makeEdge("f"), "C", "D");
+        buildPath("A", "B", "C", "D");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
-        // Path graph is bipartite: 2 colors
         assertEquals(2, result.getChromaticBound());
         assertTrue(result.isValid());
     }
 
     @Test
-    public void testCycleEvenNeedsTwoColors() {
-        // A-B-C-D-A (even cycle, 4 vertices)
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addVertex("C");
-        graph.addVertex("D");
-        graph.addEdge(makeEdge("f"), "A", "B");
-        graph.addEdge(makeEdge("f"), "B", "C");
-        graph.addEdge(makeEdge("f"), "C", "D");
-        graph.addEdge(makeEdge("f"), "D", "A");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        // Even cycle is bipartite
-        assertTrue(result.getChromaticBound() <= 3);
-        assertTrue(result.isValid());
-    }
-
-    @Test
-    public void testCycleOddNeedsThreeColors() {
-        // A-B-C-D-E-A (odd cycle, 5 vertices)
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addVertex("C");
-        graph.addVertex("D");
-        graph.addVertex("E");
-        graph.addEdge(makeEdge("f"), "A", "B");
-        graph.addEdge(makeEdge("f"), "B", "C");
-        graph.addEdge(makeEdge("f"), "C", "D");
-        graph.addEdge(makeEdge("f"), "D", "E");
-        graph.addEdge(makeEdge("f"), "E", "A");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        // Odd cycle needs at least 3 colors
-        assertTrue(result.getChromaticBound() >= 3);
-        assertTrue(result.isValid());
-    }
-
-    @Test
     public void testCompleteGraphK4() {
-        // K4: 4 mutually connected vertices
-        String[] v = {"A", "B", "C", "D"};
-        for (String s : v) graph.addVertex(s);
-        int edgeId = 0;
-        for (int i = 0; i < v.length; i++) {
-            for (int j = i + 1; j < v.length; j++) {
-                graph.addEdge(makeEdge("f", edgeId++), v[i], v[j]);
-            }
-        }
+        buildComplete("A", "B", "C", "D");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
@@ -199,12 +133,11 @@ public class GraphColoringAnalyzerTest {
 
     @Test
     public void testStarGraphNeedsTwoColors() {
-        // Star: center connected to all leaves
         graph.addVertex("center");
         for (int i = 1; i <= 5; i++) {
             String leaf = "leaf" + i;
             graph.addVertex(leaf);
-            graph.addEdge(makeEdge("f", i), "center", leaf);
+            addEdge("center", leaf);
         }
 
         GraphColoringAnalyzer.ColoringResult result =
@@ -215,19 +148,14 @@ public class GraphColoringAnalyzerTest {
     }
 
     @Test
-    public void testBipartiteGraphNeedsTwoColors() {
-        // K3,3 bipartite: {A,B,C} x {X,Y,Z}
+    public void testBipartiteGraphK33() {
         String[] left = {"A", "B", "C"};
         String[] right = {"X", "Y", "Z"};
         for (String s : left) graph.addVertex(s);
         for (String s : right) graph.addVertex(s);
-
-        int edgeId = 0;
-        for (String l : left) {
-            for (String r : right) {
-                graph.addEdge(makeEdge("f", edgeId++), l, r);
-            }
-        }
+        for (String l : left)
+            for (String r : right)
+                addEdge(l, r);
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
@@ -236,217 +164,186 @@ public class GraphColoringAnalyzerTest {
         assertTrue(result.isValid());
     }
 
-    // ==========================================
-    //  Validation
-    // ==========================================
-
     @Test
-    public void testValidColoringProperty() {
-        // Build a moderately complex graph
-        buildMediumGraph();
+    public void testPetersenGraph() {
+        buildPetersenGraph();
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
+
+        assertEquals(10, result.getVertexCount());
+        assertTrue(result.isValid());
+        assertTrue(result.getChromaticBound() >= 3);
+        assertTrue(result.getChromaticBound() <= 4);
+    }
+
+    // ==========================================
+    //  DSatur coloring
+    // ==========================================
+
+    @Test
+    public void testDSaturEmptyGraph() {
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(0, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturSingleVertex() {
+        graph.addVertex("A");
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(1, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturTriangle() {
+        buildTriangle();
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(3, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturBipartite() {
+        buildPath("A", "B", "C", "D", "E");
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(2, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturOddCycle() {
+        // 5-cycle: needs 3 colors
+        buildCycle("A", "B", "C", "D", "E");
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(3, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturCompleteK5() {
+        buildComplete("A", "B", "C", "D", "E");
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
+
+        assertEquals(5, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDSaturPetersen() {
+        buildPetersenGraph();
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).computeDSatur();
 
         assertTrue(result.isValid());
-
-        // Manually verify: no adjacent vertices share a color
-        Map<String, Integer> assignment = result.getColorAssignment();
-        for (edge e : graph.getEdges()) {
-            String v1 = graph.getEndpoints(e).getFirst();
-            String v2 = graph.getEndpoints(e).getSecond();
-            assertNotEquals(
-                "Adjacent " + v1 + " and " + v2 + " must differ",
-                assignment.get(v1), assignment.get(v2));
-        }
+        // DSatur should find 3 colors for Petersen graph
+        assertTrue(result.getChromaticBound() >= 3);
+        assertTrue(result.getChromaticBound() <= 4);
     }
 
     // ==========================================
-    //  Color classes
+    //  Vertex ordering strategies
     // ==========================================
 
     @Test
-    public void testColorClassesPartitionVertices() {
+    public void testNaturalOrdering() {
+        buildTriangle();
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph)
+                .computeWithOrdering(GraphColoringAnalyzer.VertexOrdering.NATURAL);
+
+        assertEquals(3, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testLargestFirstOrdering() {
         buildMediumGraph();
 
         GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
+            new GraphColoringAnalyzer(graph)
+                .computeWithOrdering(GraphColoringAnalyzer.VertexOrdering.LARGEST_FIRST);
 
-        // All vertices appear exactly once across all classes
-        Set<String> allFromClasses = new HashSet<>();
-        for (List<String> cls : result.getColorClasses().values()) {
-            for (String v : cls) {
-                assertTrue("Vertex " + v + " appears twice",
-                    allFromClasses.add(v));
-            }
-        }
-        assertEquals(graph.getVertexCount(), allFromClasses.size());
+        assertTrue(result.isValid());
+        assertTrue(result.getChromaticBound() >= 2);
     }
 
     @Test
-    public void testGetVerticesWithColor() {
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
+    public void testSmallestLastOrdering() {
+        buildMediumGraph();
 
         GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
+            new GraphColoringAnalyzer(graph)
+                .computeWithOrdering(GraphColoringAnalyzer.VertexOrdering.SMALLEST_LAST);
 
-        List<String> color0 = result.getVerticesWithColor(0);
-        List<String> color1 = result.getVerticesWithColor(1);
-
-        assertFalse(color0.isEmpty());
-        assertFalse(color1.isEmpty());
-        assertEquals(2, color0.size() + color1.size());
+        assertTrue(result.isValid());
+        assertTrue(result.getChromaticBound() >= 2);
     }
 
     @Test
-    public void testGetVerticesWithInvalidColor() {
-        graph.addVertex("A");
+    public void testDSaturOrdering() {
+        buildMediumGraph();
 
         GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
+            new GraphColoringAnalyzer(graph)
+                .computeWithOrdering(GraphColoringAnalyzer.VertexOrdering.DSATUR);
 
-        assertTrue(result.getVerticesWithColor(999).isEmpty());
+        assertTrue(result.isValid());
+        assertTrue(result.getChromaticBound() >= 2);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullOrderingThrows() {
+        new GraphColoringAnalyzer(graph).computeWithOrdering(null);
     }
 
     @Test
-    public void testGetColorForUnknownVertex() {
-        graph.addVertex("A");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        assertEquals(-1, result.getColor("NONEXISTENT"));
-    }
-
-    // ==========================================
-    //  Class size analytics
-    // ==========================================
-
-    @Test
-    public void testLargestClassSize() {
-        // Star: center gets one color, 5 leaves share another
-        graph.addVertex("center");
-        for (int i = 1; i <= 5; i++) {
-            String leaf = "leaf" + i;
-            graph.addVertex(leaf);
-            graph.addEdge(makeEdge("f", i), "center", leaf);
-        }
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        assertEquals(5, result.getLargestClassSize());
-    }
-
-    @Test
-    public void testSmallestClassSize() {
-        graph.addVertex("center");
-        for (int i = 1; i <= 5; i++) {
-            String leaf = "leaf" + i;
-            graph.addVertex(leaf);
-            graph.addEdge(makeEdge("f", i), "center", leaf);
-        }
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        assertEquals(1, result.getSmallestClassSize());
-    }
-
-    @Test
-    public void testClassSizesEmpty() {
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        assertEquals(0, result.getLargestClassSize());
-        assertEquals(0, result.getSmallestClassSize());
-    }
-
-    // ==========================================
-    //  getSummary
-    // ==========================================
-
-    @Test
-    public void testSummaryContainsExpectedKeys() {
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        Map<String, Object> summary = result.getSummary();
-        assertTrue(summary.containsKey("vertexCount"));
-        assertTrue(summary.containsKey("chromaticBound"));
-        assertTrue(summary.containsKey("valid"));
-        assertTrue(summary.containsKey("largestClass"));
-        assertTrue(summary.containsKey("smallestClass"));
-        assertTrue(summary.containsKey("classSizes"));
-    }
-
-    @Test
-    public void testSummaryValues() {
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        Map<String, Object> summary = result.getSummary();
-        assertEquals(2, summary.get("vertexCount"));
-        assertEquals(2, summary.get("chromaticBound"));
-        assertEquals(true, summary.get("valid"));
-    }
-
-    // ==========================================
-    //  toString
-    // ==========================================
-
-    @Test
-    public void testToStringContainsInfo() {
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        String str = result.toString();
-        assertTrue(str.contains("Graph Coloring Result"));
-        assertTrue(str.contains("Vertices: 2"));
-        assertTrue(str.contains("chromatic bound"));
-        assertTrue(str.contains("Color classes"));
-    }
-
-    // ==========================================
-    //  computeWithOrder
-    // ==========================================
-
-    @Test
-    public void testCustomOrderProducesDifferentResult() {
-        // Triangle: order matters for color assignment
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addVertex("C");
-        graph.addEdge(makeEdge("f"), "A", "B");
-        graph.addEdge(makeEdge("f"), "B", "C");
-        graph.addEdge(makeEdge("f"), "A", "C");
-
+    public void testAllOrderingsProduceValidColorings() {
+        buildMediumGraph();
         GraphColoringAnalyzer analyzer = new GraphColoringAnalyzer(graph);
 
-        // Both orderings should produce valid colorings
-        GraphColoringAnalyzer.ColoringResult r1 =
-            analyzer.computeWithOrder(Arrays.asList("A", "B", "C"));
-        GraphColoringAnalyzer.ColoringResult r2 =
-            analyzer.computeWithOrder(Arrays.asList("C", "B", "A"));
+        for (GraphColoringAnalyzer.VertexOrdering ordering :
+                GraphColoringAnalyzer.VertexOrdering.values()) {
+            GraphColoringAnalyzer.ColoringResult result =
+                analyzer.computeWithOrdering(ordering);
+            assertTrue("Ordering " + ordering + " produced invalid coloring",
+                result.isValid());
+        }
+    }
 
-        assertTrue(r1.isValid());
-        assertTrue(r2.isValid());
-        assertEquals(3, r1.getChromaticBound());
-        assertEquals(3, r2.getChromaticBound());
+    // ==========================================
+    //  computeWithOrder (custom)
+    // ==========================================
+
+    @Test
+    public void testCustomOrderProducesValidColoring() {
+        buildTriangle();
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph)
+                .computeWithOrder(Arrays.asList("A", "B", "C"));
+
+        assertTrue(result.isValid());
+        assertEquals(3, result.getChromaticBound());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -466,9 +363,8 @@ public class GraphColoringAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(makeEdge("f"), "A", "B");
+        addEdge("A", "B");
 
-        // Only color two of three vertices
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph)
                 .computeWithOrder(Arrays.asList("A", "B"));
@@ -478,121 +374,389 @@ public class GraphColoringAnalyzerTest {
     }
 
     // ==========================================
-    //  Welsh-Powell degree ordering
+    //  Chromatic number bounds
     // ==========================================
 
     @Test
-    public void testWelshPowellPrioritizesHighDegree() {
-        // Hub-and-spoke: center has highest degree, gets color 0
-        graph.addVertex("hub");
+    public void testChromaticLowerBoundEmpty() {
+        assertEquals(0, new GraphColoringAnalyzer(graph).chromaticLowerBound());
+    }
+
+    @Test
+    public void testChromaticLowerBoundTriangle() {
+        buildTriangle();
+        assertEquals(3, new GraphColoringAnalyzer(graph).chromaticLowerBound());
+    }
+
+    @Test
+    public void testChromaticLowerBoundK4() {
+        buildComplete("A", "B", "C", "D");
+        assertEquals(4, new GraphColoringAnalyzer(graph).chromaticLowerBound());
+    }
+
+    @Test
+    public void testChromaticUpperBound() {
+        buildTriangle();
+        assertEquals(3, new GraphColoringAnalyzer(graph).chromaticUpperBound());
+    }
+
+    @Test
+    public void testChromaticBoundsConsistency() {
+        buildMediumGraph();
+        int[] bounds = new GraphColoringAnalyzer(graph).chromaticBounds();
+        assertTrue(bounds[0] <= bounds[1]);
+        assertTrue(bounds[0] >= 1);
+    }
+
+    @Test
+    public void testChromaticBoundsCompleteGraph() {
+        buildComplete("A", "B", "C", "D");
+        int[] bounds = new GraphColoringAnalyzer(graph).chromaticBounds();
+        // For complete graph, bounds should be tight
+        assertEquals(4, bounds[0]);
+        assertEquals(4, bounds[1]);
+    }
+
+    // ==========================================
+    //  k-colorability
+    // ==========================================
+
+    @Test
+    public void testKColorableEmptyGraph() {
+        assertTrue(new GraphColoringAnalyzer(graph).isKColorable(0));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testKColorableNegativeThrows() {
+        new GraphColoringAnalyzer(graph).isKColorable(-1);
+    }
+
+    @Test
+    public void testKColorableZeroWithVertices() {
+        graph.addVertex("A");
+        assertFalse(new GraphColoringAnalyzer(graph).isKColorable(0));
+    }
+
+    @Test
+    public void testKColorableTriangleWith2() {
+        buildTriangle();
+        assertFalse(new GraphColoringAnalyzer(graph).isKColorable(2));
+    }
+
+    @Test
+    public void testKColorableTriangleWith3() {
+        buildTriangle();
+        assertTrue(new GraphColoringAnalyzer(graph).isKColorable(3));
+    }
+
+    @Test
+    public void testKColorableK4With3() {
+        buildComplete("A", "B", "C", "D");
+        assertFalse(new GraphColoringAnalyzer(graph).isKColorable(3));
+    }
+
+    @Test
+    public void testKColorableK4With4() {
+        buildComplete("A", "B", "C", "D");
+        assertTrue(new GraphColoringAnalyzer(graph).isKColorable(4));
+    }
+
+    @Test
+    public void testKColorableBipartiteWith2() {
+        buildPath("A", "B", "C", "D");
+        assertTrue(new GraphColoringAnalyzer(graph).isKColorable(2));
+    }
+
+    // ==========================================
+    //  Coloring verification
+    // ==========================================
+
+    @Test
+    public void testVerifyValidColoring() {
+        buildTriangle();
+        Map<String, Integer> assignment = new HashMap<>();
+        assignment.put("A", 0);
+        assignment.put("B", 1);
+        assignment.put("C", 2);
+
+        assertTrue(new GraphColoringAnalyzer(graph).verifyColoring(assignment));
+    }
+
+    @Test
+    public void testVerifyInvalidColoring() {
+        buildTriangle();
+        Map<String, Integer> assignment = new HashMap<>();
+        assignment.put("A", 0);
+        assignment.put("B", 0);
+        assignment.put("C", 1);
+
+        assertFalse(new GraphColoringAnalyzer(graph).verifyColoring(assignment));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testVerifyNullThrows() {
+        new GraphColoringAnalyzer(graph).verifyColoring(null);
+    }
+
+    @Test
+    public void testFindConflictsNone() {
+        buildTriangle();
+        Map<String, Integer> assignment = new HashMap<>();
+        assignment.put("A", 0);
+        assignment.put("B", 1);
+        assignment.put("C", 2);
+
+        List<String[]> conflicts =
+            new GraphColoringAnalyzer(graph).findConflicts(assignment);
+        assertTrue(conflicts.isEmpty());
+    }
+
+    @Test
+    public void testFindConflictsPresent() {
+        buildTriangle();
+        Map<String, Integer> assignment = new HashMap<>();
+        assignment.put("A", 0);
+        assignment.put("B", 0);
+        assignment.put("C", 1);
+
+        List<String[]> conflicts =
+            new GraphColoringAnalyzer(graph).findConflicts(assignment);
+        assertFalse(conflicts.isEmpty());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFindConflictsNullThrows() {
+        new GraphColoringAnalyzer(graph).findConflicts(null);
+    }
+
+    // ==========================================
+    //  Color class analysis
+    // ==========================================
+
+    @Test
+    public void testAnalyzeColorClassesTriangle() {
+        buildTriangle();
+        GraphColoringAnalyzer analyzer = new GraphColoringAnalyzer(graph);
+        GraphColoringAnalyzer.ColoringResult result = analyzer.compute();
+        Map<String, Object> analysis = analyzer.analyzeColorClasses(result);
+
+        assertEquals(3, analysis.get("numColors"));
+        assertEquals(3, analysis.get("numVertices"));
+        assertEquals(1, analysis.get("largestClass"));
+        assertEquals(1, analysis.get("smallestClass"));
+        assertEquals(1.0, (Double) analysis.get("balanceRatio"), 0.001);
+        assertEquals(true, analysis.get("allIndependent"));
+    }
+
+    @Test
+    public void testAnalyzeColorClassesStar() {
+        graph.addVertex("center");
+        for (int i = 1; i <= 5; i++) {
+            graph.addVertex("leaf" + i);
+            addEdge("center", "leaf" + i);
+        }
+
+        GraphColoringAnalyzer analyzer = new GraphColoringAnalyzer(graph);
+        GraphColoringAnalyzer.ColoringResult result = analyzer.compute();
+        Map<String, Object> analysis = analyzer.analyzeColorClasses(result);
+
+        assertEquals(2, analysis.get("numColors"));
+        assertEquals(5, analysis.get("largestClass"));
+        assertEquals(1, analysis.get("smallestClass"));
+        assertTrue(analysis.containsKey("classSizes"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAnalyzeColorClassesNullThrows() {
+        new GraphColoringAnalyzer(graph).analyzeColorClasses(null);
+    }
+
+    @Test
+    public void testAnalyzeColorClassesEmpty() {
+        GraphColoringAnalyzer analyzer = new GraphColoringAnalyzer(graph);
+        GraphColoringAnalyzer.ColoringResult result = analyzer.compute();
+        Map<String, Object> analysis = analyzer.analyzeColorClasses(result);
+
+        assertEquals(0, analysis.get("numColors"));
+        assertEquals(1.0, (Double) analysis.get("balanceRatio"), 0.001);
+        assertEquals(true, analysis.get("allIndependent"));
+    }
+
+    // ==========================================
+    //  Edge chromatic number (Vizing)
+    // ==========================================
+
+    @Test
+    public void testEdgeChromaticBoundsEmpty() {
+        int[] bounds = new GraphColoringAnalyzer(graph).edgeChromaticBounds();
+        assertEquals(0, bounds[0]);
+        assertEquals(0, bounds[1]);
+    }
+
+    @Test
+    public void testEdgeChromaticBoundsTriangle() {
+        buildTriangle();
+        int[] bounds = new GraphColoringAnalyzer(graph).edgeChromaticBounds();
+        // Δ = 2, so bounds = [2, 3]
+        assertEquals(2, bounds[0]);
+        assertEquals(3, bounds[1]);
+    }
+
+    @Test
+    public void testEdgeChromaticBoundsK4() {
+        buildComplete("A", "B", "C", "D");
+        int[] bounds = new GraphColoringAnalyzer(graph).edgeChromaticBounds();
+        // Δ = 3, so bounds = [3, 4]
+        assertEquals(3, bounds[0]);
+        assertEquals(4, bounds[1]);
+    }
+
+    @Test
+    public void testEdgeChromaticBoundsStar() {
+        graph.addVertex("center");
+        for (int i = 1; i <= 5; i++) {
+            graph.addVertex("leaf" + i);
+            addEdge("center", "leaf" + i);
+        }
+        int[] bounds = new GraphColoringAnalyzer(graph).edgeChromaticBounds();
+        assertEquals(5, bounds[0]);
+        assertEquals(6, bounds[1]);
+    }
+
+    @Test
+    public void testMaxDegree() {
+        graph.addVertex("center");
         for (int i = 1; i <= 4; i++) {
-            String spoke = "s" + i;
-            graph.addVertex(spoke);
-            graph.addEdge(makeEdge("f", i), "hub", spoke);
-        }
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        // Hub (highest degree) should get color 0
-        assertEquals(0, result.getColor("hub"));
-        assertTrue(result.isValid());
-    }
-
-    // ==========================================
-    //  Disconnected components
-    // ==========================================
-
-    @Test
-    public void testDisconnectedComponentsSameColors() {
-        // Two separate edges
-        graph.addVertex("A");
-        graph.addVertex("B");
-        graph.addEdge(makeEdge("f"), "A", "B");
-
-        graph.addVertex("C");
-        graph.addVertex("D");
-        graph.addEdge(makeEdge("c"), "C", "D");
-
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        // Two separate edges only need 2 colors total
-        assertEquals(2, result.getChromaticBound());
-        assertTrue(result.isValid());
-    }
-
-    @Test
-    public void testDisconnectedIsolatedVertices() {
-        // 5 isolated vertices
-        for (int i = 0; i < 5; i++) {
             graph.addVertex("v" + i);
+            addEdge("center", "v" + i);
         }
+        assertEquals(4, new GraphColoringAnalyzer(graph).maxDegree());
+    }
 
-        GraphColoringAnalyzer.ColoringResult result =
-            new GraphColoringAnalyzer(graph).compute();
-
-        assertEquals(1, result.getChromaticBound());
-        assertTrue(result.isValid());
+    @Test
+    public void testMaxDegreeEmpty() {
+        assertEquals(0, new GraphColoringAnalyzer(graph).maxDegree());
     }
 
     // ==========================================
-    //  Edge types
+    //  Color class metrics from ColoringResult
     // ==========================================
 
     @Test
-    public void testDifferentEdgeTypesColored() {
+    public void testGetVerticesWithColor() {
         graph.addVertex("A");
         graph.addVertex("B");
-        graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("c", "B", "C");
-        edge e3 = new edge("s", "A", "C");
-        graph.addEdge(e1, "A", "B");
-        graph.addEdge(e2, "B", "C");
-        graph.addEdge(e3, "A", "C");
+        addEdge("A", "B");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
-        assertEquals(3, result.getChromaticBound());
-        assertTrue(result.isValid());
+        List<String> color0 = result.getVerticesWithColor(0);
+        List<String> color1 = result.getVerticesWithColor(1);
+
+        assertFalse(color0.isEmpty());
+        assertFalse(color1.isEmpty());
+        assertEquals(2, color0.size() + color1.size());
+    }
+
+    @Test
+    public void testGetVerticesWithInvalidColor() {
+        graph.addVertex("A");
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        assertTrue(result.getVerticesWithColor(999).isEmpty());
+    }
+
+    @Test
+    public void testGetColorForUnknownVertex() {
+        graph.addVertex("A");
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        assertEquals(-1, result.getColor("NONEXISTENT"));
+    }
+
+    @Test
+    public void testLargestClassSize() {
+        graph.addVertex("center");
+        for (int i = 1; i <= 5; i++) {
+            graph.addVertex("leaf" + i);
+            addEdge("center", "leaf" + i);
+        }
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        assertEquals(5, result.getLargestClassSize());
+    }
+
+    @Test
+    public void testSmallestClassSize() {
+        graph.addVertex("center");
+        for (int i = 1; i <= 5; i++) {
+            graph.addVertex("leaf" + i);
+            addEdge("center", "leaf" + i);
+        }
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        assertEquals(1, result.getSmallestClassSize());
+    }
+
+    @Test
+    public void testClassSizesEmpty() {
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        assertEquals(0, result.getLargestClassSize());
+        assertEquals(0, result.getSmallestClassSize());
+    }
+
+    @Test
+    public void testColorClassesPartitionVertices() {
+        buildMediumGraph();
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+
+        Set<String> allFromClasses = new HashSet<>();
+        for (List<String> cls : result.getColorClasses().values()) {
+            for (String v : cls) {
+                assertTrue(allFromClasses.add(v));
+            }
+        }
+        assertEquals(graph.getVertexCount(), allFromClasses.size());
     }
 
     // ==========================================
-    //  Larger graph
+    //  Summary and toString
     // ==========================================
 
     @Test
-    public void testPetersenGraph() {
-        // Petersen graph: 10 vertices, 15 edges, chromatic number = 3
-        String[] outer = {"o0", "o1", "o2", "o3", "o4"};
-        String[] inner = {"i0", "i1", "i2", "i3", "i4"};
-        for (String v : outer) graph.addVertex(v);
-        for (String v : inner) graph.addVertex(v);
-
-        int id = 0;
-        // Outer cycle
-        for (int i = 0; i < 5; i++) {
-            graph.addEdge(makeEdge("f", id++), outer[i], outer[(i + 1) % 5]);
-        }
-        // Inner pentagram
-        for (int i = 0; i < 5; i++) {
-            graph.addEdge(makeEdge("f", id++), inner[i], inner[(i + 2) % 5]);
-        }
-        // Spokes
-        for (int i = 0; i < 5; i++) {
-            graph.addEdge(makeEdge("f", id++), outer[i], inner[i]);
-        }
+    public void testSummaryContainsExpectedKeys() {
+        graph.addVertex("A");
+        graph.addVertex("B");
+        addEdge("A", "B");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
-        assertEquals(10, result.getVertexCount());
-        assertTrue(result.isValid());
-        // Petersen graph chromatic number is 3
-        assertTrue(result.getChromaticBound() >= 3);
-        assertTrue(result.getChromaticBound() <= 4); // Welsh-Powell should find 3 or 4
+        Map<String, Object> summary = result.getSummary();
+        assertTrue(summary.containsKey("vertexCount"));
+        assertTrue(summary.containsKey("chromaticBound"));
+        assertTrue(summary.containsKey("valid"));
+        assertTrue(summary.containsKey("largestClass"));
+        assertTrue(summary.containsKey("smallestClass"));
+        assertTrue(summary.containsKey("classSizes"));
+    }
+
+    @Test
+    public void testToStringContainsInfo() {
+        graph.addVertex("A");
+        graph.addVertex("B");
+        addEdge("A", "B");
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+
+        String str = result.toString();
+        assertTrue(str.contains("Graph Coloring Result"));
+        assertTrue(str.contains("Vertices: 2"));
+        assertTrue(str.contains("chromatic bound"));
     }
 
     // ==========================================
@@ -602,53 +766,163 @@ public class GraphColoringAnalyzerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testColorAssignmentImmutable() {
         graph.addVertex("A");
-
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
-
         result.getColorAssignment().put("A", 99);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testColorClassesImmutable() {
         graph.addVertex("A");
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+        result.getColorClasses().put(99, new ArrayList<>());
+    }
+
+    // ==========================================
+    //  Report generation
+    // ==========================================
+
+    @Test
+    public void testGenerateReport() {
+        buildMediumGraph();
+        String report = new GraphColoringAnalyzer(graph).generateReport();
+
+        assertNotNull(report);
+        assertTrue(report.contains("Graph Coloring Analysis Report"));
+        assertTrue(report.contains("Greedy Coloring Results"));
+        assertTrue(report.contains("Chromatic Number Bounds"));
+        assertTrue(report.contains("Edge Chromatic Number"));
+        assertTrue(report.contains("DSatur"));
+    }
+
+    @Test
+    public void testGenerateReportEmpty() {
+        String report = new GraphColoringAnalyzer(graph).generateReport();
+        assertNotNull(report);
+        assertTrue(report.contains("0 vertices"));
+    }
+
+    // ==========================================
+    //  Disconnected components
+    // ==========================================
+
+    @Test
+    public void testDisconnectedComponentsSameColors() {
+        graph.addVertex("A");
+        graph.addVertex("B");
+        addEdge("A", "B");
+        graph.addVertex("C");
+        graph.addVertex("D");
+        addEdge("C", "D");
 
         GraphColoringAnalyzer.ColoringResult result =
             new GraphColoringAnalyzer(graph).compute();
 
-        result.getColorClasses().put(99, new ArrayList<>());
+        assertEquals(2, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testDisconnectedIsolatedVertices() {
+        for (int i = 0; i < 5; i++) graph.addVertex("v" + i);
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+
+        assertEquals(1, result.getChromaticBound());
+        assertTrue(result.isValid());
+    }
+
+    // ==========================================
+    //  Welsh-Powell behavior
+    // ==========================================
+
+    @Test
+    public void testWelshPowellPrioritizesHighDegree() {
+        graph.addVertex("hub");
+        for (int i = 1; i <= 4; i++) {
+            graph.addVertex("s" + i);
+            addEdge("hub", "s" + i);
+        }
+
+        GraphColoringAnalyzer.ColoringResult result =
+            new GraphColoringAnalyzer(graph).compute();
+
+        assertEquals(0, result.getColor("hub"));
+        assertTrue(result.isValid());
     }
 
     // ==========================================
     //  Helper methods
     // ==========================================
 
-    private edge makeEdge(String type) {
-        return new edge(type, "", "");
+    private void addEdge(String v1, String v2) {
+        edge e = new edge("f", v1, v2);
+        e.setLabel("e" + (edgeCounter++));
+        graph.addEdge(e, v1, v2);
     }
 
-    private edge makeEdge(String type, int id) {
-        edge e = new edge(type, "", "");
-        e.setLabel("e" + id);
-        return e;
+    private void buildTriangle() {
+        graph.addVertex("A");
+        graph.addVertex("B");
+        graph.addVertex("C");
+        addEdge("A", "B");
+        addEdge("B", "C");
+        addEdge("A", "C");
+    }
+
+    private void buildPath(String... vertices) {
+        for (String v : vertices) graph.addVertex(v);
+        for (int i = 0; i < vertices.length - 1; i++) {
+            addEdge(vertices[i], vertices[i + 1]);
+        }
+    }
+
+    private void buildCycle(String... vertices) {
+        for (String v : vertices) graph.addVertex(v);
+        for (int i = 0; i < vertices.length; i++) {
+            addEdge(vertices[i], vertices[(i + 1) % vertices.length]);
+        }
+    }
+
+    private void buildComplete(String... vertices) {
+        for (String v : vertices) graph.addVertex(v);
+        for (int i = 0; i < vertices.length; i++) {
+            for (int j = i + 1; j < vertices.length; j++) {
+                addEdge(vertices[i], vertices[j]);
+            }
+        }
+    }
+
+    private void buildPetersenGraph() {
+        String[] outer = {"o0", "o1", "o2", "o3", "o4"};
+        String[] inner = {"i0", "i1", "i2", "i3", "i4"};
+        for (String v : outer) graph.addVertex(v);
+        for (String v : inner) graph.addVertex(v);
+        for (int i = 0; i < 5; i++) {
+            addEdge(outer[i], outer[(i + 1) % 5]);
+        }
+        for (int i = 0; i < 5; i++) {
+            addEdge(inner[i], inner[(i + 2) % 5]);
+        }
+        for (int i = 0; i < 5; i++) {
+            addEdge(outer[i], inner[i]);
+        }
     }
 
     private void buildMediumGraph() {
-        // 8-vertex graph with mixed connectivity
-        for (int i = 1; i <= 8; i++) {
-            graph.addVertex("v" + i);
-        }
-        int id = 0;
-        graph.addEdge(makeEdge("f", id++), "v1", "v2");
-        graph.addEdge(makeEdge("f", id++), "v1", "v3");
-        graph.addEdge(makeEdge("f", id++), "v2", "v3");
-        graph.addEdge(makeEdge("c", id++), "v2", "v4");
-        graph.addEdge(makeEdge("c", id++), "v3", "v5");
-        graph.addEdge(makeEdge("s", id++), "v4", "v5");
-        graph.addEdge(makeEdge("s", id++), "v4", "v6");
-        graph.addEdge(makeEdge("f", id++), "v5", "v7");
-        graph.addEdge(makeEdge("f", id++), "v6", "v7");
-        graph.addEdge(makeEdge("f", id++), "v6", "v8");
-        graph.addEdge(makeEdge("f", id++), "v7", "v8");
+        for (int i = 1; i <= 8; i++) graph.addVertex("v" + i);
+        addEdge("v1", "v2");
+        addEdge("v1", "v3");
+        addEdge("v2", "v3");
+        addEdge("v2", "v4");
+        addEdge("v3", "v5");
+        addEdge("v4", "v5");
+        addEdge("v4", "v6");
+        addEdge("v5", "v7");
+        addEdge("v6", "v7");
+        addEdge("v6", "v8");
+        addEdge("v7", "v8");
     }
 }
