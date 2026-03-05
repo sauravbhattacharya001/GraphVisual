@@ -212,11 +212,11 @@ public class TreeAnalyzer {
         public final CentroidResult centroid;
         public final DiameterResult diameter;
         public final RootedTreeInfo rootedInfo;
-        public final Map<String, Integer> degreeDistribution;
+        public final Map<Integer, Integer> degreeDistribution;
 
         public TreeReport(TreeCheck treeCheck, CenterResult center,
                           CentroidResult centroid, DiameterResult diameter,
-                          RootedTreeInfo rootedInfo, Map<String, Integer> degreeDistribution) {
+                          RootedTreeInfo rootedInfo, Map<Integer, Integer> degreeDistribution) {
             this.treeCheck = treeCheck;
             this.center = center;
             this.centroid = centroid;
