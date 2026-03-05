@@ -376,26 +376,40 @@ public class ForceDirectedLayout {
     public int countEdgeCrossings() {
         ensureComputed();
         List<edge> edges = new ArrayList<edge>(graph.getEdges());
-        int crossings = 0;
-        for (int i = 0; i < edges.size(); i++) {
-            double[] a1 = positions.get(edges.get(i).getVertex1());
-            double[] a2 = positions.get(edges.get(i).getVertex2());
-            if (a1 == null || a2 == null) continue;
+        int m = edges.size();
 
-            for (int j = i + 1; j < edges.size(); j++) {
-                double[] b1 = positions.get(edges.get(j).getVertex1());
-                double[] b2 = positions.get(edges.get(j).getVertex2());
-                if (b1 == null || b2 == null) continue;
+        // Pre-compute endpoint positions and vertex names into arrays
+        // to avoid repeated HashMap lookups and method calls inside
+        // the O(E²) nested loop.
+        double[][] ep1 = new double[m][];
+        double[][] ep2 = new double[m][];
+        String[] v1 = new String[m];
+        String[] v2 = new String[m];
+        boolean[] valid = new boolean[m];
+
+        for (int i = 0; i < m; i++) {
+            edge e = edges.get(i);
+            v1[i] = e.getVertex1();
+            v2[i] = e.getVertex2();
+            ep1[i] = positions.get(v1[i]);
+            ep2[i] = positions.get(v2[i]);
+            valid[i] = ep1[i] != null && ep2[i] != null;
+        }
+
+        int crossings = 0;
+        for (int i = 0; i < m; i++) {
+            if (!valid[i]) continue;
+
+            for (int j = i + 1; j < m; j++) {
+                if (!valid[j]) continue;
 
                 // Skip if edges share an endpoint
-                if (edges.get(i).getVertex1().equals(edges.get(j).getVertex1()) ||
-                    edges.get(i).getVertex1().equals(edges.get(j).getVertex2()) ||
-                    edges.get(i).getVertex2().equals(edges.get(j).getVertex1()) ||
-                    edges.get(i).getVertex2().equals(edges.get(j).getVertex2())) {
+                if (v1[i].equals(v1[j]) || v1[i].equals(v2[j]) ||
+                    v2[i].equals(v1[j]) || v2[i].equals(v2[j])) {
                     continue;
                 }
 
-                if (segmentsIntersect(a1, a2, b1, b2)) {
+                if (segmentsIntersect(ep1[i], ep2[i], ep1[j], ep2[j])) {
                     crossings++;
                 }
             }
@@ -497,21 +511,23 @@ public class ForceDirectedLayout {
 
         double stress = 0;
         double normalizer = 0;
+        // Ideal edge length: constant for this graph/layout, hoist out of loop
+        double k = Math.sqrt(width * height / n);
         for (int i = 0; i < n; i++) {
+            String vi = vertexList.get(i);
+            double[] pi = positions.get(vi);
+            Map<String, Integer> viPaths = shortestPaths.get(vi);
             for (int j = i + 1; j < n; j++) {
-                String vi = vertexList.get(i);
                 String vj = vertexList.get(j);
-                Integer graphDist = shortestPaths.get(vi).get(vj);
+                Integer graphDist = viPaths.get(vj);
                 if (graphDist == null || graphDist == 0) continue;
 
-                double[] pi = positions.get(vi);
                 double[] pj = positions.get(vj);
-                double eucDist = Math.sqrt(
-                        (pi[0] - pj[0]) * (pi[0] - pj[0]) +
-                        (pi[1] - pj[1]) * (pi[1] - pj[1]));
+                double dx = pi[0] - pj[0];
+                double dy = pi[1] - pj[1];
+                double eucDist = Math.sqrt(dx * dx + dy * dy);
 
                 // Scale graph distance to expected Euclidean distance
-                double k = Math.sqrt(width * height / n);
                 double expected = graphDist * k;
 
                 stress += ((eucDist - expected) * (eucDist - expected))
