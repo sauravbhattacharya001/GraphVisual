@@ -258,6 +258,21 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(V + E)
 - **Algorithm:** Structural balance theory — checks if a signed graph (positive/negative edges) satisfies balance conditions. Detects frustrated cycles and computes frustration index.
 
+### Graph Entropy Analysis
+- **File:** `GraphEntropyAnalyzer.java`
+- **Complexity:** O(V² + E) for full computation (eigenvalue decomposition dominates)
+- **Algorithm:** Computes 9 information-theoretic measures quantifying the structural complexity and randomness of a graph:
+  - **Degree entropy:** Shannon entropy of the degree distribution — higher values indicate more heterogeneous connectivity.
+  - **Von Neumann entropy:** Spectral entropy of the normalised Laplacian — captures global structural complexity (uses Jacobi eigenvalue iteration, no external dependencies).
+  - **Edge type entropy:** Shannon entropy across edge categories — measures diversity of relationship types.
+  - **Topological information content:** Automorphism-orbit-based entropy — measures structural symmetry (vertices in the same orbit are structurally equivalent).
+  - **Random walk entropy rate:** Steady-state entropy of transition probabilities — quantifies how unpredictable a random walker's next step is.
+  - **Chromatic entropy:** Greedy-coloring-based entropy — relates graph colorability to information content.
+  - **Degree-CC mutual information:** Mutual information between vertex degree and clustering coefficient — captures degree-clustering correlation.
+  - **Neighbourhood entropy:** Per-vertex entropy of neighbour degree distribution — identifies vertices with diverse vs. uniform neighbourhoods.
+  - **Complexity class:** Automatic classification (minimal/low/moderate/high/very high) based on normalised degree entropy.
+- **Use cases:** Network complexity assessment, anomaly detection (unusual entropy patterns), comparing structural properties of different networks.
+
 ---
 
 ## Comparison & Evolution
@@ -266,6 +281,16 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **File:** `GraphDiffAnalyzer.java`
 - **Complexity:** O(V + E)
 - **Algorithm:** Computes symmetric difference between two graphs: added/removed/common vertices and edges. Similarity metrics include Jaccard index and edit distance.
+
+### Graph Similarity (Entropy-Based)
+- **File:** `GraphSimilarityAnalyzer.java`
+- **Complexity:** O(V² + E) per graph (eigenvalue decomposition)
+- **Algorithm:** Compares two graphs using information-theoretic distance measures built on the entropy framework:
+  - **Jensen-Shannon divergence:** Symmetric divergence between normalised degree distributions — bounded [0, ln 2], 0 = identical distributions.
+  - **Von Neumann divergence:** Spectral divergence between normalised Laplacians — captures differences in global structural properties.
+  - **Entropy profile distance:** Euclidean distance between multi-dimensional entropy profiles (degree, von Neumann, edge type, topological, random walk, chromatic entropies).
+  - **Composite similarity score:** Weighted combination of all three measures, normalised to [0, 1] where 1 = identical.
+- **Use cases:** Comparing network snapshots over time, measuring graph edit impact, clustering graphs by structural similarity, detecting network evolution patterns.
 
 ### Temporal Graph (Time-Windowed Views)
 - **File:** `TemporalGraph.java`
@@ -334,5 +359,6 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 | Coloring | DSatur, Chordal | O(V² + E) | General coloring (NP-hard) |
 | Flow | Edmonds-Karp, Kruskal, MaxCut, Partitioning | O(E log E) | MaxCut (NP-hard) |
 | Layout | Fruchterman-Reingold | O(iter·(V²+E)) | — |
-| Structural | Diameter, Spectral, Treewidth, Struct. Holes | O(V + E) | Treewidth (NP-hard) |
+| Structural | Diameter, Spectral, Treewidth, Struct. Holes, Entropy | O(V + E) | Entropy O(V²) eigenvalue |
+| Comparison | Diff, Similarity, Persistence, Growth | O(V + E) | Similarity O(V²) eigenvalue |
 | Temporal | TemporalGraph, Persistence, Growth | O(W × E) | — |
