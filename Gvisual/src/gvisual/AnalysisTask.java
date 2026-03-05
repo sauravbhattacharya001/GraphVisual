@@ -110,11 +110,13 @@ public class AnalysisTask<T> {
 
         } catch (TimeoutException e) {
             cancelled.set(true);
-            future.cancel(true);
             long elapsed = System.currentTimeMillis() - start;
-            // Give the thread a moment to set its partial result
-            try { Thread.sleep(50); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            return AnalysisResult.timeout(partialRef.get(), elapsed);
+            // Give the thread time to check cancelled flag and set partial result
+            // Don't interrupt immediately — let the cooperative cancellation work
+            try { Thread.sleep(150); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            T partial = partialRef.get();
+            future.cancel(true);
+            return AnalysisResult.timeout(partial, elapsed);
 
         } catch (CancellationException e) {
             long elapsed = System.currentTimeMillis() - start;

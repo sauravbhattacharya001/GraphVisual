@@ -189,8 +189,9 @@ public class MaxCutAnalyzer {
         if (n <= 1 || edgeCount == 0) return 0.0;
         double totalWeight = 0;
         for (edge e : graph.getEdges()) totalWeight += Math.max(e.getWeight(), 1.0f);
-        double edwardsBound = (double) edgeCount / 2.0 + (double) (n - 1) / 4.0;
-        return Math.min(totalWeight, edwardsBound);
+        // Edwards bound is a guaranteed lower bound, not an upper bound.
+        // The trivial upper bound is total edge weight (every edge cut).
+        return totalWeight;
     }
 
     public double computeLowerBound() {

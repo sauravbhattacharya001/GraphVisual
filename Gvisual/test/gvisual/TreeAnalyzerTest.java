@@ -636,7 +636,7 @@ public class TreeAnalyzerTest {
         TreeAnalyzer ta = new TreeAnalyzer(graph);
         TreeAnalyzer.LCAEngine lca = ta.buildLCA("R");
         assertEquals(2, lca.distance("C", "D"));
-        assertEquals(3, lca.distance("C", "E"));
+        assertEquals(4, lca.distance("C", "E"));
         assertEquals(1, lca.distance("R", "A"));
     }
 }

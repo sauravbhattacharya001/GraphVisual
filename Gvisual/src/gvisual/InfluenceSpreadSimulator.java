@@ -1,5 +1,6 @@
 package gvisual;
 
+import edu.uci.ics.jung.graph.DirectedGraph;
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
 
@@ -74,7 +75,11 @@ public class InfluenceSpreadSimulator {
         List<RoundSnapshot> snapshots = new ArrayList<>();
         List<InfectionEvent> timeline = new ArrayList<>();
 
-        Set<String> newlyInfected = new LinkedHashSet<>(seeds);
+        // Only include seeds that are actually in the graph
+        Set<String> newlyInfected = new LinkedHashSet<>();
+        for (String seed : seeds) {
+            if (graph.containsVertex(seed)) newlyInfected.add(seed);
+        }
         int round = 0;
         snapshots.add(createSnapshot(round, state));
 
@@ -415,7 +420,13 @@ public class InfluenceSpreadSimulator {
     }
 
     private Collection<String> getNeighbors(String node) {
-        return graph.getNeighbors(node);
+        Collection<String> neighbors;
+        if (graph instanceof DirectedGraph) {
+            neighbors = graph.getSuccessors(node);
+        } else {
+            neighbors = graph.getNeighbors(node);
+        }
+        return neighbors != null ? neighbors : Collections.emptyList();
     }
 
     private double getEdgeProbability(String from, String to, double defaultProb) {

@@ -178,8 +178,8 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult result = analyzer.tarjan();
-        assertEquals(1, result.getNonTrivialComponents().size() > 0 ? result.getNonTrivialComponents().size() : 0);
-        // Actually should be 2 non-trivial
+        assertEquals(2, result.getNonTrivialComponents().size());
+        // Verify: 2 non-trivial components ({A,B,C} and {D,E})
         assertEquals(2, result.getNonTrivialComponents().size());
     }
 

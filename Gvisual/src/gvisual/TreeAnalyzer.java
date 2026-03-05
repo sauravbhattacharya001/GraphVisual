@@ -421,6 +421,10 @@ public class TreeAnalyzer {
 
         // Reconstruct path
         List<String> path = reconstructPath(bfs2.parent, u, v);
+        // Normalize so path starts with lexicographically smaller endpoint
+        if (path.size() >= 2 && path.get(0).compareTo(path.get(path.size() - 1)) > 0) {
+            Collections.reverse(path);
+        }
         return new DiameterResult(bfs2.dist.get(v), path);
     }
 

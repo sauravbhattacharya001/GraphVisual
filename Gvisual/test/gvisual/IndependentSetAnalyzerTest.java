@@ -399,9 +399,10 @@ public class IndependentSetAnalyzerTest {
     public void testKernelOnPath4() {
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(path4);
         IndependentSetAnalyzer.KernelResult kr = a.kernelReduction();
-        // A and D are degree-1, forced in. B and C excluded.
+        // A and D are degree-1. After forcing A and removing B, C becomes degree-1.
+        // So forced = {A, C} (not {A, D}).
         assertTrue(kr.forcedVertices.contains("A"));
-        assertTrue(kr.forcedVertices.contains("D"));
+        assertTrue(kr.forcedVertices.contains("C"));
         assertTrue(kr.rulesApplied > 0);
     }
 

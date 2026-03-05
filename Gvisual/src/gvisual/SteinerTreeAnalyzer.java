@@ -485,7 +485,7 @@ public class SteinerTreeAnalyzer {
         // Reconstruct tree
         Set<EdgeInfo> treeEdges = new HashSet<>();
         Set<String> treeVertices = new HashSet<>();
-        reconstructDP(dp, parent, dist, next, fullMask, bestRoot, vertList, idx, treeEdges, treeVertices);
+        reconstructDP(dp, parent, dist, next, fullMask, bestRoot, vertList, idx, termList, treeEdges, treeVertices);
 
         double totalWeight = treeEdges.stream().mapToDouble(e -> e.weight).sum();
 
@@ -498,14 +498,13 @@ public class SteinerTreeAnalyzer {
 
     private void reconstructDP(double[][] dp, int[][][] parent, double[][] dist,
                                 int[][] next, int S, int v, List<String> vertList,
-                                Map<String, Integer> idx, Set<EdgeInfo> treeEdges,
-                                Set<String> treeVertices) {
+                                Map<String, Integer> idx, List<String> termList,
+                                Set<EdgeInfo> treeEdges, Set<String> treeVertices) {
         if (Integer.bitCount(S) <= 1) {
             // Base case: single terminal — path from terminal to v
-            // Find which terminal
             int ti = Integer.numberOfTrailingZeros(S);
-            // The path from this terminal to v is via shortest path
-            treeVertices.add(vertList.get(v));
+            int termIdx = idx.get(termList.get(ti));
+            addShortestPath(next, termIdx, v, vertList, treeEdges, treeVertices);
             return;
         }
 
@@ -518,12 +517,12 @@ public class SteinerTreeAnalyzer {
             // Came from edge relaxation: dp[S][v] = dp[S][splitVert] + dist[splitVert][v]
             // Add path from splitVert to v
             addShortestPath(next, splitVert, v, vertList, treeEdges, treeVertices);
-            reconstructDP(dp, parent, dist, next, S, splitVert, vertList, idx, treeEdges, treeVertices);
+            reconstructDP(dp, parent, dist, next, S, splitVert, vertList, idx, termList, treeEdges, treeVertices);
         } else {
             // Came from subset split at vertex v (splitVert == v)
             int complement = S ^ splitMask;
-            reconstructDP(dp, parent, dist, next, splitMask, v, vertList, idx, treeEdges, treeVertices);
-            reconstructDP(dp, parent, dist, next, complement, v, vertList, idx, treeEdges, treeVertices);
+            reconstructDP(dp, parent, dist, next, splitMask, v, vertList, idx, termList, treeEdges, treeVertices);
+            reconstructDP(dp, parent, dist, next, complement, v, vertList, idx, termList, treeEdges, treeVertices);
         }
     }
 

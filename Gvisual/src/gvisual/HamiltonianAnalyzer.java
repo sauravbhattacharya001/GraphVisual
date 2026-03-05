@@ -1,5 +1,6 @@
 package gvisual;
 
+import edu.uci.ics.jung.graph.DirectedGraph;
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -386,6 +387,28 @@ public class HamiltonianAnalyzer {
         visited.add(start);
 
         enumerateCycles(graph, path, visited, start, n, results, maxResults);
+
+        // For undirected graphs, each cycle appears twice (forward and reverse).
+        // Deduplicate by keeping only the canonical direction.
+        if (!(graph instanceof DirectedGraph) && results.size() > 1) {
+            Set<String> seen = new HashSet<>();
+            List<List<V>> deduped = new ArrayList<>();
+            for (List<V> cycle : results) {
+                // Canonical form: the direction where second vertex < second-to-last vertex
+                // (start vertex is fixed, so we compare the two neighbors of start in the cycle)
+                List<V> inner = cycle.subList(1, cycle.size() - 1); // exclude start at both ends
+                List<V> reversed = new ArrayList<>(inner);
+                Collections.reverse(reversed);
+                String fwd = inner.toString();
+                String rev = reversed.toString();
+                String canonical = fwd.compareTo(rev) <= 0 ? fwd : rev;
+                if (seen.add(canonical)) {
+                    deduped.add(cycle);
+                }
+            }
+            return deduped;
+        }
+
         return results;
     }
 
