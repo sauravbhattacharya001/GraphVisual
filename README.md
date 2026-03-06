@@ -41,11 +41,11 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 58 source classes (~25,000+ lines), 38 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
+GraphVisual consists of 66 source classes (~30,000+ lines), 42 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
 
 ```
 Gvisual/src/
-├── gvisual/           # 58 classes — GUI, edge model, 38 analyzers, utilities
+├── gvisual/           # 61 classes — GUI, edge model, 42 analyzers, utilities
 │   ├── Main.java                       # Swing GUI — graph panel, timeline, controls
 │   ├── edge.java                       # Edge model (type, vertices, weight, label)
 │   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
@@ -66,6 +66,7 @@ Gvisual/src/
 │   ├── CycleAnalyzer.java             # Cycle detection and enumeration
 │   ├── EulerianPathAnalyzer.java       # Euler path/circuit (Hierholzer's)
 │   ├── GraphIsomorphismAnalyzer.java   # Graph isomorphism testing
+│   ├── LineGraphAnalyzer.java          # Line graph construction + analysis
 │   ├── PlanarGraphAnalyzer.java        # Planarity testing
 │   ├── TreeAnalyzer.java               # Tree properties, LCA, diameter
 │   ├── TopologicalSortAnalyzer.java    # Topo sort + cycle detection
@@ -89,6 +90,7 @@ Gvisual/src/
 │   ├── HamiltonianAnalyzer.java        # Hamiltonian path/cycle
 │   ├── IndependentSetAnalyzer.java     # Maximum independent set
 │   ├── MaxCutAnalyzer.java             # Maximum cut problem
+│   ├── MetricDimensionAnalyzer.java    # Metric dimension (resolving sets)
 │   ├── SteinerTreeAnalyzer.java        # Steiner tree approximation
 │   ├── TreewidthAnalyzer.java          # Treewidth estimation
 │   ├── VertexConnectivityAnalyzer.java # Vertex connectivity
@@ -98,27 +100,32 @@ Gvisual/src/
 │   ├── LinkPredictionAnalyzer.java     # Edge prediction metrics
 │   ├── NetworkFlowAnalyzer.java        # Max-flow/min-cut (Ford-Fulkerson)
 │   ├── GraphResilienceAnalyzer.java    # Attack/failure resilience
+│   ├── GraphSparsificationAnalyzer.java # Graph sparsification algorithms
 │   ├── InfluenceSpreadSimulator.java   # IC/LT influence models
 │   ├── RandomWalkAnalyzer.java         # Random walks, hitting/cover times
+│   ├── TemporalGraph.java              # Temporal graph evolution analysis
 │   │
 │   │── # ─── Metrics & Comparison ──────────────────
+│   ├── AdjacencyMatrixHeatmap.java     # Adjacency matrix visualization
 │   ├── GraphEntropyAnalyzer.java       # 9 entropy measures
 │   ├── GraphSimilarityAnalyzer.java    # Entropy-based graph comparison
 │   ├── GraphDiffAnalyzer.java          # Structural diff between graphs
 │   ├── EdgePersistenceAnalyzer.java    # Edge stability over time
 │   ├── GrowthRateAnalyzer.java         # Network growth modeling
+│   ├── LaplacianBuilder.java           # Laplacian matrix construction
 │   ├── SpectralAnalyzer.java           # Eigenvalue spectral analysis
 │   │
 │   │── # ─── Algorithms ────────────────────────────
 │   ├── KCoreDecomposition.java         # K-core peeling
 │   ├── MinimumSpanningTree.java        # Kruskal's MST
 │   ├── ShortestPathFinder.java         # BFS + weighted Dijkstra
+│   ├── GraphRenderers.java             # Custom graph rendering
 │   └── GraphDiameterAnalyzer.java      # Diameter, radius, eccentricity
 └── app/               # Data pipeline — Bluetooth → meetings → edge files
     ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
 
-52 test classes with **2,275+ tests** cover all analyzers and utilities.
+57 test classes with **2,475+ tests** cover all analyzers and utilities.
 
 ## Requirements
 
