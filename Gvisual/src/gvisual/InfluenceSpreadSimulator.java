@@ -63,6 +63,14 @@ public class InfluenceSpreadSimulator {
      */
     private final Map<String, Double> edgeWeightCache;
 
+    /**
+     * Pre-cached predecessor lists for directed graphs: node → list of
+     * predecessor (incoming) vertex IDs. For undirected graphs, this is
+     * the same as neighborCache. Used by Linear Threshold simulation
+     * which needs incoming influence, not outgoing.
+     */
+    private final Map<String, List<String>> predecessorCache;
+
     public InfluenceSpreadSimulator(Graph<String, edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
@@ -71,6 +79,7 @@ public class InfluenceSpreadSimulator {
         this.random = new Random();
         this.neighborCache = buildNeighborCache();
         this.edgeWeightCache = buildEdgeWeightCache();
+        this.predecessorCache = buildPredecessorCache();
     }
 
     public InfluenceSpreadSimulator(Graph<String, edge> graph, long seed) {
@@ -81,6 +90,7 @@ public class InfluenceSpreadSimulator {
         this.random = new Random(seed);
         this.neighborCache = buildNeighborCache();
         this.edgeWeightCache = buildEdgeWeightCache();
+        this.predecessorCache = buildPredecessorCache();
     }
 
     /**
@@ -126,6 +136,41 @@ public class InfluenceSpreadSimulator {
             }
         }
         return cache;
+    }
+
+    /**
+     * Builds a cached predecessor list for every vertex. For directed graphs,
+     * predecessors are nodes with edges pointing TO this node (incoming).
+     * For undirected graphs, predecessors == neighbors.
+     *
+     * <p>The Linear Threshold model requires incoming influence: a node
+     * activates when enough of its <b>predecessors</b> are active. Using
+     * successors (outgoing edges) would incorrectly measure influence from
+     * nodes this vertex points TO, rather than nodes pointing AT it.</p>
+     */
+    private Map<String, List<String>> buildPredecessorCache() {
+        if (!(graph instanceof DirectedGraph)) {
+            // Undirected: predecessors == neighbors
+            return neighborCache;
+        }
+        DirectedGraph<String, edge> dg = (DirectedGraph<String, edge>) graph;
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        for (String node : graph.getVertices()) {
+            Collection<String> preds = dg.getPredecessors(node);
+            cache.put(node, preds != null
+                    ? new ArrayList<String>(preds)
+                    : Collections.<String>emptyList());
+        }
+        return cache;
+    }
+
+    /**
+     * Returns the predecessors (incoming neighbors) of a node.
+     * For undirected graphs, same as getNeighbors.
+     */
+    private Collection<String> getPredecessors(String node) {
+        List<String> cached = predecessorCache.get(node);
+        return cached != null ? cached : Collections.<String>emptyList();
     }
 
     // ─── Independent Cascade ────────────────────────────────────
@@ -213,12 +258,14 @@ public class InfluenceSpreadSimulator {
             for (String node : graph.getVertices()) {
                 if (state.get(node) != NodeState.SUSCEPTIBLE) continue;
 
-                Collection<String> neighbors = getNeighbors(node);
-                if (neighbors.isEmpty()) continue;
+                // LT uses predecessors (incoming edges): a node activates
+                // when enough nodes pointing TO it are active.
+                Collection<String> influencers = getPredecessors(node);
+                if (influencers.isEmpty()) continue;
 
                 int activeNeighbors = 0;
                 String anActiveNeighbor = null;
-                for (String neighbor : neighbors) {
+                for (String neighbor : influencers) {
                     if (state.get(neighbor) == NodeState.INFECTED ||
                         state.get(neighbor) == NodeState.RECOVERED) {
                         activeNeighbors++;
@@ -228,7 +275,7 @@ public class InfluenceSpreadSimulator {
                     }
                 }
 
-                double fraction = (double) activeNeighbors / neighbors.size();
+                double fraction = (double) activeNeighbors / influencers.size();
                 if (fraction >= thresholds.get(node)) {
                     toActivate.add(node);
                     if (anActiveNeighbor != null) {
