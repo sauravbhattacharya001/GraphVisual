@@ -155,4 +155,299 @@ public class GraphSimilarityAnalyzerTest {
                 sim12.getSimilarityScore(),
                 sim21.getSimilarityScore(), 1e-6);
     }
+
+    // ── Additional tests ────────────────────────────────────────────
+
+    @Test
+    public void testSingleVertexGraphs() {
+        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        g1.addVertex("A");
+        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        g2.addVertex("X");
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        // Single vertices with no edges should be identical structurally
+        assertEquals(0.0, sim.getJensenShannonDivergence(), 1e-10);
+        assertEquals(1.0, sim.getSimilarityScore(), 1e-6);
+    }
+
+    @Test
+    public void testSingleVertexVsEdge() {
+        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        g1.addVertex("A");
+
+        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        g2.addVertex("A"); g2.addVertex("B");
+        g2.addEdge(new edge("friend", "A", "B"), "A", "B");
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        assertTrue("Should detect structural difference",
+                sim.getSimilarityScore() < 1.0);
+    }
+
+    @Test
+    public void testDisconnectedGraph() {
+        // Two isolated components vs a connected graph
+        Graph<String, edge> disconnected = new UndirectedSparseGraph<>();
+        disconnected.addVertex("A"); disconnected.addVertex("B");
+        disconnected.addVertex("C"); disconnected.addVertex("D");
+        disconnected.addEdge(new edge("friend", "A", "B"), "A", "B");
+        disconnected.addEdge(new edge("friend", "C", "D"), "C", "D");
+
+        Graph<String, edge> connected = new UndirectedSparseGraph<>();
+        connected.addVertex("A"); connected.addVertex("B");
+        connected.addVertex("C"); connected.addVertex("D");
+        connected.addEdge(new edge("friend", "A", "B"), "A", "B");
+        connected.addEdge(new edge("friend", "B", "C"), "B", "C");
+        connected.addEdge(new edge("friend", "C", "D"), "C", "D");
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(disconnected, connected);
+        sim.compute();
+
+        assertTrue("Disconnected vs connected should differ",
+                sim.getSimilarityScore() < 1.0);
+        assertTrue("Similarity should be > 0", sim.getSimilarityScore() > 0.0);
+    }
+
+    @Test
+    public void testDifferentSizedGraphs() {
+        // Tests spectral padding: triangle (3 vertices) vs star5 (5 vertices)
+        Graph<String, edge> small = createTriangle();
+        Graph<String, edge> large = createStar5();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(small, large);
+        sim.compute();
+
+        // All measures should be valid despite size mismatch
+        assertTrue(sim.getJensenShannonDivergence() >= 0);
+        assertTrue(sim.getJensenShannonDivergence() <= 1);
+        assertTrue(sim.getVonNeumannDivergence() >= 0);
+        assertTrue(sim.getEntropyProfileDistance() >= 0);
+        assertTrue(sim.getSimilarityScore() >= 0);
+        assertTrue(sim.getSimilarityScore() <= 1);
+    }
+
+    @Test
+    public void testLazyCompute() {
+        // Calling getters should trigger compute() automatically
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createPath();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        // DO NOT call compute() — ensureComputed should handle it
+        double score = sim.getSimilarityScore();
+        assertTrue("Lazy compute should produce valid score", score >= 0 && score <= 1);
+
+        double jsd = sim.getJensenShannonDivergence();
+        assertTrue("JSD should be computed lazily", jsd >= 0 && jsd <= 1);
+    }
+
+    @Test
+    public void testComputeIdempotency() {
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createStar5();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+        double score1 = sim.getSimilarityScore();
+        double jsd1 = sim.getJensenShannonDivergence();
+
+        // Second compute() should be a no-op (early return)
+        sim.compute();
+        assertEquals("Score should not change on recompute", score1, sim.getSimilarityScore(), 0);
+        assertEquals("JSD should not change on recompute", jsd1, sim.getJensenShannonDivergence(), 0);
+    }
+
+    @Test
+    public void testProfilesCloned() {
+        // getProfile1/getProfile2 should return defensive copies
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createStar5();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        double[] p1a = sim.getProfile1();
+        double[] p1b = sim.getProfile1();
+
+        assertNotSame("Profiles should be different array instances", p1a, p1b);
+        assertArrayEquals("Profile values should be identical", p1a, p1b, 1e-15);
+
+        // Mutating the returned array should not affect the analyzer
+        p1a[0] = -999.0;
+        double[] p1c = sim.getProfile1();
+        assertNotEquals(-999.0, p1c[0], 1e-10);
+    }
+
+    @Test
+    public void testSimilarityScoreBounds() {
+        // Test across multiple graph pairs that similarity is always in [0, 1]
+        Graph<String, edge>[] graphs = new Graph[]{
+                createTriangle(), createPath(), createStar5(),
+                new UndirectedSparseGraph<>()
+        };
+        // Add a vertex to the empty graph so it's not truly empty
+        graphs[3].addVertex("lone");
+
+        for (int i = 0; i < graphs.length; i++) {
+            for (int j = 0; j < graphs.length; j++) {
+                GraphSimilarityAnalyzer sim =
+                        new GraphSimilarityAnalyzer(graphs[i], graphs[j]);
+                sim.compute();
+                assertTrue("Similarity must be >= 0 for pair (" + i + "," + j + ")",
+                        sim.getSimilarityScore() >= 0);
+                assertTrue("Similarity must be <= 1 for pair (" + i + "," + j + ")",
+                        sim.getSimilarityScore() <= 1.0 + 1e-10);
+            }
+        }
+    }
+
+    @Test
+    public void testEntropyProfileDistanceTriangleInequality() {
+        // For a metric: d(A,C) <= d(A,B) + d(B,C)
+        Graph<String, edge> a = createTriangle();
+        Graph<String, edge> b = createPath();
+        Graph<String, edge> c = createStar5();
+
+        GraphSimilarityAnalyzer ab = new GraphSimilarityAnalyzer(a, b);
+        ab.compute();
+        GraphSimilarityAnalyzer bc = new GraphSimilarityAnalyzer(b, c);
+        bc.compute();
+        GraphSimilarityAnalyzer ac = new GraphSimilarityAnalyzer(a, c);
+        ac.compute();
+
+        assertTrue("Entropy profile distance should satisfy triangle inequality",
+                ac.getEntropyProfileDistance() <=
+                        ab.getEntropyProfileDistance() + bc.getEntropyProfileDistance() + 1e-10);
+    }
+
+    @Test
+    public void testReportContainsGraphSizes() {
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createStar5();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        String report = sim.generateReport();
+        assertTrue("Report should contain 'Graph 1: 3 vertices'",
+                report.contains("Graph 1: 3 vertices"));
+        assertTrue("Report should contain 'Graph 2: 5 vertices'",
+                report.contains("Graph 2: 5 vertices"));
+    }
+
+    @Test
+    public void testReportContainsInterpretation() {
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createTriangle();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        String report = sim.generateReport();
+        // Identical graphs → high similarity → "very similar" interpretation
+        assertTrue("Report should contain interpretation",
+                report.contains("Interpretation"));
+        assertTrue("Identical graphs should get 'very similar' label",
+                report.contains("very similar"));
+    }
+
+    @Test
+    public void testReportContainsEntropyProfileTable() {
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createPath();
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        String report = sim.generateReport();
+        assertTrue("Report should contain 'Degree Entropy'",
+                report.contains("Degree Entropy"));
+        assertTrue("Report should contain 'Random Walk Entropy Rate'",
+                report.contains("Random Walk Entropy Rate"));
+        assertTrue("Report should contain column headers",
+                report.contains("Graph 1") && report.contains("Graph 2"));
+    }
+
+    @Test
+    public void testCompleteGraphVsEmpty() {
+        // Complete graph K4 vs graph with only isolated vertices
+        Graph<String, edge> complete = new UndirectedSparseGraph<>();
+        for (int i = 0; i < 4; i++) complete.addVertex("V" + i);
+        for (int i = 0; i < 4; i++) {
+            for (int j = i + 1; j < 4; j++) {
+                complete.addEdge(new edge("friend", "V" + i, "V" + j), "V" + i, "V" + j);
+            }
+        }
+
+        Graph<String, edge> isolated = new UndirectedSparseGraph<>();
+        for (int i = 0; i < 4; i++) isolated.addVertex("V" + i);
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(complete, isolated);
+        sim.compute();
+
+        // These should be very different
+        assertTrue("Complete vs isolated should have high JSD",
+                sim.getJensenShannonDivergence() > 0);
+        assertTrue("Similarity should be < 1",
+                sim.getSimilarityScore() < 1.0);
+    }
+
+    @Test
+    public void testIsomorphicGraphsDifferentLabels() {
+        // Two triangles with different vertex labels should be identical
+        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        g1.addVertex("A"); g1.addVertex("B"); g1.addVertex("C");
+        g1.addEdge(new edge("friend", "A", "B"), "A", "B");
+        g1.addEdge(new edge("friend", "B", "C"), "B", "C");
+        g1.addEdge(new edge("friend", "A", "C"), "A", "C");
+
+        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        g2.addVertex("X"); g2.addVertex("Y"); g2.addVertex("Z");
+        g2.addEdge(new edge("friend", "X", "Y"), "X", "Y");
+        g2.addEdge(new edge("friend", "Y", "Z"), "Y", "Z");
+        g2.addEdge(new edge("friend", "X", "Z"), "X", "Z");
+
+        GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
+        sim.compute();
+
+        assertEquals("Isomorphic graphs should have JSD = 0",
+                0.0, sim.getJensenShannonDivergence(), 1e-10);
+        assertEquals("Isomorphic graphs should have similarity = 1",
+                1.0, sim.getSimilarityScore(), 1e-6);
+    }
+
+    @Test
+    public void testVonNeumannSymmetry() {
+        Graph<String, edge> g1 = createPath();
+        Graph<String, edge> g2 = createStar5();
+
+        GraphSimilarityAnalyzer sim12 = new GraphSimilarityAnalyzer(g1, g2);
+        sim12.compute();
+        GraphSimilarityAnalyzer sim21 = new GraphSimilarityAnalyzer(g2, g1);
+        sim21.compute();
+
+        assertEquals("Von Neumann divergence should be symmetric",
+                sim12.getVonNeumannDivergence(),
+                sim21.getVonNeumannDivergence(), 1e-6);
+    }
+
+    @Test
+    public void testEntropyProfileDistanceSymmetry() {
+        Graph<String, edge> g1 = createTriangle();
+        Graph<String, edge> g2 = createStar5();
+
+        GraphSimilarityAnalyzer sim12 = new GraphSimilarityAnalyzer(g1, g2);
+        sim12.compute();
+        GraphSimilarityAnalyzer sim21 = new GraphSimilarityAnalyzer(g2, g1);
+        sim21.compute();
+
+        assertEquals("Entropy profile distance should be symmetric",
+                sim12.getEntropyProfileDistance(),
+                sim21.getEntropyProfileDistance(), 1e-6);
+    }
 }
