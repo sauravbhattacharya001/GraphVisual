@@ -48,12 +48,29 @@ public class InfluenceSpreadSimulator {
     private final Graph<String, edge> graph;
     private final Random random;
 
+    /**
+     * Pre-cached adjacency: node → list of neighbor IDs.
+     * Built once at construction, eliminating repeated JUNG API calls
+     * during Monte Carlo simulations.
+     */
+    private final Map<String, List<String>> neighborCache;
+
+    /**
+     * Pre-cached edge weights: "from\0to" → weight.
+     * Only entries with edge weight in (0, 1] are stored; missing keys
+     * mean "use default probability". Avoids O(degree) findEdge() lookups
+     * that dominated Monte Carlo hot loops.
+     */
+    private final Map<String, Double> edgeWeightCache;
+
     public InfluenceSpreadSimulator(Graph<String, edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
         this.random = new Random();
+        this.neighborCache = buildNeighborCache();
+        this.edgeWeightCache = buildEdgeWeightCache();
     }
 
     public InfluenceSpreadSimulator(Graph<String, edge> graph, long seed) {
@@ -62,6 +79,53 @@ public class InfluenceSpreadSimulator {
         }
         this.graph = graph;
         this.random = new Random(seed);
+        this.neighborCache = buildNeighborCache();
+        this.edgeWeightCache = buildEdgeWeightCache();
+    }
+
+    /**
+     * Builds a cached neighbor list for every vertex, respecting directed
+     * vs undirected graph semantics.
+     */
+    private Map<String, List<String>> buildNeighborCache() {
+        boolean directed = graph instanceof DirectedGraph;
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        for (String node : graph.getVertices()) {
+            Collection<String> nbrs = directed
+                    ? graph.getSuccessors(node)
+                    : graph.getNeighbors(node);
+            cache.put(node, nbrs != null
+                    ? new ArrayList<String>(nbrs)
+                    : Collections.<String>emptyList());
+        }
+        return cache;
+    }
+
+    /**
+     * Pre-caches edge weights that override the default probability.
+     * Only stores edges where weight is in (0, 1] — the range that
+     * getEdgeProbability would use instead of the default. Key format:
+     * "from\0to" (null-char separator — never appears in vertex IDs).
+     */
+    private Map<String, Double> buildEdgeWeightCache() {
+        Map<String, Double> cache = new HashMap<String, Double>();
+        for (edge e : graph.getEdges()) {
+            double w = e.getWeight();
+            if (w > 0 && w <= 1.0) {
+                Collection<String> endpoints = graph.getEndpoints(e);
+                if (endpoints != null && endpoints.size() == 2) {
+                    Iterator<String> it = endpoints.iterator();
+                    String u = it.next();
+                    String v = it.next();
+                    cache.put(u + "\0" + v, w);
+                    // For undirected graphs, cache both directions
+                    if (!(graph instanceof DirectedGraph)) {
+                        cache.put(v + "\0" + u, w);
+                    }
+                }
+            }
+        }
+        return cache;
     }
 
     // ─── Independent Cascade ────────────────────────────────────
@@ -420,20 +484,13 @@ public class InfluenceSpreadSimulator {
     }
 
     private Collection<String> getNeighbors(String node) {
-        Collection<String> neighbors;
-        if (graph instanceof DirectedGraph) {
-            neighbors = graph.getSuccessors(node);
-        } else {
-            neighbors = graph.getNeighbors(node);
-        }
-        return neighbors != null ? neighbors : Collections.emptyList();
+        List<String> cached = neighborCache.get(node);
+        return cached != null ? cached : Collections.<String>emptyList();
     }
 
     private double getEdgeProbability(String from, String to, double defaultProb) {
-        edge e = graph.findEdge(from, to);
-        if (e != null && e.getWeight() > 0 && e.getWeight() <= 1.0)
-            return e.getWeight();
-        return defaultProb;
+        Double cached = edgeWeightCache.get(from + "\0" + to);
+        return cached != null ? cached : defaultProb;
     }
 
     private RoundSnapshot createSnapshot(int round, Map<String, NodeState> state) {
