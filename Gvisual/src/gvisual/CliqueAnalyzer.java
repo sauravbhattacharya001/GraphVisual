@@ -368,19 +368,56 @@ public class CliqueAnalyzer {
     /**
      * Clique overlap: for each pair of cliques that share ≥1 vertex,
      * return the shared vertices. Limited to top overlapping pairs.
+     *
+     * <p>Uses an inverted index (vertex → clique indices) so only pairs
+     * that actually share a vertex are considered, avoiding the O(C²)
+     * exhaustive scan when C (clique count) is large.</p>
      */
     public List<CliqueOverlap> getOverlaps(int maxPairs) {
         ensureComputed();
-        List<CliqueOverlap> overlaps = new ArrayList<CliqueOverlap>();
 
+        // Build inverted index: vertex → set of clique indices containing it
+        Map<String, List<Integer>> vertexToCliques = new HashMap<String, List<Integer>>();
         for (int i = 0; i < cliques.size(); i++) {
-            for (int j = i + 1; j < cliques.size(); j++) {
-                Set<String> shared = new LinkedHashSet<String>(cliques.get(i));
-                shared.retainAll(cliques.get(j));
-                if (!shared.isEmpty()) {
-                    overlaps.add(new CliqueOverlap(i, j, shared));
+            for (String v : cliques.get(i)) {
+                List<Integer> indices = vertexToCliques.get(v);
+                if (indices == null) {
+                    indices = new ArrayList<Integer>();
+                    vertexToCliques.put(v, indices);
+                }
+                indices.add(i);
+            }
+        }
+
+        // Collect candidate pairs — only pairs sharing at least one vertex
+        Set<Long> seenPairs = new HashSet<Long>();
+        Map<Long, Set<String>> pairShared = new LinkedHashMap<Long, Set<String>>();
+
+        for (Map.Entry<String, List<Integer>> entry : vertexToCliques.entrySet()) {
+            String vertex = entry.getKey();
+            List<Integer> indices = entry.getValue();
+            for (int a = 0; a < indices.size(); a++) {
+                for (int b = a + 1; b < indices.size(); b++) {
+                    int i = indices.get(a);
+                    int j = indices.get(b);
+                    // Canonical pair key (i < j guaranteed by construction)
+                    long key = ((long) i << 32) | j;
+                    if (seenPairs.add(key)) {
+                        // First time seeing this pair — compute full intersection
+                        Set<String> shared = new LinkedHashSet<String>(cliques.get(i));
+                        shared.retainAll(cliques.get(j));
+                        pairShared.put(key, shared);
+                    }
                 }
             }
+        }
+
+        List<CliqueOverlap> overlaps = new ArrayList<CliqueOverlap>(pairShared.size());
+        for (Map.Entry<Long, Set<String>> entry : pairShared.entrySet()) {
+            long key = entry.getKey();
+            int i = (int) (key >> 32);
+            int j = (int) (key & 0xFFFFFFFFL);
+            overlaps.add(new CliqueOverlap(i, j, entry.getValue()));
         }
 
         // Sort by overlap size descending
@@ -430,6 +467,11 @@ public class CliqueAnalyzer {
      * ≥ overlapThreshold vertices.
      * Returns adjacency list as Map&lt;Integer, Set&lt;Integer&gt;&gt;
      * (clique index → neighbor indices).
+     *
+     * <p>Uses an inverted index (vertex → clique indices) to enumerate
+     * only candidate pairs that share at least one vertex, then checks
+     * the full intersection size against the threshold.  This avoids
+     * the O(C²) exhaustive scan when the clique count C is large.</p>
      */
     public Map<Integer, Set<Integer>> getCliqueGraph(int overlapThreshold) {
         ensureComputed();
@@ -439,13 +481,35 @@ public class CliqueAnalyzer {
             adj.put(i, new LinkedHashSet<Integer>());
         }
 
+        // Build inverted index: vertex → clique indices
+        Map<String, List<Integer>> vertexToCliques = new HashMap<String, List<Integer>>();
         for (int i = 0; i < cliques.size(); i++) {
-            for (int j = i + 1; j < cliques.size(); j++) {
-                Set<String> shared = new LinkedHashSet<String>(cliques.get(i));
-                shared.retainAll(cliques.get(j));
-                if (shared.size() >= overlapThreshold) {
-                    adj.get(i).add(j);
-                    adj.get(j).add(i);
+            for (String v : cliques.get(i)) {
+                List<Integer> indices = vertexToCliques.get(v);
+                if (indices == null) {
+                    indices = new ArrayList<Integer>();
+                    vertexToCliques.put(v, indices);
+                }
+                indices.add(i);
+            }
+        }
+
+        // Collect candidate pairs and check threshold
+        Set<Long> checked = new HashSet<Long>();
+        for (List<Integer> indices : vertexToCliques.values()) {
+            for (int a = 0; a < indices.size(); a++) {
+                for (int b = a + 1; b < indices.size(); b++) {
+                    int i = indices.get(a);
+                    int j = indices.get(b);
+                    long key = ((long) i << 32) | j;
+                    if (checked.add(key)) {
+                        Set<String> shared = new LinkedHashSet<String>(cliques.get(i));
+                        shared.retainAll(cliques.get(j));
+                        if (shared.size() >= overlapThreshold) {
+                            adj.get(i).add(j);
+                            adj.get(j).add(i);
+                        }
+                    }
                 }
             }
         }
