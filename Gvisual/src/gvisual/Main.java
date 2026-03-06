@@ -83,6 +83,7 @@ public class Main extends JFrame {
         renderers.setMstState(mstOverlayActive, mstEdges);
         renderers.setCommunityState(communityOverlayActive, nodeCommunityMap);
         renderers.setArticulationState(articulationOverlayActive, articulationPoints, bridgeEdges);
+        renderers.setEgoState(egoOverlayActive, egoCenter, egoNeighbors, egoEdges);
         renderers.setOldVertices(OldVertices);
     }
     private List<edge> friendEdges = new ArrayList<>();
@@ -205,6 +206,18 @@ public class Main extends JFrame {
     private JLabel resilienceSummaryLabel;
     private JLabel resilienceDetailsLabel;
 
+    // --- Ego network fields ---
+    private JPanel egoPanel;
+    private JTextField egoSearchField;
+    private JButton egoSearchButton;
+    private JButton egoClearButton;
+    private JLabel egoSummaryLabel;
+    private JLabel egoNeighborListLabel;
+    private boolean egoOverlayActive;
+    private String egoCenter;
+    private Set<String> egoNeighbors;
+    private Set<edge> egoEdges;
+
     private static final Color[] COMMUNITY_COLORS = {
         new Color(0, 200, 120),    // Emerald green
         new Color(65, 135, 255),   // Bright blue
@@ -236,6 +249,7 @@ public class Main extends JFrame {
         initializeCentralityPanel();
         initializeArticulationPanel();
         initializeResiliencePanel();
+        initializeEgoPanel();
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -1768,6 +1782,184 @@ public class Main extends JFrame {
     }
 
     /**
+     * Initializes the ego network search panel with search field,
+     * search/clear buttons, and labels for summary and neighbor list.
+     */
+    public final void initializeEgoPanel() {
+        egoPanel = new JPanel();
+        egoPanel.setLayout(new BoxLayout(egoPanel, BoxLayout.Y_AXIS));
+        egoPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
+                "Ego Network",
+                TitledBorder.LEFT, TitledBorder.TOP));
+
+        egoOverlayActive = false;
+        egoCenter = null;
+        egoNeighbors = new HashSet<>();
+        egoEdges = new HashSet<>();
+
+        JPanel searchRow = new JPanel();
+        searchRow.setLayout(new BoxLayout(searchRow, BoxLayout.X_AXIS));
+        searchRow.setAlignmentX(JPanel.LEFT_ALIGNMENT);
+
+        egoSearchField = new JTextField(10);
+        egoSearchField.setMaximumSize(new Dimension(150, 25));
+        egoSearchField.setToolTipText("Enter node ID to explore its ego network");
+
+        egoSearchButton = new JButton("Search");
+        egoSearchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { runEgoSearch(); }
+        });
+
+        egoClearButton = new JButton("Clear");
+        egoClearButton.setEnabled(false);
+        egoClearButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { clearEgoOverlay(); }
+        });
+
+        egoSearchField.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { runEgoSearch(); }
+        });
+
+        searchRow.add(new JLabel("Node: "));
+        searchRow.add(egoSearchField);
+        searchRow.add(Box.createHorizontalStrut(5));
+        searchRow.add(egoSearchButton);
+        searchRow.add(Box.createHorizontalStrut(5));
+        searchRow.add(egoClearButton);
+
+        egoSummaryLabel = new JLabel("<html>Search for a node to see its ego network.</html>");
+        egoSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+        egoNeighborListLabel = new JLabel("");
+        egoNeighborListLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+
+        egoPanel.add(searchRow);
+        egoPanel.add(Box.createVerticalStrut(4));
+        egoPanel.add(egoSummaryLabel);
+        egoPanel.add(Box.createVerticalStrut(4));
+        egoPanel.add(egoNeighborListLabel);
+    }
+
+    private void runEgoSearch() {
+        String query = egoSearchField.getText().trim();
+        if (query.isEmpty()) {
+            egoSummaryLabel.setText("<html>Enter a node ID.</html>");
+            return;
+        }
+        if (g == null || g.getVertexCount() == 0) {
+            egoSummaryLabel.setText("<html>No graph loaded.</html>");
+            return;
+        }
+
+        // Find the node (exact match first, then case-insensitive, then partial)
+        String foundNode = null;
+        if (g.containsVertex(query)) {
+            foundNode = query;
+        } else {
+            for (String v : g.getVertices()) {
+                if (v.equalsIgnoreCase(query)) {
+                    foundNode = v;
+                    break;
+                }
+            }
+            if (foundNode == null) {
+                for (String v : g.getVertices()) {
+                    if (v.toLowerCase().contains(query.toLowerCase())) {
+                        foundNode = v;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (foundNode == null) {
+            egoSummaryLabel.setText("<html><b>Node not found:</b> " + query + "</html>");
+            egoNeighborListLabel.setText("");
+            return;
+        }
+
+        // Build ego network
+        egoCenter = foundNode;
+        egoNeighbors.clear();
+        egoEdges.clear();
+
+        Collection<String> neighbors = g.getNeighbors(foundNode);
+        if (neighbors != null) {
+            egoNeighbors.addAll(neighbors);
+        }
+
+        // Collect edges: center-to-neighbor and neighbor-to-neighbor
+        for (edge e : g.getEdges()) {
+            String v1 = e.getVertex1();
+            String v2 = e.getVertex2();
+            boolean v1InEgo = v1.equals(egoCenter) || egoNeighbors.contains(v1);
+            boolean v2InEgo = v2.equals(egoCenter) || egoNeighbors.contains(v2);
+            if (v1InEgo && v2InEgo) {
+                egoEdges.add(e);
+            }
+        }
+
+        egoOverlayActive = true;
+        egoClearButton.setEnabled(true);
+        syncRenderers();
+        vv.repaint();
+
+        // Count edge types
+        Map<String, Integer> typeCounts = new HashMap<>();
+        for (edge e : g.getEdges()) {
+            if (e.getVertex1().equals(egoCenter) || e.getVertex2().equals(egoCenter)) {
+                String typeLabel = e.getType();
+                EdgeType et = EdgeType.fromCode(e.getType());
+                if (et != null) typeLabel = et.getDisplayLabel();
+                typeCounts.put(typeLabel, typeCounts.getOrDefault(typeLabel, 0) + 1);
+            }
+        }
+
+        StringBuilder summary = new StringBuilder("<html>");
+        summary.append(String.format("<b>Node:</b> %s<br/>", egoCenter));
+        summary.append(String.format("<b>Degree:</b> %d<br/>", egoNeighbors.size()));
+        summary.append(String.format("<b>Ego edges:</b> %d (incl. inter-neighbor)<br/>", egoEdges.size()));
+        if (!typeCounts.isEmpty()) {
+            summary.append("<b>By type:</b> ");
+            List<String> parts = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : typeCounts.entrySet()) {
+                parts.add(entry.getKey() + "=" + entry.getValue());
+            }
+            Collections.sort(parts);
+            summary.append(String.join(", ", parts));
+        }
+        summary.append("</html>");
+        egoSummaryLabel.setText(summary.toString());
+
+        // Neighbor list (limited to 20)
+        List<String> sortedNeighbors = new ArrayList<>(egoNeighbors);
+        Collections.sort(sortedNeighbors);
+        StringBuilder neighborHtml = new StringBuilder("<html><b>Neighbors:</b> ");
+        int shown = Math.min(sortedNeighbors.size(), 20);
+        for (int i = 0; i < shown; i++) {
+            if (i > 0) neighborHtml.append(", ");
+            neighborHtml.append(sortedNeighbors.get(i));
+        }
+        if (sortedNeighbors.size() > 20) {
+            neighborHtml.append(String.format(" ... (+%d more)", sortedNeighbors.size() - 20));
+        }
+        neighborHtml.append("</html>");
+        egoNeighborListLabel.setText(neighborHtml.toString());
+    }
+
+    private void clearEgoOverlay() {
+        egoOverlayActive = false;
+        egoCenter = null;
+        egoNeighbors.clear();
+        egoEdges.clear();
+        egoClearButton.setEnabled(false);
+        egoSummaryLabel.setText("<html>Search for a node to see its ego network.</html>");
+        egoNeighborListLabel.setText("");
+        syncRenderers();
+        vv.repaint();
+    }
+
+    /**
      * Runs the articulation point and bridge analysis.
      */
     private void runArticulationAnalysis() {
@@ -1989,9 +2181,10 @@ public class Main extends JFrame {
             centralityPanel,
             articulationPanel,
             resiliencePanel,
+            egoPanel,
             statsPanel,
         };
-        int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250, 1420 };
+        int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250, 1420, 1580 };
 
         JSplitPane root = chainSplitPanes(panels, dividerLocations);
         add(root, BorderLayout.EAST);

@@ -17,9 +17,9 @@ import org.apache.commons.collections15.Transformer;
  * Centralised rendering transformers for the graph visualisation.
  * <p>
  * Overlay state (path highlighting, MST, community colouring, articulation
- * points) is set by {@link Main} when overlays are toggled.  Each transformer
- * reads this shared state so that rendering priority logic lives in one place
- * and can be tested independently of the UI.
+ * points, ego network) is set by {@link Main} when overlays are toggled.
+ * Each transformer reads this shared state so that rendering priority logic
+ * lives in one place and can be tested independently of the UI.
  */
 public class GraphRenderers {
 
@@ -39,6 +39,11 @@ public class GraphRenderers {
     private boolean articulationOverlayActive;
     private Set<String> articulationPoints;
     private Set<edge> bridgeEdges;
+
+    private boolean egoOverlayActive;
+    private String egoCenter;
+    private Set<String> egoNeighbors;
+    private Set<edge> egoEdges;
 
     private Collection<String> oldVertices;
 
@@ -91,6 +96,13 @@ public class GraphRenderers {
         this.bridgeEdges = bridgeEdges;
     }
 
+    public void setEgoState(boolean active, String center, Set<String> neighbors, Set<edge> edges) {
+        this.egoOverlayActive = active;
+        this.egoCenter = center;
+        this.egoNeighbors = neighbors;
+        this.egoEdges = edges;
+    }
+
     public void setOldVertices(Collection<String> oldVertices) {
         this.oldVertices = oldVertices;
     }
@@ -113,6 +125,12 @@ public class GraphRenderers {
                 }
                 if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(e)) {
                     return new Color(255, 80, 40);
+                }
+                if (egoOverlayActive && egoEdges != null) {
+                    if (egoEdges.contains(e)) {
+                        return new Color(0, 200, 255);
+                    }
+                    return new Color(60, 60, 60, 50);
                 }
                 if (communityOverlayActive && nodeCommunityMap != null) {
                     Integer c1 = nodeCommunityMap.get(e.getVertex1());
@@ -144,6 +162,15 @@ public class GraphRenderers {
                 if (articulationOverlayActive && articulationPoints != null
                         && articulationPoints.contains(vertex)) {
                     return new Color(255, 80, 40);
+                }
+                if (egoOverlayActive && egoCenter != null) {
+                    if (vertex.equals(egoCenter)) {
+                        return new Color(0, 255, 200);
+                    }
+                    if (egoNeighbors != null && egoNeighbors.contains(vertex)) {
+                        return new Color(0, 200, 255);
+                    }
+                    return new Color(80, 80, 80, 100);
                 }
                 if (pathSource != null && vertex.equals(pathSource)) {
                     return Color.CYAN;
@@ -191,6 +218,14 @@ public class GraphRenderers {
                         && articulationPoints.contains(vertex)) {
                     return new Ellipse2D.Double(-8, -8, 16, 16);
                 }
+                if (egoOverlayActive && egoCenter != null) {
+                    if (vertex.equals(egoCenter)) {
+                        return new Ellipse2D.Double(-10, -10, 20, 20);
+                    }
+                    if (egoNeighbors != null && egoNeighbors.contains(vertex)) {
+                        return new Ellipse2D.Double(-7, -7, 14, 14);
+                    }
+                }
                 if (oldVertices != null) {
                     if (oldVertices.contains(vertex)) {
                         return new Ellipse2D.Double(-5, -5, 10, 10);
@@ -217,6 +252,9 @@ public class GraphRenderers {
                     float[] dashPattern = {6.0f, 4.0f};
                     return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
                             10.0f, dashPattern, 0.0f);
+                }
+                if (egoOverlayActive && egoEdges != null && egoEdges.contains(i)) {
+                    return new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
                 }
                 float[] dash = {1.0f};
                 float width = i.getWeight() / 40 + 1.0f;
