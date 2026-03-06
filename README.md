@@ -38,14 +38,15 @@ The tool was developed for research on **social network analysis** — specifica
 - **Graph export** — Save visualizations as PNG images and edge lists
 - **Network statistics panel** — Real-time metrics including node/edge counts, per-category breakdowns, graph density, average/max degree, average edge weight, isolated node count, and top-3 hub nodes
 - **Centrality analysis** — Compute degree, betweenness (Brandes' algorithm), and closeness centrality for all nodes. Interactive panel with metric sorting, top-10 ranking with medals, network topology classification, and per-metric averages/maximums
+- **Small-world analysis** — Test whether a graph exhibits Watts-Strogatz small-world properties. Computes local/global clustering coefficients, average path length, sigma (σ) and omega (ω) coefficients, random/lattice baselines, and classifies networks as Small-World, Random-Like, Lattice-Like, or Disconnected
 
 ## Architecture
 
-GraphVisual consists of 66 source classes (~30,000+ lines), 42 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
+GraphVisual consists of 67 source classes (~30,000+ lines), 43 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
 
 ```
 Gvisual/src/
-├── gvisual/           # 61 classes — GUI, edge model, 42 analyzers, utilities
+├── gvisual/           # 62 classes — GUI, edge model, 43 analyzers, utilities
 │   ├── Main.java                       # Swing GUI — graph panel, timeline, controls
 │   ├── edge.java                       # Edge model (type, vertices, weight, label)
 │   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
@@ -103,6 +104,7 @@ Gvisual/src/
 │   ├── GraphSparsificationAnalyzer.java # Graph sparsification algorithms
 │   ├── InfluenceSpreadSimulator.java   # IC/LT influence models
 │   ├── RandomWalkAnalyzer.java         # Random walks, hitting/cover times
+│   ├── SmallWorldAnalyzer.java         # Small-world property testing (σ, ω)
 │   ├── TemporalGraph.java              # Temporal graph evolution analysis
 │   │
 │   │── # ─── Metrics & Comparison ──────────────────
@@ -125,7 +127,7 @@ Gvisual/src/
     ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
 
-57 test classes with **2,475+ tests** cover all analyzers and utilities.
+60 test classes with **2,500+ tests** cover all analyzers and utilities.
 
 ## Requirements
 
