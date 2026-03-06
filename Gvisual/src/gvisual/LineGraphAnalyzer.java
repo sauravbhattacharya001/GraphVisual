@@ -387,20 +387,9 @@ public class LineGraphAnalyzer {
 
     private boolean isConnected() {
         if (graph.getVertexCount() <= 1) return true;
-        Set<String> visited = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
         String start = graph.getVertices().iterator().next();
-        queue.add(start);
-        visited.add(start);
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            for (String nbr : graph.getNeighbors(v)) {
-                if (visited.add(nbr)) {
-                    queue.add(nbr);
-                }
-            }
-        }
-        return visited.size() == graph.getVertexCount();
+        Set<String> component = GraphUtils.bfsComponent(graph, start);
+        return component.size() == graph.getVertexCount();
     }
 
     // ── Matching via L(G) Independent Set ───────────────────────────

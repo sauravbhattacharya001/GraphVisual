@@ -263,22 +263,7 @@ public class FeedbackVertexSetAnalyzer {
     }
 
     private int countComponents() {
-        Set<String> visited = new HashSet<>();
-        int count = 0;
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                count++;
-                Queue<String> queue = new LinkedList<>();
-                queue.add(v); visited.add(v);
-                while (!queue.isEmpty()) {
-                    String curr = queue.poll();
-                    for (String n : graph.getNeighbors(curr)) {
-                        if (!visited.contains(n)) { visited.add(n); queue.add(n); }
-                    }
-                }
-            }
-        }
-        return count;
+        return GraphUtils.findComponents(graph).size();
     }
 
     // ── Bounds ────────────────────────────────────────────────────

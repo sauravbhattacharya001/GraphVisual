@@ -763,23 +763,7 @@ public class ForceDirectedLayout {
     }
 
     private Map<String, Integer> bfsDistances(String start) {
-        Map<String, Integer> dist = new HashMap<String, Integer>();
-        Queue<String> queue = new LinkedList<String>();
-        dist.put(start, 0);
-        queue.add(start);
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            int d = dist.get(u);
-            Collection<String> neighbors = graph.getNeighbors(u);
-            if (neighbors == null) continue;
-            for (String v : neighbors) {
-                if (!dist.containsKey(v)) {
-                    dist.put(v, d + 1);
-                    queue.add(v);
-                }
-            }
-        }
-        return dist;
+        return GraphUtils.bfsDistances(graph, start);
     }
 
     private String escapeXml(String s) {

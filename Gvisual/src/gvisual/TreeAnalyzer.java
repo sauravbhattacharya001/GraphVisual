@@ -777,25 +777,7 @@ public class TreeAnalyzer {
     }
 
     private int countComponents() {
-        Set<String> visited = new HashSet<>();
-        int components = 0;
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                components++;
-                Queue<String> queue = new LinkedList<>();
-                queue.add(v);
-                visited.add(v);
-                while (!queue.isEmpty()) {
-                    String curr = queue.poll();
-                    for (String neighbor : graph.getNeighbors(curr)) {
-                        if (visited.add(neighbor)) {
-                            queue.add(neighbor);
-                        }
-                    }
-                }
-            }
-        }
-        return components;
+        return GraphUtils.findComponents(graph).size();
     }
 
     private void computeSubtreeSizes(String root, Map<String, Integer> subtreeSize,

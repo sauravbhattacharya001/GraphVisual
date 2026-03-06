@@ -394,20 +394,7 @@ public class EulerianPathAnalyzer {
         }
         if (start == null) return true; // No edges at all
 
-        Set<String> visited = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
-        queue.add(start);
-        visited.add(start);
-
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            for (String neighbor : graph.getNeighbors(v)) {
-                if (!visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    queue.add(neighbor);
-                }
-            }
-        }
+        Set<String> visited = GraphUtils.bfsComponent(graph, start);
 
         // Check all non-isolated vertices were visited
         for (String v : graph.getVertices()) {

@@ -403,19 +403,7 @@ public class SmallWorldAnalyzer {
     // ── Largest connected component ─────────────────────────────────
 
     private Set<String> findLargestComponent() {
-        Set<String> visited = new HashSet<String>();
-        Set<String> largest = Collections.emptySet();
-
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                Set<String> comp = GraphUtils.bfsComponent(graph, v);
-                visited.addAll(comp);
-                if (comp.size() > largest.size()) {
-                    largest = comp;
-                }
-            }
-        }
-        return largest;
+        return GraphUtils.findLargestComponent(graph);
     }
 
     // ── Average shortest path length ────────────────────────────────

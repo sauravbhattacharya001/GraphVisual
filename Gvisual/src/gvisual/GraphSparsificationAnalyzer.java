@@ -277,14 +277,7 @@ public class GraphSparsificationAnalyzer {
     }
 
     private int countComponents(Graph<String, edge> g) {
-        Set<String> vis = new HashSet<String>(); int c = 0;
-        for (String vtx : g.getVertices()) { if (!vis.contains(vtx)) { bfs(g, vtx, vis); c++; } }
-        return c;
-    }
-
-    private void bfs(Graph<String, edge> g, String s, Set<String> vis) {
-        Queue<String> q = new LinkedList<String>(); q.add(s); vis.add(s);
-        while (!q.isEmpty()) { String u = q.poll(); for (String nb : g.getNeighbors(u)) { if (!vis.contains(nb)) { vis.add(nb); q.add(nb); } } }
+        return GraphUtils.findComponents(g).size();
     }
 
     private double degreeCorr(Graph<String, edge> g1, Graph<String, edge> g2) {

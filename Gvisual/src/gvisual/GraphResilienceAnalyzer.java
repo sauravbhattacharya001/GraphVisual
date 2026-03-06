@@ -291,46 +291,12 @@ public class GraphResilienceAnalyzer {
 
     private int largestComponentSize(Graph<String, edge> g) {
         if (g.getVertexCount() == 0) return 0;
-        Set<String> visited = new HashSet<>();
-        int maxSize = 0;
-        for (String v : g.getVertices()) {
-            if (!visited.contains(v)) {
-                int size = bfsSize(g, v, visited);
-                if (size > maxSize) maxSize = size;
-            }
-        }
-        return maxSize;
+        return GraphUtils.findLargestComponent(g).size();
     }
 
     private int countComponents(Graph<String, edge> g) {
         if (g.getVertexCount() == 0) return 0;
-        Set<String> visited = new HashSet<>();
-        int count = 0;
-        for (String v : g.getVertices()) {
-            if (!visited.contains(v)) {
-                bfsSize(g, v, visited);
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private int bfsSize(Graph<String, edge> g, String start, Set<String> visited) {
-        Queue<String> queue = new LinkedList<>();
-        queue.add(start);
-        visited.add(start);
-        int size = 0;
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            size++;
-            for (String n : g.getNeighbors(v)) {
-                if (!visited.contains(n)) {
-                    visited.add(n);
-                    queue.add(n);
-                }
-            }
-        }
-        return size;
+        return GraphUtils.findComponents(g).size();
     }
 
     private double globalEfficiency(Graph<String, edge> g) {
@@ -339,7 +305,7 @@ public class GraphResilienceAnalyzer {
         double sum = 0.0;
         List<String> nodes = new ArrayList<>(g.getVertices());
         for (int i = 0; i < nodes.size(); i++) {
-            Map<String, Integer> dist = bfsDistances(g, nodes.get(i));
+            Map<String, Integer> dist = GraphUtils.bfsDistances(g, nodes.get(i));
             for (int j = i + 1; j < nodes.size(); j++) {
                 Integer d = dist.get(nodes.get(j));
                 if (d != null && d > 0) {
@@ -348,24 +314,6 @@ public class GraphResilienceAnalyzer {
             }
         }
         return (2.0 * sum) / (n * (n - 1));
-    }
-
-    private Map<String, Integer> bfsDistances(Graph<String, edge> g, String start) {
-        Map<String, Integer> dist = new HashMap<>();
-        Queue<String> queue = new LinkedList<>();
-        dist.put(start, 0);
-        queue.add(start);
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            int d = dist.get(v);
-            for (String n : g.getNeighbors(v)) {
-                if (!dist.containsKey(n)) {
-                    dist.put(n, d + 1);
-                    queue.add(n);
-                }
-            }
-        }
-        return dist;
     }
 
     private Map<String, Double> computeBetweenness(Graph<String, edge> g) {
