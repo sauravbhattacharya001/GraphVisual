@@ -146,10 +146,13 @@ public class HamiltonianAnalyzer {
 
         boolean satisfied = true;
         int failIndex = -1;
+        // Chvátal's condition (1-indexed): for k = 1..⌊n/2⌋,
+        //   if d_k ≤ k then d_{n-k} ≥ n-k.
+        // In 0-indexed arrays (i = k-1, so k = i+1):
+        //   if degrees[i] ≤ i+1 then degrees[n-i-2] ≥ n-i-1.
         for (int i = 0; i < n / 2; i++) {
-            // 1-indexed: d_{i+1} ≤ i+1 implies d_{n-(i+1)+1} = d_{n-i} ≥ n-(i+1)
-            if (degrees[i] <= i) {
-                if (degrees[n - 1 - i] < n - 1 - i) {
+            if (degrees[i] <= i + 1) {
+                if (degrees[n - i - 2] < n - i - 1) {
                     satisfied = false;
                     failIndex = i;
                     break;
@@ -161,9 +164,12 @@ public class HamiltonianAnalyzer {
         if (satisfied) {
             detail = "Degree sequence satisfies Chvátal's closure condition";
         } else {
-            detail = String.format("Failed at index %d: d[%d]=%d ≤ %d but d[%d]=%d < %d",
-                    failIndex, failIndex, degrees[failIndex], failIndex,
-                    n - 1 - failIndex, degrees[n - 1 - failIndex], n - 1 - failIndex);
+            // Report in 1-indexed terms for readability: k = failIndex + 1
+            int k = failIndex + 1;
+            detail = String.format(
+                    "Failed at k=%d: d_%d=%d ≤ %d but d_%d=%d < %d",
+                    k, k, degrees[failIndex], k,
+                    n - k, degrees[n - failIndex - 2], n - k);
         }
         return new ConditionResult("Chvátal's Condition", satisfied, detail);
     }
