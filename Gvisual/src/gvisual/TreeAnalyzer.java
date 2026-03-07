@@ -522,7 +522,7 @@ public class TreeAnalyzer {
         List<String> sequence = new ArrayList<>();
 
         // Build adjacency for efficient neighbor lookup
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
 
         for (int i = 0; i < n - 2; i++) {
             // Find smallest leaf
@@ -808,14 +808,6 @@ public class TreeAnalyzer {
                 subtreeSize.put(p, subtreeSize.get(p) + subtreeSize.get(v));
             }
         }
-    }
-
-    private Map<String, Set<String>> buildAdjacency() {
-        Map<String, Set<String>> adj = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            adj.put(v, new HashSet<>(graph.getNeighbors(v)));
-        }
-        return adj;
     }
 
     private static class BFSResult {

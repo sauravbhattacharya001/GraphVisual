@@ -149,7 +149,7 @@ public class TreewidthAnalyzer {
         }
 
         // Build adjacency
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         List<String> remaining = new ArrayList<>(adj.keySet());
         List<Bag> bags = new ArrayList<>();
         int width = 0;
@@ -270,7 +270,7 @@ public class TreewidthAnalyzer {
      */
     public int computeDegeneracy() {
         if (graph.getVertexCount() == 0) return 0;
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         int degeneracy = 0;
         Set<String> remaining = new LinkedHashSet<>(adj.keySet());
 
@@ -300,7 +300,7 @@ public class TreewidthAnalyzer {
      */
     public int computeMMDLowerBound() {
         if (graph.getVertexCount() == 0) return 0;
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         int mmd = 0;
 
         while (adj.size() > 1) {
@@ -384,7 +384,7 @@ public class TreewidthAnalyzer {
     }
 
     private boolean canAchieveWidth(int targetWidth) {
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         return canAchieveWidthDFS(adj, new HashSet<>(adj.keySet()), targetWidth);
     }
 
@@ -441,7 +441,7 @@ public class TreewidthAnalyzer {
         if (graph.getVertexCount() == 1) return 0;
 
         // Use DFS ordering as elimination for pathwidth
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         Set<String> visited = new LinkedHashSet<>();
         List<String> order = new ArrayList<>();
 
@@ -478,7 +478,7 @@ public class TreewidthAnalyzer {
     }
 
     private int computeWidthFromOrdering(List<String> order) {
-        Map<String, Set<String>> adj = buildAdjacency();
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         Map<String, Set<String>> workAdj = deepCopyAdj(adj);
         int width = 0;
 
@@ -932,23 +932,5 @@ public class TreewidthAnalyzer {
         }
 
         return sb.toString();
-    }
-
-    // ---- Utility ----
-
-    private Map<String, Set<String>> buildAdjacency() {
-        Map<String, Set<String>> adj = new LinkedHashMap<>();
-        for (String v : graph.getVertices()) {
-            adj.put(v, new LinkedHashSet<>());
-        }
-        for (edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            List<String> epList = new ArrayList<>(endpoints);
-            if (epList.size() == 2) {
-                adj.computeIfAbsent(epList.get(0), k -> new LinkedHashSet<>()).add(epList.get(1));
-                adj.computeIfAbsent(epList.get(1), k -> new LinkedHashSet<>()).add(epList.get(0));
-            }
-        }
-        return adj;
     }
 }

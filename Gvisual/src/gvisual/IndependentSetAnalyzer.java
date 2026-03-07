@@ -106,7 +106,7 @@ public class IndependentSetAnalyzer {
     public Set<String> greedyIndependentSet() {
         Set<String> result = new LinkedHashSet<>();
         Set<String> remaining = new HashSet<>(asCollection(graph.getVertices()));
-        Map<String, Set<String>> adjMap = buildAdjacency(remaining);
+        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, remaining);
 
         while (!remaining.isEmpty()) {
             // Pick vertex with minimum degree among remaining
@@ -143,7 +143,7 @@ public class IndependentSetAnalyzer {
     public Set<String> greedyMaxDegreeIndependentSet() {
         Set<String> result = new LinkedHashSet<>();
         Set<String> remaining = new HashSet<>(asCollection(graph.getVertices()));
-        Map<String, Set<String>> adjMap = buildAdjacency(remaining);
+        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, remaining);
 
         while (!remaining.isEmpty()) {
             String maxVertex = null;
@@ -221,7 +221,7 @@ public class IndependentSetAnalyzer {
 
         List<String> vertices = new ArrayList<>(asCollection(graph.getVertices()));
         Collections.sort(vertices);
-        Map<String, Set<String>> adjMap = buildAdjacency(new HashSet<>(vertices));
+        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
 
         int[] bestSize = {0};
         Set<String> bestSet = new LinkedHashSet<>();
@@ -289,7 +289,7 @@ public class IndependentSetAnalyzer {
     public List<Set<String>> allMaximalIndependentSets(int maxCount) {
         List<String> vertices = new ArrayList<>(asCollection(graph.getVertices()));
         Collections.sort(vertices);
-        Map<String, Set<String>> adjMap = buildAdjacency(new HashSet<>(vertices));
+        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
 
         // Build complement adjacency
         Map<String, Set<String>> compAdj = new HashMap<>();
@@ -389,7 +389,7 @@ public class IndependentSetAnalyzer {
     public KernelResult kernelReduction() {
         Set<String> forced = new LinkedHashSet<>();
         Set<String> remaining = new LinkedHashSet<>(asCollection(graph.getVertices()));
-        Map<String, Set<String>> adj = buildAdjacency(remaining);
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph, remaining);
         List<String> log = new ArrayList<>();
         int rules = 0;
 
@@ -573,7 +573,7 @@ public class IndependentSetAnalyzer {
 
         List<String> vertices = new ArrayList<>(asCollection(graph.getVertices()));
         Collections.sort(vertices);
-        Map<String, Set<String>> adj = buildAdjacency(new HashSet<>(vertices));
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
 
         int[] counts = new int[n + 1];
         counts[0] = 1; // empty set
@@ -722,21 +722,6 @@ public class IndependentSetAnalyzer {
 
     // ── Helpers ───────────────────────────────────────────────────
 
-    private Map<String, Set<String>> buildAdjacency(Set<String> vertices) {
-        Map<String, Set<String>> adj = new HashMap<>();
-        for (String v : vertices) {
-            adj.put(v, new HashSet<>());
-        }
-        for (edge e : graph.getEdges()) {
-            String v1 = graph.getEndpoints(e).getFirst();
-            String v2 = graph.getEndpoints(e).getSecond();
-            if (vertices.contains(v1) && vertices.contains(v2)) {
-                adj.computeIfAbsent(v1, k -> new HashSet<>()).add(v2);
-                adj.computeIfAbsent(v2, k -> new HashSet<>()).add(v1);
-            }
-        }
-        return adj;
-    }
 
     @SuppressWarnings("unchecked")
     private Collection<String> asCollection(Collection<String> c) {

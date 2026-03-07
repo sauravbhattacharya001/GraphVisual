@@ -57,6 +57,34 @@ public final class GraphUtils {
     }
 
     /**
+     * Build an undirected adjacency map restricted to a subset of vertices.
+     * Only edges where both endpoints are in {@code vertices} are included.
+     *
+     * @param graph    the JUNG graph
+     * @param vertices the vertex subset to include
+     * @return adjacency map (vertex → set of neighbours within the subset)
+     */
+    public static Map<String, Set<String>> buildAdjacencyMap(
+            Graph<String, edge> graph, Set<String> vertices) {
+        Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
+        for (String v : vertices) {
+            adj.put(v, new HashSet<String>());
+        }
+        for (edge e : graph.getEdges()) {
+            Collection<String> eps = graph.getEndpoints(e);
+            if (eps == null || eps.size() != 2) continue;
+            Iterator<String> it = eps.iterator();
+            String v1 = it.next();
+            String v2 = it.next();
+            if (vertices.contains(v1) && vertices.contains(v2)) {
+                adj.get(v1).add(v2);
+                adj.get(v2).add(v1);
+            }
+        }
+        return adj;
+    }
+
+    /**
      * BFS from a source vertex, returning distances (hop counts) to all
      * reachable vertices.
      *
