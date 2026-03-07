@@ -194,4 +194,132 @@ public final class GraphUtils {
         common.retainAll(adjacency.get(v));
         return common;
     }
+
+    /**
+     * Checks whether the subgraph induced by the given vertices contains a cycle.
+     * Works for both directed and undirected graphs.
+     *
+     * @param graph    the JUNG graph
+     * @param vertices the vertex subset to check (only edges within this set are considered)
+     * @param directed whether to treat edges as directed
+     * @return true if the induced subgraph contains a cycle
+     */
+    public static boolean hasCycleInSubgraph(
+            Graph<String, edge> graph, Set<String> vertices, boolean directed) {
+        if (vertices.size() <= 1) return false;
+        Set<String> visited = new HashSet<String>();
+        Set<String> inStack = new HashSet<String>();
+        for (String v : vertices) {
+            if (!visited.contains(v)) {
+                if (directed) {
+                    if (hasCycleDFS_directed(graph, v, vertices, visited, inStack)) return true;
+                } else {
+                    if (hasCycleDFS_undirected(graph, v, null, vertices, visited)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasCycleDFS_undirected(
+            Graph<String, edge> graph, String v, String parent,
+            Set<String> vertices, Set<String> visited) {
+        visited.add(v);
+        for (String n : graph.getNeighbors(v)) {
+            if (!vertices.contains(n)) continue;
+            if (!visited.contains(n)) {
+                if (hasCycleDFS_undirected(graph, n, v, vertices, visited)) return true;
+            } else if (!n.equals(parent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasCycleDFS_directed(
+            Graph<String, edge> graph, String v, Set<String> vertices,
+            Set<String> visited, Set<String> inStack) {
+        visited.add(v);
+        inStack.add(v);
+        for (String n : graph.getSuccessors(v)) {
+            if (!vertices.contains(n)) continue;
+            if (!visited.contains(n)) {
+                if (hasCycleDFS_directed(graph, n, vertices, visited, inStack)) return true;
+            } else if (inStack.contains(n)) {
+                return true;
+            }
+        }
+        inStack.remove(v);
+        return false;
+    }
+
+    /**
+     * Counts edges in the subgraph induced by the given vertex set.
+     *
+     * @param graph    the JUNG graph
+     * @param vertices the vertex subset
+     * @return number of edges where both endpoints are in the vertex set
+     */
+    public static int countEdgesInSubgraph(
+            Graph<String, edge> graph, Set<String> vertices) {
+        int count = 0;
+        Set<edge> seen = new HashSet<edge>();
+        for (String v : vertices) {
+            for (edge e : graph.getIncidentEdges(v)) {
+                if (seen.contains(e)) continue;
+                boolean allIn = true;
+                for (String ep : graph.getEndpoints(e)) {
+                    if (!vertices.contains(ep)) { allIn = false; break; }
+                }
+                if (allIn) { seen.add(e); count++; }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Counts connected components in the subgraph induced by the given vertex set.
+     *
+     * @param graph    the JUNG graph
+     * @param vertices the vertex subset
+     * @return number of connected components within the subset
+     */
+    public static int countComponentsInSubgraph(
+            Graph<String, edge> graph, Set<String> vertices) {
+        Set<String> visited = new HashSet<String>();
+        int components = 0;
+        for (String v : vertices) {
+            if (!visited.contains(v)) {
+                components++;
+                Queue<String> queue = new LinkedList<String>();
+                queue.add(v);
+                visited.add(v);
+                while (!queue.isEmpty()) {
+                    String curr = queue.poll();
+                    for (String n : graph.getNeighbors(curr)) {
+                        if (vertices.contains(n) && !visited.contains(n)) {
+                            visited.add(n);
+                            queue.add(n);
+                        }
+                    }
+                }
+            }
+        }
+        return components;
+    }
+
+    /**
+     * Computes the cycle rank (circuit rank) of the subgraph induced by the
+     * given vertex set: edges − vertices + components.
+     *
+     * @param graph    the JUNG graph
+     * @param vertices the vertex subset
+     * @return the cycle rank of the induced subgraph
+     */
+    public static int cycleRankOfSubgraph(
+            Graph<String, edge> graph, Set<String> vertices) {
+        int edges = countEdgesInSubgraph(graph, vertices);
+        int comps = countComponentsInSubgraph(graph, vertices);
+        return edges - vertices.size() + comps;
+    }
 }

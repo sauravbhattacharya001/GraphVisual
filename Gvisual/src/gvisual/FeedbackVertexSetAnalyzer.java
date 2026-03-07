@@ -54,65 +54,7 @@ public class FeedbackVertexSetAnalyzer {
         if (fvs == null) return false;
         Set<String> remaining = new HashSet<>(graph.getVertices());
         remaining.removeAll(fvs);
-        return !hasCycleInSubgraph(remaining);
-    }
-
-    private boolean hasCycleInSubgraph(Set<String> vertices) {
-        if (vertices.size() <= 1) return false;
-        Set<String> visited = new HashSet<>();
-        Set<String> inStack = new HashSet<>();
-        for (String v : vertices) {
-            if (!visited.contains(v)) {
-                if (directed) {
-                    if (hasCycleDFS_directed(v, vertices, visited, inStack)) return true;
-                } else {
-                    if (hasCycleDFS_undirected(v, null, vertices, visited)) return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean hasCycleDFS_undirected(String v, String parent, Set<String> vertices, Set<String> visited) {
-        visited.add(v);
-        for (String n : getNeighborsInSubgraph(v, vertices)) {
-            if (!visited.contains(n)) {
-                if (hasCycleDFS_undirected(n, v, vertices, visited)) return true;
-            } else if (!n.equals(parent)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean hasCycleDFS_directed(String v, Set<String> vertices, Set<String> visited, Set<String> inStack) {
-        visited.add(v);
-        inStack.add(v);
-        for (String n : getSuccessorsInSubgraph(v, vertices)) {
-            if (!visited.contains(n)) {
-                if (hasCycleDFS_directed(n, vertices, visited, inStack)) return true;
-            } else if (inStack.contains(n)) {
-                return true;
-            }
-        }
-        inStack.remove(v);
-        return false;
-    }
-
-    private List<String> getNeighborsInSubgraph(String v, Set<String> vertices) {
-        List<String> result = new ArrayList<>();
-        for (String n : graph.getNeighbors(v)) {
-            if (vertices.contains(n)) result.add(n);
-        }
-        return result;
-    }
-
-    private List<String> getSuccessorsInSubgraph(String v, Set<String> vertices) {
-        List<String> result = new ArrayList<>();
-        for (String n : graph.getSuccessors(v)) {
-            if (vertices.contains(n)) result.add(n);
-        }
-        return result;
+        return !GraphUtils.hasCycleInSubgraph(graph, remaining, directed);
     }
 
     // ── Greedy FVS ────────────────────────────────────────────────
@@ -122,7 +64,7 @@ public class FeedbackVertexSetAnalyzer {
         Set<String> remaining = new HashSet<>(graph.getVertices());
         applyReductions(remaining, fvs);
 
-        while (hasCycleInSubgraph(remaining)) {
+        while (GraphUtils.hasCycleInSubgraph(graph, remaining, directed)) {
             String best = null;
             int bestDeg = -1;
             for (String v : remaining) {
@@ -140,7 +82,7 @@ public class FeedbackVertexSetAnalyzer {
             String v = ordered.get(i);
             fvs.remove(v);
             remaining.add(v);
-            if (hasCycleInSubgraph(remaining)) {
+            if (GraphUtils.hasCycleInSubgraph(graph, remaining, directed)) {
                 remaining.remove(v);
                 fvs.add(v);
             }
@@ -170,6 +112,22 @@ public class FeedbackVertexSetAnalyzer {
         return getNeighborsInSubgraph(v, vertices).size();
     }
 
+    private List<String> getNeighborsInSubgraph(String v, Set<String> vertices) {
+        List<String> result = new ArrayList<>();
+        for (String n : graph.getNeighbors(v)) {
+            if (vertices.contains(n)) result.add(n);
+        }
+        return result;
+    }
+
+    private List<String> getSuccessorsInSubgraph(String v, Set<String> vertices) {
+        List<String> result = new ArrayList<>();
+        for (String n : graph.getSuccessors(v)) {
+            if (vertices.contains(n)) result.add(n);
+        }
+        return result;
+    }
+
     private List<String> getPredecessorsInSubgraph(String v, Set<String> vertices) {
         List<String> result = new ArrayList<>();
         for (String n : graph.getPredecessors(v)) {
@@ -185,13 +143,13 @@ public class FeedbackVertexSetAnalyzer {
         if (verts.size() > 25) return null;
 
         Set<String> allVerts = new HashSet<>(verts);
-        if (!hasCycleInSubgraph(allVerts)) return new HashSet<>();
+        if (!GraphUtils.hasCycleInSubgraph(graph, allVerts, directed)) return new HashSet<>();
 
         Set<String> reduced = new HashSet<>(verts);
         Set<String> forced = new LinkedHashSet<>();
         applyReductions(reduced, forced);
 
-        if (!hasCycleInSubgraph(reduced)) return forced;
+        if (!GraphUtils.hasCycleInSubgraph(graph, reduced, directed)) return forced;
 
         List<String> candidates = new ArrayList<>(reduced);
         Set<String> bestFVS = new HashSet<>(reduced);
@@ -204,7 +162,7 @@ public class FeedbackVertexSetAnalyzer {
 
     private void backtrack(List<String> candidates, int idx, Set<String> remaining,
                            Set<String> current, Set<String> best) {
-        if (!hasCycleInSubgraph(remaining)) {
+        if (!GraphUtils.hasCycleInSubgraph(graph, remaining, directed)) {
             if (current.size() < best.size()) { best.clear(); best.addAll(current); }
             return;
         }
@@ -236,7 +194,7 @@ public class FeedbackVertexSetAnalyzer {
                 Collection<edge> incident = graph.getIncidentEdges(v);
                 if (incident == null) continue;
                 for (edge e : incident) {
-                    String other = getOtherEnd(e, v);
+                    String other = GraphUtils.getOtherEnd(e, v);
                     if (other != null && !visited.contains(other)) {
                         visited.add(other); treeEdges.add(e); queue.add(other);
                     }
@@ -247,13 +205,6 @@ public class FeedbackVertexSetAnalyzer {
         Set<edge> feedback = new HashSet<>(graph.getEdges());
         feedback.removeAll(treeEdges);
         return feedback;
-    }
-
-    private String getOtherEnd(edge e, String v) {
-        Collection<String> endpoints = graph.getEndpoints(e);
-        if (endpoints == null) return null;
-        for (String ep : endpoints) { if (!ep.equals(v)) return ep; }
-        return null;
     }
 
     // ── Cycle rank ────────────────────────────────────────────────
@@ -290,43 +241,12 @@ public class FeedbackVertexSetAnalyzer {
         for (String v : graph.getVertices()) {
             Set<String> without = new HashSet<>(graph.getVertices());
             without.remove(v);
-            criticality.put(v, baseCR - cycleRankOfSubgraph(without));
+            criticality.put(v, baseCR - GraphUtils.cycleRankOfSubgraph(graph, without));
         }
         return criticality.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (a, b) -> a, LinkedHashMap::new));
-    }
-
-    private int cycleRankOfSubgraph(Set<String> vertices) {
-        int edges = 0;
-        Set<edge> counted = new HashSet<>();
-        for (String v : vertices) {
-            for (edge e : graph.getIncidentEdges(v)) {
-                if (counted.contains(e)) continue;
-                boolean allIn = true;
-                for (String ep : graph.getEndpoints(e)) {
-                    if (!vertices.contains(ep)) { allIn = false; break; }
-                }
-                if (allIn) { counted.add(e); edges++; }
-            }
-        }
-        Set<String> visited = new HashSet<>();
-        int components = 0;
-        for (String v : vertices) {
-            if (!visited.contains(v)) {
-                components++;
-                Queue<String> queue = new LinkedList<>();
-                queue.add(v); visited.add(v);
-                while (!queue.isEmpty()) {
-                    String curr = queue.poll();
-                    for (String n : graph.getNeighbors(curr)) {
-                        if (vertices.contains(n) && !visited.contains(n)) { visited.add(n); queue.add(n); }
-                    }
-                }
-            }
-        }
-        return edges - vertices.size() + components;
     }
 
     // ── Disjoint cycle packing ────────────────────────────────────
@@ -389,7 +309,7 @@ public class FeedbackVertexSetAnalyzer {
 
     public double approximationRatio() {
         int lb = lowerBound();
-        if (lb == 0) return hasCycleInSubgraph(new HashSet<>(graph.getVertices())) ? -1 : 1.0;
+        if (lb == 0) return GraphUtils.hasCycleInSubgraph(graph, new HashSet<>(graph.getVertices()), directed) ? -1 : 1.0;
         return (double) upperBound() / lb;
     }
 
@@ -420,7 +340,7 @@ public class FeedbackVertexSetAnalyzer {
 
     public FVSReport generateReport() {
         Set<String> allVerts = new HashSet<>(graph.getVertices());
-        boolean acyclic = !hasCycleInSubgraph(allVerts);
+        boolean acyclic = !GraphUtils.hasCycleInSubgraph(graph, allVerts, directed);
         Set<String> greedy = greedyFVS();
         return new FVSReport(graph.getVertexCount(), graph.getEdgeCount(), cycleRank(), acyclic,
                 greedy, exactMinimumFVS(), feedbackEdgeSet(), lowerBound(), greedy.size(),
@@ -457,3 +377,4 @@ public class FeedbackVertexSetAnalyzer {
         return sb.toString();
     }
 }
+
