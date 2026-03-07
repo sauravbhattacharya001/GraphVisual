@@ -4,6 +4,8 @@ import edu.uci.ics.jung.graph.Graph;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +46,30 @@ public class GraphQueryEngine {
 
     public GraphQueryEngine(Graph<String, edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
+    }
+
+    /** Maximum allowed length for user-supplied regex patterns to mitigate ReDoS. */
+    private static final int MAX_REGEX_LENGTH = 500;
+
+    /**
+     * Compile a regex pattern with safety checks: length limit and syntax validation.
+     * Pre-compiling also avoids re-compilation on every vertex/edge evaluation.
+     *
+     * @throws IllegalArgumentException if the pattern is too long or has invalid syntax
+     */
+    static Pattern safeCompile(String regex) {
+        if (regex == null) {
+            throw new IllegalArgumentException("regex must not be null");
+        }
+        if (regex.length() > MAX_REGEX_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Regex pattern exceeds maximum length of " + MAX_REGEX_LENGTH + " characters");
+        }
+        try {
+            return Pattern.compile(regex);
+        } catch (PatternSyntaxException e) {
+            throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -118,9 +144,15 @@ public class GraphQueryEngine {
             return this;
         }
 
-        /** Keep only nodes whose ID matches the given regex. */
+        /**
+         * Keep only nodes whose ID matches the given regex.
+         * The pattern is pre-compiled and validated to prevent ReDoS attacks.
+         *
+         * @throws IllegalArgumentException if the pattern is invalid or too long
+         */
         public NodeQuery matching(String regex) {
-            filters.add(v -> v.matches(regex));
+            Pattern compiled = safeCompile(regex);
+            filters.add(v -> compiled.matcher(v).matches());
             return this;
         }
 
@@ -252,9 +284,15 @@ public class GraphQueryEngine {
             return this;
         }
 
-        /** Keep only edges with a non-null label matching the regex. */
+        /**
+         * Keep only edges with a non-null label matching the regex.
+         * The pattern is pre-compiled and validated to prevent ReDoS attacks.
+         *
+         * @throws IllegalArgumentException if the pattern is invalid or too long
+         */
         public EdgeQuery labelMatching(String regex) {
-            filters.add(e -> e.getLabel() != null && e.getLabel().matches(regex));
+            Pattern compiled = safeCompile(regex);
+            filters.add(e -> e.getLabel() != null && compiled.matcher(e.getLabel()).matches());
             return this;
         }
 
