@@ -1,0 +1,386 @@
+package gvisual;
+
+import edu.uci.ics.jung.graph.Graph;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * Exports a comprehensive per-node metrics report to CSV format.
+ *
+ * <p>Each row represents one node and includes:</p>
+ * <ul>
+ *   <li>Degree (total, plus breakdown by edge type)</li>
+ *   <li>Centrality scores (degree, betweenness, closeness)</li>
+ *   <li>Community ID</li>
+ *   <li>Local clustering coefficient</li>
+ *   <li>Whether the node is an articulation point</li>
+ * </ul>
+ *
+ * <p>Designed for researchers who want to analyze the social network
+ * in Excel, R, pandas, or any tool that reads CSV.</p>
+ *
+ * <p>Usage:</p>
+ * <pre>
+ *   CsvReportExporter exporter = new CsvReportExporter(graph, allEdges);
+ *   exporter.export(new File("report.csv"));
+ *   // or
+ *   String csv = exporter.exportToString();
+ * </pre>
+ *
+ * @author zalenix
+ */
+public class CsvReportExporter {
+
+    private final Graph<String, edge> graph;
+    private final List<edge> allEdges;
+    private String timestamp;
+
+    /**
+     * Creates a new CsvReportExporter.
+     *
+     * @param graph    the JUNG graph to report on
+     * @param allEdges all edges (including those possibly filtered out of the graph)
+     * @throws IllegalArgumentException if graph is null
+     */
+    public CsvReportExporter(Graph<String, edge> graph, List<edge> allEdges) {
+        if (graph == null) {
+            throw new IllegalArgumentException("Graph must not be null");
+        }
+        this.graph = graph;
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+    }
+
+    /**
+     * Sets the timestamp label included in the export metadata.
+     *
+     * @param timestamp a date/time string
+     */
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * Exports the report to a file.
+     *
+     * @param file output CSV file
+     * @throws IOException if writing fails
+     */
+    public void export(File file) throws IOException {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+            writer.write(exportToString());
+        }
+    }
+
+    /**
+     * Exports the report as a CSV string.
+     *
+     * @return the full CSV content
+     */
+    public String exportToString() {
+        StringBuilder sb = new StringBuilder();
+
+        // Compute metrics
+        Map<String, Double> degreeCentrality = new LinkedHashMap<String, Double>();
+        Map<String, Double> betweenness = new LinkedHashMap<String, Double>();
+        Map<String, Double> closeness = new LinkedHashMap<String, Double>();
+        computeCentralities(degreeCentrality, betweenness, closeness);
+
+        Map<String, Integer> communityMap = computeCommunities();
+        Map<String, Double> clusteringCoeff = computeClusteringCoefficients();
+        Set<String> articulationPoints = computeArticulationPoints();
+
+        // Edge type counts per node
+        Map<String, int[]> edgeTypeCounts = computeEdgeTypeCounts();
+
+        // Sort nodes for deterministic output
+        List<String> nodes = new ArrayList<String>(graph.getVertices());
+        Collections.sort(nodes);
+
+        // Header
+        sb.append("# GraphVisual CSV Report — ").append(timestamp).append("\n");
+        sb.append("# Nodes: ").append(graph.getVertexCount())
+          .append(", Edges: ").append(graph.getEdgeCount()).append("\n");
+        sb.append("Node,Degree,FriendEdges,FamiliarStrangerEdges,ClassmateEdges,StrangerEdges,StudyGroupEdges,")
+          .append("DegreeCentrality,BetweennessCentrality,ClosenessCentrality,")
+          .append("CommunityID,ClusteringCoefficient,IsArticulationPoint\n");
+
+        for (String node : nodes) {
+            int degree = graph.degree(node);
+            int[] typeCounts = edgeTypeCounts.containsKey(node) ? edgeTypeCounts.get(node) : new int[5];
+            double dc = degreeCentrality.containsKey(node) ? degreeCentrality.get(node) : 0.0;
+            double bc = betweenness.containsKey(node) ? betweenness.get(node) : 0.0;
+            double cc = closeness.containsKey(node) ? closeness.get(node) : 0.0;
+            int community = communityMap.containsKey(node) ? communityMap.get(node) : -1;
+            double clustering = clusteringCoeff.containsKey(node) ? clusteringCoeff.get(node) : 0.0;
+            boolean isAP = articulationPoints.contains(node);
+
+            sb.append(escapeCsv(node)).append(',')
+              .append(degree).append(',')
+              .append(typeCounts[0]).append(',')
+              .append(typeCounts[1]).append(',')
+              .append(typeCounts[2]).append(',')
+              .append(typeCounts[3]).append(',')
+              .append(typeCounts[4]).append(',')
+              .append(String.format("%.6f", dc)).append(',')
+              .append(String.format("%.6f", bc)).append(',')
+              .append(String.format("%.6f", cc)).append(',')
+              .append(community).append(',')
+              .append(String.format("%.6f", clustering)).append(',')
+              .append(isAP ? "true" : "false")
+              .append('\n');
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Computes degree, betweenness, and closeness centrality using BFS.
+     */
+    private void computeCentralities(Map<String, Double> degreeCent,
+                                     Map<String, Double> betweenness,
+                                     Map<String, Double> closeness) {
+        Collection<String> vertices = graph.getVertices();
+        int n = vertices.size();
+        if (n == 0) return;
+
+        // Degree centrality
+        double maxDeg = n > 1 ? (n - 1.0) : 1.0;
+        for (String v : vertices) {
+            degreeCent.put(v, graph.degree(v) / maxDeg);
+            betweenness.put(v, 0.0);
+        }
+
+        // Brandes' betweenness centrality
+        for (String s : vertices) {
+            Deque<String> stack = new ArrayDeque<String>();
+            Map<String, List<String>> pred = new LinkedHashMap<String, List<String>>();
+            Map<String, Integer> sigma = new LinkedHashMap<String, Integer>();
+            Map<String, Integer> dist = new LinkedHashMap<String, Integer>();
+
+            for (String v : vertices) {
+                pred.put(v, new ArrayList<String>());
+                sigma.put(v, 0);
+                dist.put(v, -1);
+            }
+            sigma.put(s, 1);
+            dist.put(s, 0);
+
+            Queue<String> queue = new LinkedList<String>();
+            queue.add(s);
+
+            while (!queue.isEmpty()) {
+                String v = queue.poll();
+                stack.push(v);
+                for (String w : graph.getNeighbors(v)) {
+                    if (dist.get(w) < 0) {
+                        queue.add(w);
+                        dist.put(w, dist.get(v) + 1);
+                    }
+                    if (dist.get(w) == dist.get(v) + 1) {
+                        sigma.put(w, sigma.get(w) + sigma.get(v));
+                        pred.get(w).add(v);
+                    }
+                }
+            }
+
+            Map<String, Double> delta = new LinkedHashMap<String, Double>();
+            for (String v : vertices) delta.put(v, 0.0);
+
+            while (!stack.isEmpty()) {
+                String w = stack.pop();
+                for (String v : pred.get(w)) {
+                    double d = delta.get(v) + (sigma.get(v).doubleValue() / sigma.get(w)) * (1.0 + delta.get(w));
+                    delta.put(v, d);
+                }
+                if (!w.equals(s)) {
+                    betweenness.put(w, betweenness.get(w) + delta.get(w));
+                }
+            }
+
+            // Closeness from this BFS
+            int reachable = 0;
+            int totalDist = 0;
+            for (String v : vertices) {
+                if (dist.get(v) > 0) {
+                    reachable++;
+                    totalDist += dist.get(v);
+                }
+            }
+            if (reachable > 0 && totalDist > 0) {
+                closeness.put(s, (double) reachable / totalDist);
+            } else {
+                closeness.put(s, 0.0);
+            }
+        }
+
+        // Normalize betweenness
+        if (n > 2) {
+            double norm = (n - 1.0) * (n - 2.0);
+            for (String v : vertices) {
+                betweenness.put(v, betweenness.get(v) / norm);
+            }
+        }
+    }
+
+    /**
+     * Community detection via connected components, labeled by size rank.
+     */
+    private Map<String, Integer> computeCommunities() {
+        Map<String, Integer> communityMap = new LinkedHashMap<String, Integer>();
+        Set<String> visited = new HashSet<String>();
+        List<Set<String>> components = new ArrayList<Set<String>>();
+
+        for (String v : graph.getVertices()) {
+            if (!visited.contains(v)) {
+                Set<String> comp = new HashSet<String>();
+                Queue<String> queue = new LinkedList<String>();
+                queue.add(v);
+                visited.add(v);
+                while (!queue.isEmpty()) {
+                    String u = queue.poll();
+                    comp.add(u);
+                    for (String w : graph.getNeighbors(u)) {
+                        if (!visited.contains(w)) {
+                            visited.add(w);
+                            queue.add(w);
+                        }
+                    }
+                }
+                components.add(comp);
+            }
+        }
+
+        // Sort by size descending
+        Collections.sort(components, new Comparator<Set<String>>() {
+            public int compare(Set<String> a, Set<String> b) {
+                return b.size() - a.size();
+            }
+        });
+
+        for (int i = 0; i < components.size(); i++) {
+            for (String v : components.get(i)) {
+                communityMap.put(v, i);
+            }
+        }
+
+        return communityMap;
+    }
+
+    /**
+     * Computes local clustering coefficient for each node.
+     */
+    private Map<String, Double> computeClusteringCoefficients() {
+        Map<String, Double> result = new LinkedHashMap<String, Double>();
+        for (String v : graph.getVertices()) {
+            Collection<String> neighbors = graph.getNeighbors(v);
+            List<String> nList = new ArrayList<String>(neighbors);
+            int k = nList.size();
+            if (k < 2) {
+                result.put(v, 0.0);
+                continue;
+            }
+            int triangles = 0;
+            for (int i = 0; i < k; i++) {
+                for (int j = i + 1; j < k; j++) {
+                    if (graph.isNeighbor(nList.get(i), nList.get(j))) {
+                        triangles++;
+                    }
+                }
+            }
+            result.put(v, (2.0 * triangles) / (k * (k - 1)));
+        }
+        return result;
+    }
+
+    /**
+     * Finds articulation points using Tarjan's DFS algorithm.
+     */
+    private Set<String> computeArticulationPoints() {
+        Set<String> aps = new HashSet<String>();
+        Set<String> visited = new HashSet<String>();
+        Map<String, Integer> disc = new LinkedHashMap<String, Integer>();
+        Map<String, Integer> low = new LinkedHashMap<String, Integer>();
+        Map<String, String> parent = new LinkedHashMap<String, String>();
+        final int[] timer = {0};
+
+        for (String v : graph.getVertices()) {
+            if (!visited.contains(v)) {
+                apDfs(v, visited, disc, low, parent, aps, timer);
+            }
+        }
+        return aps;
+    }
+
+    private void apDfs(String u, Set<String> visited,
+                       Map<String, Integer> disc, Map<String, Integer> low,
+                       Map<String, String> parent, Set<String> aps, int[] timer) {
+        visited.add(u);
+        disc.put(u, timer[0]);
+        low.put(u, timer[0]);
+        timer[0]++;
+        int children = 0;
+
+        for (String v : graph.getNeighbors(u)) {
+            if (!visited.contains(v)) {
+                children++;
+                parent.put(v, u);
+                apDfs(v, visited, disc, low, parent, aps, timer);
+                low.put(u, Math.min(low.get(u), low.get(v)));
+                if (!parent.containsKey(u) && children > 1) aps.add(u);
+                if (parent.containsKey(u) && low.get(v) >= disc.get(u)) aps.add(u);
+            } else if (!v.equals(parent.get(u))) {
+                low.put(u, Math.min(low.get(u), disc.get(v)));
+            }
+        }
+    }
+
+    /**
+     * Counts edges per type for each node.
+     * Index: 0=friend, 1=fs, 2=classmate, 3=stranger, 4=studygroup
+     */
+    private Map<String, int[]> computeEdgeTypeCounts() {
+        Map<String, int[]> counts = new LinkedHashMap<String, int[]>();
+        for (edge e : allEdges) {
+            if (!graph.containsEdge(e)) continue;
+            String type = e.getType();
+            int idx = typeIndex(type);
+            if (idx < 0) continue;
+
+            addTypeCount(counts, e.getVertex1(), idx);
+            addTypeCount(counts, e.getVertex2(), idx);
+        }
+        return counts;
+    }
+
+    private void addTypeCount(Map<String, int[]> counts, String node, int idx) {
+        if (!counts.containsKey(node)) {
+            counts.put(node, new int[5]);
+        }
+        counts.get(node)[idx]++;
+    }
+
+    private int typeIndex(String type) {
+        if (type == null) return -1;
+        if ("f".equals(type))  return 0;
+        if ("fs".equals(type)) return 1;
+        if ("c".equals(type))  return 2;
+        if ("s".equals(type))  return 3;
+        if ("sg".equals(type)) return 4;
+        return -1;
+    }
+
+    /**
+     * Escapes a value for CSV (wraps in quotes if it contains comma, quote, or newline).
+     */
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+}

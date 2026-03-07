@@ -2686,6 +2686,56 @@ public class Main extends JFrame {
         });
         toolPanel.add(graphmlButton);
 
+        JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
+        csvReportButton.setPreferredSize(new Dimension(140, 100));
+        csvReportButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
+                allEdges.addAll(friendEdges);
+                allEdges.addAll(fsEdges);
+                allEdges.addAll(classmateEdges);
+                allEdges.addAll(strangerEdges);
+                allEdges.addAll(studyGEdges);
+
+                CsvReportExporter exporter = new CsvReportExporter(g, allEdges);
+                exporter.setTimestamp(timeStamp);
+
+                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+                fileChooser.setDialogTitle("Export Node Metrics CSV");
+                fileChooser.setSelectedFile(new File("node_metrics_" + timeStamp + ".csv"));
+                int returnVal = fileChooser.showSaveDialog(null);
+                if (returnVal != JFileChooser.APPROVE_OPTION) return;
+
+                File outFile = fileChooser.getSelectedFile();
+                if (!outFile.getName().endsWith(".csv")) {
+                    outFile = new File(outFile.getAbsolutePath() + ".csv");
+                }
+
+                if (outFile.exists()) {
+                    int confirm = JOptionPane.showConfirmDialog(null,
+                            "File already exists. Overwrite?",
+                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+                    if (confirm != JOptionPane.YES_OPTION) return;
+                }
+
+                try {
+                    exporter.export(outFile);
+                    JOptionPane.showMessageDialog(null,
+                            "Node metrics CSV exported!\n"
+                            + "Nodes: " + g.getVertexCount() + "\n"
+                            + "Columns: 13 metrics per node\n"
+                            + "File: " + outFile.getName(),
+                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex1) {
+                    LOGGER.log(Level.SEVERE, null, ex1);
+                    JOptionPane.showMessageDialog(null,
+                            "Export failed: " + ex1.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        toolPanel.add(csvReportButton);
+
         JButton heatmapButton = new JButton("<html><center>Adjacency Matrix<br/>View graph as a<br/> color-coded<br/> heatmap matrix<br/> with zoom/pan</center></html>");
         heatmapButton.setPreferredSize(new Dimension(140, 100));
         heatmapButton.addActionListener(new ActionListener() {
