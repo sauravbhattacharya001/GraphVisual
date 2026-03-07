@@ -2,6 +2,66 @@
 
 All notable changes to GraphVisual will be documented in this file.
 
+## [2.0.0] — 2026-03-07
+
+Major release: 144 commits since v1.0.0, transforming GraphVisual from a basic graph viewer into a comprehensive 68-analyzer graph analysis toolkit.
+
+### 🆕 New Analyzers (since v1.9.0)
+
+- **GraphQueryEngine** — chainable query language for filtering nodes (degree, regex, type, connectivity) and edges (type, weight, endpoints, temporal)
+- **SubgraphExtractor** — fluent builder for focused subgraph extraction (edge type, weight, degree, k-hop, node whitelist, time window, CSV export)
+- **GraphAnomalyDetector** — multi-metric outlier detection (degree, clustering, edge diversity, neighbor deviation)
+- **SmallWorldAnalyzer** — Watts-Strogatz small-world property testing
+- **KTrussAnalyzer** — triangle-based cohesive subgraph decomposition
+- **TournamentAnalyzer** — directed complete graph analysis
+- **MetricDimensionAnalyzer** — minimum resolving sets for vertex identification
+- **GraphSparsificationAnalyzer** — 5 sparsification methods, bridge detection, importance scoring, quality evaluation
+- **LineGraphAnalyzer** — L(G) construction, Vizing edge coloring bounds, Whitney theorem, iterated line graphs
+- **GraphSimilarityAnalyzer** — JSD, Von Neumann divergence, entropy profile distance
+- **GraphEntropyAnalyzer** — information-theoretic measures for graphs
+- **Ego Network** search panel — search by node ID, highlight 1-hop neighborhood
+- **CSV Node Metrics Report** exporter
+
+### 🐛 Fixes (since v1.9.0)
+
+- Fix LT simulation: use predecessors instead of successors for directed graphs
+- Fix off-by-one in Chvátal condition check (HamiltonianAnalyzer)
+- Fix EdgeType enum usage instead of hardcoded strings in createLayout()
+- Resolve 13 test failures across 8 analyzers (issue #36)
+
+### ⚡ Performance (since v1.9.0)
+
+- Replace O(V) ArrayList with O(1) LinkedHashSet in TreewidthAnalyzer
+- Cache neighbor lists and edge weights in InfluenceSpreadSimulator
+- Use inverted index for clique overlap/graph computation
+
+### 🔧 Refactoring (since v1.9.0)
+
+- Extract subgraph utilities from FeedbackVertexSetAnalyzer into GraphUtils
+- Consolidate duplicated buildAdjacency methods into GraphUtils
+- Deduplicate BFS traversals using centralized GraphUtils
+
+### 📝 Documentation (since v1.9.0)
+
+- Add API reference for 28 undocumented analyzers
+- Update README with all 68 analyzers
+
+### 🧪 Tests (since v1.9.0)
+
+- Add 15 tests for GraphSimilarityAnalyzer (11 → 26)
+- Add 32 tests for GrowthRateAnalyzer
+- Add 69 tests for RandomWalkAnalyzer, LaplacianBuilder, EdgePersistenceAnalyzer
+
+### Cumulative v2.0.0 Summary (all 144 commits since v1.0.0)
+
+- **69 features**: 50+ new analyzers covering graph theory, network science, and combinatorial optimization
+- **16 bug fixes**: correctness fixes for Dijkstra, isomorphism, influence models, motifs, and more
+- **11 performance improvements**: array-based PageRank, PriorityQueue sorting, cached BFS, fused betweenness+closeness
+- **15 refactors**: centralized GraphUtils, extracted renderers, deduplicated code
+- **12 documentation updates**: ARCHITECTURE.md, ALGORITHMS.md, API references
+- **14 CI improvements**: action bumps, coverage reporting
+- **1 security fix**: GraphML XML control character stripping
+
 ## [1.9.0] — 2026-02-24
 
 ### 📊 Degree Distribution Analysis
