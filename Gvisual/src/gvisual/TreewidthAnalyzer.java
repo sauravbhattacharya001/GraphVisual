@@ -150,7 +150,11 @@ public class TreewidthAnalyzer {
 
         // Build adjacency
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-        List<String> remaining = new ArrayList<>(adj.keySet());
+        // Use LinkedHashSet for O(1) contains/remove instead of ArrayList O(V).
+        // ArrayList.remove() and .contains() are O(V) per call, making the
+        // elimination loop O(V²) for removes alone.  LinkedHashSet preserves
+        // insertion order while providing O(1) set operations.
+        Set<String> remaining = new LinkedHashSet<>(adj.keySet());
         List<Bag> bags = new ArrayList<>();
         int width = 0;
         int bagId = 0;
@@ -217,18 +221,20 @@ public class TreewidthAnalyzer {
 
     @FunctionalInterface
     private interface VertexPicker {
-        String pick(List<String> remaining, Map<String, Set<String>> adj);
+        String pick(Set<String> remaining, Map<String, Set<String>> adj);
     }
 
-    private String pickMinDegree(List<String> remaining, Map<String, Set<String>> adj) {
-        String best = remaining.get(0);
+    private String pickMinDegree(Set<String> remaining, Map<String, Set<String>> adj) {
+        String best = remaining.iterator().next();
         int bestDeg = Integer.MAX_VALUE;
-        Set<String> remSet = new HashSet<>(remaining);
+        // remaining is already a Set — no need to create a HashSet copy.
+        // Previously created new HashSet<>(remaining) on every call, which
+        // was O(V) per call × V calls = O(V²) allocation overhead.
         for (String v : remaining) {
             int deg = 0;
             Set<String> neighbors = adj.getOrDefault(v, Collections.emptySet());
             for (String n : neighbors) {
-                if (remSet.contains(n)) deg++;
+                if (remaining.contains(n)) deg++;
             }
             if (deg < bestDeg) {
                 bestDeg = deg;
@@ -238,15 +244,15 @@ public class TreewidthAnalyzer {
         return best;
     }
 
-    private String pickMinFill(List<String> remaining, Map<String, Set<String>> adj) {
-        String best = remaining.get(0);
+    private String pickMinFill(Set<String> remaining, Map<String, Set<String>> adj) {
+        String best = remaining.iterator().next();
         int bestFill = Integer.MAX_VALUE;
-        Set<String> remSet = new HashSet<>(remaining);
+        // remaining is already a Set — O(1) contains, no copy needed.
         for (String v : remaining) {
             Set<String> neighbors = adj.getOrDefault(v, Collections.emptySet());
             List<String> nList = new ArrayList<>();
             for (String n : neighbors) {
-                if (remSet.contains(n)) nList.add(n);
+                if (remaining.contains(n)) nList.add(n);
             }
             int fill = 0;
             for (int i = 0; i < nList.size(); i++) {
