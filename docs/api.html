@@ -72,6 +72,35 @@
     <a href="#degree">gvisual.DegreeDistributionAnalyzer</a>
     <a href="#degree-result">&nbsp;&nbsp;↳ DegreeDistributionResult (inner class)</a>
     <a href="#edgetype">gvisual.EdgeType</a>
+    <a href="#graphutils">gvisual.GraphUtils</a>
+    <a href="#cycle">gvisual.CycleAnalyzer</a>
+    <a href="#diameter">gvisual.GraphDiameterAnalyzer</a>
+    <a href="#bipartite">gvisual.BipartiteAnalyzer</a>
+    <a href="#scc">gvisual.StronglyConnectedComponentsAnalyzer</a>
+    <a href="#topological">gvisual.TopologicalSortAnalyzer</a>
+    <a href="#euler">gvisual.EulerianPathAnalyzer</a>
+    <a href="#hamiltonian">gvisual.HamiltonianAnalyzer</a>
+    <a href="#netflow">gvisual.NetworkFlowAnalyzer</a>
+    <a href="#spectral">gvisual.SpectralAnalyzer</a>
+    <a href="#randomwalk">gvisual.RandomWalkAnalyzer</a>
+    <a href="#smallworld">gvisual.SmallWorldAnalyzer</a>
+    <a href="#motif">gvisual.MotifAnalyzer</a>
+    <a href="#tree">gvisual.TreeAnalyzer</a>
+    <a href="#planar">gvisual.PlanarGraphAnalyzer</a>
+    <a href="#partition">gvisual.GraphPartitioner</a>
+    <a href="#resilience">gvisual.GraphResilienceAnalyzer</a>
+    <a href="#influence">gvisual.InfluenceSpreadSimulator</a>
+    <a href="#linkpred">gvisual.LinkPredictionAnalyzer</a>
+    <a href="#structhole">gvisual.StructuralHoleAnalyzer</a>
+    <a href="#entropy">gvisual.GraphEntropyAnalyzer</a>
+    <a href="#anomaly">gvisual.GraphAnomalyDetector</a>
+    <a href="#diff">gvisual.GraphDiffAnalyzer</a>
+    <a href="#layout">gvisual.ForceDirectedLayout</a>
+    <a href="#subgraph">gvisual.SubgraphExtractor</a>
+    <a href="#generator">gvisual.GraphGenerator</a>
+    <a href="#csv">gvisual.CsvReportExporter</a>
+    <a href="#vertconn">gvisual.VertexConnectivityAnalyzer</a>
+    <a href="#treewidth">gvisual.TreewidthAnalyzer</a>
     <a href="#util">app.Util</a>
     <a href="#network">app.Network</a>
 </div>
@@ -1046,6 +1075,969 @@
     <div class="api-method">
         <div class="method-signature">void generateFile(String month, String date, int durThreshold, int countThreshold)</div>
         <p class="method-desc">Queries the <code>meeting</code> table for the given day, classifies edges by relationship type using the provided thresholds, and writes an edge-list file.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphUtils -->
+<!-- ======================================= -->
+
+<h2 id="graphutils"><code>gvisual.GraphUtils</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Utility Class</span>
+        <code>public class GraphUtils</code>
+    </div>
+    <p>Shared graph utilities used by multiple analyzers. Provides adjacency map construction, BFS traversal, component discovery, and cycle detection.</p>
+
+    <div class="api-method">
+        <div class="method-signature">static String getOtherEnd(edge e, String current)</div>
+        <p class="method-desc">Returns the vertex on the other end of edge <code>e</code> relative to <code>current</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Map&lt;String, Set&lt;String&gt;&gt; buildAdjacencyMap(Graph&lt;String, edge&gt; graph)</div>
+        <p class="method-desc">Builds an undirected adjacency map from the graph. Overloaded variant accepts a vertex subset.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Map&lt;String, Integer&gt; bfsDistances(Map&lt;String, Set&lt;String&gt;&gt; adj, String source)</div>
+        <p class="method-desc">BFS from <code>source</code> returning shortest-path distances to all reachable vertices.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Set&lt;String&gt; bfsComponent(Map&lt;String, Set&lt;String&gt;&gt; adj, String source)</div>
+        <p class="method-desc">Returns the connected component containing <code>source</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static List&lt;Set&lt;String&gt;&gt; findComponents(Map&lt;String, Set&lt;String&gt;&gt; adj)</div>
+        <p class="method-desc">Finds all connected components, sorted largest-first.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Set&lt;String&gt; findLargestComponent(Map&lt;String, Set&lt;String&gt;&gt; adj)</div>
+        <p class="method-desc">Returns the largest connected component.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static Set&lt;String&gt; getCommonNeighbors(Map&lt;String, Set&lt;String&gt;&gt; adj, String u, String v)</div>
+        <p class="method-desc">Returns vertices that are neighbors of both <code>u</code> and <code>v</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">static boolean hasCycleInSubgraph(Map&lt;String, Set&lt;String&gt;&gt; adj, Set&lt;String&gt; vertices)</div>
+        <p class="method-desc">Returns <code>true</code> if the induced subgraph on <code>vertices</code> contains a cycle.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- CycleAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="cycle"><code>gvisual.CycleAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class CycleAnalyzer</code>
+    </div>
+    <p>Analyzes cycles in a graph: detects presence, computes girth (shortest cycle) and circumference (longest cycle), finds a fundamental cycle basis, and counts total cycles.</p>
+
+    <div class="api-method">
+        <div class="method-signature">boolean hasCycles()</div>
+        <p class="method-desc">Returns <code>true</code> if the graph contains at least one cycle.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getGirth()</div>
+        <p class="method-desc">Returns the length of the shortest cycle, or <code>-1</code> if acyclic.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getCircumference()</div>
+        <p class="method-desc">Returns the length of the longest cycle, or <code>-1</code> if acyclic.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;Cycle&gt; getFundamentalBasis()</div>
+        <p class="method-desc">Returns a fundamental cycle basis (one cycle per non-tree edge in a BFS spanning tree).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getCycleCount()</div>
+        <p class="method-desc">Returns the total number of fundamental cycles.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphDiameterAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="diameter"><code>gvisual.GraphDiameterAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphDiameterAnalyzer</code>
+    </div>
+    <p>Computes diameter, radius, eccentricities, center and periphery vertices of a graph. Operates on the largest connected component when the graph is disconnected.</p>
+
+    <div class="api-method">
+        <div class="method-signature">void analyze()</div>
+        <p class="method-desc">Runs BFS from every vertex to compute all-pairs shortest paths. Must be called before querying results.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getDiameter()</div>
+        <p class="method-desc">Maximum eccentricity — the longest shortest path between any two vertices.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getRadius()</div>
+        <p class="method-desc">Minimum eccentricity — the smallest "worst-case" distance from any vertex.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getEccentricities()</div>
+        <p class="method-desc">Eccentricity of each vertex (maximum distance to any other vertex).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getCenterVertices()</div>
+        <p class="method-desc">Vertices whose eccentricity equals the radius.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getPeripheryVertices()</div>
+        <p class="method-desc">Vertices whose eccentricity equals the diameter.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- BipartiteAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="bipartite"><code>gvisual.BipartiteAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class BipartiteAnalyzer</code>
+    </div>
+    <p>Tests whether a graph is bipartite (2-colorable). If bipartite, produces the left/right partition and maximum matching. If not, extracts an odd cycle certificate.</p>
+
+    <div class="api-method">
+        <div class="method-signature">BipartiteAnalyzer compute()</div>
+        <p class="method-desc">Runs BFS-based 2-coloring. Returns <code>this</code> for chaining.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">boolean isBipartite()</div>
+        <p class="method-desc">Returns <code>true</code> if the graph is bipartite.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getLeftPartition() / getRightPartition()</div>
+        <p class="method-desc">Returns the two partitions of the bipartition. Empty if not bipartite.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getColoring()</div>
+        <p class="method-desc">Vertex &rarr; color (0 or 1) mapping.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getOddCycle()</div>
+        <p class="method-desc">If not bipartite, returns an odd cycle that proves it.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- StronglyConnectedComponentsAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="scc"><code>gvisual.StronglyConnectedComponentsAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class StronglyConnectedComponentsAnalyzer</code>
+    </div>
+    <p>Finds strongly connected components (SCCs) using Tarjan's algorithm. Also builds the condensation DAG and classifies each SCC as source, sink, intermediate, or isolated.</p>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;Component&gt; getComponents()</div>
+        <p class="method-desc">Returns all SCCs, sorted largest-first.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getComponentCount()</div>
+        <p class="method-desc">Number of SCCs.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getVertexToComponent()</div>
+        <p class="method-desc">Maps each vertex to its SCC id.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Graph&lt;String, edge&gt; getCondensation()</div>
+        <p class="method-desc">Returns the condensation DAG where each SCC is contracted to a single super-vertex.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- TopologicalSortAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="topological"><code>gvisual.TopologicalSortAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class TopologicalSortAnalyzer</code>
+    </div>
+    <p>Topological sort for directed acyclic graphs (DAGs). If the graph has cycles, reports them. Also computes depth map, dependency counts, roots, leaves, and the critical (longest) path.</p>
+
+    <div class="api-method">
+        <div class="method-signature">boolean isDAG()</div>
+        <p class="method-desc">Returns <code>true</code> if the graph is acyclic.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getSortedOrder()</div>
+        <p class="method-desc">Topological ordering (empty if not a DAG).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getRoots() / getLeaves()</div>
+        <p class="method-desc">Vertices with no incoming / outgoing edges.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getCriticalPath()</div>
+        <p class="method-desc">Longest path in the DAG.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getLongestPathLength()</div>
+        <p class="method-desc">Length of the critical path.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Integer&gt; getDepthMap()</div>
+        <p class="method-desc">Maps each vertex to its depth (longest path from any root).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- EulerianPathAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="euler"><code>gvisual.EulerianPathAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class EulerianPathAnalyzer</code>
+    </div>
+    <p>Determines whether a graph has an Eulerian path or circuit (traverses every edge exactly once). Finds the path via Hierholzer's algorithm and computes the Chinese Postman solution when the graph is not Eulerian.</p>
+
+    <div class="api-method">
+        <div class="method-signature">EulerianType getType()</div>
+        <p class="method-desc">Returns <code>CIRCUIT</code>, <code>PATH</code>, or <code>NONE</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getOddDegreeVertices()</div>
+        <p class="method-desc">Vertices with odd degree (must be 0 for circuit, 2 for path).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getMinEdgeDuplications()</div>
+        <p class="method-desc">Minimum edge duplications needed for a Chinese Postman tour.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- HamiltonianAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="hamiltonian"><code>gvisual.HamiltonianAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class HamiltonianAnalyzer</code>
+    </div>
+    <p>Checks sufficient conditions (Dirac, Ore, Chvátal) for Hamiltonian cycles and finds Hamiltonian paths/cycles by backtracking.</p>
+
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; ConditionResult checkDirac(Graph&lt;V,E&gt; graph)</div>
+        <p class="method-desc">Checks Dirac's theorem: every vertex has degree ≥ n/2.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; ConditionResult checkOre(Graph&lt;V,E&gt; graph)</div>
+        <p class="method-desc">Checks Ore's theorem: for every non-adjacent pair u, v, deg(u)+deg(v) ≥ n.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; List&lt;V&gt; findHamiltonianCycle(Graph&lt;V,E&gt; graph)</div>
+        <p class="method-desc">Finds a Hamiltonian cycle, or returns empty if none exists.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; List&lt;V&gt; findHamiltonianPath(Graph&lt;V,E&gt; graph)</div>
+        <p class="method-desc">Finds a Hamiltonian path (visits every vertex exactly once).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; List&lt;List&lt;V&gt;&gt; findAllHamiltonianCycles(Graph&lt;V,E&gt; graph, int limit)</div>
+        <p class="method-desc">Enumerates all Hamiltonian cycles up to <code>limit</code>.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- NetworkFlowAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="netflow"><code>gvisual.NetworkFlowAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class NetworkFlowAnalyzer</code>
+    </div>
+    <p>Computes maximum flow between a source and sink using the Ford-Fulkerson method with BFS (Edmonds-Karp). Also finds the minimum cut and identifies bottleneck edges.</p>
+
+    <div class="api-method">
+        <div class="method-signature">double compute(String source, String sink)</div>
+        <p class="method-desc">Computes and returns the maximum flow value.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getMaxFlow()</div>
+        <p class="method-desc">Returns the previously computed max flow.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, Double&gt; getEdgeFlows()</div>
+        <p class="method-desc">Maps edge keys (<code>"v1→v2"</code>) to their flow values.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;edge&gt; getMinCut()</div>
+        <p class="method-desc">Edges crossing the minimum cut.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;edge&gt; getBottleneckEdges()</div>
+        <p class="method-desc">Edges at full capacity that constrain the flow.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- SpectralAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="spectral"><code>gvisual.SpectralAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class SpectralAnalyzer</code>
+    </div>
+    <p>Spectral analysis of graphs: eigenvalues of adjacency and Laplacian matrices, spectral radius, spectral gap, algebraic connectivity (Fiedler value), and spectral partitioning.</p>
+
+    <div class="api-method">
+        <div class="method-signature">SpectralAnalyzer compute()</div>
+        <p class="method-desc">Computes eigenvalues and eigenvectors. Returns <code>this</code> for chaining.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getSpectralRadius()</div>
+        <p class="method-desc">Largest eigenvalue of the adjacency matrix (relates to max degree and expansion).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getSpectralGap()</div>
+        <p class="method-desc">Difference between first and second largest adjacency eigenvalues (measures expansion).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getAlgebraicConnectivity()</div>
+        <p class="method-desc">Second-smallest Laplacian eigenvalue (Fiedler value). Zero for disconnected graphs.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double[] getFiedlerVector()</div>
+        <p class="method-desc">Eigenvector corresponding to the algebraic connectivity, used for spectral bisection.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getPartitionA() / getPartitionB()</div>
+        <p class="method-desc">Vertices split by the Fiedler vector sign (spectral bisection).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- RandomWalkAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="randomwalk"><code>gvisual.RandomWalkAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class RandomWalkAnalyzer</code>
+    </div>
+    <p>Random walk analytics: hitting time, commute distance, cover time, return time, mixing time, stationary distribution, and walk tracing. All methods are generic over vertex/edge types.</p>
+
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; double hittingTime(Graph&lt;V,E&gt; graph, V source, V target)</div>
+        <p class="method-desc">Expected number of steps for a random walk from <code>source</code> to reach <code>target</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; double commuteDistance(Graph&lt;V,E&gt; graph, V nodeA, V nodeB)</div>
+        <p class="method-desc">Expected round-trip time: <code>hit(A→B) + hit(B→A)</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; double coverTime(Graph&lt;V,E&gt; graph, V source)</div>
+        <p class="method-desc">Expected steps to visit every vertex at least once.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; Map&lt;V, Double&gt; stationaryDistribution(Graph&lt;V,E&gt; graph)</div>
+        <p class="method-desc">Limiting probability distribution of the random walk.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; int mixingTime(Graph&lt;V,E&gt; graph, double epsilon)</div>
+        <p class="method-desc">Minimum steps until the walk is within <code>epsilon</code> of stationarity.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">&lt;V,E&gt; List&lt;V&gt; walkTrace(Graph&lt;V,E&gt; graph, V source, int steps)</div>
+        <p class="method-desc">Executes a random walk and returns the vertex sequence.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- SmallWorldAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="smallworld"><code>gvisual.SmallWorldAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class SmallWorldAnalyzer</code>
+    </div>
+    <p>Measures small-world properties: clustering coefficient (local, global), average path length, and sigma/omega metrics that compare against equivalent random and lattice graphs.</p>
+
+    <div class="api-method">
+        <div class="method-signature">double getAvgClustering()</div>
+        <p class="method-desc">Average local clustering coefficient across all vertices.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getAvgPathLength()</div>
+        <p class="method-desc">Average shortest path length in the largest component.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getSigma()</div>
+        <p class="method-desc">σ = (C/C_random) / (L/L_random). Values &gt; 1 indicate small-world structure.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getOmega()</div>
+        <p class="method-desc">ω = (L_random/L) − (C/C_lattice). Near 0 = small-world, near −1 = lattice-like, near +1 = random.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- MotifAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="motif"><code>gvisual.MotifAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class MotifAnalyzer</code>
+    </div>
+    <p>Counts graph motifs (subgraph patterns): triangles, squares, 3/4/5-stars, wedges, paths, and computes clustering coefficient and triangle density.</p>
+
+    <div class="api-method">
+        <div class="method-signature">MotifAnalyzer compute()</div>
+        <p class="method-desc">Counts all motifs. Returns <code>this</code> for chaining.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getTriangleCount() / getSquareCount()</div>
+        <p class="method-desc">Number of triangles (3-cliques) / squares (4-cycles) in the graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getStar3Count() / getStar4Count() / getStar5Count()</div>
+        <p class="method-desc">Number of k-stars (vertex with k neighbors forming a star subgraph).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getClusteringCoefficient()</div>
+        <p class="method-desc">Ratio of closed triangles to connected triples.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getTriangleDensity()</div>
+        <p class="method-desc">Triangles relative to the maximum possible given the number of edges.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- TreeAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="tree"><code>gvisual.TreeAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class TreeAnalyzer</code>
+    </div>
+    <p>Tree-specific algorithms: checks if the graph is a tree, finds the center and centroid, computes diameter, roots the tree, and supports Prüfer sequence encoding/decoding and LCA queries.</p>
+
+    <div class="api-method">
+        <div class="method-signature">TreeCheck checkTree()</div>
+        <p class="method-desc">Checks if the graph is a tree (connected, n−1 edges, no cycles).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">CenterResult findCenter()</div>
+        <p class="method-desc">Finds center vertices by iteratively peeling leaves.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">CentroidResult findCentroid()</div>
+        <p class="method-desc">Finds centroid vertices (minimize max subtree size).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">DiameterResult findDiameter()</div>
+        <p class="method-desc">Diameter and the path that achieves it (double BFS).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">RootedTreeInfo rootAt(String root)</div>
+        <p class="method-desc">Roots the tree and computes parent, depth, subtree sizes, and height.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; encodePrufer()</div>
+        <p class="method-desc">Encodes the tree as a Prüfer sequence (bijection with labeled trees).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String query(String u, String v)</div>
+        <p class="method-desc">Lowest Common Ancestor of <code>u</code> and <code>v</code>.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- PlanarGraphAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="planar"><code>gvisual.PlanarGraphAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class PlanarGraphAnalyzer</code>
+    </div>
+    <p>Planarity testing using Kuratowski-style checks (edge density, K₅/K₃₃ subgraph search). Computes faces via Euler's formula and identifies the outer face.</p>
+
+    <div class="api-method">
+        <div class="method-signature">boolean isPlanar()</div>
+        <p class="method-desc">Returns <code>true</code> if the graph can be drawn in the plane without edge crossings.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String getReason()</div>
+        <p class="method-desc">Human-readable explanation of why planarity holds or fails.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int expectedFaces()</div>
+        <p class="method-desc">Expected face count from Euler's formula: E − V + 2.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphPartitioner -->
+<!-- ======================================= -->
+
+<h2 id="partition"><code>gvisual.GraphPartitioner</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphPartitioner</code>
+    </div>
+    <p>Partitions a graph into k balanced subsets, minimizing edge cuts. Supports spectral, greedy BFS, random, and label-propagation strategies.</p>
+
+    <div class="api-method">
+        <div class="method-signature">PartitionResult partition(int k, Strategy strategy)</div>
+        <p class="method-desc">Partitions the graph into <code>k</code> parts using the specified strategy.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getEdgeCuts()</div>
+        <p class="method-desc">Number of edges crossing partition boundaries.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getImbalanceRatio()</div>
+        <p class="method-desc">How unbalanced the partition is (0 = perfectly balanced).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getCutRatio()</div>
+        <p class="method-desc">Fraction of total edges that are cuts.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphResilienceAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="resilience"><code>gvisual.GraphResilienceAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphResilienceAnalyzer</code>
+    </div>
+    <p>Measures network resilience under targeted and random vertex removal. Tracks the largest component fraction as vertices are removed, producing attack curves for degree-based, betweenness-based, and random attacks.</p>
+
+    <div class="api-method">
+        <div class="method-signature">void analyze()</div>
+        <p class="method-desc">Runs all three attack strategies and records curves.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;ResilienceStep&gt; getDegreeAttackCurve()</div>
+        <p class="method-desc">Largest component fraction after each degree-ordered removal.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double computeRobustnessIndex(List&lt;ResilienceStep&gt; curve)</div>
+        <p class="method-desc">Area under the curve (0–1). Higher = more resilient.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String exportCSV()</div>
+        <p class="method-desc">Exports all curves as a CSV string.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- InfluenceSpreadSimulator -->
+<!-- ======================================= -->
+
+<h2 id="influence"><code>gvisual.InfluenceSpreadSimulator</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class InfluenceSpreadSimulator</code>
+    </div>
+    <p>Simulates information/disease spread using Independent Cascade (IC), Linear Threshold (LT), and SIR epidemic models. Supports seed selection (influence maximization) and vaccination strategy planning.</p>
+
+    <div class="api-method">
+        <div class="method-signature">SimulationResult simulateIC(Collection&lt;String&gt; seeds, double probability, int maxRounds)</div>
+        <p class="method-desc">Independent Cascade: each infected node gets one chance to infect each neighbor with given probability.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SimulationResult simulateLT(Collection&lt;String&gt; seeds, int maxRounds)</div>
+        <p class="method-desc">Linear Threshold: nodes activate when the fraction of active neighbors exceeds a random threshold.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SimulationResult simulateSIR(Collection&lt;String&gt; seeds, double beta, double gamma, int maxRounds)</div>
+        <p class="method-desc">SIR epidemic: Susceptible → Infected → Recovered with infection rate β and recovery rate γ.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;SeedCandidate&gt; findTopKSeeds(int k, Model model, ...)</div>
+        <p class="method-desc">Greedy influence maximization: finds the k most influential seed nodes.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">VaccinationStrategy findVaccinationTargets(int k)</div>
+        <p class="method-desc">Identifies the k best vaccination targets to minimize epidemic spread.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- LinkPredictionAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="linkpred"><code>gvisual.LinkPredictionAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class LinkPredictionAnalyzer</code>
+    </div>
+    <p>Predicts likely future edges using similarity-based methods: Common Neighbors, Jaccard Index, Adamic-Adar, and Preferential Attachment.</p>
+
+    <div class="api-method">
+        <div class="method-signature">List&lt;PredictedLink&gt; getPredictions()</div>
+        <p class="method-desc">Returns predicted links sorted by score (highest first).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Method getMethod()</div>
+        <p class="method-desc">The prediction method used (COMMON_NEIGHBORS, JACCARD, ADAMIC_ADAR, PREFERENTIAL_ATTACHMENT).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- StructuralHoleAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="structhole"><code>gvisual.StructuralHoleAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class StructuralHoleAnalyzer</code>
+    </div>
+    <p>Burt's structural hole analysis: effective size, efficiency, constraint, hierarchy, brokerage score, and bridge score for each vertex. Classifies roles as broker, bridge, constrained, or peripheral.</p>
+
+    <div class="api-method">
+        <div class="method-signature">double getEffectiveSize() / getEfficiency()</div>
+        <p class="method-desc">Non-redundant contacts and their proportion of total contacts.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getConstraint()</div>
+        <p class="method-desc">Aggregate constraint: higher values mean fewer structural holes (more embedded).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getBrokerageScore() / getBridgeScore()</div>
+        <p class="method-desc">Measures how much the vertex bridges between otherwise disconnected groups.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String getRole()</div>
+        <p class="method-desc">Classification: broker, bridge, constrained, or peripheral.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphEntropyAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="entropy"><code>gvisual.GraphEntropyAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphEntropyAnalyzer</code>
+    </div>
+    <p>Information-theoretic analysis: degree entropy, von Neumann entropy, edge type entropy, topological information content, random walk entropy rate, chromatic entropy, and mutual information between degree and clustering.</p>
+
+    <div class="api-method">
+        <div class="method-signature">void compute()</div>
+        <p class="method-desc">Computes all entropy measures.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getDegreeEntropy()</div>
+        <p class="method-desc">Shannon entropy of the degree distribution.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getVonNeumannEntropy()</div>
+        <p class="method-desc">Quantum-inspired entropy from the normalized Laplacian spectrum.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getAlgebraicConnectivity()</div>
+        <p class="method-desc">The algebraic connectivity (Fiedler value), also computed during entropy analysis.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getRandomWalkEntropyRate()</div>
+        <p class="method-desc">Asymptotic entropy rate of a random walk on the graph.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphAnomalyDetector -->
+<!-- ======================================= -->
+
+<h2 id="anomaly"><code>gvisual.GraphAnomalyDetector</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphAnomalyDetector</code>
+    </div>
+    <p>Detects anomalous vertices by computing z-scores across degree, clustering coefficient, betweenness centrality, and neighbor connectivity. The L2 norm of z-scores gives the composite anomaly score.</p>
+
+    <div class="api-method">
+        <div class="method-signature">GraphAnomalyDetector analyze()</div>
+        <p class="method-desc">Computes anomaly scores for all vertices. Returns <code>this</code> for chaining.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;AnomalyResult&gt; getTopAnomalies(int k)</div>
+        <p class="method-desc">Returns the <code>k</code> most anomalous vertices.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;AnomalyResult&gt; getAnomaliesAboveThreshold(double zThreshold)</div>
+        <p class="method-desc">Returns vertices whose composite z-score exceeds the threshold.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String formatReport()</div>
+        <p class="method-desc">Formatted text report of all anomaly results.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphDiffAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="diff"><code>gvisual.GraphDiffAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphDiffAnalyzer</code>
+    </div>
+    <p>Compares two graphs and reports structural differences: added/removed/common vertices and edges, Jaccard similarity, edit distance, and per-vertex degree changes.</p>
+
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getAddedNodes() / getRemovedNodes() / getCommonNodes()</div>
+        <p class="method-desc">Vertices present in only the second/first graph, or in both.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double getNodeJaccard() / getEdgeJaccard()</div>
+        <p class="method-desc">Jaccard similarity for vertices and edges (0–1).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getEditDistance()</div>
+        <p class="method-desc">Minimum node + edge additions/removals to transform one graph into the other.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, int[]&gt; getDegreeChanges()</div>
+        <p class="method-desc">Maps each vertex to <code>[old_degree, new_degree]</code>.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- ForceDirectedLayout -->
+<!-- ======================================= -->
+
+<h2 id="layout"><code>gvisual.ForceDirectedLayout</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class ForceDirectedLayout</code>
+    </div>
+    <p>Fruchterman-Reingold force-directed layout algorithm for computing 2D vertex positions. Includes quality metrics: edge crossings, length uniformity, angular resolution, and stress.</p>
+
+    <div class="api-method">
+        <div class="method-signature">ForceDirectedLayout compute()</div>
+        <p class="method-desc">Runs the force simulation. Returns <code>this</code> for chaining.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, double[]&gt; getPositions()</div>
+        <p class="method-desc">Raw [x, y] positions for each vertex.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Map&lt;String, double[]&gt; getNormalizedPositions(double vpWidth, double vpHeight)</div>
+        <p class="method-desc">Positions scaled to fit within a viewport of the given size.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int countEdgeCrossings()</div>
+        <p class="method-desc">Number of edge-edge intersections in the current layout.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">double computeStress()</div>
+        <p class="method-desc">Stress metric: sum of squared differences between layout distances and graph distances.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- SubgraphExtractor -->
+<!-- ======================================= -->
+
+<h2 id="subgraph"><code>gvisual.SubgraphExtractor</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class SubgraphExtractor</code>
+    </div>
+    <p>Fluent builder for extracting subgraphs with filters: edge type, weight range, degree range, k-hop neighborhood, node set, time window, and connectivity constraints.</p>
+
+    <div class="api-method">
+        <div class="method-signature">SubgraphExtractor filterByEdgeType(String... typeCodes)</div>
+        <p class="method-desc">Keep only edges of the specified types.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SubgraphExtractor filterByMinWeight(float) / filterByMaxWeight(float)</div>
+        <p class="method-desc">Keep edges within a weight range.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SubgraphExtractor filterByNeighborhood(String seed, int k)</div>
+        <p class="method-desc">Keep only the k-hop neighborhood of <code>seed</code>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">SubgraphExtractor filterByTimeWindow(long startMillis, long endMillis)</div>
+        <p class="method-desc">Keep only edges within a time window (requires temporal graph).</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Result extract()</div>
+        <p class="method-desc">Applies all filters and returns the resulting subgraph with statistics.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- GraphGenerator -->
+<!-- ======================================= -->
+
+<h2 id="generator"><code>gvisual.GraphGenerator</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class GraphGenerator</code>
+    </div>
+    <p>Generates synthetic graphs for testing and benchmarking: complete, ring, star, grid, tree, Erdős-Rényi random, Barabási-Albert preferential attachment, Watts-Strogatz small-world, and bipartite complete graphs.</p>
+
+    <div class="api-method">
+        <div class="method-signature">GeneratedGraph complete(int n)</div>
+        <p class="method-desc">Complete graph K<sub>n</sub>.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">GeneratedGraph erdosRenyi(int n, double p)</div>
+        <p class="method-desc">Erdős-Rényi G(n, p) random graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">GeneratedGraph barabasiAlbert(int n, int m)</div>
+        <p class="method-desc">Barabási-Albert preferential attachment model.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">GeneratedGraph wattsStrogatz(int n, int k, double beta)</div>
+        <p class="method-desc">Watts-Strogatz small-world model.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- CsvReportExporter -->
+<!-- ======================================= -->
+
+<h2 id="csv"><code>gvisual.CsvReportExporter</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class CsvReportExporter</code>
+    </div>
+    <p>Exports a comprehensive analysis report as CSV. Includes graph stats, centrality, communities, cliques, degree distribution, and structural metrics.</p>
+
+    <div class="api-method">
+        <div class="method-signature">void export(File file) throws IOException</div>
+        <p class="method-desc">Writes the report to a CSV file.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">String exportToString()</div>
+        <p class="method-desc">Returns the report as a CSV string.</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- VertexConnectivityAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="vertconn"><code>gvisual.VertexConnectivityAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class VertexConnectivityAnalyzer</code>
+    </div>
+    <p>Computes vertex connectivity (κ), edge connectivity (λ), and minimum cuts. Verifies Whitney's inequality: κ ≤ λ ≤ δ.</p>
+
+    <div class="api-method">
+        <div class="method-signature">int getVertexConnectivity()</div>
+        <p class="method-desc">Minimum number of vertices whose removal disconnects the graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">int getEdgeConnectivity()</div>
+        <p class="method-desc">Minimum number of edges whose removal disconnects the graph.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">Set&lt;String&gt; getMinimumVertexCut()</div>
+        <p class="method-desc">A minimum vertex cut set.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">boolean isWhitneyHolds()</div>
+        <p class="method-desc">Whether κ ≤ λ ≤ δ holds (should always be true).</p>
+    </div>
+</div>
+
+<!-- ======================================= -->
+<!-- TreewidthAnalyzer -->
+<!-- ======================================= -->
+
+<h2 id="treewidth"><code>gvisual.TreewidthAnalyzer</code></h2>
+
+<div class="api-class">
+    <div class="api-class-header">
+        <span class="badge badge-class">Class</span>
+        <code>public class TreewidthAnalyzer</code>
+    </div>
+    <p>Approximates the treewidth of a graph using greedy elimination orderings (min-degree, min-fill). Lower treewidth indicates the graph is "tree-like" and amenable to dynamic-programming algorithms.</p>
+
+    <div class="api-method">
+        <div class="method-signature">int getTreewidth()</div>
+        <p class="method-desc">Upper-bound approximation of the treewidth.</p>
+    </div>
+    <div class="api-method">
+        <div class="method-signature">List&lt;String&gt; getEliminationOrder()</div>
+        <p class="method-desc">The vertex elimination order used to compute the treewidth.</p>
     </div>
 </div>
 
