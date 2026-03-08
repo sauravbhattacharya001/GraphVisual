@@ -258,7 +258,8 @@ public class InteractiveHtmlExporter {
     }
 
     private String generateJs() {
-        return "(() => {\n"
+        return "function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}\n"
+            + "(() => {\n"
             + "const svg = d3.select('#graph');\n"
             + "const container = document.getElementById('graph-container');\n"
             + "const w = container.clientWidth, h = container.clientHeight;\n"
@@ -307,7 +308,7 @@ public class InteractiveHtmlExporter {
             + "    if (s === d.index) neighbors.add(t);\n"
             + "    if (t === d.index) neighbors.add(s);\n"
             + "  });\n"
-            + "  tooltip.innerHTML = '<strong>' + d.id + '</strong><br>Degree: ' + d.deg + '<br>Neighbors: ' + neighbors.size;\n"
+            + "  tooltip.innerHTML = '<strong>' + escH(d.id) + '</strong><br>Degree: ' + d.deg + '<br>Neighbors: ' + neighbors.size;\n"
             + "  tooltip.style.display = 'block';\n"
             + "  tooltip.style.left = (ev.pageX + 12) + 'px';\n"
             + "  tooltip.style.top = (ev.pageY - 20) + 'px';\n"
@@ -340,7 +341,7 @@ public class InteractiveHtmlExporter {
             + "  const detail = document.getElementById('node-detail');\n"
             + "  if (info && detail) {\n"
             + "    info.style.display = 'block';\n"
-            + "    detail.innerHTML = '<strong>' + d.id + '</strong><br>Degree: ' + d.deg + '<br>Neighbors: ' + (neighbors.size - 1);\n"
+            + "    detail.innerHTML = '<strong>' + escH(d.id) + '</strong><br>Degree: ' + d.deg + '<br>Neighbors: ' + (neighbors.size - 1);\n"
             + "  }\n"
             + "});\n"
             + "\n"
@@ -434,6 +435,12 @@ public class InteractiveHtmlExporter {
 
     private static String escJs(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("'", "\\'")
+                .replace("\n", "\\n")
+                .replace("\r", "")
+                .replace("<", "\\x3c")    // prevent </script> breakout (CWE-79)
+                .replace(">", "\\x3e");
     }
 }

@@ -138,7 +138,11 @@ public class CsvReportExporter {
     }
 
     /**
-     * Computes degree, betweenness, and closeness centrality using BFS.
+     * Computes degree, betweenness, and closeness centrality.
+     *
+     * <p>Delegates betweenness to {@link GraphUtils#computeBetweenness(Graph)}
+     * (array-based Brandes algorithm) instead of reimplementing it locally.
+     * Closeness is computed via a separate per-source BFS pass.</p>
      */
     private void computeCentralities(Map<String, Double> degreeCent,
                                      Map<String, Double> betweenness,
@@ -147,112 +151,90 @@ public class CsvReportExporter {
         int n = vertices.size();
         if (n == 0) return;
 
-        // Degree centrality
+        // Degree centrality: degree / (n-1)
         double maxDeg = n > 1 ? (n - 1.0) : 1.0;
         for (String v : vertices) {
             degreeCent.put(v, graph.degree(v) / maxDeg);
-            betweenness.put(v, 0.0);
         }
 
-        // Brandes' betweenness centrality
-        for (String s : vertices) {
-            Deque<String> stack = new ArrayDeque<String>();
-            Map<String, List<String>> pred = new LinkedHashMap<String, List<String>>();
-            Map<String, Integer> sigma = new LinkedHashMap<String, Integer>();
-            Map<String, Integer> dist = new LinkedHashMap<String, Integer>();
+        // Betweenness centrality — delegate to GraphUtils (array-based, already halved)
+        Map<String, Double> rawBC = GraphUtils.computeBetweenness(graph);
+        // Normalize: divide by (n-1)(n-2) to get values in [0,1]
+        double norm = (n > 2) ? (n - 1.0) * (n - 2.0) / 2.0 : 1.0;
+        for (String v : vertices) {
+            Double bc = rawBC.get(v);
+            betweenness.put(v, bc != null ? bc / norm : 0.0);
+        }
 
-            for (String v : vertices) {
-                pred.put(v, new ArrayList<String>());
-                sigma.put(v, 0);
-                dist.put(v, -1);
-            }
-            sigma.put(s, 1);
-            dist.put(s, 0);
+        // Closeness centrality — BFS from each vertex
+        computeCloseness(closeness, vertices);
+    }
 
-            Queue<String> queue = new LinkedList<String>();
-            queue.add(s);
+    /**
+     * Computes closeness centrality for every vertex via per-source BFS.
+     * Uses array-based BFS for efficiency.
+     */
+    private void computeCloseness(Map<String, Double> closeness,
+                                  Collection<String> vertices) {
+        int n = vertices.size();
+        List<String> vertexList = new ArrayList<String>(vertices);
+        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
+        }
 
-            while (!queue.isEmpty()) {
-                String v = queue.poll();
-                stack.push(v);
-                for (String w : graph.getNeighbors(v)) {
-                    if (dist.get(w) < 0) {
-                        queue.add(w);
-                        dist.put(w, dist.get(v) + 1);
-                    }
-                    if (dist.get(w) == dist.get(v) + 1) {
-                        sigma.put(w, sigma.get(w) + sigma.get(v));
-                        pred.get(w).add(v);
-                    }
+        // Build adjacency lists
+        int[][] adjLists = new int[n][];
+        for (int i = 0; i < n; i++) {
+            Collection<String> neighbors = graph.getNeighbors(vertexList.get(i));
+            List<Integer> adj = new ArrayList<Integer>();
+            if (neighbors != null) {
+                for (String nb : neighbors) {
+                    Integer idx = vertexIndex.get(nb);
+                    if (idx != null) adj.add(idx);
                 }
             }
-
-            Map<String, Double> delta = new LinkedHashMap<String, Double>();
-            for (String v : vertices) delta.put(v, 0.0);
-
-            while (!stack.isEmpty()) {
-                String w = stack.pop();
-                for (String v : pred.get(w)) {
-                    double d = delta.get(v) + (sigma.get(v).doubleValue() / sigma.get(w)) * (1.0 + delta.get(w));
-                    delta.put(v, d);
-                }
-                if (!w.equals(s)) {
-                    betweenness.put(w, betweenness.get(w) + delta.get(w));
-                }
+            adjLists[i] = new int[adj.size()];
+            for (int j = 0; j < adj.size(); j++) {
+                adjLists[i][j] = adj.get(j);
             }
+        }
 
-            // Closeness from this BFS
+        int[] dist = new int[n];
+        int[] queue = new int[n];
+
+        for (int s = 0; s < n; s++) {
+            Arrays.fill(dist, -1);
+            dist[s] = 0;
+            int qHead = 0, qTail = 0;
+            queue[qTail++] = s;
+
             int reachable = 0;
             int totalDist = 0;
-            for (String v : vertices) {
-                if (dist.get(v) > 0) {
-                    reachable++;
-                    totalDist += dist.get(v);
+
+            while (qHead < qTail) {
+                int v = queue[qHead++];
+                for (int w : adjLists[v]) {
+                    if (dist[w] < 0) {
+                        dist[w] = dist[v] + 1;
+                        queue[qTail++] = w;
+                        reachable++;
+                        totalDist += dist[w];
+                    }
                 }
             }
-            if (reachable > 0 && totalDist > 0) {
-                closeness.put(s, (double) reachable / totalDist);
-            } else {
-                closeness.put(s, 0.0);
-            }
-        }
 
-        // Normalize betweenness
-        if (n > 2) {
-            double norm = (n - 1.0) * (n - 2.0);
-            for (String v : vertices) {
-                betweenness.put(v, betweenness.get(v) / norm);
-            }
+            closeness.put(vertexList.get(s),
+                (reachable > 0 && totalDist > 0) ? (double) reachable / totalDist : 0.0);
         }
     }
 
     /**
      * Community detection via connected components, labeled by size rank.
+     * Delegates component-finding to {@link GraphUtils#findComponents(Graph)}.
      */
     private Map<String, Integer> computeCommunities() {
-        Map<String, Integer> communityMap = new LinkedHashMap<String, Integer>();
-        Set<String> visited = new HashSet<String>();
-        List<Set<String>> components = new ArrayList<Set<String>>();
-
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                Set<String> comp = new HashSet<String>();
-                Queue<String> queue = new LinkedList<String>();
-                queue.add(v);
-                visited.add(v);
-                while (!queue.isEmpty()) {
-                    String u = queue.poll();
-                    comp.add(u);
-                    for (String w : graph.getNeighbors(u)) {
-                        if (!visited.contains(w)) {
-                            visited.add(w);
-                            queue.add(w);
-                        }
-                    }
-                }
-                components.add(comp);
-            }
-        }
+        List<Set<String>> components = GraphUtils.findComponents(graph);
 
         // Sort by size descending
         Collections.sort(components, new Comparator<Set<String>>() {
@@ -261,12 +243,12 @@ public class CsvReportExporter {
             }
         });
 
+        Map<String, Integer> communityMap = new LinkedHashMap<String, Integer>();
         for (int i = 0; i < components.size(); i++) {
             for (String v : components.get(i)) {
                 communityMap.put(v, i);
             }
         }
-
         return communityMap;
     }
 
