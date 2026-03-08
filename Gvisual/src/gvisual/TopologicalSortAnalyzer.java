@@ -175,6 +175,56 @@ public class TopologicalSortAnalyzer {
         public boolean isLeaf() { return isLeaf; }
     }
 
+    // ── Directed adjacency helper ──────────────────────────────
+
+    /**
+     * Holds the directed adjacency representation built from the graph's
+     * edges.  Extracted to avoid duplicating the build logic in
+     * {@link #analyze()}, {@link #analyzeDependencies(String)}, and
+     * {@link #countChoicePoints()}.
+     */
+    private static class DirectedAdj {
+        final Set<String> vertices;
+        final Map<String, Set<String>> successors;
+        final Map<String, Set<String>> predecessors;
+
+        DirectedAdj(Set<String> vertices,
+                    Map<String, Set<String>> successors,
+                    Map<String, Set<String>> predecessors) {
+            this.vertices = vertices;
+            this.successors = successors;
+            this.predecessors = predecessors;
+        }
+    }
+
+    /**
+     * Builds the directed adjacency maps from the graph.  Each edge is
+     * interpreted as vertex1 → vertex2 (vertex1 must come before vertex2).
+     */
+    private DirectedAdj buildDirectedAdj() {
+        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
+        Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
+        Set<String> allVertices = new HashSet<String>();
+
+        for (String v : graph.getVertices()) {
+            allVertices.add(v);
+            successors.put(v, new HashSet<String>());
+            predecessors.put(v, new HashSet<String>());
+        }
+
+        for (edge e : graph.getEdges()) {
+            String from = e.getVertex1();
+            String to = e.getVertex2();
+            if (from != null && to != null
+                    && allVertices.contains(from) && allVertices.contains(to)) {
+                successors.get(from).add(to);
+                predecessors.get(to).add(from);
+            }
+        }
+
+        return new DirectedAdj(allVertices, successors, predecessors);
+    }
+
     // ── Core algorithms ─────────────────────────────────────────
 
     /**
@@ -190,25 +240,10 @@ public class TopologicalSortAnalyzer {
      * @return complete topological sort analysis
      */
     public TopologicalSortResult analyze() {
-        // Build directed adjacency from edge objects
-        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
-        Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
-        Set<String> allVertices = new HashSet<String>();
-
-        for (String v : graph.getVertices()) {
-            allVertices.add(v);
-            successors.put(v, new HashSet<String>());
-            predecessors.put(v, new HashSet<String>());
-        }
-
-        for (edge e : graph.getEdges()) {
-            String from = e.getVertex1();
-            String to = e.getVertex2();
-            if (from != null && to != null && allVertices.contains(from) && allVertices.contains(to)) {
-                successors.get(from).add(to);
-                predecessors.get(to).add(from);
-            }
-        }
+        DirectedAdj adj = buildDirectedAdj();
+        Map<String, Set<String>> successors = adj.successors;
+        Map<String, Set<String>> predecessors = adj.predecessors;
+        Set<String> allVertices = adj.vertices;
 
         // Kahn's algorithm for topological sort
         Map<String, Integer> inDegree = new HashMap<String, Integer>();
@@ -316,25 +351,9 @@ public class TopologicalSortAnalyzer {
             return null;
         }
 
-        // Build directed adjacency
-        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
-        Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
-        Set<String> allVertices = new HashSet<String>();
-
-        for (String v : graph.getVertices()) {
-            allVertices.add(v);
-            successors.put(v, new HashSet<String>());
-            predecessors.put(v, new HashSet<String>());
-        }
-
-        for (edge e : graph.getEdges()) {
-            String from = e.getVertex1();
-            String to = e.getVertex2();
-            if (from != null && to != null && allVertices.contains(from) && allVertices.contains(to)) {
-                successors.get(from).add(to);
-                predecessors.get(to).add(from);
-            }
-        }
+        DirectedAdj adj = buildDirectedAdj();
+        Map<String, Set<String>> successors = adj.successors;
+        Map<String, Set<String>> predecessors = adj.predecessors;
 
         // BFS backwards for all transitive dependencies
         Set<String> allDeps = new HashSet<String>();
@@ -395,22 +414,14 @@ public class TopologicalSortAnalyzer {
             return -1;
         }
 
-        // Re-run Kahn's counting points where multiple vertices are ready
-        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
+        // Re-use shared adjacency builder and count points where
+        // multiple vertices are ready simultaneously
+        DirectedAdj adj = buildDirectedAdj();
+        Map<String, Set<String>> successors = adj.successors;
         Map<String, Integer> inDegree = new HashMap<String, Integer>();
 
-        for (String v : graph.getVertices()) {
-            successors.put(v, new HashSet<String>());
-            inDegree.put(v, 0);
-        }
-
-        for (edge e : graph.getEdges()) {
-            String from = e.getVertex1();
-            String to = e.getVertex2();
-            if (from != null && to != null && successors.containsKey(from)) {
-                successors.get(from).add(to);
-                inDegree.put(to, inDegree.get(to) + 1);
-            }
+        for (String v : adj.vertices) {
+            inDegree.put(v, adj.predecessors.get(v).size());
         }
 
         List<String> ready = new ArrayList<String>();

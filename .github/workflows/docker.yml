@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write   # for Trivy SARIF upload
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -48,6 +49,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -56,6 +58,44 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Load image locally for scanning even on PRs
+          load: ${{ github.event_name == 'pull_request' }}
+
+      - name: Determine scan image
+        id: scan-image
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Use the first tag from metadata (locally loaded)
+            echo "image=$(echo '${{ steps.meta.outputs.tags }}' | head -1)" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=ghcr.io/${{ github.repository }}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.scan-image.outputs.image }}
+          format: table
+          exit-code: 0          # warn, don't fail the build
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Trivy SARIF report
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.scan-image.outputs.image }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true   # don't fail if Advanced Security is disabled
 
       - name: Verify image (on push)
         if: github.event_name != 'pull_request'
