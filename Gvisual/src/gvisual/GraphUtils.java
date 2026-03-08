@@ -103,7 +103,9 @@ public final class GraphUtils {
         while (!queue.isEmpty()) {
             String current = queue.poll();
             int currentDist = distances.get(current);
-            for (edge e : graph.getIncidentEdges(current)) {
+            Collection<edge> incidentEdges = graph.getIncidentEdges(current);
+            if (incidentEdges == null) continue;
+            for (edge e : incidentEdges) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !distances.containsKey(neighbor)) {
                     distances.put(neighbor, currentDist + 1);
@@ -130,7 +132,9 @@ public final class GraphUtils {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            for (edge e : graph.getIncidentEdges(current)) {
+            Collection<edge> incidentEdges = graph.getIncidentEdges(current);
+            if (incidentEdges == null) continue;
+            for (edge e : incidentEdges) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !component.contains(neighbor)) {
                     component.add(neighbor);
@@ -191,8 +195,13 @@ public final class GraphUtils {
      */
     public static Set<String> getCommonNeighbors(
             Map<String, Set<String>> adjacency, String u, String v) {
-        Set<String> common = new HashSet<String>(adjacency.get(u));
-        common.retainAll(adjacency.get(v));
+        Set<String> uNeighbors = adjacency.get(u);
+        Set<String> vNeighbors = adjacency.get(v);
+        if (uNeighbors == null || vNeighbors == null) {
+            return new HashSet<String>();
+        }
+        Set<String> common = new HashSet<String>(uNeighbors);
+        common.retainAll(vNeighbors);
         return common;
     }
 
