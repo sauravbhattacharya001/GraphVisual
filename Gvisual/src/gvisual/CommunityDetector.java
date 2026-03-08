@@ -80,7 +80,7 @@ public class CommunityDetector {
         public double getDensity() {
             int n = members.size();
             if (n < 2) return 0.0;
-            return (2.0 * internalEdges) / (n * (n - 1));
+            return (2.0 * internalEdges) / ((long) n * (n - 1));
         }
 
         /**

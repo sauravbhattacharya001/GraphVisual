@@ -364,7 +364,7 @@ public class SubgraphExtractor {
         public double getDensity() {
             int n = graph.getVertexCount();
             if (n < 2) return 0.0;
-            return (2.0 * graph.getEdgeCount()) / (n * (n - 1));
+            return (2.0 * graph.getEdgeCount()) / ((long) n * (n - 1));
         }
 
         /** Returns a formatted summary string. */
