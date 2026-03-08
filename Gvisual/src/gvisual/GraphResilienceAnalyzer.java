@@ -261,21 +261,7 @@ public class GraphResilienceAnalyzer {
     }
 
     private Graph<String, edge> copyGraph() {
-        Graph<String, edge> copy = new UndirectedSparseGraph<>();
-        for (String v : graph.getVertices()) {
-            copy.addVertex(v);
-        }
-        for (edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            Iterator<String> it = endpoints.iterator();
-            String v1 = it.next();
-            String v2 = it.next();
-            edge newEdge = new edge(e.getType(), v1, v2);
-            newEdge.setWeight(e.getWeight());
-            newEdge.setLabel(e.getLabel());
-            copy.addEdge(newEdge, v1, v2);
-        }
-        return copy;
+        return GraphUtils.copyGraph(graph);
     }
 
     private ResilienceStep captureStep(Graph<String, edge> g, int originalSize,
@@ -300,75 +286,11 @@ public class GraphResilienceAnalyzer {
     }
 
     private double globalEfficiency(Graph<String, edge> g) {
-        int n = g.getVertexCount();
-        if (n <= 1) return 0.0;
-        double sum = 0.0;
-        List<String> nodes = new ArrayList<>(g.getVertices());
-        for (int i = 0; i < nodes.size(); i++) {
-            Map<String, Integer> dist = GraphUtils.bfsDistances(g, nodes.get(i));
-            for (int j = i + 1; j < nodes.size(); j++) {
-                Integer d = dist.get(nodes.get(j));
-                if (d != null && d > 0) {
-                    sum += 1.0 / d;
-                }
-            }
-        }
-        return (2.0 * sum) / (n * (n - 1));
+        return GraphUtils.globalEfficiency(g);
     }
 
     private Map<String, Double> computeBetweenness(Graph<String, edge> g) {
-        Map<String, Double> bc = new HashMap<>();
-        for (String v : g.getVertices()) bc.put(v, 0.0);
-
-        for (String s : g.getVertices()) {
-            Stack<String> stack = new Stack<>();
-            Map<String, List<String>> pred = new HashMap<>();
-            Map<String, Double> sigma = new HashMap<>();
-            Map<String, Integer> dist = new HashMap<>();
-            Map<String, Double> delta = new HashMap<>();
-
-            for (String v : g.getVertices()) {
-                pred.put(v, new ArrayList<>());
-                sigma.put(v, 0.0);
-                dist.put(v, -1);
-                delta.put(v, 0.0);
-            }
-            sigma.put(s, 1.0);
-            dist.put(s, 0);
-
-            Queue<String> queue = new LinkedList<>();
-            queue.add(s);
-
-            while (!queue.isEmpty()) {
-                String v = queue.poll();
-                stack.push(v);
-                for (String w : g.getNeighbors(v)) {
-                    if (dist.get(w) < 0) {
-                        queue.add(w);
-                        dist.put(w, dist.get(v) + 1);
-                    }
-                    if (dist.get(w) == dist.get(v) + 1) {
-                        sigma.put(w, sigma.get(w) + sigma.get(v));
-                        pred.get(w).add(v);
-                    }
-                }
-            }
-
-            while (!stack.isEmpty()) {
-                String w = stack.pop();
-                for (String v : pred.get(w)) {
-                    delta.put(v, delta.get(v) + (sigma.get(v) / sigma.get(w)) * (1.0 + delta.get(w)));
-                }
-                if (!w.equals(s)) {
-                    bc.put(w, bc.get(w) + delta.get(w));
-                }
-            }
-        }
-        // Normalize for undirected graph
-        for (String v : g.getVertices()) {
-            bc.put(v, bc.get(v) / 2.0);
-        }
-        return bc;
+        return GraphUtils.computeBetweenness(g);
     }
 
     private String findThreshold(List<ResilienceStep> curve, int originalSize, double fraction) {

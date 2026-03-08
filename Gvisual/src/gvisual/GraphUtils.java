@@ -1,6 +1,7 @@
 package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.*;
 
 /**
@@ -321,6 +322,212 @@ public final class GraphUtils {
         int edges = countEdgesInSubgraph(graph, vertices);
         int comps = countComponentsInSubgraph(graph, vertices);
         return edges - vertices.size() + comps;
+    }
+
+    // ── Graph copy ──────────────────────────────────────────────────────
+
+    /**
+     * Creates a deep copy of a graph, preserving all vertices, edges, edge
+     * types, weights, and labels.
+     *
+     * @param graph the graph to copy
+     * @return a new graph with identical structure
+     */
+    public static Graph<String, edge> copyGraph(Graph<String, edge> graph) {
+        Graph<String, edge> copy = new UndirectedSparseGraph<String, edge>();
+        for (String v : graph.getVertices()) {
+            copy.addVertex(v);
+        }
+        for (edge e : graph.getEdges()) {
+            Collection<String> endpoints = graph.getEndpoints(e);
+            Iterator<String> it = endpoints.iterator();
+            String v1 = it.next();
+            String v2 = it.next();
+            edge newEdge = new edge(e.getType(), v1, v2);
+            newEdge.setWeight(e.getWeight());
+            newEdge.setLabel(e.getLabel());
+            copy.addEdge(newEdge, v1, v2);
+        }
+        return copy;
+    }
+
+    // ── Betweenness Centrality (array-based Brandes) ──────────────────
+
+    /**
+     * Computes betweenness centrality for all vertices using Brandes'
+     * algorithm with array-based storage. Avoids per-source HashMap
+     * allocation, using indexed arrays for sigma, distance, delta, and
+     * predecessor lists.
+     *
+     * <p>For undirected graphs the raw scores are halved (each shortest
+     * path is counted from both endpoints).</p>
+     *
+     * @param graph the graph
+     * @return map from vertex ID to betweenness centrality score
+     */
+    public static Map<String, Double> computeBetweenness(Graph<String, edge> graph) {
+        int n = graph.getVertexCount();
+        if (n == 0) return Collections.emptyMap();
+
+        // Build vertex index for array-based lookups
+        List<String> vertexList = new ArrayList<String>(graph.getVertices());
+        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
+        }
+
+        // Build adjacency lists using integer indices
+        int[][] adjLists = new int[n][];
+        for (int i = 0; i < n; i++) {
+            String node = vertexList.get(i);
+            Collection<String> neighbors = graph.getNeighbors(node);
+            List<Integer> adj = new ArrayList<Integer>();
+            if (neighbors != null) {
+                for (String nb : neighbors) {
+                    Integer idx = vertexIndex.get(nb);
+                    if (idx != null) adj.add(idx);
+                }
+            }
+            adjLists[i] = new int[adj.size()];
+            for (int j = 0; j < adj.size(); j++) {
+                adjLists[i][j] = adj.get(j);
+            }
+        }
+
+        double[] bc = new double[n];
+
+        // Reusable arrays (allocated once, cleared per source)
+        double[] sigma = new double[n];
+        int[] dist = new int[n];
+        double[] delta = new double[n];
+        @SuppressWarnings("unchecked")
+        List<Integer>[] pred = new List[n];
+        for (int i = 0; i < n; i++) {
+            pred[i] = new ArrayList<Integer>();
+        }
+        int[] stack = new int[n];
+        int stackTop;
+        int[] queue = new int[n];
+
+        for (int s = 0; s < n; s++) {
+            // Reset arrays
+            Arrays.fill(sigma, 0.0);
+            Arrays.fill(dist, -1);
+            Arrays.fill(delta, 0.0);
+            for (int i = 0; i < n; i++) pred[i].clear();
+
+            sigma[s] = 1.0;
+            dist[s] = 0;
+            stackTop = 0;
+            int qHead = 0, qTail = 0;
+            queue[qTail++] = s;
+
+            while (qHead < qTail) {
+                int v = queue[qHead++];
+                stack[stackTop++] = v;
+                for (int w : adjLists[v]) {
+                    if (dist[w] < 0) {
+                        queue[qTail++] = w;
+                        dist[w] = dist[v] + 1;
+                    }
+                    if (dist[w] == dist[v] + 1) {
+                        sigma[w] += sigma[v];
+                        pred[w].add(v);
+                    }
+                }
+            }
+
+            // Back-propagation
+            while (stackTop > 0) {
+                int w = stack[--stackTop];
+                for (int v : pred[w]) {
+                    delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+                }
+                if (w != s) {
+                    bc[w] += delta[w];
+                }
+            }
+        }
+
+        // Halve for undirected and build result map
+        Map<String, Double> result = new LinkedHashMap<String, Double>();
+        for (int i = 0; i < n; i++) {
+            result.put(vertexList.get(i), bc[i] / 2.0);
+        }
+        return result;
+    }
+
+    // ── Global Efficiency (array-based BFS) ───────────────────────────
+
+    /**
+     * Computes the global efficiency of a graph:
+     * E = (2 / (n*(n-1))) * Σ_{i<j} 1/d(i,j)
+     *
+     * <p>Uses array-based BFS instead of HashMap-based to minimize
+     * allocation overhead, especially when called repeatedly during
+     * resilience simulations.</p>
+     *
+     * @param graph the graph
+     * @return global efficiency in [0, 1]
+     */
+    public static double globalEfficiency(Graph<String, edge> graph) {
+        int n = graph.getVertexCount();
+        if (n <= 1) return 0.0;
+
+        // Build vertex index and adjacency lists
+        List<String> vertexList = new ArrayList<String>(graph.getVertices());
+        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
+        }
+
+        int[][] adjLists = new int[n][];
+        for (int i = 0; i < n; i++) {
+            String node = vertexList.get(i);
+            Collection<String> neighbors = graph.getNeighbors(node);
+            List<Integer> adj = new ArrayList<Integer>();
+            if (neighbors != null) {
+                for (String nb : neighbors) {
+                    Integer idx = vertexIndex.get(nb);
+                    if (idx != null) adj.add(idx);
+                }
+            }
+            adjLists[i] = new int[adj.size()];
+            for (int j = 0; j < adj.size(); j++) {
+                adjLists[i][j] = adj.get(j);
+            }
+        }
+
+        // Reusable BFS arrays
+        int[] dist = new int[n];
+        int[] queue = new int[n];
+
+        double sum = 0.0;
+        for (int source = 0; source < n; source++) {
+            Arrays.fill(dist, -1);
+            dist[source] = 0;
+            int qHead = 0, qTail = 0;
+            queue[qTail++] = source;
+
+            while (qHead < qTail) {
+                int v = queue[qHead++];
+                for (int w : adjLists[v]) {
+                    if (dist[w] < 0) {
+                        dist[w] = dist[v] + 1;
+                        queue[qTail++] = w;
+                    }
+                }
+            }
+
+            // Only count j > source to avoid double-counting
+            for (int j = source + 1; j < n; j++) {
+                if (dist[j] > 0) {
+                    sum += 1.0 / dist[j];
+                }
+            }
+        }
+
+        return (2.0 * sum) / ((long) n * (n - 1));
     }
 
     // ── Weighted shortest paths (Dijkstra) ────────────────────────────
