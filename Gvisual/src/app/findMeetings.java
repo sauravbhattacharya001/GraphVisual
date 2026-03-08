@@ -118,12 +118,8 @@ public class findMeetings {
             for (; monthInt <= 5; monthInt++) {
                 for (dateInt = 1; dateInt <= 31; dateInt++) {
 
-                    String month = Integer.toString(monthInt);
-                    month = "0" + month;
-                    String date = Integer.toString(dateInt);
-                    if (dateInt < 10) {
-                        date = "0" + date;
-                    }
+                    String month = String.format("%02d", monthInt);
+                    String date = String.format("%02d", dateInt);
 
                     selectStmt.setString(1, month);
                     selectStmt.setString(2, date);
@@ -157,17 +153,12 @@ public class findMeetings {
 
                         String devicePair = imei1 + "#" + imei2;
 
-                        if (deviceInteraction.containsKey(devicePair)) {
-                            SortedSet<String> newList = deviceInteraction.get(devicePair);
-                            newList.add(curTime);
-
-                            deviceInteraction.remove(devicePair);
-                            deviceInteraction.put(devicePair, newList);
-                        } else {
-                            SortedSet<String> newList = new TreeSet<String>();
-                            newList.add(curTime);
-                            deviceInteraction.put(devicePair, newList);
-                        }
+                        // computeIfAbsent avoids the redundant remove-then-put
+                        // pattern — the SortedSet is a reference type, so adding
+                        // to the existing set is sufficient.
+                        deviceInteraction
+                            .computeIfAbsent(devicePair, k -> new TreeSet<String>())
+                            .add(curTime);
                     }
 
                     System.out.println("Hash Map created");
@@ -192,6 +183,15 @@ public class findMeetings {
                             } else {
                                 lastTime = y;
                             }
+                        }
+
+                        // Flush the final meeting segment — the loop above only
+                        // inserts when a gap exceeds WINDOW_SIZE, so the last
+                        // meeting (from meetingStartTime to lastTime) would be
+                        // silently dropped without this.
+                        if (meetingStartTime != null && lastTime != null) {
+                            addMeeting(appConn, x, meetingStartTime, lastTime, month, date);
+                            System.out.println("found a meeting and inserted successfully");
                         }
                     }
                 }
