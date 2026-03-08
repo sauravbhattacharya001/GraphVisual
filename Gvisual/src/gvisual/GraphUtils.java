@@ -322,4 +322,118 @@ public final class GraphUtils {
         int comps = countComponentsInSubgraph(graph, vertices);
         return edges - vertices.size() + comps;
     }
+
+    // ── Weighted shortest paths (Dijkstra) ────────────────────────────
+
+    /**
+     * Result of a single-source Dijkstra computation: distances and
+     * predecessor map for path reconstruction.
+     */
+    public static class DijkstraResult {
+        /** Shortest distance from source to each reachable vertex. */
+        public final Map<String, Double> dist;
+        /** Predecessor on the shortest path (vertex → its predecessor). */
+        public final Map<String, String> prev;
+
+        public DijkstraResult(Map<String, Double> dist, Map<String, String> prev) {
+            this.dist = dist;
+            this.prev = prev;
+        }
+    }
+
+    /**
+     * Runs Dijkstra's algorithm from a single source vertex, returning
+     * shortest distances and predecessors for all reachable vertices.
+     *
+     * <p>Uses a visited set to avoid re-processing settled nodes, and
+     * immutable PQ entries to handle Java's non-updatable PriorityQueue.
+     * Edge weights are taken from {@link edge#getWeight()}; non-positive
+     * weights default to 1.0.</p>
+     *
+     * @param graph  the JUNG graph
+     * @param source the source vertex
+     * @return distances and predecessors for all reachable vertices
+     */
+    public static DijkstraResult dijkstra(Graph<String, edge> graph, String source) {
+        Map<String, Double> dist = new HashMap<String, Double>();
+        Map<String, String> prev = new HashMap<String, String>();
+        Set<String> visited = new HashSet<String>();
+
+        // PQ entries: [distance, vertexIndex]
+        final List<String> vertexIndex = new ArrayList<String>();
+        vertexIndex.add(source);
+        final Map<String, Integer> vertexToIdx = new HashMap<String, Integer>();
+        vertexToIdx.put(source, 0);
+
+        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11,
+                new Comparator<double[]>() {
+                    public int compare(double[] a, double[] b) {
+                        return Double.compare(a[0], b[0]);
+                    }
+                });
+
+        dist.put(source, 0.0);
+        pq.add(new double[]{0.0, 0});
+
+        while (!pq.isEmpty()) {
+            double[] entry = pq.poll();
+            double entryDist = entry[0];
+            String u = vertexIndex.get((int) entry[1]);
+
+            if (visited.contains(u)) continue;
+            visited.add(u);
+
+            // Skip stale PQ entries
+            Double uDist = dist.get(u);
+            if (uDist == null || entryDist > uDist) continue;
+
+            for (edge e : graph.getIncidentEdges(u)) {
+                String v = getOtherEnd(e, u);
+                if (v == null || visited.contains(v)) continue;
+
+                double w = e.getWeight() > 0 ? e.getWeight() : 1.0;
+                double newDist = entryDist + w;
+                Double oldDist = dist.get(v);
+
+                if (oldDist == null || newDist < oldDist) {
+                    dist.put(v, newDist);
+                    prev.put(v, u);
+
+                    Integer idx = vertexToIdx.get(v);
+                    if (idx == null) {
+                        idx = vertexIndex.size();
+                        vertexIndex.add(v);
+                        vertexToIdx.put(v, idx);
+                    }
+                    pq.add(new double[]{newDist, idx});
+                }
+            }
+        }
+        return new DijkstraResult(dist, prev);
+    }
+
+    /**
+     * Reconstructs the shortest path from source to target using the
+     * predecessor map from a Dijkstra result.
+     *
+     * @param dr     Dijkstra result containing predecessor map
+     * @param source the source vertex
+     * @param target the target vertex
+     * @return ordered list of vertices from source to target, or null if
+     *         target is unreachable
+     */
+    public static List<String> reconstructPath(
+            DijkstraResult dr, String source, String target) {
+        if (!dr.dist.containsKey(target)) return null;
+        List<String> path = new ArrayList<String>();
+        String cur = target;
+        while (cur != null && !cur.equals(source)) {
+            path.add(cur);
+            cur = dr.prev.get(cur);
+        }
+        if (cur == null) return null;
+        path.add(source);
+        Collections.reverse(path);
+        return path;
+    }
 }

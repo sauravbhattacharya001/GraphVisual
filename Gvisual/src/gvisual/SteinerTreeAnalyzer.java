@@ -168,7 +168,7 @@ public class SteinerTreeAnalyzer {
         Set<String> valid = validateTerminals(terminals);
         if (valid.size() <= 1) return true;
         String start = valid.iterator().next();
-        Set<String> reachable = bfsReachable(start);
+        Set<String> reachable = GraphUtils.bfsComponent(graph, start);
         return reachable.containsAll(valid);
     }
 
@@ -182,7 +182,7 @@ public class SteinerTreeAnalyzer {
 
         for (String t : valid) {
             if (visited.contains(t)) continue;
-            Set<String> reachable = bfsReachable(t);
+            Set<String> reachable = GraphUtils.bfsComponent(graph, t);
             Set<String> comp = new HashSet<>();
             for (String v : valid) {
                 if (reachable.contains(v)) {
@@ -224,6 +224,12 @@ public class SteinerTreeAnalyzer {
         Set<String> treeVertices = new HashSet<>();
         treeVertices.add(first);
 
+        // Cache Dijkstra results to avoid redundant recomputation.
+        // Previously dijkstra(src) was called inside the inner loop over
+        // treeVertices × remaining, recomputing SSSP for the same source
+        // vertex many times. Now each source is computed at most once.
+        Map<String, GraphUtils.DijkstraResult> dijkstraCache = new HashMap<>();
+
         while (!remaining.isEmpty()) {
             // Find nearest terminal to any vertex in the tree
             double bestDist = Double.MAX_VALUE;
@@ -233,11 +239,15 @@ public class SteinerTreeAnalyzer {
             for (String target : remaining) {
                 // Find shortest path from any tree vertex to this terminal
                 for (String src : treeVertices) {
-                    DijkstraResult dr = dijkstra(src);
+                    GraphUtils.DijkstraResult dr = dijkstraCache.get(src);
+                    if (dr == null) {
+                        dr = GraphUtils.dijkstra(graph, src);
+                        dijkstraCache.put(src, dr);
+                    }
                     if (dr.dist.containsKey(target) && dr.dist.get(target) < bestDist) {
                         bestDist = dr.dist.get(target);
                         bestTerminal = target;
-                        bestPath = reconstructPath(dr, src, target);
+                        bestPath = GraphUtils.reconstructPath(dr, src, target);
                     }
                 }
             }
@@ -287,9 +297,9 @@ public class SteinerTreeAnalyzer {
         }
 
         // Build metric closure: complete graph on terminals with shortest-path weights
-        Map<String, DijkstraResult> allPairs = new HashMap<>();
+        Map<String, GraphUtils.DijkstraResult> allPairs = new HashMap<>();
         for (String t : valid) {
-            allPairs.put(t, dijkstra(t));
+            allPairs.put(t, GraphUtils.dijkstra(graph, t));
         }
 
         // Find MST of metric closure using Prim's
@@ -302,7 +312,7 @@ public class SteinerTreeAnalyzer {
             double bestDist = Double.MAX_VALUE;
             String bestFrom = null, bestTo = null;
             for (String u : inMst) {
-                DijkstraResult dr = allPairs.get(u);
+                GraphUtils.DijkstraResult dr = allPairs.get(u);
                 for (String v : termList) {
                     if (!inMst.contains(v) && dr.dist.containsKey(v) && dr.dist.get(v) < bestDist) {
                         bestDist = dr.dist.get(v);
@@ -322,8 +332,8 @@ public class SteinerTreeAnalyzer {
         double totalWeight = 0;
 
         for (String[] mstEdge : mstEdges) {
-            DijkstraResult dr = allPairs.get(mstEdge[0]);
-            List<String> path = reconstructPath(dr, mstEdge[0], mstEdge[1]);
+            GraphUtils.DijkstraResult dr = allPairs.get(mstEdge[0]);
+            List<String> path = GraphUtils.reconstructPath(dr, mstEdge[0], mstEdge[1]);
             if (path == null) continue;
             for (int i = 0; i < path.size() - 1; i++) {
                 String u = path.get(i);
@@ -371,8 +381,8 @@ public class SteinerTreeAnalyzer {
             // Just find shortest path
             Iterator<String> it = valid.iterator();
             String s = it.next(), t = it.next();
-            DijkstraResult dr = dijkstra(s);
-            List<String> path = reconstructPath(dr, s, t);
+            GraphUtils.DijkstraResult dr = GraphUtils.dijkstra(graph, s);
+            List<String> path = GraphUtils.reconstructPath(dr, s, t);
             if (path == null) {
                 return new SteinerTreeResult(valid, Collections.emptySet(),
                         Collections.emptySet(), Double.MAX_VALUE, true, "dreyfus-wagner");
@@ -618,8 +628,8 @@ public class SteinerTreeAnalyzer {
         if (valid.size() <= 1) return 0;
 
         // Build complete graph on terminals with shortest-path distances
-        Map<String, DijkstraResult> allPairs = new HashMap<>();
-        for (String t : valid) allPairs.put(t, dijkstra(t));
+        Map<String, GraphUtils.DijkstraResult> allPairs = new HashMap<>();
+        for (String t : valid) allPairs.put(t, GraphUtils.dijkstra(graph, t));
 
         // Prim's MST
         List<String> termList = new ArrayList<>(valid);
@@ -631,7 +641,7 @@ public class SteinerTreeAnalyzer {
             double best = Double.MAX_VALUE;
             String bestTo = null;
             for (String u : inMst) {
-                DijkstraResult dr = allPairs.get(u);
+                GraphUtils.DijkstraResult dr = allPairs.get(u);
                 for (String v : termList) {
                     if (!inMst.contains(v) && dr.dist.containsKey(v) && dr.dist.get(v) < best) {
                         best = dr.dist.get(v);
@@ -743,20 +753,6 @@ public class SteinerTreeAnalyzer {
         return false;
     }
 
-    private Set<String> bfsReachable(String start) {
-        Set<String> visited = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
-        visited.add(start);
-        queue.add(start);
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            for (String n : graph.getNeighbors(v)) {
-                if (visited.add(n)) queue.add(n);
-            }
-        }
-        return visited;
-    }
-
     private void pruneTree(Set<EdgeInfo> edges, Set<String> terminals, Set<String> vertices) {
         boolean changed = true;
         while (changed) {
@@ -776,55 +772,5 @@ public class SteinerTreeAnalyzer {
                 }
             }
         }
-    }
-
-    // ── Dijkstra ──────────────────────────────────────────────────
-
-    private static class DijkstraResult {
-        Map<String, Double> dist;
-        Map<String, String> prev;
-
-        DijkstraResult(Map<String, Double> dist, Map<String, String> prev) {
-            this.dist = dist;
-            this.prev = prev;
-        }
-    }
-
-    private DijkstraResult dijkstra(String source) {
-        Map<String, Double> dist = new HashMap<>();
-        Map<String, String> prev = new HashMap<>();
-        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(v -> dist.getOrDefault(v, Double.MAX_VALUE)));
-
-        dist.put(source, 0.0);
-        pq.add(source);
-
-        while (!pq.isEmpty()) {
-            String u = pq.poll();
-            double du = dist.get(u);
-            for (String v : graph.getNeighbors(u)) {
-                double w = getEdgeWeight(u, v);
-                double newDist = du + w;
-                if (newDist < dist.getOrDefault(v, Double.MAX_VALUE)) {
-                    dist.put(v, newDist);
-                    prev.put(v, u);
-                    pq.add(v);
-                }
-            }
-        }
-        return new DijkstraResult(dist, prev);
-    }
-
-    private List<String> reconstructPath(DijkstraResult dr, String source, String target) {
-        if (!dr.dist.containsKey(target)) return null;
-        List<String> path = new ArrayList<>();
-        String cur = target;
-        while (cur != null && !cur.equals(source)) {
-            path.add(cur);
-            cur = dr.prev.get(cur);
-        }
-        if (cur == null) return null;
-        path.add(source);
-        Collections.reverse(path);
-        return path;
     }
 }
