@@ -102,15 +102,51 @@ public class CycleAnalyzer {
             if (!(o instanceof Cycle)) return false;
             Cycle other = (Cycle) o;
             if (this.length() != other.length()) return false;
-            // Normalize: cycles are equivalent under rotation
-            Set<String> thisSet = new HashSet<String>(this.vertices);
-            Set<String> otherSet = new HashSet<String>(other.vertices);
-            return thisSet.equals(otherSet);
+            // Normalize: cycles are equivalent under rotation and reflection.
+            // Compare canonical forms (min-vertex first, direction chosen so
+            // second element < last element).
+            return this.canonicalForm().equals(other.canonicalForm());
         }
 
         @Override
         public int hashCode() {
-            return new HashSet<String>(vertices).hashCode();
+            return canonicalForm().hashCode();
+        }
+
+        /**
+         * Returns a canonical representation of this cycle that is invariant
+         * under rotation and reflection. The smallest vertex is placed first,
+         * then the direction is chosen so that the second element is smaller
+         * than the last element.
+         */
+        private List<String> canonicalForm() {
+            if (vertices.isEmpty()) return vertices;
+            int n = vertices.size();
+
+            // Find index of minimum vertex
+            int minIdx = 0;
+            for (int i = 1; i < n; i++) {
+                if (vertices.get(i).compareTo(vertices.get(minIdx)) < 0) {
+                    minIdx = i;
+                }
+            }
+
+            // Build rotated list starting at minIdx
+            List<String> rotated = new ArrayList<String>(n);
+            for (int i = 0; i < n; i++) {
+                rotated.add(vertices.get((minIdx + i) % n));
+            }
+
+            // Choose direction: if second > last, reverse (keeping first fixed)
+            if (n >= 3 && rotated.get(1).compareTo(rotated.get(n - 1)) > 0) {
+                List<String> reversed = new ArrayList<String>(n);
+                reversed.add(rotated.get(0));
+                for (int i = n - 1; i >= 1; i--) {
+                    reversed.add(rotated.get(i));
+                }
+                return reversed;
+            }
+            return rotated;
         }
     }
 
