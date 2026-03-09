@@ -1,0 +1,83 @@
+name: Algorithm Request
+description: Request a new graph algorithm or analysis module
+title: "[Algorithm]: "
+labels: ["enhancement", "algorithm"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest a graph algorithm or analysis technique to add to GraphVisual.
+        Check [ALGORITHMS.md](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/ALGORITHMS.md) first to see what's already implemented.
+
+  - type: input
+    id: algorithm-name
+    attributes:
+      label: Algorithm Name
+      description: What algorithm or technique do you want added?
+      placeholder: "e.g., Tarjan's Bridge Finding, Floyd-Warshall, Graph Neural Network Embedding"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Algorithm Category
+      description: What family does this algorithm belong to?
+      options:
+        - Traversal / Search (BFS, DFS variants)
+        - Shortest Path
+        - Connectivity / Components
+        - Centrality / Ranking
+        - Community Detection / Clustering
+        - Graph Coloring
+        - Network Flow
+        - Matching / Covering
+        - Spectral / Algebraic
+        - Temporal / Dynamic Graph
+        - Graph Generation / Modeling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Briefly describe what the algorithm does and why it's useful.
+      placeholder: |
+        Floyd-Warshall computes all-pairs shortest paths in O(V³).
+        Useful for dense graphs where running Dijkstra from every node is expensive.
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to papers, Wikipedia, or implementations for context.
+      placeholder: |
+        - Wikipedia: https://en.wikipedia.org/wiki/...
+        - Original paper: ...
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Expected Implementation Complexity
+      description: How complex do you think this is to implement?
+      options:
+        - Simple (well-known textbook algorithm, <200 lines)
+        - Medium (needs careful data structures, 200-500 lines)
+        - Complex (research-level, approximation algorithms, >500 lines)
+        - Not sure
+
+  - type: textarea
+    id: visualization
+    attributes:
+      label: Visualization Ideas (optional)
+      description: How should the results be visualized? (node coloring, edge highlighting, heatmap, animation, etc.)
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Use cases, example graphs, or anything else that helps.

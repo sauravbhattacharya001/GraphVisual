@@ -1,0 +1,88 @@
+name: Performance Issue
+description: Report a performance problem (slow graph loading, algorithm timeout, excessive memory use)
+title: "[Perf]: "
+labels: ["performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report slow algorithms, high memory usage, or unresponsive UI during graph operations.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part is slow or consuming too many resources?
+      options:
+        - Graph Loading / Parsing
+        - Algorithm Computation (specify below)
+        - Visualization / Rendering
+        - Export (GraphML, CSV, HTML)
+        - Database / Data Pipeline
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: algorithm
+    attributes:
+      label: Algorithm (if applicable)
+      description: Which algorithm is affected? (e.g., PageRank, Dijkstra, Community Detection)
+      placeholder: e.g., PageRank, Shortest Path, MST
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue
+      description: Describe what is slow, how long it takes, and what you expected.
+      placeholder: |
+        Running PageRank on a 10,000-node graph takes over 60 seconds.
+        Expected it to complete in under 5 seconds.
+    validations:
+      required: true
+
+  - type: input
+    id: graph-size
+    attributes:
+      label: Graph Size
+      description: Number of nodes and edges in the graph.
+      placeholder: "e.g., 5,000 nodes / 25,000 edges"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How badly does this affect usability?
+      options:
+        - Application freezes / hangs
+        - Very slow (>10x expected time)
+        - Noticeably slow (2-10x expected time)
+        - Minor (works but could be faster)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Java version, OS, available RAM, and how you're running it.
+      placeholder: |
+        Java 17, Windows 11, 16GB RAM
+        Running via: java -jar GraphVisual.jar
+    validations:
+      required: true
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: Profiling Data (optional)
+      description: If you have JVisualVM, JFR, or heap dump data, paste relevant excerpts.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Graph file, screenshots showing the bottleneck, or any workarounds you've tried.
