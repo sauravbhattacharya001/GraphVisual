@@ -71,6 +71,7 @@ public class InteractiveHtmlExporter {
      * @throws IOException if writing fails
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (Writer w = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(file), StandardCharsets.UTF_8))) {
             w.write(exportToString());
@@ -430,7 +431,7 @@ public class InteractiveHtmlExporter {
 
     private static String escHtml(String s) {
         if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     private static String escJs(String s) {
