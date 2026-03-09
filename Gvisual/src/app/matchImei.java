@@ -54,7 +54,7 @@ public class matchImei {
                 try (ResultSet rs_event = selectSndrnode.executeQuery()) {
                     rs_event.last();
                     System.out.println("event(sndrnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
+                    rs_event.beforeFirst();
 
                     numEventsDone = 0;
                     while (rs_event.next()) {
@@ -62,7 +62,7 @@ public class matchImei {
                         System.out.println("Done = " + numEventsDone);
                         System.out.println("trying match imei with sndrnode " + rs_event.getString(1));
 
-                        rs_device.first();
+                        rs_device.beforeFirst();
                         while (rs_device.next()) {
                             if (rs_device.getString(1).equals(rs_event.getString(1))) {
                                 String imei = rs_device.getString(2);
@@ -87,7 +87,7 @@ public class matchImei {
                 try (ResultSet rs_event = selectSrcnode.executeQuery()) {
                     rs_event.last();
                     System.out.println("event(srcnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
+                    rs_event.beforeFirst();
 
                     numEventsDone = 0;
                     while (rs_event.next()) {
@@ -95,7 +95,7 @@ public class matchImei {
                         System.out.println("Done = " + numEventsDone);
                         System.out.println("trying match imei with srcnode " + rs_event.getString(1));
 
-                        rs_device.first();
+                        rs_device.beforeFirst();
                         while (rs_device.next()) {
                             if (rs_device.getString(1).equals(rs_event.getString(1))) {
                                 String imei = rs_device.getString(2);
