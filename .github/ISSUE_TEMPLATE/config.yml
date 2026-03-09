@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Database Schema Reference
-    url: https://github.com/sauravbhattacharya001/GraphVisual/blob/main/DATABASE.md
+    url: https://github.com/sauravbhattacharya001/GraphVisual/blob/master/DATABASE.md
     about: Review the database schema and data pipeline documentation before filing database-related issues.
+  - name: Implemented Algorithms
+    url: https://github.com/sauravbhattacharya001/GraphVisual/blob/master/ALGORITHMS.md
+    about: Check the full list of implemented algorithms before requesting a new one.
+  - name: Architecture Overview
+    url: https://github.com/sauravbhattacharya001/GraphVisual/blob/master/ARCHITECTURE.md
+    about: Understand the codebase structure before contributing or filing architecture-related issues.
