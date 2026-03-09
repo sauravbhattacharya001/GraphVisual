@@ -102,15 +102,36 @@ public class CycleAnalyzer {
             if (!(o instanceof Cycle)) return false;
             Cycle other = (Cycle) o;
             if (this.length() != other.length()) return false;
-            // Normalize: cycles are equivalent under rotation
-            Set<String> thisSet = new HashSet<String>(this.vertices);
-            Set<String> otherSet = new HashSet<String>(other.vertices);
-            return thisSet.equals(otherSet);
+            // Normalize: cycles are equivalent under rotation (and reversal
+            // for undirected graphs). Using canonical form comparison ensures
+            // A→B→C and B→C→A are equal, but A→B→C and A→C→B are distinct
+            // (important for directed cycles with different traversal orders).
+            return this.canonicalForm().equals(other.canonicalForm());
         }
 
         @Override
         public int hashCode() {
-            return new HashSet<String>(vertices).hashCode();
+            return canonicalForm().hashCode();
+        }
+
+        /**
+         * Returns a canonical rotation of the cycle: rotate so that the
+         * lexicographically smallest vertex is first. This makes equality
+         * invariant under rotation while still distinguishing direction.
+         */
+        private List<String> canonicalForm() {
+            if (vertices.isEmpty()) return vertices;
+            int minIdx = 0;
+            for (int i = 1; i < vertices.size(); i++) {
+                if (vertices.get(i).compareTo(vertices.get(minIdx)) < 0) {
+                    minIdx = i;
+                }
+            }
+            List<String> rotated = new ArrayList<String>(vertices.size());
+            for (int i = 0; i < vertices.size(); i++) {
+                rotated.add(vertices.get((minIdx + i) % vertices.size()));
+            }
+            return rotated;
         }
     }
 
