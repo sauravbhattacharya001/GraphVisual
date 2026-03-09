@@ -174,11 +174,9 @@ public class GraphDiameterAnalyzer {
         ensureComputed();
         List<Map.Entry<String, Integer>> entries =
                 new ArrayList<Map.Entry<String, Integer>>(eccentricities.entrySet());
-        Collections.sort(entries, new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+        Collections.sort(entries, (Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) -> {
                 return Integer.compare(a.getValue(), b.getValue());
-            }
-        });
+            });
         return entries;
     }
 

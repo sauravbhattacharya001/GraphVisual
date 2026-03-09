@@ -490,12 +490,10 @@ public class MotifAnalyzer {
             }
         }
 
-        entries.sort(new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> a,
-                             Map.Entry<String, Integer> b) {
+        entries.sort((Map.Entry<String, Integer> a,
+                             Map.Entry<String, Integer> b) -> {
                 return Integer.compare(b.getValue(), a.getValue());
-            }
-        });
+            });
 
         if (topN > 0 && entries.size() > topN) {
             entries = entries.subList(0, topN);

@@ -316,11 +316,9 @@ public class GraphEntropyAnalyzer {
 
         // Greedy coloring with largest-first ordering
         List<String> vertices = new ArrayList<>(graph.getVertices());
-        Collections.sort(vertices, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(vertices, (String a, String b) -> {
                 return Integer.compare(graph.degree(b), graph.degree(a));
-            }
-        });
+            });
 
         Map<String, Integer> colors = new HashMap<>();
         for (String v : vertices) {

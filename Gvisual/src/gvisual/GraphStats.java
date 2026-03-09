@@ -158,12 +158,10 @@ public class GraphStats {
         // Use a min-heap of size n for O(V log N) partial sort
         PriorityQueue<Map.Entry<String, Integer>> minHeap =
                 new PriorityQueue<Map.Entry<String, Integer>>(n + 1,
-                        new Comparator<Map.Entry<String, Integer>>() {
-                            public int compare(Map.Entry<String, Integer> a,
-                                               Map.Entry<String, Integer> b) {
+                        (Map.Entry<String, Integer> a,
+                                               Map.Entry<String, Integer> b) -> {
                                 return a.getValue().compareTo(b.getValue());
-                            }
-                        });
+                            });
 
         for (Map.Entry<String, Integer> entry : cachedDegreeEntries) {
             minHeap.add(entry);

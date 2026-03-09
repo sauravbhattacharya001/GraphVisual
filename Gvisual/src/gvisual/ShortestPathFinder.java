@@ -166,11 +166,9 @@ public class ShortestPathFinder {
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, edge> predecessorEdge = new HashMap<String, edge>();
 
-        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11, new Comparator<double[]>() {
-            public int compare(double[] a, double[] b) {
+        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11, (double[] a, double[] b) -> {
                 return Double.compare(a[0], b[0]);
-            }
-        });
+            });
         // Vertex names indexed by insertion order
         List<String> vertexIndex = new ArrayList<String>();
         // Map vertex name -> index for O(1) lookup

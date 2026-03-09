@@ -628,11 +628,9 @@ public class MetricDimensionAnalyzer {
         Map<String, Integer> power = getResolvingPower();
         List<Map.Entry<String, Integer>> sorted = new ArrayList<Map.Entry<String, Integer>>(
             power.entrySet());
-        Collections.sort(sorted, new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+        Collections.sort(sorted, (Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) -> {
                 return Integer.compare(b.getValue(), a.getValue());
-            }
-        });
+            });
         sb.append("Top resolving vertices:\n");
         int show = Math.min(5, sorted.size());
         for (int i = 0; i < show; i++) {

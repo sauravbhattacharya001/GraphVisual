@@ -151,11 +151,9 @@ public class DominatingSetAnalyzer {
         Set<String> dominated = new HashSet<String>();
         // Sort by degree descending for better results
         List<String> vertices = new ArrayList<String>(adj.keySet());
-        Collections.sort(vertices, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(vertices, (String a, String b) -> {
                 return adj.get(b).size() - adj.get(a).size();
-            }
-        });
+            });
 
         for (String v : vertices) {
             if (dominated.contains(v)) continue;
@@ -270,11 +268,9 @@ public class DominatingSetAnalyzer {
         for (String v : adj.keySet()) coverage.put(v, 0);
 
         List<String> vertices = new ArrayList<String>(adj.keySet());
-        Collections.sort(vertices, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(vertices, (String a, String b) -> {
                 return adj.get(b).size() - adj.get(a).size();
-            }
-        });
+            });
 
         while (true) {
             // Find vertices not yet k-dominated (excluding result members)

@@ -473,11 +473,9 @@ public class PageRankAnalyzer {
             }
         }
 
-        Collections.sort(influencers, new Comparator<HiddenInfluence>() {
-            public int compare(HiddenInfluence a, HiddenInfluence b) {
+        Collections.sort(influencers, (HiddenInfluence a, HiddenInfluence b) -> {
                 return Double.compare(b.getInfluenceRatio(), a.getInfluenceRatio());
-            }
-        });
+            });
 
         return influencers;
     }
@@ -667,11 +665,9 @@ public class PageRankAnalyzer {
 
         // Get degree ranking
         List<String> degreeRanked = new ArrayList<String>(graph.getVertices());
-        Collections.sort(degreeRanked, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(degreeRanked, (String a, String b) -> {
                 return Integer.compare(graph.degree(b), graph.degree(a));
-            }
-        });
+            });
 
         int limit = Math.min(topN, n);
         Map<String, Integer> prPositions = new LinkedHashMap<String, Integer>();
@@ -704,11 +700,9 @@ public class PageRankAnalyzer {
         }
 
         // Sort by PageRank position
-        Collections.sort(comparisons, new Comparator<RankComparison>() {
-            public int compare(RankComparison a, RankComparison b) {
+        Collections.sort(comparisons, (RankComparison a, RankComparison b) -> {
                 return Integer.compare(a.getPageRankPosition(), b.getPageRankPosition());
-            }
-        });
+            });
 
         return comparisons;
     }

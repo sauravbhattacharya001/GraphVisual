@@ -262,11 +262,9 @@ public class NodeSimilarityAnalyzer {
         List<String> vertices = new ArrayList<String>(graph.getVertices());
         Collections.sort(vertices); // deterministic ordering
         PriorityQueue<ScoredPair> minHeap = new PriorityQueue<ScoredPair>(k + 1,
-            new Comparator<ScoredPair>() {
-                public int compare(ScoredPair a, ScoredPair b) {
+            (ScoredPair a, ScoredPair b) -> {
                     return Double.compare(a.score, b.score); // min-heap by score
                 }
-            }
         );
 
         for (int i = 0; i < vertices.size(); i++) {

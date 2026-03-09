@@ -437,14 +437,12 @@ public final class ChordalGraphAnalyzer {
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         // Sort vertices by degree descending
         List<String> sorted = new ArrayList<>(graph.getVertices());
-        Collections.sort(sorted, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(sorted, (String a, String b) -> {
                 return Integer.compare(
                     adj.get(b) != null ? adj.get(b).size() : 0,
                     adj.get(a) != null ? adj.get(a).size() : 0
                 );
-            }
-        });
+            });
 
         Set<String> clique = new LinkedHashSet<>();
         for (String v : sorted) {

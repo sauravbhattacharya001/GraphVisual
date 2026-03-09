@@ -107,9 +107,7 @@ public class GraphSparsificationAnalyzer {
         if (graph.getVertexCount() <= 1) return sparse;
 
         List<edge> edges = new ArrayList<edge>(graph.getEdges());
-        Collections.sort(edges, new Comparator<edge>() {
-            public int compare(edge a, edge b) { return Float.compare(a.getWeight(), b.getWeight()); }
-        });
+        Collections.sort(edges, (edge a, edge b) -> { return Float.compare(a.getWeight(), b.getWeight()); });
         Map<String, String> par = new HashMap<String, String>();
         Map<String, Integer> rnk = new HashMap<String, Integer>();
         for (String vtx : graph.getVertices()) { par.put(vtx, vtx); rnk.put(vtx, 0); }
@@ -183,9 +181,7 @@ public class GraphSparsificationAnalyzer {
 
         for (String vertex : graph.getVertices()) {
             List<edge> inc = new ArrayList<edge>(graph.getIncidentEdges(vertex));
-            Collections.sort(inc, new Comparator<edge>() {
-                public int compare(edge a, edge b) { return Float.compare(b.getWeight(), a.getWeight()); }
-            });
+            Collections.sort(inc, (edge a, edge b) -> { return Float.compare(b.getWeight(), a.getWeight()); });
             int cnt = 0;
             for (edge e : inc) {
                 if (cnt >= k) break;
@@ -212,11 +208,9 @@ public class GraphSparsificationAnalyzer {
 
         Map<edge, Double> scores = scoreEdgeImportance();
         List<Map.Entry<edge, Double>> sorted = new ArrayList<Map.Entry<edge, Double>>(scores.entrySet());
-        Collections.sort(sorted, new Comparator<Map.Entry<edge, Double>>() {
-            public int compare(Map.Entry<edge, Double> a, Map.Entry<edge, Double> b) {
+        Collections.sort(sorted, (Map.Entry<edge, Double> a, Map.Entry<edge, Double> b) -> {
                 return Double.compare(b.getValue(), a.getValue());
-            }
-        });
+            });
         int keep = (int) Math.ceil(graph.getEdgeCount() * keepRatio);
         int cnt = 0;
         for (Map.Entry<edge, Double> entry : sorted) {
@@ -434,9 +428,7 @@ public class GraphSparsificationAnalyzer {
             sb.append("── Top Important Edges ──\n");
             Map<edge, Double> importance = scoreEdgeImportance();
             List<Map.Entry<edge, Double>> sorted = new ArrayList<Map.Entry<edge, Double>>(importance.entrySet());
-            Collections.sort(sorted, new Comparator<Map.Entry<edge, Double>>() {
-                public int compare(Map.Entry<edge, Double> a, Map.Entry<edge, Double> b) { return Double.compare(b.getValue(), a.getValue()); }
-            });
+            Collections.sort(sorted, (Map.Entry<edge, Double> a, Map.Entry<edge, Double> b) -> { return Double.compare(b.getValue(), a.getValue()); });
             for (int i = 0; i < Math.min(10, sorted.size()); i++) {
                 Map.Entry<edge, Double> entry = sorted.get(i);
                 edge e = entry.getKey();

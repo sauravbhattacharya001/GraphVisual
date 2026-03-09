@@ -400,11 +400,9 @@ public class LineGraphAnalyzer {
         Set<String> excluded = new HashSet<String>();
 
         List<String> vertices = new ArrayList<String>(lineGraph.getVertices());
-        Collections.sort(vertices, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(vertices, (String a, String b) -> {
                 return Integer.compare(lineGraph.degree(b), lineGraph.degree(a));
-            }
-        });
+            });
 
         for (String v : vertices) {
             if (!excluded.contains(v)) {

@@ -375,12 +375,9 @@ public class SpectralAnalyzer {
         for (int i = 0; i < n; i++) indices[i] = i;
 
         final double[] vals = rawEigenvalues;
-        Arrays.sort(indices, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer a, Integer b) {
+        Arrays.sort(indices, (Integer a, Integer b) -> {
                 return Double.compare(vals[a], vals[b]);
-            }
-        });
+            });
 
         // Skip zero eigenvalues, return index of first non-zero
         for (int i = 0; i < n; i++) {

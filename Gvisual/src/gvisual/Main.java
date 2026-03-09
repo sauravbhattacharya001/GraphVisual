@@ -14,7 +14,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -24,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +35,6 @@ import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.collections15.Transformer;
@@ -436,18 +433,12 @@ public class Main extends JFrame {
      * @return a reusable ChangeListener
      */
     private ChangeListener createGraphRefreshListener(final JSlider slider) {
-        return new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                if (!slider.getValueIsAdjusting()) {
-                    try {
-                        addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    }
+        return e -> {
+            if (!slider.getValueIsAdjusting()) {
+                try {
+                    addGraph();
+                } catch (ParserConfigurationException | IOException | SAXException ex) {
+                    LOGGER.log(Level.SEVERE, null, ex);
                 }
             }
         };
@@ -499,16 +490,14 @@ public class Main extends JFrame {
 
         final JCheckBox cb = new JCheckBox();
         cb.setSelected(true);
-        cb.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (cb.isSelected()) {
-                    for (edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
-                } else {
-                    for (edge x : edgeList) { g.removeEdge(x); }
-                }
-                imagePanel.setVisible(false);
-                imagePanel.setVisible(true);
+        cb.addActionListener(e -> {
+            if (cb.isSelected()) {
+                for (edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
+            } else {
+                for (edge x : edgeList) { g.removeEdge(x); }
             }
+            imagePanel.setVisible(false);
+            imagePanel.setVisible(true);
         });
 
         JPanel header = new JPanel();
@@ -539,11 +528,9 @@ public class Main extends JFrame {
 
         final CategoryRow row = new CategoryRow(cb, header, durSlider, meetSlider, settingsBtn);
 
-        settingsBtn.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                row.showParams = !row.showParams;
-                paintCategoryPanel();
-            }
+        settingsBtn.addActionListener(e -> {
+            row.showParams = !row.showParams;
+            paintCategoryPanel();
         });
 
         return row;
@@ -722,21 +709,15 @@ public class Main extends JFrame {
         vv.setGraphMouse(gm);
 
 
-        Transformer<edge, String> edgeLabel = new Transformer<edge, String>() {
-
-            public String transform(edge i) {
+        Transformer<edge, String> edgeLabel = (edge i) -> {
                 return i.getLabel();
-            }
-        };
+            };
 
         vv.getRenderContext().setEdgeLabelTransformer(edgeLabel);
         vv.setBackground(DEFAULT_BG_COLOR);
-        Transformer<String, String> vertexLabel = new Transformer<String, String>() {
-
-            public String transform(String i) {
+        Transformer<String, String> vertexLabel = (String i) -> {
                 return i;
-            }
-        };
+            };
         vv.setForeground(Color.white);
         vv.getRenderContext().setVertexLabelTransformer(vertexLabel);
 
@@ -877,23 +858,19 @@ public class Main extends JFrame {
         // Buttons
         pathFindButton = new JButton("Select Nodes");
         pathFindButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        pathFindButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        pathFindButton.addActionListener(e -> {
                 if (!pathFindingMode) {
                     enablePathFindingMode();
                 } else {
                     disablePathFindingMode();
                 }
-            }
-        });
+            });
 
         pathClearButton = new JButton("Clear Path");
         pathClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        pathClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        pathClearButton.addActionListener(e -> {
                 clearPath();
-            }
-        });
+            });
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -1126,19 +1103,15 @@ public class Main extends JFrame {
 
         communityDetectButton = new JButton("Detect");
         communityDetectButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        communityDetectButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        communityDetectButton.addActionListener(e -> {
                 runCommunityDetection();
-            }
-        });
+            });
 
         communityClearButton = new JButton("Clear");
         communityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        communityClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        communityClearButton.addActionListener(e -> {
                 clearCommunityOverlay();
-            }
-        });
+            });
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -1269,19 +1242,15 @@ public class Main extends JFrame {
         // Buttons
         mstComputeButton = new JButton("Compute");
         mstComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        mstComputeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        mstComputeButton.addActionListener(e -> {
                 runMSTComputation();
-            }
-        });
+            });
 
         mstClearButton = new JButton("Clear");
         mstClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        mstClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        mstClearButton.addActionListener(e -> {
                 clearMSTOverlay();
-            }
-        });
+            });
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -1431,13 +1400,11 @@ public class Main extends JFrame {
                 new String[] { "Combined", "Degree", "Betweenness", "Closeness" });
         centralityMetricCombo.setAlignmentX(JComboBox.LEFT_ALIGNMENT);
         centralityMetricCombo.setMaximumSize(new Dimension(200, 25));
-        centralityMetricCombo.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        centralityMetricCombo.addActionListener(e -> {
                 if (centralityActive) {
                     updateCentralityRanking();
                 }
-            }
-        });
+            });
 
         JPanel metricPanel = new JPanel();
         metricPanel.setLayout(new BoxLayout(metricPanel, BoxLayout.X_AXIS));
@@ -1450,19 +1417,15 @@ public class Main extends JFrame {
         // Buttons
         centralityComputeButton = new JButton("Compute");
         centralityComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        centralityComputeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        centralityComputeButton.addActionListener(e -> {
                 runCentralityAnalysis();
-            }
-        });
+            });
 
         centralityClearButton = new JButton("Clear");
         centralityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        centralityClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        centralityClearButton.addActionListener(e -> {
                 clearCentralityAnalysis();
-            }
-        });
+            });
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -1538,9 +1501,8 @@ public class Main extends JFrame {
                 new ArrayList<NodeCentralityAnalyzer.CentralityResult>(centralityResults.values());
 
         final String m = metric.toLowerCase();
-        Collections.sort(sorted, new Comparator<NodeCentralityAnalyzer.CentralityResult>() {
-            public int compare(NodeCentralityAnalyzer.CentralityResult a,
-                               NodeCentralityAnalyzer.CentralityResult b) {
+        Collections.sort(sorted, (NodeCentralityAnalyzer.CentralityResult a,
+                               NodeCentralityAnalyzer.CentralityResult b) -> {
                 double va, vb;
                 if ("degree".equals(m)) {
                     va = a.getDegreeCentrality();
@@ -1556,8 +1518,7 @@ public class Main extends JFrame {
                     vb = b.getCombinedScore();
                 }
                 return Double.compare(vb, va);
-            }
-        });
+            });
 
         int shown = Math.min(sorted.size(), 10);
         StringBuilder sb = new StringBuilder("<html><b>Top " + shown + " by " + metric + ":</b><br/>");
@@ -1622,19 +1583,15 @@ public class Main extends JFrame {
 
         articulationComputeButton = new JButton("Analyze");
         articulationComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        articulationComputeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        articulationComputeButton.addActionListener(e -> {
                 runArticulationAnalysis();
-            }
-        });
+            });
 
         articulationClearButton = new JButton("Clear");
         articulationClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        articulationClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        articulationClearButton.addActionListener(e -> {
                 clearArticulationAnalysis();
-            }
-        });
+            });
 
         buttonPanel.add(articulationComputeButton);
         buttonPanel.add(Box.createHorizontalStrut(5));
@@ -1669,15 +1626,11 @@ public class Main extends JFrame {
         buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
 
         resilienceAnalyzeButton = new JButton("Analyze");
-        resilienceAnalyzeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { runResilienceAnalysis(); }
-        });
+        resilienceAnalyzeButton.addActionListener(e -> { runResilienceAnalysis(); });
 
         resilienceExportButton = new JButton("Export CSV");
         resilienceExportButton.setEnabled(false);
-        resilienceExportButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { exportResilienceCSV(); }
-        });
+        resilienceExportButton.addActionListener(e -> { exportResilienceCSV(); });
 
         buttonPanel.add(resilienceAnalyzeButton);
         buttonPanel.add(Box.createHorizontalStrut(5));
@@ -1807,19 +1760,13 @@ public class Main extends JFrame {
         egoSearchField.setToolTipText("Enter node ID to explore its ego network");
 
         egoSearchButton = new JButton("Search");
-        egoSearchButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { runEgoSearch(); }
-        });
+        egoSearchButton.addActionListener(e -> { runEgoSearch(); });
 
         egoClearButton = new JButton("Clear");
         egoClearButton.setEnabled(false);
-        egoClearButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { clearEgoOverlay(); }
-        });
+        egoClearButton.addActionListener(e -> { clearEgoOverlay(); });
 
-        egoSearchField.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) { runEgoSearch(); }
-        });
+        egoSearchField.addActionListener(e -> { runEgoSearch(); });
 
         searchRow.add(new JLabel("Node: "));
         searchRow.add(egoSearchField);
@@ -2249,14 +2196,11 @@ public class Main extends JFrame {
      */
     public final void initializeTimeLine() {
 
-        ActionListener taskPerformer = new ActionListener() {
-
-            public void actionPerformed(ActionEvent evt) {
+        ActionListener taskPerformer = evt -> {
                 int i = timeline.getValue();
                 i++;
                 timeline.setValue(i);
-            }
-        };
+            };
         timer = new Timer(DELAY, taskPerformer);
 
         timeline = new JSlider(SwingConstants.HORIZONTAL, 1, 92, 1);
@@ -2273,25 +2217,18 @@ public class Main extends JFrame {
 
 
 
-        timeline.addChangeListener(new ChangeListener() {
-
-            public void stateChanged(ChangeEvent e) {
+        timeline.addChangeListener(e -> {
                 updateTime();
                 timeline.setBorder(BorderFactory.createTitledBorder(timeStamp));
                 if (!timeline.getValueIsAdjusting()) {
                     try {
                         addGraph();
-                    } catch (ParserConfigurationException ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    } catch (SAXException ex) {
+                    } catch (ParserConfigurationException | IOException | SAXException ex) {
                         LOGGER.log(Level.SEVERE, null, ex);
                     }
                 }
 
-            }
-        });
+            });
 
 
 
@@ -2541,35 +2478,27 @@ public class Main extends JFrame {
         toolPanel.setBorder(BorderFactory.createTitledBorder("Tools"));
 
         JButton pickMode = new JButton("<html><center>Select Node Mode<br/>Use this to<br/> select and<br/> move vertices<br/> at different <br/>position<center></html>");
-        pickMode.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
+        pickMode.addActionListener(e -> {
                 DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
 
                 gm.setMode(ModalGraphMouse.Mode.PICKING);
                 vv.setGraphMouse(gm);
-            }
-        });
+            });
         pickMode.setPreferredSize(new Dimension(140, 100));
         JButton transformMode = new JButton("<html><center>Move/rotate graph<br/>Use this to <br/>move and rotate<br/> entire graph</center></html>");
-        transformMode.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
+        transformMode.addActionListener(e -> {
                 DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
 
                 gm.setMode(ModalGraphMouse.Mode.TRANSFORMING);
                 vv.setGraphMouse(gm);
-            }
-        });
+            });
         transformMode.setPreferredSize(new Dimension(140, 100));
         toolPanel.add(pickMode);
         toolPanel.add(transformMode);
 
         JButton snapShotButton = new JButton("<html><center>Take a snapshot<br/>Use this to<br/> take and image<br/> of the current view<br/> of the graph</center></html>");
         snapShotButton.setPreferredSize(new Dimension(140, 100));
-        snapShotButton.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
+        snapShotButton.addActionListener(e -> {
 
 
                 JFileChooser fileChooser;
@@ -2596,15 +2525,12 @@ public class Main extends JFrame {
                 }
 
 
-            }
-        });
+            });
         toolPanel.add(snapShotButton);
 
         JButton exportButton = new JButton("<html><center>Export edgelist<br/>Export the graph<br/> edge list in<br/> CSV format.</center></html>");
         exportButton.setPreferredSize(new Dimension(140, 100));
-        exportButton.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
+        exportButton.addActionListener(e -> {
                 JFileChooser fileChooser;
                 int count = 0;
                 do {
@@ -2629,15 +2555,12 @@ public class Main extends JFrame {
                 } catch (IOException ex) {
                     LOGGER.log(Level.SEVERE, null, ex);
                 }
-            }
-        });
+            });
         toolPanel.add(exportButton);
 
         JButton graphmlButton = new JButton("<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>");
         graphmlButton.setPreferredSize(new Dimension(140, 100));
-        graphmlButton.addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
+        graphmlButton.addActionListener(e -> {
                 // Collect all edges from all categories
                 java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
                 allEdges.addAll(friendEdges);
@@ -2682,14 +2605,12 @@ public class Main extends JFrame {
                             "Export failed: " + ex1.getMessage(),
                             "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
-        });
+            });
         toolPanel.add(graphmlButton);
 
         JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
         csvReportButton.setPreferredSize(new Dimension(140, 100));
-        csvReportButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        csvReportButton.addActionListener(e -> {
                 java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
                 allEdges.addAll(friendEdges);
                 allEdges.addAll(fsEdges);
@@ -2732,18 +2653,15 @@ public class Main extends JFrame {
                             "Export failed: " + ex1.getMessage(),
                             "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
-        });
+            });
         toolPanel.add(csvReportButton);
 
         JButton heatmapButton = new JButton("<html><center>Adjacency Matrix<br/>View graph as a<br/> color-coded<br/> heatmap matrix<br/> with zoom/pan</center></html>");
         heatmapButton.setPreferredSize(new Dimension(140, 100));
-        heatmapButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+        heatmapButton.addActionListener(e -> {
                 JDialog heatmapDialog = AdjacencyMatrixHeatmap.createDialog(Main.this, g);
                 heatmapDialog.setVisible(true);
-            }
-        });
+            });
         toolPanel.add(heatmapButton);
 
         toolPanel.add(legendPanel);
@@ -2759,9 +2677,7 @@ public class Main extends JFrame {
      *main function
      */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            public void run() {
+        SwingUtilities.invokeLater(() -> {
                 Main ex;
                 try {
                     ex = new Main();
@@ -2769,7 +2685,6 @@ public class Main extends JFrame {
                 } catch (Exception ex1) {
                     LOGGER.log(Level.SEVERE, null, ex1);
                 }
-            }
-        });
+            });
     }
 }

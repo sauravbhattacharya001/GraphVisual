@@ -114,9 +114,7 @@ public class GraphRenderers {
     // ── transformers ────────────────────────────────────────────────────
 
     public Transformer<edge, Paint> edgePaintTransformer() {
-        return new Transformer<edge, Paint>() {
-            @Override
-            public Paint transform(edge e) {
+        return (edge e) -> {
                 if (pathEdges != null && pathEdges.contains(e)) {
                     return Color.YELLOW;
                 }
@@ -145,14 +143,11 @@ public class GraphRenderers {
                     return new Color(80, 80, 80, 60);
                 }
                 return EdgeType.colorForCode(e.getType());
-            }
-        };
+            };
     }
 
     public Transformer<String, Paint> vertexPaintTransformer() {
-        return new Transformer<String, Paint>() {
-            @Override
-            public Paint transform(String vertex) {
+        return (String vertex) -> {
                 if (communityOverlayActive && nodeCommunityMap != null) {
                     Integer cid = nodeCommunityMap.get(vertex);
                     if (cid != null) {
@@ -197,14 +192,11 @@ public class GraphRenderers {
                     }
                 }
                 return VERTEX_COLOR;
-            }
-        };
+            };
     }
 
     public Transformer<String, Shape> vertexShapeTransformer() {
-        return new Transformer<String, Shape>() {
-            @Override
-            public Shape transform(String vertex) {
+        return (String vertex) -> {
                 if (pathSource != null && vertex.equals(pathSource)) {
                     return new Ellipse2D.Double(-8, -8, 16, 16);
                 }
@@ -234,14 +226,11 @@ public class GraphRenderers {
                     }
                 }
                 return new Ellipse2D.Double(-5, -5, 10, 10);
-            }
-        };
+            };
     }
 
     public Transformer<edge, Stroke> edgeStrokeTransformer() {
-        return new Transformer<edge, Stroke>() {
-            @Override
-            public Stroke transform(edge i) {
+        return (edge i) -> {
                 if (pathEdges != null && pathEdges.contains(i)) {
                     return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
                 }
@@ -260,7 +249,6 @@ public class GraphRenderers {
                 float width = i.getWeight() / 40 + 1.0f;
                 return new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL,
                         10.0f, dash, 0.0f);
-            }
-        };
+            };
     }
 }

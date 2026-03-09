@@ -158,12 +158,9 @@ public class GraphIsomorphismAnalyzer {
         Map<Integer, List<String>> byDegree2 = groupByDegree(graph2, vertices2);
 
         // Order vertices1 by degree (ascending) for better pruning
-        Collections.sort(vertices1, new Comparator<String>() {
-            @Override
-            public int compare(String a, String b) {
+        Collections.sort(vertices1, (String a, String b) -> {
                 return Integer.compare(graph1.degree(a), graph1.degree(b));
-            }
-        });
+            });
 
         // Backtracking search
         Map<String, String> mapping = new LinkedHashMap<String, String>();
