@@ -208,6 +208,9 @@ public class ShortestPathFinder {
                             "Edge between '" + current + "' and '" + neighbor +
                             "' has weight " + edgeWeight);
                 }
+                // Default unset weights (0.0) to 1.0 to match GraphUtils.dijkstra
+                // and prevent zero-weight edges from collapsing all distances.
+                if (edgeWeight == 0) edgeWeight = 1.0;
                 double newDist = entryDist + edgeWeight;
                 Double oldDist = dist.get(neighbor);
 
