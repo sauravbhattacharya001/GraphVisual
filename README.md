@@ -14,6 +14,12 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Docker](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/docker.yml)
 [![Coverage](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/coverage.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/coverage.yml)
 [![GitHub repo size](https://img.shields.io/github/repo-size/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual)
+[![Pages](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/pages.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/pages.yml)
+[![Maven](https://img.shields.io/badge/Build-Maven-C71A36?logo=apachemaven)](https://maven.apache.org/)
+[![GitHub stars](https://img.shields.io/github/stars/sauravbhattacharya001/GraphVisual?style=flat&logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/commits/master)
+[![43 Analyzers](https://img.shields.io/badge/Analyzers-43-blueviolet)](ALGORITHMS.md)
+[![2500+ Tests](https://img.shields.io/badge/Tests-2500%2B-brightgreen)](Gvisual/test/)
 
 </div>
 
@@ -334,6 +340,50 @@ docker pull ghcr.io/sauravbhattacharya001/graphvisual:latest
 ```
 
 > **Note:** The Dockerfile builds a fat JAR with all dependencies, compiles source, runs tests during build, and packages a minimal JRE-based runtime image (~300MB). X11 libraries are included for optional GUI support via display forwarding.
+
+## Quick Start — No Database Required
+
+You can explore GraphVisual's 43 analyzers using the built-in **synthetic graph generators** without any database setup:
+
+```java
+import gvisual.GraphGenerator;
+
+// Generate a 100-node scale-free network (Barabási-Albert)
+var graph = GraphGenerator.barabasiAlbert(100, 3);
+
+// Or try other topologies:
+// GraphGenerator.erdosRenyi(50, 0.15)
+// GraphGenerator.wattsStrogatz(60, 6, 0.3)
+// GraphGenerator.complete(20)
+// GraphGenerator.star(30)
+// GraphGenerator.grid(8, 8)
+```
+
+Then run any analyzer:
+
+```java
+import gvisual.*;
+
+var centrality = new NodeCentralityAnalyzer();
+var result = centrality.analyze(graph);
+System.out.println(result);
+
+var smallWorld = new SmallWorldAnalyzer();
+System.out.println(smallWorld.analyze(graph));
+```
+
+## Analyzer Categories
+
+| Category | Count | Highlights |
+|----------|-------|------------|
+| **Structural** | 12 | Cliques, cycles, planarity, isomorphism, articulation points |
+| **Centrality & Ranking** | 3 | PageRank, degree/betweenness/closeness, degree distribution |
+| **Community & Clustering** | 4 | Community detection, motifs, structural holes, signed graphs |
+| **NP-hard Optimization** | 11 | Graph coloring, Hamiltonian paths, vertex cover, max cut |
+| **Network Analysis** | 8 | Max-flow, influence spread, random walks, resilience testing |
+| **Metrics & Comparison** | 8 | Spectral analysis, entropy, graph diff, edge persistence |
+
+See **[ALGORITHMS.md](ALGORITHMS.md)** for the complete reference with time complexities and algorithm details.
 
 ## Research Context
 
