@@ -96,6 +96,7 @@ public class GraphMLExporter {
      * @throws IOException if writing fails
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (Writer writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             writer.write(exportToString());
