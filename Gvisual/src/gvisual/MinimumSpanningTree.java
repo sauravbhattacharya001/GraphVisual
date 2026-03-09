@@ -63,11 +63,9 @@ public class MinimumSpanningTree {
                 seen.add(e);
             }
         }
-        Collections.sort(sortedEdges, new Comparator<edge>() {
-            public int compare(edge a, edge b) {
+        Collections.sort(sortedEdges, (edge a, edge b) -> {
                 return Float.compare(a.getWeight(), b.getWeight());
-            }
-        });
+            });
 
         // Union-Find
         UnionFind uf = new UnionFind(vertices);
@@ -114,11 +112,9 @@ public class MinimumSpanningTree {
         // Sort components by size descending for consistent output
         List<Map.Entry<String, List<String>>> sortedComps =
                 new ArrayList<Map.Entry<String, List<String>>>(rootToVertices.entrySet());
-        Collections.sort(sortedComps, new Comparator<Map.Entry<String, List<String>>>() {
-            public int compare(Map.Entry<String, List<String>> a, Map.Entry<String, List<String>> b) {
+        Collections.sort(sortedComps, (Map.Entry<String, List<String>> a, Map.Entry<String, List<String>> b) -> {
                 return Integer.compare(b.getValue().size(), a.getValue().size());
-            }
-        });
+            });
 
         for (Map.Entry<String, List<String>> entry : sortedComps) {
             String root = entry.getKey();

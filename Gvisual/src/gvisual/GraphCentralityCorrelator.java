@@ -402,11 +402,9 @@ public class GraphCentralityCorrelator {
     private Map<String, Integer> buildRanks(Map<String, Double> values) {
         List<Map.Entry<String, Double>> entries =
                 new ArrayList<Map.Entry<String, Double>>(values.entrySet());
-        Collections.sort(entries, new Comparator<Map.Entry<String, Double>>() {
-            public int compare(Map.Entry<String, Double> a, Map.Entry<String, Double> b) {
+        Collections.sort(entries, (Map.Entry<String, Double> a, Map.Entry<String, Double> b) -> {
                 return Double.compare(b.getValue(), a.getValue()); // descending
-            }
-        });
+            });
 
         Map<String, Integer> ranks = new LinkedHashMap<String, Integer>();
         for (int i = 0; i < entries.size(); i++) {

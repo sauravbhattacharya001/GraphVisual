@@ -203,8 +203,7 @@ public class NodeCentralityAnalyzer {
         }
 
         final String m = metric.toLowerCase();
-        Collections.sort(all, new Comparator<CentralityResult>() {
-            public int compare(CentralityResult a, CentralityResult b) {
+        Collections.sort(all, (CentralityResult a, CentralityResult b) -> {
                 double va, vb;
                 if ("betweenness".equals(m)) {
                     va = a.getBetweennessCentrality();
@@ -217,8 +216,7 @@ public class NodeCentralityAnalyzer {
                     vb = b.getDegreeCentrality();
                 }
                 return Double.compare(vb, va);
-            }
-        });
+            });
 
         if (n <= 0) return new ArrayList<CentralityResult>();
         return all.subList(0, Math.min(n, all.size()));

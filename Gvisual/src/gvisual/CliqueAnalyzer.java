@@ -96,16 +96,13 @@ public class CliqueAnalyzer {
         bronKerbosch(R, P, X, 0);
 
         // Sort cliques by size descending, then by first element for stability
-        Collections.sort(cliques, new Comparator<Set<String>>() {
-            @Override
-            public int compare(Set<String> a, Set<String> b) {
+        Collections.sort(cliques, (Set<String> a, Set<String> b) -> {
                 int cmp = Integer.compare(b.size(), a.size());
                 if (cmp != 0) return cmp;
                 String minA = Collections.min(a);
                 String minB = Collections.min(b);
                 return minA.compareTo(minB);
-            }
-        });
+            });
 
         computed = true;
         return this;
@@ -353,14 +350,11 @@ public class CliqueAnalyzer {
         List<Map.Entry<String, Integer>> entries =
             new ArrayList<Map.Entry<String, Integer>>(participation.entrySet());
 
-        Collections.sort(entries, new Comparator<Map.Entry<String, Integer>>() {
-            @Override
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+        Collections.sort(entries, (Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) -> {
                 int cmp = Integer.compare(b.getValue(), a.getValue());
                 if (cmp != 0) return cmp;
                 return a.getKey().compareTo(b.getKey());
-            }
-        });
+            });
 
         return entries.subList(0, Math.min(n, entries.size()));
     }
@@ -421,12 +415,9 @@ public class CliqueAnalyzer {
         }
 
         // Sort by overlap size descending
-        Collections.sort(overlaps, new Comparator<CliqueOverlap>() {
-            @Override
-            public int compare(CliqueOverlap a, CliqueOverlap b) {
+        Collections.sort(overlaps, (CliqueOverlap a, CliqueOverlap b) -> {
                 return Integer.compare(b.overlapSize, a.overlapSize);
-            }
-        });
+            });
 
         return overlaps.subList(0, Math.min(maxPairs, overlaps.size()));
     }

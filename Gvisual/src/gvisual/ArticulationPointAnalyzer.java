@@ -254,12 +254,9 @@ public class ArticulationPointAnalyzer {
             details.add(new ArticulationPointInfo(ap, degree, bicomp, edgeTypeCounts));
         }
         // Sort by criticality (highest first)
-        Collections.sort(details, new Comparator<ArticulationPointInfo>() {
-            @Override
-            public int compare(ArticulationPointInfo a, ArticulationPointInfo b) {
+        Collections.sort(details, (ArticulationPointInfo a, ArticulationPointInfo b) -> {
                 return Double.compare(b.getCriticality(), a.getCriticality());
-            }
-        });
+            });
 
         // Build bridge details with component size estimation
         List<Bridge> bridges = new ArrayList<Bridge>();
@@ -270,12 +267,9 @@ public class ArticulationPointAnalyzer {
             bridges.add(new Bridge(e, v1, v2, sizes[0], sizes[1]));
         }
         // Sort by severity (highest first)
-        Collections.sort(bridges, new Comparator<Bridge>() {
-            @Override
-            public int compare(Bridge a, Bridge b) {
+        Collections.sort(bridges, (Bridge a, Bridge b) -> {
                 return Double.compare(b.getSeverity(), a.getSeverity());
-            }
-        });
+            });
 
         return new AnalysisResult(articulationPoints, details, bridges,
                 vertexCount, edgeCount, componentCount);

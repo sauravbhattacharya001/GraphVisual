@@ -199,13 +199,10 @@ public class SmallWorldAnalyzer {
         ensureComputed();
         List<Map.Entry<String, Double>> sorted =
                 new ArrayList<Map.Entry<String, Double>>(localClustering.entrySet());
-        Collections.sort(sorted, new Comparator<Map.Entry<String, Double>>() {
-            @Override
-            public int compare(Map.Entry<String, Double> a,
-                               Map.Entry<String, Double> b) {
+        Collections.sort(sorted, (Map.Entry<String, Double> a,
+                               Map.Entry<String, Double> b) -> {
                 return Double.compare(b.getValue(), a.getValue());
-            }
-        });
+            });
         return sorted.subList(0, Math.min(n, sorted.size()));
     }
 

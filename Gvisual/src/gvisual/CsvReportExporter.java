@@ -238,11 +238,9 @@ public class CsvReportExporter {
         List<Set<String>> components = GraphUtils.findComponents(graph);
 
         // Sort by size descending
-        Collections.sort(components, new Comparator<Set<String>>() {
-            public int compare(Set<String> a, Set<String> b) {
+        Collections.sort(components, (Set<String> a, Set<String> b) -> {
                 return b.size() - a.size();
-            }
-        });
+            });
 
         Map<String, Integer> communityMap = new LinkedHashMap<String, Integer>();
         for (int i = 0; i < components.size(); i++) {

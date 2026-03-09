@@ -188,12 +188,9 @@ public class DegreeDistributionAnalyzer {
         double hubThreshold = meanDegree + 2.0 * stdDev;
         List<Map.Entry<String, Integer>> sortedVertices =
                 new ArrayList<Map.Entry<String, Integer>>(vertexDegree.entrySet());
-        Collections.sort(sortedVertices, new Comparator<Map.Entry<String, Integer>>() {
-            @Override
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+        Collections.sort(sortedVertices, (Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) -> {
                 return b.getValue().compareTo(a.getValue());
-            }
-        });
+            });
         for (Map.Entry<String, Integer> entry : sortedVertices) {
             if (entry.getValue() > hubThreshold && entry.getValue() > 0) {
                 hubs.add(entry.getKey());

@@ -88,11 +88,9 @@ public class MaxCutAnalyzer {
         if (vertices.isEmpty()) return emptyCut("Greedy");
 
         List<String> sorted = new ArrayList<String>(vertices);
-        Collections.sort(sorted, new Comparator<String>() {
-            public int compare(String a, String b) {
+        Collections.sort(sorted, (String a, String b) -> {
                 return graph.degree(b) - graph.degree(a);
-            }
-        });
+            });
 
         Set<String> setS = new LinkedHashSet<String>();
         Set<String> setT = new LinkedHashSet<String>();
@@ -228,9 +226,7 @@ public class MaxCutAnalyzer {
         if (vertices.isEmpty()) return emptyCut("Balanced");
 
         List<String> sorted = new ArrayList<String>(vertices);
-        Collections.sort(sorted, new Comparator<String>() {
-            public int compare(String a, String b) { return graph.degree(b) - graph.degree(a); }
-        });
+        Collections.sort(sorted, (String a, String b) -> { return graph.degree(b) - graph.degree(a); });
 
         int n = sorted.size(), half = n / 2;
         Set<String> setS = new LinkedHashSet<String>();
@@ -265,11 +261,9 @@ public class MaxCutAnalyzer {
         results.add(computeLocalSearch());
         results.add(computeRandomLocalSearch());
         if (graph.getVertexCount() <= EXACT_LIMIT) results.add(computeExact());
-        Collections.sort(results, new Comparator<CutResult>() {
-            public int compare(CutResult a, CutResult b) {
+        Collections.sort(results, (CutResult a, CutResult b) -> {
                 return Double.compare(b.getCutValue(), a.getCutValue());
-            }
-        });
+            });
         return results;
     }
 
@@ -305,11 +299,9 @@ public class MaxCutAnalyzer {
         Map<String, Integer> contributions = computeVertexContributions(best);
         List<Map.Entry<String, Integer>> sortedEntries =
             new ArrayList<Map.Entry<String, Integer>>(contributions.entrySet());
-        Collections.sort(sortedEntries, new Comparator<Map.Entry<String, Integer>>() {
-            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+        Collections.sort(sortedEntries, (Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) -> {
                 return b.getValue() - a.getValue();
-            }
-        });
+            });
         int shown = 0;
         for (Map.Entry<String, Integer> entry : sortedEntries) {
             if (shown >= 10) { sb.append("  ... (").append(sortedEntries.size() - 10).append(" more)\n"); break; }

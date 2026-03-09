@@ -243,12 +243,9 @@ public class LinkPredictionAnalyzer {
 
     /** Shared comparator for sorting predictions by score descending. */
     private static final Comparator<PredictedLink> SCORE_DESCENDING =
-            new Comparator<PredictedLink>() {
-                @Override
-                public int compare(PredictedLink a, PredictedLink b) {
+            (PredictedLink a, PredictedLink b) -> {
                     return Double.compare(b.getScore(), a.getScore());
-                }
-            };
+                };
 
     /**
      * Holds the results of enumerating all candidate (non-edge) vertex pairs,

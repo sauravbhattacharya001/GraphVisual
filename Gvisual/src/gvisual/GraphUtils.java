@@ -165,11 +165,9 @@ public final class GraphUtils {
         }
 
         // Sort largest-first
-        Collections.sort(components, new Comparator<Set<String>>() {
-            public int compare(Set<String> a, Set<String> b) {
+        Collections.sort(components, (Set<String> a, Set<String> b) -> {
                 return Integer.compare(b.size(), a.size());
-            }
-        });
+            });
         return components;
     }
 
@@ -582,11 +580,9 @@ public final class GraphUtils {
         vertexToIdx.put(source, 0);
 
         PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11,
-                new Comparator<double[]>() {
-                    public int compare(double[] a, double[] b) {
+                (double[] a, double[] b) -> {
                         return Double.compare(a[0], b[0]);
-                    }
-                });
+                    });
 
         dist.put(source, 0.0);
         pq.add(new double[]{0.0, 0});

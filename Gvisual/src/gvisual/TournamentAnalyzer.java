@@ -698,14 +698,11 @@ public class TournamentAnalyzer {
         }
 
         // Sort by magnitude descending
-        Collections.sort(upsets, new Comparator<Upset>() {
-            @Override
-            public int compare(Upset a, Upset b) {
+        Collections.sort(upsets, (Upset a, Upset b) -> {
                 int cmp = Integer.compare(b.getMagnitude(), a.getMagnitude());
                 if (cmp != 0) return cmp;
                 return a.getWinner().compareTo(b.getWinner());
-            }
-        });
+            });
         return upsets;
     }
 

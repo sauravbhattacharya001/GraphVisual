@@ -908,14 +908,12 @@ public final class PlanarGraphAnalyzer {
             Set<String> nbrs = adj.get(v);
             if (nbrs != null) neighbors.addAll(nbrs);
 
-            Collections.sort(neighbors, new Comparator<String>() {
-                public int compare(String a, String b) {
+            Collections.sort(neighbors, (String a, String b) -> {
                     double[] pa = finalPos.get(a), pb = finalPos.get(b);
                     double angA = Math.atan2(pa[1] - pv[1], pa[0] - pv[0]);
                     double angB = Math.atan2(pb[1] - pv[1], pb[0] - pv[0]);
                     return Double.compare(angA, angB);
-                }
-            });
+                });
 
             embedding.put(v, neighbors);
         }
