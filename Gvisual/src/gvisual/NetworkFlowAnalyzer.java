@@ -41,15 +41,15 @@ public class NetworkFlowAnalyzer {
     private final Graph<String, edge> graph;
 
     // Residual capacities: directedKey -> remaining capacity
-    private Map<String, Double> residualCapacity;
+    private Map<List<String>, Double> residualCapacity;
     // Flow values: directedKey -> flow
-    private Map<String, Double> flow;
+    private Map<List<String>, Double> flow;
     // Adjacency list for residual graph
     private Map<String, Set<String>> residualAdj;
     // Original capacities
-    private Map<String, Double> capacity;
+    private Map<List<String>, Double> capacity;
     // Edge lookup: directedKey -> original edge (null for reverse arcs)
-    private Map<String, edge> edgeLookup;
+    private Map<List<String>, edge> edgeLookup;
 
     private String source;
     private String sink;
@@ -100,7 +100,7 @@ public class NetworkFlowAnalyzer {
         // Edmonds–Karp: BFS for shortest augmenting path
         while (true) {
             Map<String, String> parent = new LinkedHashMap<String, String>();
-            Map<String, String> parentArcKey = new LinkedHashMap<String, String>();
+            Map<String, List<String>> parentArcKey = new LinkedHashMap<String, List<String>>();
             double pathFlow = bfsAugmentingPath(parent, parentArcKey);
 
             if (pathFlow <= 0) break;
@@ -109,8 +109,8 @@ public class NetworkFlowAnalyzer {
             String v = sink;
             while (!v.equals(source)) {
                 String u = parent.get(v);
-                String fwd = directedKey(u, v);
-                String rev = directedKey(v, u);
+                List<String> fwd = directedKey(u, v);
+                List<String> rev = directedKey(v, u);
 
                 residualCapacity.put(fwd,
                         residualCapacity.get(fwd) - pathFlow);
@@ -173,17 +173,17 @@ public class NetworkFlowAnalyzer {
         ensureComputed();
         Map<String, Double> result = new LinkedHashMap<String, Double>();
         for (edge e : graph.getEdges()) {
-            String fwd = directedKey(e.getVertex1(), e.getVertex2());
-            String rev = directedKey(e.getVertex2(), e.getVertex1());
+            List<String> fwd = directedKey(e.getVertex1(), e.getVertex2());
+            List<String> rev = directedKey(e.getVertex2(), e.getVertex1());
 
             double fwdFlow = flow.getOrDefault(fwd, 0.0);
             double revFlow = flow.getOrDefault(rev, 0.0);
 
-            // Net flow direction
+            // Net flow direction — display key uses " → " (Unicode arrow)
             if (fwdFlow > 1e-9) {
-                result.put(fwd, fwdFlow);
+                result.put(e.getVertex1() + " \u2192 " + e.getVertex2(), fwdFlow);
             } else if (revFlow > 1e-9) {
-                result.put(rev, revFlow);
+                result.put(e.getVertex2() + " \u2192 " + e.getVertex1(), revFlow);
             }
         }
         return Collections.unmodifiableMap(result);
@@ -223,7 +223,7 @@ public class NetworkFlowAnalyzer {
             Set<String> neighbors = residualAdj.get(u);
             if (neighbors == null) continue;
             for (String v : neighbors) {
-                String key = directedKey(u, v);
+                List<String> key = directedKey(u, v);
                 if (!reachable.contains(v) &&
                         residualCapacity.getOrDefault(key, 0.0) > 1e-9) {
                     reachable.add(v);
@@ -350,7 +350,7 @@ public class NetworkFlowAnalyzer {
         ensureComputed();
 
         // Work on a copy of flows
-        Map<String, Double> flowCopy = new HashMap<String, Double>(flow);
+        Map<List<String>, Double> flowCopy = new HashMap<List<String>, Double>(flow);
         List<FlowPath> paths = new ArrayList<FlowPath>();
 
         while (true) {
@@ -366,7 +366,7 @@ public class NetworkFlowAnalyzer {
                 Set<String> neighbors = residualAdj.get(u);
                 if (neighbors == null) continue;
                 for (String v : neighbors) {
-                    String key = directedKey(u, v);
+                    List<String> key = directedKey(u, v);
                     if (!parent.containsKey(v) &&
                             flowCopy.getOrDefault(key, 0.0) > 1e-9) {
                         parent.put(v, u);
@@ -398,7 +398,7 @@ public class NetworkFlowAnalyzer {
 
             // Subtract flow
             for (int i = 0; i < pathVertices.size() - 1; i++) {
-                String key = directedKey(pathVertices.get(i), pathVertices.get(i + 1));
+                List<String> key = directedKey(pathVertices.get(i), pathVertices.get(i + 1));
                 flowCopy.put(key, flowCopy.getOrDefault(key, 0.0) - pathFlow);
             }
 
@@ -533,14 +533,9 @@ public class NetworkFlowAnalyzer {
         if (!edgeFlows.isEmpty()) {
             sb.append("\n--- Edge flows ---\n");
             for (Map.Entry<String, Double> entry : edgeFlows.entrySet()) {
-                String key = entry.getKey();
+                String displayKey = entry.getKey();
                 double f = entry.getValue();
-                // Find capacity
-                edge e = edgeLookup.get(key);
-                double cap = e != null ? getEdgeCapacity(e) : 0;
-                sb.append(String.format("  %s: %.2f / %.2f%s\n",
-                        key, f, cap,
-                        Math.abs(f - cap) < 1e-9 ? " [SATURATED]" : ""));
+                sb.append(String.format("  %s: %.2f\n", displayKey, f));
             }
         }
 
@@ -550,11 +545,11 @@ public class NetworkFlowAnalyzer {
     // ── Internal helpers ───────────────────────────────────────────
 
     private void buildResidualGraph() {
-        residualCapacity = new HashMap<String, Double>();
-        flow = new HashMap<String, Double>();
+        residualCapacity = new HashMap<List<String>, Double>();
+        flow = new HashMap<List<String>, Double>();
         residualAdj = new HashMap<String, Set<String>>();
-        capacity = new HashMap<String, Double>();
-        edgeLookup = new HashMap<String, edge>();
+        capacity = new HashMap<List<String>, Double>();
+        edgeLookup = new HashMap<List<String>, edge>();
 
         // Initialise adjacency sets for all vertices
         for (String v : graph.getVertices()) {
@@ -566,8 +561,8 @@ public class NetworkFlowAnalyzer {
             String v2 = e.getVertex2();
             double cap = getEdgeCapacity(e);
 
-            String fwd = directedKey(v1, v2);
-            String rev = directedKey(v2, v1);
+            List<String> fwd = directedKey(v1, v2);
+            List<String> rev = directedKey(v2, v1);
 
             // Each undirected edge → two directed arcs
             residualCapacity.put(fwd,
@@ -587,7 +582,7 @@ public class NetworkFlowAnalyzer {
     }
 
     private double bfsAugmentingPath(Map<String, String> parent,
-                                     Map<String, String> parentArcKey) {
+                                     Map<String, List<String>> parentArcKey) {
         Queue<String> queue = new LinkedList<String>();
         queue.add(source);
         parent.put(source, null);
@@ -598,7 +593,7 @@ public class NetworkFlowAnalyzer {
             if (neighbors == null) continue;
 
             for (String v : neighbors) {
-                String key = directedKey(u, v);
+                List<String> key = directedKey(u, v);
                 if (!parent.containsKey(v) &&
                         residualCapacity.getOrDefault(key, 0.0) > 1e-9) {
                     parent.put(v, u);
@@ -609,7 +604,7 @@ public class NetworkFlowAnalyzer {
                         String t = sink;
                         while (!t.equals(source)) {
                             String p = parent.get(t);
-                            String k = directedKey(p, t);
+                            List<String> k = directedKey(p, t);
                             pathFlow = Math.min(pathFlow,
                                     residualCapacity.getOrDefault(k, 0.0));
                             t = p;
@@ -628,8 +623,8 @@ public class NetworkFlowAnalyzer {
         return w > 0 ? w : 1.0;
     }
 
-    private String directedKey(String from, String to) {
-        return from + "->" + to;
+    private List<String> directedKey(String from, String to) {
+        return Arrays.asList(from, to);
     }
 
     private void validateVertex(String vertex, String name) {
