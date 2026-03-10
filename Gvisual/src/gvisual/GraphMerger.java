@@ -205,10 +205,6 @@ public final class GraphMerger {
                 break;
             case RIGHT_JOIN:
                 mergeLeftJoin(b, a, merged, edgeConflict, conflicts);
-                // Swap onlyA/onlyB for correct reporting
-                Set<String> tmp = onlyA;
-                onlyA = onlyB;
-                onlyB = tmp;
                 break;
         }
 
