@@ -402,6 +402,7 @@ public class GraphPartitioner {
 
     /**
      * Spectral bisection of a vertex subset using the Fiedler vector.
+     * Uses sparse Laplacian representation — O(m) per iteration instead of O(n²).
      */
     private List<List<String>> spectralBisect(List<String> vertices) {
         int n = vertices.size();
@@ -411,11 +412,30 @@ public class GraphPartitioner {
             return result;
         }
 
-        // Build Laplacian matrix for the subgraph
-        double[][] laplacian = LaplacianBuilder.buildSubgraphLaplacian(graph, vertices);
+        // Build sparse adjacency: for each vertex index, list of neighbor indices
+        Map<String, Integer> indexMap = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            indexMap.put(vertices.get(i), i);
+        }
+        int[][] adj = new int[n][];
+        int[] degree = new int[n];
+        for (int i = 0; i < n; i++) {
+            List<Integer> neighbors = new ArrayList<>();
+            for (String neighbor : graph.getNeighbors(vertices.get(i))) {
+                Integer j = indexMap.get(neighbor);
+                if (j != null) {
+                    neighbors.add(j);
+                }
+            }
+            adj[i] = new int[neighbors.size()];
+            for (int k = 0; k < neighbors.size(); k++) {
+                adj[i][k] = neighbors.get(k);
+            }
+            degree[i] = adj[i].length;
+        }
 
-        // Compute Fiedler vector (eigenvector of 2nd smallest eigenvalue)
-        double[] fiedler = computeFiedlerVector(laplacian, n);
+        // Compute Fiedler vector using sparse power iteration
+        double[] fiedler = computeFiedlerVectorSparse(adj, degree, n);
 
         // Partition by sign of Fiedler vector
         List<String> partA = new ArrayList<>();
@@ -442,10 +462,28 @@ public class GraphPartitioner {
     }
 
     /**
-     * Compute the Fiedler vector using power iteration on (maxEig*I - L)
-     * to find the second-smallest eigenvector of the Laplacian.
+     * Sparse shifted matrix-vector multiply: result = (maxEig*I - L) * v.
+     * L is the Laplacian: L[i][i] = degree[i], L[i][j] = -1 for edges.
+     * So (maxEig*I - L) * v = (maxEig - degree[i]) * v[i] + sum_neighbors(v[j]).
+     * O(m) time where m = number of edges.
      */
-    private double[] computeFiedlerVector(double[][] laplacian, int n) {
+    private double[] sparseShiftedMul(int[][] adj, int[] degree, double maxEig,
+                                       double[] v, int n) {
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            result[i] = (maxEig - degree[i]) * v[i];
+            for (int j : adj[i]) {
+                result[i] += v[j];
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Compute the Fiedler vector using sparse power iteration on (maxEig*I - L).
+     * Uses convergence check to exit early when the vector stabilizes.
+     */
+    private double[] computeFiedlerVectorSparse(int[][] adj, int[] degree, int n) {
         if (n <= 2) {
             double[] v = new double[n];
             if (n == 2) { v[0] = -1; v[1] = 1; }
@@ -453,42 +491,41 @@ public class GraphPartitioner {
             return v;
         }
 
-        // Estimate max eigenvalue (Gershgorin bound)
+        // Gershgorin bound for max eigenvalue of L: max(2 * degree[i])
         double maxEig = 0;
         for (int i = 0; i < n; i++) {
-            double sum = 0;
-            for (int j = 0; j < n; j++) {
-                sum += Math.abs(laplacian[i][j]);
-            }
-            maxEig = Math.max(maxEig, sum);
+            maxEig = Math.max(maxEig, 2.0 * degree[i]);
         }
 
-        // Shifted matrix M = maxEig*I - L  (largest eigvec of M = smallest of L)
-        double[][] M = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                M[i][j] = -laplacian[i][j];
-            }
-            M[i][i] += maxEig;
-        }
+        // Power iteration for dominant eigenvector of M = maxEig*I - L
+        double[] v1 = powerIterationSparse(adj, degree, maxEig, null, 0, n);
 
-        // Power iteration for dominant eigenvector of M (= smallest eigvec of L)
-        double[] v1 = powerIteration(M, n);
+        // Rayleigh quotient for deflation
+        double[] Mv1 = sparseShiftedMul(adj, degree, maxEig, v1, n);
+        double lambda1 = dot(v1, Mv1, n) / dot(v1, v1, n);
 
-        // Deflate: M' = M - lambda1 * v1 * v1^T
-        double lambda1 = rayleighQuotient(M, v1, n);
-        double[][] M2 = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                M2[i][j] = M[i][j] - lambda1 * v1[i] * v1[j];
-            }
-        }
-
-        // Power iteration for second eigenvector of M (= Fiedler vector)
-        return powerIteration(M2, n);
+        // Power iteration for second eigenvector (Fiedler) with deflation
+        return powerIterationSparse(adj, degree, maxEig, v1, lambda1, n);
     }
 
-    private double[] powerIteration(double[][] M, int n) {
+    /**
+     * Sparse power iteration with convergence check.
+     * Computes dominant eigenvector of M = (maxEig*I - L) optionally deflated
+     * by lambda1 * v1 * v1^T.
+     *
+     * @param adj      sparse adjacency lists
+     * @param degree   degree array
+     * @param maxEig   shift value
+     * @param deflateV vector to deflate (null for first eigenvector)
+     * @param deflateL eigenvalue for deflation
+     * @param n        dimension
+     * @return converged eigenvector
+     */
+    private double[] powerIterationSparse(int[][] adj, int[] degree, double maxEig,
+                                           double[] deflateV, double deflateL, int n) {
+        final int MAX_ITER = 500;
+        final double CONVERGENCE_TOL = 1e-10;
+
         Random rng = new Random(42);
         double[] v = new double[n];
         for (int i = 0; i < n; i++) {
@@ -496,34 +533,40 @@ public class GraphPartitioner {
         }
         normalize(v, n);
 
-        for (int iter = 0; iter < 200; iter++) {
-            double[] Mv = matVecMul(M, v, n);
+        for (int iter = 0; iter < MAX_ITER; iter++) {
+            double[] Mv = sparseShiftedMul(adj, degree, maxEig, v, n);
+
+            // Deflation: Mv -= lambda1 * (v1 · v) * v1
+            if (deflateV != null) {
+                double proj = dot(deflateV, v, n);
+                for (int i = 0; i < n; i++) {
+                    Mv[i] -= deflateL * proj * deflateV[i];
+                }
+            }
+
             normalize(Mv, n);
+
+            // Convergence check: ||v_new - v_old||²
+            double diff = 0;
+            for (int i = 0; i < n; i++) {
+                double d = Mv[i] - v[i];
+                diff += d * d;
+            }
             v = Mv;
+
+            if (Math.sqrt(diff) < CONVERGENCE_TOL) {
+                break;
+            }
         }
         return v;
     }
 
-    private double rayleighQuotient(double[][] M, double[] v, int n) {
-        double[] Mv = matVecMul(M, v, n);
-        double num = 0, den = 0;
+    private double dot(double[] a, double[] b, int n) {
+        double sum = 0;
         for (int i = 0; i < n; i++) {
-            num += v[i] * Mv[i];
-            den += v[i] * v[i];
+            sum += a[i] * b[i];
         }
-        return den > 0 ? num / den : 0;
-    }
-
-    private double[] matVecMul(double[][] M, double[] v, int n) {
-        double[] result = new double[n];
-        for (int i = 0; i < n; i++) {
-            double sum = 0;
-            for (int j = 0; j < n; j++) {
-                sum += M[i][j] * v[j];
-            }
-            result[i] = sum;
-        }
-        return result;
+        return sum;
     }
 
     private void normalize(double[] v, int n) {
