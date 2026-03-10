@@ -439,7 +439,13 @@ public class MetricDimensionAnalyzer {
         ensureDistComputed();
 
         // Precompute which vertex resolves which pairs
-        int totalPairs = n * (n - 1) / 2;
+        long totalPairsL = (long) n * (n - 1) / 2;
+        if (totalPairsL > Integer.MAX_VALUE) {
+            // Graph too large for BitSet-based metric dimension
+            metricDimension = -1;
+            return metricDimension;
+        }
+        int totalPairs = (int) totalPairsL;
         // Store pairs as bit sets for fast intersection
         BitSet[] resolves = new BitSet[n];
         int pairIdx = 0;

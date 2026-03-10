@@ -333,7 +333,7 @@ public class GraphClusterQualityAnalyzer {
 
             // Density of the cluster subgraph
             int n = members.size();
-            int maxPossible = n * (n - 1) / 2;
+            long maxPossible = (long) n * (n - 1) / 2;
             double density = maxPossible > 0 ? (double) clusterIntra / maxPossible : 0.0;
             densities.put(cid, density);
             totalIntraDensity += density;
@@ -347,13 +347,13 @@ public class GraphClusterQualityAnalyzer {
         double intraClusterDensity = clusterCount > 0 ? totalIntraDensity / clusterCount : 0.0;
 
         // Inter-cluster density
-        int totalIntraPossible = 0;
+        long totalIntraPossible = 0;
         for (Set<String> members : clusters.values()) {
             int n = members.size();
-            totalIntraPossible += n * (n - 1) / 2;
+            totalIntraPossible += (long) n * (n - 1) / 2;
         }
-        int totalPossible = totalNodes * (totalNodes - 1) / 2;
-        int interPossible = totalPossible - totalIntraPossible;
+        long totalPossible = (long) totalNodes * (totalNodes - 1) / 2;
+        long interPossible = totalPossible - totalIntraPossible;
         double interClusterDensity = interPossible > 0
             ? (double) interEdges / interPossible : 0.0;
 

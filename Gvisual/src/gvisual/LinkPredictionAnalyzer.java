@@ -103,12 +103,12 @@ public class LinkPredictionAnalyzer {
         private final Method method;
         private final int totalVertices;
         private final int existingEdges;
-        private final int possibleEdges;
+        private final long possibleEdges;
         private final int candidatesEvaluated;
 
         public PredictionResult(List<PredictedLink> predictions, Method method,
                                 int totalVertices, int existingEdges,
-                                int possibleEdges, int candidatesEvaluated) {
+                                long possibleEdges, int candidatesEvaluated) {
             this.predictions = Collections.unmodifiableList(predictions);
             this.method = method;
             this.totalVertices = totalVertices;
@@ -121,7 +121,7 @@ public class LinkPredictionAnalyzer {
         public Method getMethod() { return method; }
         public int getTotalVertices() { return totalVertices; }
         public int getExistingEdges() { return existingEdges; }
-        public int getPossibleEdges() { return possibleEdges; }
+        public long getPossibleEdges() { return possibleEdges; }
         public int getCandidatesEvaluated() { return candidatesEvaluated; }
 
         /** Graph density (existing edges / possible edges). */
@@ -257,14 +257,14 @@ public class LinkPredictionAnalyzer {
     private static class PairEvaluation {
         final int n;
         final int existingEdges;
-        final int possibleEdges;
+        final long possibleEdges;
         final Map<String, Set<String>> adjacency;
         /** Ordered list of candidate pairs as [u, v] arrays. */
         final List<String[]> pairs;
         /** Common neighbors for each pair, same indexing as pairs. */
         final List<Set<String>> commonNeighbors;
 
-        PairEvaluation(int n, int existingEdges, int possibleEdges,
+        PairEvaluation(int n, int existingEdges, long possibleEdges,
                        Map<String, Set<String>> adjacency,
                        List<String[]> pairs, List<Set<String>> commonNeighbors) {
             this.n = n;
@@ -284,7 +284,7 @@ public class LinkPredictionAnalyzer {
         Collection<String> vertices = graph.getVertices();
         int n = vertices.size();
         int existingEdges = graph.getEdgeCount();
-        int possibleEdges = n * (n - 1) / 2;
+        long possibleEdges = (long) n * (n - 1) / 2;
         Map<String, Set<String>> adjacency = buildAdjacency(vertices);
 
         List<String> vertexList = new ArrayList<String>(vertices);

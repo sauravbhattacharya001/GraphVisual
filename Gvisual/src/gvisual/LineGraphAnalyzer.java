@@ -226,7 +226,7 @@ public class LineGraphAnalyzer {
             classification = "1 (bipartite)";
         } else if (isOddCycle(n, m, delta)) {
             classification = "2 (odd cycle)";
-        } else if (m == n * (n - 1) / 2 && n > 0) {
+        } else if (m == (long) n * (n - 1) / 2 && n > 0) {
             classification = n % 2 == 0 ? "1 (complete, even order)" :
                     "2 (complete, odd order)";
         } else if (2 * m > delta * (n - 1)) {
