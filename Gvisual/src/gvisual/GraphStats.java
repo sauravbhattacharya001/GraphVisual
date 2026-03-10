@@ -90,7 +90,7 @@ public class GraphStats {
         int v = getNodeCount();
         int e = getVisibleEdgeCount();
         if (v < 2) return 0.0;
-        return (2.0 * e) / (v * (v - 1));
+        return (2.0 * e) / ((long) v * (v - 1));
     }
 
     /**

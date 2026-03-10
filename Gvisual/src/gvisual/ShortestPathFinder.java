@@ -192,7 +192,7 @@ public class ShortestPathFinder {
             visited.add(current);
 
             if (current.equals(target)) {
-                return buildPath(source, target, predecessor, predecessorEdge);
+                return buildPath(source, target, predecessor, predecessorEdge, true);
             }
 
             for (edge e : graph.getIncidentEdges(current)) {
@@ -314,6 +314,20 @@ public class ShortestPathFinder {
     private PathResult buildPath(String source, String target,
                                  Map<String, String> predecessor,
                                  Map<String, edge> predecessorEdge) {
+        return buildPath(source, target, predecessor, predecessorEdge, false);
+    }
+
+    /**
+     * Builds a PathResult by tracing predecessors from target back to source.
+     *
+     * @param normalizeZeroWeights if true, treat zero-weight edges as weight 1.0
+     *                             (must match the convention used by the caller,
+     *                             e.g. Dijkstra normalizes zero weights to 1.0)
+     */
+    private PathResult buildPath(String source, String target,
+                                 Map<String, String> predecessor,
+                                 Map<String, edge> predecessorEdge,
+                                 boolean normalizeZeroWeights) {
         List<String> vertices = new ArrayList<String>();
         List<edge> edges = new ArrayList<edge>();
         double totalWeight = 0;
@@ -324,7 +338,9 @@ public class ShortestPathFinder {
             edge e = predecessorEdge.get(current);
             if (e != null) {
                 edges.add(e);
-                totalWeight += e.getWeight();
+                double w = e.getWeight();
+                if (normalizeZeroWeights && w == 0) w = 1.0;
+                totalWeight += w;
             }
             current = predecessor.get(current);
         }
