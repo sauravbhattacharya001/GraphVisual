@@ -175,7 +175,7 @@ public class VertexConnectivityAnalyzer {
         if (!isConnected()) return 0;
 
         // Check if complete graph
-        int maxEdges = n * (n - 1) / 2;
+        long maxEdges = (long) n * (n - 1) / 2;
         if (graph.getEdgeCount() == maxEdges) return n - 1;
 
         List<String> vList = new ArrayList<>(graph.getVertices());
@@ -222,7 +222,7 @@ public class VertexConnectivityAnalyzer {
         int n = graph.getVertexCount();
         if (n <= 1 || !isConnected()) return Collections.emptySet();
 
-        int maxEdges = n * (n - 1) / 2;
+        long maxEdges = (long) n * (n - 1) / 2;
         if (graph.getEdgeCount() == maxEdges) {
             Set<String> cut = new LinkedHashSet<>(graph.getVertices());
             String keep = cut.iterator().next();

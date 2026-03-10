@@ -97,7 +97,7 @@ public class TournamentAnalyzer {
         if (n <= 1) return true;
 
         // A tournament on n vertices has exactly n*(n-1)/2 edges
-        if (graph.getEdgeCount() != n * (n - 1) / 2) return false;
+        if (graph.getEdgeCount() != (long) n * (n - 1) / 2) return false;
 
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
@@ -121,7 +121,7 @@ public class TournamentAnalyzer {
         int n = vertices.size();
         if (n <= 1) return errors;
 
-        int expected = n * (n - 1) / 2;
+        long expected = (long) n * (n - 1) / 2;
         if (graph.getEdgeCount() != expected) {
             errors.add("Expected " + expected + " edges for " + n +
                        " vertices, found " + graph.getEdgeCount());
@@ -197,14 +197,14 @@ public class TournamentAnalyzer {
         int n = sorted.size();
         if (n == 0) return true;
 
-        int cumSum = 0;
+        long cumSum = 0;
         for (int k = 1; k <= n; k++) {
             cumSum += sorted.get(k - 1);
-            int required = k * (k - 1) / 2;
+            long required = (long) k * (k - 1) / 2;
             if (cumSum < required) return false;
         }
         // Total must equal n*(n-1)/2
-        int total = n * (n - 1) / 2;
+        long total = (long) n * (n - 1) / 2;
         return cumSum == total;
     }
 

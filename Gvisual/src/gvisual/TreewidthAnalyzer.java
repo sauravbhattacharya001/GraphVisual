@@ -764,7 +764,7 @@ public class TreewidthAnalyzer {
         }
 
         // Complete graph
-        if (edgeCount == n * (n - 1) / 2) {
+        if (edgeCount == (long) n * (n - 1) / 2) {
             return "complete graph K" + n + " (tw=" + (n - 1) + ")";
         }
 
