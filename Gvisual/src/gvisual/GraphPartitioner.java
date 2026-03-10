@@ -402,6 +402,7 @@ public class GraphPartitioner {
 
     /**
      * Spectral bisection of a vertex subset using the Fiedler vector.
+     * Uses sparse Laplacian operations — O(m) per iteration instead of O(n²).
      */
     private List<List<String>> spectralBisect(List<String> vertices) {
         int n = vertices.size();
@@ -411,11 +412,14 @@ public class GraphPartitioner {
             return result;
         }
 
-        // Build Laplacian matrix for the subgraph
-        double[][] laplacian = LaplacianBuilder.buildSubgraphLaplacian(graph, vertices);
+        // Build vertex index map for sparse operations
+        Map<String, Integer> vertexIndex = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertices.get(i), i);
+        }
 
-        // Compute Fiedler vector (eigenvector of 2nd smallest eigenvalue)
-        double[] fiedler = computeFiedlerVector(laplacian, n);
+        // Compute Fiedler vector using sparse Laplacian
+        double[] fiedler = computeFiedlerVectorSparse(vertices, vertexIndex, n);
 
         // Partition by sign of Fiedler vector
         List<String> partA = new ArrayList<>();
@@ -442,10 +446,52 @@ public class GraphPartitioner {
     }
 
     /**
-     * Compute the Fiedler vector using power iteration on (maxEig*I - L)
-     * to find the second-smallest eigenvector of the Laplacian.
+     * Sparse Laplacian–vector multiply: result = L * v, using adjacency list.
+     * O(m) per call where m = edges in subgraph, instead of O(n²) for dense.
      */
-    private double[] computeFiedlerVector(double[][] laplacian, int n) {
+    private double[] sparseLaplacianMul(List<String> vertices,
+                                         Map<String, Integer> vertexIndex,
+                                         double[] v) {
+        int n = vertices.size();
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            double diag = 0;
+            for (String neighbor : graph.getNeighbors(vertices.get(i))) {
+                Integer j = vertexIndex.get(neighbor);
+                if (j != null) {
+                    result[i] -= v[j];
+                    diag++;
+                }
+            }
+            result[i] += diag * v[i];
+        }
+        return result;
+    }
+
+    /**
+     * Sparse shifted-matrix multiply: result = (maxEig*I - L) * v.
+     * Equivalent to maxEig*v - L*v, computed in O(m).
+     */
+    private double[] sparseShiftedMul(List<String> vertices,
+                                       Map<String, Integer> vertexIndex,
+                                       double maxEig, double[] v) {
+        double[] Lv = sparseLaplacianMul(vertices, vertexIndex, v);
+        int n = v.length;
+        double[] result = new double[n];
+        for (int i = 0; i < n; i++) {
+            result[i] = maxEig * v[i] - Lv[i];
+        }
+        return result;
+    }
+
+    /**
+     * Compute the Fiedler vector using sparse power iteration with convergence check.
+     * Uses adjacency-list-based Laplacian multiply (O(m) per iteration) and
+     * stops early when the vector converges (||v_new - v_old|| < 1e-10).
+     */
+    private double[] computeFiedlerVectorSparse(List<String> vertices,
+                                                  Map<String, Integer> vertexIndex,
+                                                  int n) {
         if (n <= 2) {
             double[] v = new double[n];
             if (n == 2) { v[0] = -1; v[1] = 1; }
@@ -453,42 +499,47 @@ public class GraphPartitioner {
             return v;
         }
 
-        // Estimate max eigenvalue (Gershgorin bound)
+        // Estimate max eigenvalue via Gershgorin: max degree * 2
         double maxEig = 0;
         for (int i = 0; i < n; i++) {
-            double sum = 0;
-            for (int j = 0; j < n; j++) {
-                sum += Math.abs(laplacian[i][j]);
+            int degree = 0;
+            for (String neighbor : graph.getNeighbors(vertices.get(i))) {
+                if (vertexIndex.containsKey(neighbor)) degree++;
             }
-            maxEig = Math.max(maxEig, sum);
+            maxEig = Math.max(maxEig, 2.0 * degree);
         }
 
-        // Shifted matrix M = maxEig*I - L  (largest eigvec of M = smallest of L)
-        double[][] M = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                M[i][j] = -laplacian[i][j];
-            }
-            M[i][i] += maxEig;
-        }
+        // Power iteration for dominant eigenvector of M = maxEig*I - L
+        // (= smallest eigvec of L, which is the constant vector)
+        double[] v1 = sparsePowerIteration(vertices, vertexIndex, maxEig, null, null, n);
 
-        // Power iteration for dominant eigenvector of M (= smallest eigvec of L)
-        double[] v1 = powerIteration(M, n);
+        // Compute lambda1 = Rayleigh quotient of v1 w.r.t. M
+        double[] Mv1 = sparseShiftedMul(vertices, vertexIndex, maxEig, v1);
+        double lambda1 = dotProduct(v1, Mv1, n) / dotProduct(v1, v1, n);
 
-        // Deflate: M' = M - lambda1 * v1 * v1^T
-        double lambda1 = rayleighQuotient(M, v1, n);
-        double[][] M2 = new double[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                M2[i][j] = M[i][j] - lambda1 * v1[i] * v1[j];
-            }
-        }
+        // Power iteration for second eigenvector with deflation:
+        // M' * v = M * v - lambda1 * (v1^T v) * v1
+        double[] fiedler = sparsePowerIteration(vertices, vertexIndex, maxEig, v1, lambda1, n);
 
-        // Power iteration for second eigenvector of M (= Fiedler vector)
-        return powerIteration(M2, n);
+        return fiedler;
     }
 
-    private double[] powerIteration(double[][] M, int n) {
+    /**
+     * Power iteration with convergence check and optional rank-1 deflation.
+     * Converges when ||v_new - v_old||_2 < 1e-10 or after 500 iterations.
+     *
+     * @param deflateVec if non-null, deflates M by lambda * deflateVec * deflateVec^T
+     * @param deflateEig eigenvalue for deflation (ignored if deflateVec is null)
+     */
+    private double[] sparsePowerIteration(List<String> vertices,
+                                            Map<String, Integer> vertexIndex,
+                                            double maxEig,
+                                            double[] deflateVec,
+                                            Double deflateEig,
+                                            int n) {
+        final int MAX_ITER = 500;
+        final double TOLERANCE = 1e-10;
+
         Random rng = new Random(42);
         double[] v = new double[n];
         for (int i = 0; i < n; i++) {
@@ -496,34 +547,35 @@ public class GraphPartitioner {
         }
         normalize(v, n);
 
-        for (int iter = 0; iter < 200; iter++) {
-            double[] Mv = matVecMul(M, v, n);
+        for (int iter = 0; iter < MAX_ITER; iter++) {
+            double[] Mv = sparseShiftedMul(vertices, vertexIndex, maxEig, v);
+
+            // Apply deflation if needed: Mv -= lambda * (v1^T v) * v1
+            if (deflateVec != null) {
+                double proj = dotProduct(deflateVec, v, n);
+                for (int i = 0; i < n; i++) {
+                    Mv[i] -= deflateEig * proj * deflateVec[i];
+                }
+            }
+
             normalize(Mv, n);
+
+            // Check convergence: ||Mv - v||_2
+            double diff = 0;
+            for (int i = 0; i < n; i++) {
+                double d = Mv[i] - v[i];
+                diff += d * d;
+            }
             v = Mv;
+            if (Math.sqrt(diff) < TOLERANCE) break;
         }
         return v;
     }
 
-    private double rayleighQuotient(double[][] M, double[] v, int n) {
-        double[] Mv = matVecMul(M, v, n);
-        double num = 0, den = 0;
-        for (int i = 0; i < n; i++) {
-            num += v[i] * Mv[i];
-            den += v[i] * v[i];
-        }
-        return den > 0 ? num / den : 0;
-    }
-
-    private double[] matVecMul(double[][] M, double[] v, int n) {
-        double[] result = new double[n];
-        for (int i = 0; i < n; i++) {
-            double sum = 0;
-            for (int j = 0; j < n; j++) {
-                sum += M[i][j] * v[j];
-            }
-            result[i] = sum;
-        }
-        return result;
+    private double dotProduct(double[] a, double[] b, int n) {
+        double sum = 0;
+        for (int i = 0; i < n; i++) sum += a[i] * b[i];
+        return sum;
     }
 
     private void normalize(double[] v, int n) {
