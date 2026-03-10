@@ -42,11 +42,8 @@ public class CircularLayoutTest {
     }
 
     private edge makeEdge(String v1, String v2) {
-        edge e = new edge();
-        e.setVertex1(v1);
-        e.setVertex2(v2);
+        edge e = new edge("f", v1, v2);
         e.setWeight(1.0f);
-        e.setType("f");
         e.setLabel(v1 + "-" + v2);
         return e;
     }
