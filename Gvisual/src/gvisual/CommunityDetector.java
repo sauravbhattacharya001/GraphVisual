@@ -32,6 +32,13 @@ public class CommunityDetector {
     }
 
     /**
+     * Convenience method: runs detection and returns communities directly.
+     */
+    public java.util.List<Community> getCommunities() {
+        return detect().getCommunities();
+    }
+
+    /**
      * Represents a single detected community with its members and metrics.
      */
     public static class Community implements Comparable<Community> {
