@@ -655,4 +655,64 @@ public class NetworkFlowAnalyzerTest {
         }
         assertEquals(totalFlow, pathSum, 1e-9);
     }
+
+    // ═══════════════════════════════════════
+    // Issue #45: directedKey collision with arrow in names
+    // ═══════════════════════════════════════
+
+    @Test
+    public void testVertexNamesContainingArrowSeparator() {
+        // Vertex names that would collide under string concatenation:
+        // "A->B" + "->" + "C" == "A" + "->" + "B->C" == "A->B->C"
+        addEdge("A->B", "C", 5.0f);
+        addEdge("A", "B->C", 3.0f);
+        addEdge("A->B", "sink", 5.0f);
+        addEdge("B->C", "sink", 3.0f);
+        addEdge("src", "A->B", 5.0f);
+        addEdge("src", "A", 3.0f);
+
+        NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
+        double maxFlow = nfa.compute("src", "sink");
+
+        // Two independent paths: src->A->B->C->sink (cap 3) and src->A->B->sink (cap 5)
+        // Total flow should be 8
+        assertEquals(8.0, maxFlow, 1e-9);
+
+        // Verify flows are correctly assigned (not merged/corrupted)
+        Map<String, Double> edgeFlows = nfa.getEdgeFlows();
+        assertFalse("Edge flows should not be empty", edgeFlows.isEmpty());
+
+        // Summary should not crash
+        String summary = nfa.getSummary();
+        assertNotNull(summary);
+        assertTrue(summary.contains("Maximum flow: 8.00"));
+    }
+
+    @Test
+    public void testVertexNameIsExactlyArrow() {
+        // Edge case: vertex name is literally "->"
+        addEdge("S", "->", 4.0f);
+        addEdge("->", "T", 4.0f);
+
+        NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
+        double maxFlow = nfa.compute("S", "T");
+        assertEquals(4.0, maxFlow, 1e-9);
+    }
+
+    @Test
+    public void testVertexNameWithMultipleArrows() {
+        // Vertex names with multiple arrow patterns
+        addEdge("A->->B", "C->D", 2.0f);
+        addEdge("src", "A->->B", 2.0f);
+        addEdge("C->D", "sink", 2.0f);
+
+        NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
+        double maxFlow = nfa.compute("src", "sink");
+        assertEquals(2.0, maxFlow, 1e-9);
+
+        // Min cut and bottleneck should work without crash
+        assertNotNull(nfa.getMinCut());
+        assertNotNull(nfa.getBottleneckEdges());
+        assertNotNull(nfa.decomposeFlowPaths());
+    }
 }
