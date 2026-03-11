@@ -148,20 +148,16 @@ public class InteractiveHtmlExporter {
         if (showStats) {
             sb.append("<div id=\"sidebar\">\n");
             sb.append("  <h3>Statistics</h3>\n");
-            sb.append("  <div class=\"stat\"><span class=\"label\">Nodes</span><span class=\"val\">").append(nodeCount).append("</span></div>\n");
-            sb.append("  <div class=\"stat\"><span class=\"label\">Edges</span><span class=\"val\">").append(edgeCount).append("</span></div>\n");
-            sb.append("  <div class=\"stat\"><span class=\"label\">Density</span><span class=\"val\">").append(String.format("%.4f", density)).append("</span></div>\n");
-            sb.append("  <div class=\"stat\"><span class=\"label\">Avg Degree</span><span class=\"val\">").append(String.format("%.2f", avgDeg)).append("</span></div>\n");
-            sb.append("  <div class=\"stat\"><span class=\"label\">Max Degree</span><span class=\"val\">").append(maxDeg).append("</span></div>\n");
+            appendStatItem(sb, "Nodes", String.valueOf(nodeCount));
+            appendStatItem(sb, "Edges", String.valueOf(edgeCount));
+            appendStatItem(sb, "Density", String.format("%.4f", density));
+            appendStatItem(sb, "Avg Degree", String.format("%.2f", avgDeg));
+            appendStatItem(sb, "Max Degree", String.valueOf(maxDeg));
 
             if (showLegend && !typeCounts.isEmpty()) {
                 sb.append("  <h3>Edge Types</h3>\n");
                 for (Map.Entry<String, Integer> entry : typeCounts.entrySet()) {
-                    String t = entry.getKey();
-                    sb.append("  <div class=\"legend-item\">");
-                    sb.append("<span class=\"legend-color\" style=\"background:").append(typeColor(t)).append("\"></span>");
-                    sb.append("<span>").append(escHtml(typeName(t))).append(" (").append(entry.getValue()).append(")</span>");
-                    sb.append("</div>\n");
+                    appendLegendItem(sb, entry.getKey(), entry.getValue());
                 }
             }
 
@@ -427,6 +423,29 @@ public class InteractiveHtmlExporter {
             case "sg": return "#9C27B0";
             default:   return "#607D8B";
         }
+    }
+
+    /**
+     * Appends a stat item (label + value) to the sidebar.
+     * Replaces the repeated {@code <div class="stat">} pattern.
+     */
+    private static void appendStatItem(StringBuilder sb, String label, String value) {
+        sb.append("  <div class=\"stat\"><span class=\"label\">")
+          .append(escHtml(label))
+          .append("</span><span class=\"val\">")
+          .append(escHtml(value))
+          .append("</span></div>\n");
+    }
+
+    /**
+     * Appends a legend item (colored swatch + type name + count) to the sidebar.
+     * Replaces the repeated {@code <div class="legend-item">} pattern.
+     */
+    private void appendLegendItem(StringBuilder sb, String type, int count) {
+        sb.append("  <div class=\"legend-item\">");
+        sb.append("<span class=\"legend-color\" style=\"background:").append(typeColor(type)).append("\"></span>");
+        sb.append("<span>").append(escHtml(typeName(type))).append(" (").append(count).append(")</span>");
+        sb.append("</div>\n");
     }
 
     private static String escHtml(String s) {
