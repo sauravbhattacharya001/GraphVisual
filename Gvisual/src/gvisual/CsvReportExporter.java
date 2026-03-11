@@ -356,10 +356,19 @@ public class CsvReportExporter {
 
     /**
      * Escapes a value for CSV (wraps in quotes if it contains comma, quote, or newline).
+     * Also defuses formula injection: values starting with {@code =}, {@code +},
+     * {@code -}, {@code @}, {@code \t}, or {@code \r} are prefixed with a
+     * single-quote inside the quoted field so spreadsheet applications treat
+     * them as literal text rather than formulas.
      */
     private String escapeCsv(String value) {
         if (value == null) return "";
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+        boolean needsQuote = value.contains(",") || value.contains("\"") || value.contains("\n");
+        boolean formulaRisk = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0;
+        if (formulaRisk) {
+            return "\"'" + value.replace("\"", "\"\"") + "\"";
+        }
+        if (needsQuote) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;

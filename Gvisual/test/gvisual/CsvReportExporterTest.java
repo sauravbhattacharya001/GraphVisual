@@ -227,4 +227,53 @@ public class CsvReportExporterTest {
         assertTrue("Alice before Bob", idxA < idxB);
         assertTrue("Bob before Charlie", idxB < idxC);
     }
+
+    // --- CSV formula injection prevention ---
+
+    @Test
+    public void testFormulaInjectionNodeEquals() {
+        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        g.addVertex("=CMD()");
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        String csv = exporter.exportToString();
+        assertTrue("Formula prefix defused", csv.contains("\"'=CMD()\""));
+        assertFalse("Raw formula not present", csv.contains(",=CMD(),"));
+    }
+
+    @Test
+    public void testFormulaInjectionNodePlus() {
+        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        g.addVertex("+1234");
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        String csv = exporter.exportToString();
+        assertTrue("Plus-prefix defused", csv.contains("\"'+1234\""));
+    }
+
+    @Test
+    public void testFormulaInjectionNodeMinus() {
+        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        g.addVertex("-DROP");
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        String csv = exporter.exportToString();
+        assertTrue("Minus-prefix defused", csv.contains("\"'-DROP\""));
+    }
+
+    @Test
+    public void testFormulaInjectionNodeAt() {
+        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        g.addVertex("@SUM(A1:A10)");
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        String csv = exporter.exportToString();
+        assertTrue("At-prefix defused", csv.contains("\"'@SUM(A1:A10)\""));
+    }
+
+    @Test
+    public void testSafeNodeNotPrefixed() {
+        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        g.addVertex("Alice");
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        String csv = exporter.exportToString();
+        assertTrue("Safe name present", csv.contains("Alice,"));
+        assertFalse("No spurious quoting", csv.contains("\"'Alice\""));
+    }
 }

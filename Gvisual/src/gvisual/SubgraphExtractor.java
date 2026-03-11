@@ -427,9 +427,20 @@ public class SubgraphExtractor {
             return sb.toString();
         }
 
+        /**
+         * Escapes a value for CSV.  In addition to the standard quoting of commas,
+         * quotes, and newlines, values that start with formula-triggering characters
+         * ({@code =}, {@code +}, {@code -}, {@code @}, tab, CR) are prefixed with a
+         * single-quote inside quotes so spreadsheet applications treat them as text.
+         */
         private static String csvEscape(String value) {
             if (value == null) return "";
-            if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            boolean needsQuote = value.contains(",") || value.contains("\"") || value.contains("\n");
+            boolean formulaRisk = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0;
+            if (formulaRisk) {
+                return "\"'" + value.replace("\"", "\"\"") + "\"";
+            }
+            if (needsQuote) {
                 return "\"" + value.replace("\"", "\"\"") + "\"";
             }
             return value;
