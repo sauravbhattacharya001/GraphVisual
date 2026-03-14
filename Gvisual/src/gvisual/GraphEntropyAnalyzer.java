@@ -225,7 +225,7 @@ public class GraphEntropyAnalyzer {
 
         double sum = 0;
         for (String v : graph.getVertices()) {
-            Collection<String> nbrs = graph.getNeighbors(v);
+            Collection<String> nbrs = GraphUtils.neighborsOf(graph, v);
             if (nbrs == null || nbrs.isEmpty()) {
                 neighbourhoodEntropy.put(v, 0.0);
                 continue;
@@ -323,7 +323,7 @@ public class GraphEntropyAnalyzer {
         Map<String, Integer> colors = new HashMap<>();
         for (String v : vertices) {
             Set<Integer> usedColors = new HashSet<>();
-            Collection<String> nbrs = graph.getNeighbors(v);
+            Collection<String> nbrs = GraphUtils.neighborsOf(graph, v);
             if (nbrs != null) {
                 for (String u : nbrs) {
                     Integer c = colors.get(u);
@@ -452,8 +452,7 @@ public class GraphEntropyAnalyzer {
      * C(v) = 2T / (d(v)(d(v)-1)) where T is the number of triangles.
      */
     private double localClusteringCoefficient(String v) {
-        Collection<String> nbrs = graph.getNeighbors(v);
-        if (nbrs == null) return 0;
+        Collection<String> nbrs = GraphUtils.neighborsOf(graph, v);
         List<String> nbrList = new ArrayList<>(nbrs);
         int d = nbrList.size();
         if (d < 2) return 0;

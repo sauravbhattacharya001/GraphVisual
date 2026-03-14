@@ -661,8 +661,7 @@ public class CycleAnalyzer {
     }
 
     private Iterable<String> getNeighbors(String v) {
-        Collection<String> nbrs = graph.getNeighbors(v);
-        return nbrs != null ? nbrs : Collections.<String>emptyList();
+        return GraphUtils.neighborsOf(graph, v);
     }
 
     private String edgeKey(String v1, String v2) {
