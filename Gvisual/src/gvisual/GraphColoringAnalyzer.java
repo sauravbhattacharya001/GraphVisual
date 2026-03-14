@@ -602,19 +602,8 @@ public class GraphColoringAnalyzer {
      * minimum-degree vertex from the remaining graph, then reverse.
      */
     private List<String> smallestLastOrder() {
-        // Build adjacency for the subgraph
         Set<String> remaining = new HashSet<>(graph.getVertices());
-        Map<String, Set<String>> adj = new HashMap<>();
-        for (String v : remaining) {
-            Set<String> neighbors = new HashSet<>();
-            Collection<String> n = graph.getNeighbors(v);
-            if (n != null) {
-                for (String nb : n) {
-                    neighbors.add(nb);
-                }
-            }
-            adj.put(v, neighbors);
-        }
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
 
         List<String> order = new ArrayList<>();
         while (!remaining.isEmpty()) {
