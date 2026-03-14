@@ -74,18 +74,9 @@ public class CliqueAnalyzer {
         }
 
         // Pre-build neighbor sets once so the recursive hot-path never
-        // allocates temporary collections.  Without this cache each
-        // getNeighbors() call created a new LinkedHashSet — O(V^2)
-        // allocations in the worst case during pivot selection alone.
-        neighborCache = new HashMap<String, Set<String>>(vertices.size() * 2);
-        for (String v : vertices) {
-            Collection<String> neighbors = graph.getNeighbors(v);
-            if (neighbors == null) {
-                neighborCache.put(v, new LinkedHashSet<String>());
-            } else {
-                neighborCache.put(v, new LinkedHashSet<String>(neighbors));
-            }
-        }
+        // allocates temporary collections.  Uses shared GraphUtils method
+        // instead of duplicating adjacency construction logic.
+        neighborCache = GraphUtils.buildAdjacencyMap(graph);
 
         // For isolated vertices (no neighbors), each is a trivial maximal clique
         Set<String> P = new LinkedHashSet<String>(vertices);
@@ -198,11 +189,8 @@ public class CliqueAnalyzer {
     private Set<String> getNeighbors(String vertex) {
         Set<String> cached = neighborCache.get(vertex);
         if (cached != null) return cached;
-        // Fallback for vertices not in the cache (should not happen
-        // after compute() builds the cache, but defensive).
-        Collection<String> neighbors = graph.getNeighbors(vertex);
-        if (neighbors == null) return new LinkedHashSet<String>();
-        return new LinkedHashSet<String>(neighbors);
+        // Fallback: should not happen after compute() builds the cache.
+        return Collections.<String>emptySet();
     }
 
     // ── Configuration ────────────────────────────────────────────────

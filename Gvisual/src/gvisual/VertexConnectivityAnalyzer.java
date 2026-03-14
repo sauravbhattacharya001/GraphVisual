@@ -136,19 +136,9 @@ public class VertexConnectivityAnalyzer {
         Collection<String> vertices = graph.getVertices();
         if (vertices.size() <= 1) return true;
         String start = vertices.iterator().next();
-        Set<String> visited = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
-        queue.add(start);
-        visited.add(start);
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            for (String n : graph.getNeighbors(v)) {
-                if (visited.add(n)) {
-                    queue.add(n);
-                }
-            }
-        }
-        return visited.size() == vertices.size();
+        // Use shared BFS from GraphUtils instead of inline BFS.
+        Set<String> component = GraphUtils.bfsComponent(graph, start);
+        return component.size() == vertices.size();
     }
 
     /**

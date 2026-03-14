@@ -96,22 +96,15 @@ public class MetricDimensionAnalyzer {
         for (int i = 0; i < n; i++) {
             indexOf.put(vertices.get(i), i);
         }
+        // Use shared BFS implementation from GraphUtils instead of
+        // duplicating BFS logic inline.
         for (int i = 0; i < n; i++) {
             Arrays.fill(dist[i], -1);
-            dist[i][i] = 0;
-            Queue<Integer> q = new LinkedList<Integer>();
-            q.add(i);
-            while (!q.isEmpty()) {
-                int u = q.poll();
-                String uv = vertices.get(u);
-                Collection<String> nbrs = graph.getNeighbors(uv);
-                if (nbrs == null) continue;
-                for (String nv : nbrs) {
-                    int ni = indexOf.get(nv);
-                    if (dist[i][ni] < 0) {
-                        dist[i][ni] = dist[i][u] + 1;
-                        q.add(ni);
-                    }
+            Map<String, Integer> bfs = GraphUtils.bfsDistances(graph, vertices.get(i));
+            for (Map.Entry<String, Integer> entry : bfs.entrySet()) {
+                Integer idx = indexOf.get(entry.getKey());
+                if (idx != null) {
+                    dist[i][idx] = entry.getValue();
                 }
             }
         }
@@ -147,19 +140,21 @@ public class MetricDimensionAnalyzer {
         twinClasses = new ArrayList<Set<String>>();
         boolean[] assigned = new boolean[n];
 
+        // Use shared adjacency map from GraphUtils instead of calling
+        // graph.getNeighbors() repeatedly for each pair comparison.
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+
         for (int i = 0; i < n; i++) {
             if (assigned[i]) continue;
             Set<String> cls = new LinkedHashSet<String>();
             cls.add(vertices.get(i));
-            Collection<String> rawNbrI = graph.getNeighbors(vertices.get(i));
-            Set<String> nbrI = (rawNbrI != null) ? new HashSet<String>(rawNbrI)
-                                                  : new HashSet<String>();
+            Set<String> nbrI = adj.containsKey(vertices.get(i))
+                    ? adj.get(vertices.get(i)) : Collections.<String>emptySet();
 
             for (int j = i + 1; j < n; j++) {
                 if (assigned[j]) continue;
-                Collection<String> rawNbrJ = graph.getNeighbors(vertices.get(j));
-                Set<String> nbrJ = (rawNbrJ != null) ? new HashSet<String>(rawNbrJ)
-                                                      : new HashSet<String>();
+                Set<String> nbrJ = adj.containsKey(vertices.get(j))
+                        ? adj.get(vertices.get(j)) : Collections.<String>emptySet();
                 // Open twins: N(u) = N(v) (non-adjacent with same neighbors)
                 // Closed twins: N[u] = N[v] (adjacent with same closed neighborhood)
                 boolean openTwin = nbrI.equals(nbrJ) &&
