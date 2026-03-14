@@ -118,9 +118,10 @@ public class GrowthRateAnalyzer {
     private static double computeAvgClustering(Graph<String, edge> g) {
         if (g.getVertexCount() == 0) return 0.0;
 
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(g);
         double totalClustering = 0.0;
         for (String v : g.getVertices()) {
-            Collection<String> neighbors = g.getNeighbors(v);
+            Set<String> neighbors = adj.get(v);
             if (neighbors == null) continue;
             List<String> neighborList = new ArrayList<>(neighbors);
             int k = neighborList.size();
@@ -128,8 +129,9 @@ public class GrowthRateAnalyzer {
 
             int triangles = 0;
             for (int i = 0; i < k; i++) {
+                Set<String> ni = adj.get(neighborList.get(i));
                 for (int j = i + 1; j < k; j++) {
-                    if (g.isNeighbor(neighborList.get(i), neighborList.get(j))) {
+                    if (ni != null && ni.contains(neighborList.get(j))) {
                         triangles++;
                     }
                 }
