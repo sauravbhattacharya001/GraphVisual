@@ -241,7 +241,7 @@ public class GraphNetworkProfiler {
         Collections.shuffle(vertices, random);
         int maxDist = 0;
         for (int i = 0; i < samples; i++) {
-            Map<String, Integer> dist = bfs(vertices.get(i));
+            Map<String, Integer> dist = GraphUtils.bfsDistances(graph, vertices.get(i));
             for (int d : dist.values()) {
                 if (d > maxDist) maxDist = d;
             }
@@ -276,7 +276,7 @@ public class GraphNetworkProfiler {
         int largestSize = 0;
         for (String v : graph.getVertices()) {
             if (!visited.contains(v)) {
-                Map<String, Integer> dist = bfs(v);
+                Map<String, Integer> dist = GraphUtils.bfsDistances(graph, v);
                 visited.addAll(dist.keySet());
                 count++;
                 if (dist.size() > largestSize) largestSize = dist.size();
@@ -293,7 +293,7 @@ public class GraphNetworkProfiler {
         long totalDist = 0;
         long pairCount = 0;
         for (int i = 0; i < samples; i++) {
-            Map<String, Integer> dist = bfs(vertices.get(i));
+            Map<String, Integer> dist = GraphUtils.bfsDistances(graph, vertices.get(i));
             for (int d : dist.values()) {
                 if (d > 0) { totalDist += d; pairCount++; }
             }
@@ -571,25 +571,6 @@ public class GraphNetworkProfiler {
         overallScore = 0;
     }
 
-    // ── BFS helper ──────────────────────────────────────────────
-
-    private Map<String, Integer> bfs(String source) {
-        Map<String, Integer> dist = new HashMap<>();
-        Queue<String> queue = new LinkedList<>();
-        dist.put(source, 0);
-        queue.add(source);
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            int d = dist.get(v);
-            for (String neighbor : graph.getNeighbors(v)) {
-                if (!dist.containsKey(neighbor)) {
-                    dist.put(neighbor, d + 1);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return dist;
-    }
 
     // ── Public getters ──────────────────────────────────────────
 

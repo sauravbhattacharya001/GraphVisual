@@ -6,7 +6,6 @@ import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Extracts focused subgraphs from a larger network based on flexible criteria.

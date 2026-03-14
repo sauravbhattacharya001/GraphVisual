@@ -1,7 +1,6 @@
 package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 
 import java.util.*;
 

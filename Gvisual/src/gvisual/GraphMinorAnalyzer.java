@@ -3,7 +3,6 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Graph Minor Analyzer — operations and analysis based on graph minor theory.

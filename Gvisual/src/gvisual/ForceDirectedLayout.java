@@ -506,7 +506,7 @@ public class ForceDirectedLayout {
         Map<String, Map<String, Integer>> shortestPaths =
                 new HashMap<String, Map<String, Integer>>();
         for (String v : vertexList) {
-            shortestPaths.put(v, bfsDistances(v));
+            shortestPaths.put(v, GraphUtils.bfsDistances(graph, v));
         }
 
         double stress = 0;
@@ -762,14 +762,4 @@ public class ForceDirectedLayout {
                r[1] <= Math.max(p[1], q[1]) && r[1] >= Math.min(p[1], q[1]);
     }
 
-    private Map<String, Integer> bfsDistances(String start) {
-        return GraphUtils.bfsDistances(graph, start);
-    }
-
-    private String escapeXml(String s) {
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
-    }
 }

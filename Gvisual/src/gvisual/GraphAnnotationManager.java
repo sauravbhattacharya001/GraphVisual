@@ -3,7 +3,6 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Manages annotations (notes, tags, colors) on graph nodes and edges

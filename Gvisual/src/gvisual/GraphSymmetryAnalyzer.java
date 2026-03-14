@@ -2,7 +2,6 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Analyses the symmetry structure of a graph by computing automorphism orbits,

@@ -1,10 +1,8 @@
 package gvisual;
 
-import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.Graph;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Tournament graph analyzer for directed complete graphs.
