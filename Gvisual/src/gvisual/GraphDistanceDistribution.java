@@ -2,7 +2,6 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Analyses the all-pairs shortest-path distance distribution of a graph,

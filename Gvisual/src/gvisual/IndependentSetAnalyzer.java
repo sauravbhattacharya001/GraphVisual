@@ -4,7 +4,6 @@ import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Independent set analysis for undirected graphs.

@@ -1,10 +1,8 @@
 package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Signed graph analysis based on structural balance theory.
