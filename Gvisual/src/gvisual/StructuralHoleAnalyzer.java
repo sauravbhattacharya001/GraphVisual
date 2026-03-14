@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
 public class StructuralHoleAnalyzer {
 
     private final Graph<String, edge> graph;
-    private Map<String, Set<String>> neighborCache;
+    private final Map<String, Set<String>> neighborCache;
 
     /**
      * Creates a new StructuralHoleAnalyzer for the given graph.
@@ -64,18 +64,7 @@ public class StructuralHoleAnalyzer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        buildNeighborCache();
-    }
-
-    private void buildNeighborCache() {
-        neighborCache = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            Set<String> nbrs = new LinkedHashSet<>();
-            for (String n : graph.getNeighbors(v)) {
-                nbrs.add(n);
-            }
-            neighborCache.put(v, nbrs);
-        }
+        this.neighborCache = GraphUtils.buildAdjacencyMap(graph);
     }
 
     // ── Result classes ──────────────────────────────────────────

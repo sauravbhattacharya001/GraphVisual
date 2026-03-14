@@ -81,7 +81,7 @@ public class NodeSimilarityAnalyzer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.neighborCache = new HashMap<String, Set<String>>();
+        this.neighborCache = GraphUtils.buildAdjacencyMap(graph);
     }
 
     // ── Single-pair metrics ─────────────────────────────────────
