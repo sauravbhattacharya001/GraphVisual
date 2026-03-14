@@ -183,46 +183,12 @@ public class TopologicalSortAnalyzer {
      * {@link #analyze()}, {@link #analyzeDependencies(String)}, and
      * {@link #countChoicePoints()}.
      */
-    private static class DirectedAdj {
-        final Set<String> vertices;
-        final Map<String, Set<String>> successors;
-        final Map<String, Set<String>> predecessors;
-
-        DirectedAdj(Set<String> vertices,
-                    Map<String, Set<String>> successors,
-                    Map<String, Set<String>> predecessors) {
-            this.vertices = vertices;
-            this.successors = successors;
-            this.predecessors = predecessors;
-        }
-    }
-
     /**
-     * Builds the directed adjacency maps from the graph.  Each edge is
-     * interpreted as vertex1 → vertex2 (vertex1 must come before vertex2).
+     * Delegates to {@link GraphUtils.DirectedAdj} — the shared directed
+     * adjacency builder extracted from this class.
      */
-    private DirectedAdj buildDirectedAdj() {
-        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
-        Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
-        Set<String> allVertices = new HashSet<String>();
-
-        for (String v : graph.getVertices()) {
-            allVertices.add(v);
-            successors.put(v, new HashSet<String>());
-            predecessors.put(v, new HashSet<String>());
-        }
-
-        for (edge e : graph.getEdges()) {
-            String from = e.getVertex1();
-            String to = e.getVertex2();
-            if (from != null && to != null
-                    && allVertices.contains(from) && allVertices.contains(to)) {
-                successors.get(from).add(to);
-                predecessors.get(to).add(from);
-            }
-        }
-
-        return new DirectedAdj(allVertices, successors, predecessors);
+    private GraphUtils.DirectedAdj buildDirectedAdj() {
+        return GraphUtils.buildDirectedAdjacencyMap(graph);
     }
 
     // ── Core algorithms ─────────────────────────────────────────
@@ -240,7 +206,7 @@ public class TopologicalSortAnalyzer {
      * @return complete topological sort analysis
      */
     public TopologicalSortResult analyze() {
-        DirectedAdj adj = buildDirectedAdj();
+        GraphUtils.DirectedAdj adj = buildDirectedAdj();
         Map<String, Set<String>> successors = adj.successors;
         Map<String, Set<String>> predecessors = adj.predecessors;
         Set<String> allVertices = adj.vertices;
@@ -351,7 +317,7 @@ public class TopologicalSortAnalyzer {
             return null;
         }
 
-        DirectedAdj adj = buildDirectedAdj();
+        GraphUtils.DirectedAdj adj = buildDirectedAdj();
         Map<String, Set<String>> successors = adj.successors;
         Map<String, Set<String>> predecessors = adj.predecessors;
 
@@ -416,7 +382,7 @@ public class TopologicalSortAnalyzer {
 
         // Re-use shared adjacency builder and count points where
         // multiple vertices are ready simultaneously
-        DirectedAdj adj = buildDirectedAdj();
+        GraphUtils.DirectedAdj adj = buildDirectedAdj();
         Map<String, Set<String>> successors = adj.successors;
         Map<String, Integer> inDegree = new HashMap<String, Integer>();
 

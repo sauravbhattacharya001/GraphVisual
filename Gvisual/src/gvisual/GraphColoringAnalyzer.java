@@ -180,13 +180,11 @@ public class GraphColoringAnalyzer {
 
             // Assign smallest available color
             Set<Integer> usedColors = new HashSet<>();
-            Collection<String> neighbors = graph.getNeighbors(best);
-            if (neighbors != null) {
-                for (String neighbor : neighbors) {
-                    Integer nc = colorAssignment.get(neighbor);
-                    if (nc != null) {
-                        usedColors.add(nc);
-                    }
+            Collection<String> neighbors = GraphUtils.neighborsOf(graph, best);
+            for (String neighbor : neighbors) {
+                Integer nc = colorAssignment.get(neighbor);
+                if (nc != null) {
+                    usedColors.add(nc);
                 }
             }
 
@@ -242,10 +240,8 @@ public class GraphColoringAnalyzer {
 
             // Sort candidates by degree descending for better heuristic
             List<String> candidates = new ArrayList<>();
-            Collection<String> neighbors = graph.getNeighbors(start);
-            if (neighbors != null) {
-                candidates.addAll(neighbors);
-            }
+            Collection<String> neighbors = GraphUtils.neighborsOf(graph, start);
+            candidates.addAll(neighbors);
             candidates.sort((a, b) -> Integer.compare(graph.degree(b), graph.degree(a)));
 
             for (String candidate : candidates) {
@@ -359,8 +355,7 @@ public class GraphColoringAnalyzer {
 
     private boolean canAssign(String vertex, int color,
                               Map<String, Integer> assignment) {
-        Collection<String> neighbors = graph.getNeighbors(vertex);
-        if (neighbors == null) return true;
+        Collection<String> neighbors = GraphUtils.neighborsOf(graph, vertex);
         for (String neighbor : neighbors) {
             Integer nc = assignment.get(neighbor);
             if (nc != null && nc == color) {
@@ -637,13 +632,11 @@ public class GraphColoringAnalyzer {
 
         for (String vertex : vertexOrder) {
             Set<Integer> usedColors = new HashSet<>();
-            Collection<String> neighbors = graph.getNeighbors(vertex);
-            if (neighbors != null) {
-                for (String neighbor : neighbors) {
-                    Integer neighborColor = colorAssignment.get(neighbor);
-                    if (neighborColor != null) {
-                        usedColors.add(neighborColor);
-                    }
+            Collection<String> neighbors = GraphUtils.neighborsOf(graph, vertex);
+            for (String neighbor : neighbors) {
+                Integer neighborColor = colorAssignment.get(neighbor);
+                if (neighborColor != null) {
+                    usedColors.add(neighborColor);
                 }
             }
 

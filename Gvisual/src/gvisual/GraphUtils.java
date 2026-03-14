@@ -648,4 +648,76 @@ public final class GraphUtils {
         Collections.reverse(path);
         return path;
     }
+
+    // ── Null-safe neighbor access ───────────────────────────────
+
+    /**
+     * Returns the neighbors of a vertex, never {@code null}.
+     * Wraps {@code graph.getNeighbors(v)} with a null-safe fallback.
+     *
+     * @param graph the JUNG graph
+     * @param v     the vertex
+     * @return neighbors of v, or an empty collection if null
+     */
+    public static Collection<String> neighborsOf(
+            Graph<String, edge> graph, String v) {
+        Collection<String> nbrs = graph.getNeighbors(v);
+        return nbrs != null ? nbrs : Collections.<String>emptyList();
+    }
+
+    // ── Directed adjacency ──────────────────────────────────────
+
+    /**
+     * Directed adjacency structure: vertices with successor and predecessor
+     * maps.  Extracted from {@link TopologicalSortAnalyzer} for reuse by
+     * any analyzer that needs directed-edge traversal.
+     */
+    public static final class DirectedAdj {
+        /** All vertices in the graph. */
+        public final Set<String> vertices;
+        /** Vertex → set of outgoing neighbors (vertex1 → vertex2). */
+        public final Map<String, Set<String>> successors;
+        /** Vertex → set of incoming neighbors. */
+        public final Map<String, Set<String>> predecessors;
+
+        public DirectedAdj(Set<String> vertices,
+                    Map<String, Set<String>> successors,
+                    Map<String, Set<String>> predecessors) {
+            this.vertices = vertices;
+            this.successors = successors;
+            this.predecessors = predecessors;
+        }
+    }
+
+    /**
+     * Builds directed adjacency maps from a graph.  Each edge is interpreted
+     * as vertex1 → vertex2.
+     *
+     * @param graph the JUNG graph
+     * @return a {@link DirectedAdj} with successor and predecessor maps
+     */
+    public static DirectedAdj buildDirectedAdjacencyMap(
+            Graph<String, edge> graph) {
+        Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
+        Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
+        Set<String> allVertices = new HashSet<String>();
+
+        for (String v : graph.getVertices()) {
+            allVertices.add(v);
+            successors.put(v, new HashSet<String>());
+            predecessors.put(v, new HashSet<String>());
+        }
+
+        for (edge e : graph.getEdges()) {
+            String from = e.getVertex1();
+            String to = e.getVertex2();
+            if (from != null && to != null
+                    && allVertices.contains(from) && allVertices.contains(to)) {
+                successors.get(from).add(to);
+                predecessors.get(to).add(from);
+            }
+        }
+
+        return new DirectedAdj(allVertices, successors, predecessors);
+    }
 }
