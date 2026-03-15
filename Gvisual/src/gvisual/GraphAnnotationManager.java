@@ -108,6 +108,8 @@ public class GraphAnnotationManager {
     private final Map<String, Annotation> nodeAnnotations;
     private final Map<String, Annotation> edgeAnnotations;
 
+    /** Maximum allowed size for JSON import input (10 MB). */
+    private static final int MAX_IMPORT_SIZE = 10 * 1024 * 1024;
     public GraphAnnotationManager() {
         this.nodeAnnotations = new LinkedHashMap<>();
         this.edgeAnnotations = new LinkedHashMap<>();
@@ -405,8 +407,18 @@ public class GraphAnnotationManager {
     /**
      * Import annotations from a JSON string (additive — merges with existing).
      * Simple hand-rolled parser for the known format.
+     *
+     * <p>Input is limited to {@value #MAX_IMPORT_SIZE} characters to prevent
+     * resource-exhaustion attacks (CWE-400).  Exceeding this limit throws
+     * {@link IllegalArgumentException}.</p>
+     *
+     * @throws IllegalArgumentException if the input exceeds the size limit
      */
     public int importFromJson(String json) {
+        if (json != null && json.length() > MAX_IMPORT_SIZE) {
+            throw new IllegalArgumentException(
+                "JSON input exceeds maximum allowed size of " + MAX_IMPORT_SIZE + " characters");
+        }
         int count = 0;
         String[] lines = json.split("\n");
         String currentSection = null;
@@ -504,10 +516,20 @@ public class GraphAnnotationManager {
 
     /**
      * Import annotations from a file.
+     *
+     * <p>Validates that the file exists and is a regular file (not a
+     * directory or special device).  The file content is subject to
+     * the same {@value #MAX_IMPORT_SIZE} character limit as
+     * {@link #importFromJson(String)}.</p>
      */
     public int importFromFile(String filePath) throws IOException {
         java.io.File file = new java.io.File(filePath);
-        ExportUtils.validateOutputPath(file);
+        if (!file.exists()) {
+            throw new java.io.FileNotFoundException("File not found: " + filePath);
+        }
+        if (!file.isFile()) {
+            throw new IOException("Not a regular file: " + filePath);
+        }
         StringBuilder sb = new StringBuilder();
         try (BufferedReader r = new BufferedReader(new FileReader(file))) {
             String line;

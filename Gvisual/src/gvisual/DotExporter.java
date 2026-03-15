@@ -310,9 +310,18 @@ public class DotExporter {
 
     /**
      * Quotes a string for DOT format, escaping special characters.
+     *
+     * <p>Escapes backslashes, double-quotes, newlines, carriage returns,
+     * and tabs to prevent DOT syntax injection (CWE-74).  Without this,
+     * a vertex name like {@code "A\n]; malicious [} could break out of
+     * the quoted context and inject arbitrary DOT directives.</p>
      */
     private static String quote(String s) {
         if (s == null) return "\"\"";
-        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + s.replace("\\", "\\\\")
+                       .replace("\"", "\\\"")
+                       .replace("\n", "\\n")
+                       .replace("\r", "\\r")
+                       .replace("\t", "\\t") + "\"";
     }
 }
