@@ -200,7 +200,7 @@ public class GraphNeighborhoodAnalyzer {
         Set<String> neighborhood = getKHopNeighborhood(source, k);
         int n = neighborhood.size();
         if (n <= 1) {
-            return n == 1 ? 1.0 : 0.0;
+            return 0.0;
         }
 
         int edgeCount = 0;
