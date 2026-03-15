@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookbook - GraphVisual Docs</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .recipe { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 32px; }
+        .recipe h3 { color: var(--accent); margin-bottom: 8px; font-size: 1.2em; }
+        .recipe .tags { margin-bottom: 12px; }
+        .recipe .tag { display: inline-block; background: var(--border); color: var(--text-muted); padding: 2px 8px; border-radius: 4px; font-size: 0.75em; margin-right: 6px; }
+        .recipe .tag.difficulty-easy { background: #1a3a1a; color: var(--green); }
+        .recipe .tag.difficulty-medium { background: #3a3015; color: var(--orange); }
+        .recipe .tag.difficulty-advanced { background: #3a1515; color: var(--red); }
+        .recipe .desc { color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+        pre.code { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 0.88em; line-height: 1.5; margin: 12px 0; color: var(--text); }
+        .output { background: #0a1628; border-left: 3px solid var(--blue); padding: 12px 16px; margin: 12px 0; border-radius: 0 6px 6px 0; font-family: monospace; font-size: 0.85em; color: var(--text-muted); white-space: pre-wrap; }
+        .note { background: #1a2332; border-left: 3px solid var(--orange); padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+        .note strong { color: var(--orange); }
+        .toc { columns: 2; column-gap: 32px; list-style: none; }
+        .toc li { padding: 4px 0; }
+        .toc a { color: var(--accent); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        @media (max-width: 800px) { .toc { columns: 1; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>&#x1F4CA;</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">&#x1F30D;</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">&#x1F680;</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">&#x1F3D7;</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">&#x1F5C4;</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">&#x1F4D6;</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link active"><span class="icon">&#x1F373;</span>Cookbook</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">&#9749;</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">&#x1F4E6;</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">&#x1F3F7;</span>Releases</a>
+    </div>
+</nav>
+
+<main class="content">
+    <h1>&#x1F373; Cookbook</h1>
+    <p class="subtitle">Practical recipes for common graph analysis tasks using the GraphVisual API.</p>
+
+    <h2>Contents</h2>
+    <ul class="toc">
+        <li><a href="#generate-graph">1. Generate a Synthetic Graph</a></li>
+        <li><a href="#find-influencers">2. Find the Most Influential Nodes</a></li>
+        <li><a href="#detect-communities">3. Detect Communities</a></li>
+        <li><a href="#shortest-path">4. Find Shortest Paths</a></li>
+        <li><a href="#export-graphml">5. Export to GraphML / GEXF</a></li>
+        <li><a href="#resilience">6. Test Network Resilience</a></li>
+        <li><a href="#anomaly">7. Detect Anomalous Nodes</a></li>
+        <li><a href="#compare-graphs">8. Compare Two Graph Snapshots</a></li>
+        <li><a href="#pagerank">9. Run PageRank</a></li>
+        <li><a href="#full-pipeline">10. Full Analysis Pipeline</a></li>
+    </ul>
+
+    <!-- Recipe 1 -->
+    <div class="recipe" id="generate-graph">
+        <h3>1. Generate a Synthetic Graph</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">GraphGenerator</span>
+        </div>
+        <div class="desc">Create test graphs with known properties. Useful for benchmarking analyzers or building demo visualizations without needing real data.</div>
+
+<pre class="code">import gvisual.GraphGenerator;
+import gvisual.GraphGenerator.GeneratedGraph;
+
+GraphGenerator gen = new GraphGenerator();
+
+// Scale-free network (Barabási-Albert): 200 nodes, 3 edges per step
+GeneratedGraph sf = gen.scaleFreeBa(200, 3);
+System.out.println("Nodes: " + sf.graph.getVertexCount());
+System.out.println("Edges: " + sf.graph.getEdgeCount());
+
+// Small-world network (Watts-Strogatz): 100 nodes, k=4, rewire p=0.1
+GeneratedGraph sw = gen.smallWorldWs(100, 4, 0.1);
+
+// Complete graph: every node connected to every other
+GeneratedGraph complete = gen.complete(20);
+// Expected edges: n*(n-1)/2 = 190
+System.out.println("Complete graph edges: " + complete.graph.getEdgeCount());
+
+// Grid: 10 rows x 10 columns
+GeneratedGraph grid = gen.grid(10, 10);</pre>
+
+        <div class="output">Nodes: 200
+Edges: 591
+Complete graph edges: 190</div>
+
+        <div class="note"><strong>Tip:</strong> Scale-free graphs exhibit power-law degree distributions and are good models for social networks. Small-world graphs have high clustering with short average paths.</div>
+    </div>
+
+    <!-- Recipe 2 -->
+    <div class="recipe" id="find-influencers">
+        <h3>2. Find the Most Influential Nodes</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">NodeCentralityAnalyzer</span>
+        </div>
+        <div class="desc">Identify key nodes using degree, betweenness, and closeness centrality. Useful for finding hubs, bridges, and well-connected individuals in a network.</div>
+
+<pre class="code">import gvisual.NodeCentralityAnalyzer;
+import gvisual.NodeCentralityAnalyzer.CentralityResult;
+import java.util.List;
+
+NodeCentralityAnalyzer nca = new NodeCentralityAnalyzer(graph);
+nca.compute();
+
+// Get top 10 nodes by combined centrality
+List&lt;CentralityResult&gt; top10 = nca.getRanking(10);
+
+System.out.println("=== Top Influential Nodes ===");
+for (CentralityResult r : top10) {
+    System.out.printf("%-20s  degree=%.3f  betweenness=%.3f  closeness=%.3f%n",
+        r.getNode(), r.getDegreeCentrality(),
+        r.getBetweennessCentrality(), r.getClosenessCentrality());
+}
+
+// Get centrality for a specific node
+double betweenness = nca.getBetweennessCentrality("Alice");
+System.out.println("Alice betweenness: " + betweenness);</pre>
+
+        <div class="note"><strong>When to use which metric:</strong><br>
+            &bull; <strong>Degree</strong> &mdash; who has the most direct connections<br>
+            &bull; <strong>Betweenness</strong> &mdash; who bridges different groups (gatekeepers)<br>
+            &bull; <strong>Closeness</strong> &mdash; who can reach everyone fastest
+        </div>
+    </div>
+
+    <!-- Recipe 3 -->
+    <div class="recipe" id="detect-communities">
+        <h3>3. Detect Communities</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">CommunityDetector</span>
+            <span class="tag">LouvainCommunityDetector</span>
+        </div>
+        <div class="desc">Find clusters of tightly connected nodes. Use the basic detector for connected components or Louvain for modularity-optimized communities.</div>
+
+<pre class="code">import gvisual.CommunityDetector;
+import gvisual.LouvainCommunityDetector;
+
+// Basic: connected components
+CommunityDetector cd = new CommunityDetector(graph);
+List&lt;Set&lt;String&gt;&gt; components = cd.detect();
+System.out.println("Connected components: " + components.size());
+for (int i = 0; i &lt; components.size(); i++) {
+    System.out.printf("  Community %d: %d members%n", i + 1, components.get(i).size());
+}
+
+// Advanced: Louvain modularity optimization
+LouvainCommunityDetector louvain = new LouvainCommunityDetector(graph);
+LouvainCommunityDetector.LouvainResult result = louvain.detect();
+System.out.printf("Louvain found %d communities (modularity: %.4f)%n",
+    result.getCommunityCount(), result.getModularity());
+
+// Get community assignment for each node
+Map&lt;String, Integer&gt; assignments = result.getNodeCommunities();
+System.out.println("Alice is in community: " + assignments.get("Alice"));</pre>
+
+        <div class="note"><strong>Tip:</strong> Modularity &gt; 0.3 generally indicates meaningful community structure. Values &gt; 0.7 suggest very strong clustering.</div>
+    </div>
+
+    <!-- Recipe 4 -->
+    <div class="recipe" id="shortest-path">
+        <h3>4. Find Shortest Paths</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">ShortestPathFinder</span>
+        </div>
+        <div class="desc">Compute hop-optimal and weight-optimal paths between any two nodes.</div>
+
+<pre class="code">import gvisual.ShortestPathFinder;
+import gvisual.ShortestPathFinder.PathResult;
+
+ShortestPathFinder spf = new ShortestPathFinder(graph);
+
+// Unweighted shortest path (BFS)
+PathResult path = spf.findShortestPath("Alice", "Eve");
+if (path != null) {
+    System.out.println("Path: " + path.getVertices());
+    System.out.println("Hops: " + path.getHopCount());
+    System.out.println("Edges: " + path.getEdges());
+} else {
+    System.out.println("No path exists between Alice and Eve");
+}
+
+// All shortest paths from a source
+Map&lt;String, PathResult&gt; allPaths = spf.findAllShortestPaths("Alice");
+for (Map.Entry&lt;String, PathResult&gt; entry : allPaths.entrySet()) {
+    System.out.printf("  Alice -> %s: %d hops%n",
+        entry.getKey(), entry.getValue().getHopCount());
+}</pre>
+    </div>
+
+    <!-- Recipe 5 -->
+    <div class="recipe" id="export-graphml">
+        <h3>5. Export to GraphML / GEXF / DOT</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">GraphMLExporter</span>
+            <span class="tag">GexfExporter</span>
+            <span class="tag">DotExporter</span>
+        </div>
+        <div class="desc">Export your graph for use in Gephi, Cytoscape, Graphviz, or other tools.</div>
+
+<pre class="code">import gvisual.GraphMLExporter;
+import gvisual.GexfExporter;
+import gvisual.DotExporter;
+
+// GraphML (standard XML format, works with Gephi, yEd, Cytoscape)
+GraphMLExporter gml = new GraphMLExporter(graph);
+gml.export("network.graphml");
+
+// GEXF (Gephi's native format, supports dynamics/time)
+GexfExporter gexf = new GexfExporter(graph);
+gexf.export("network.gexf");
+
+// DOT (Graphviz format, great for quick visualizations)
+DotExporter dot = new DotExporter(graph);
+dot.export("network.dot");
+// Then render: dot -Tpng network.dot -o network.png
+
+// JSON export for web-based visualization (D3.js, Sigma.js)
+JsonGraphExporter json = new JsonGraphExporter(graph);
+json.export("network.json");</pre>
+
+        <div class="note"><strong>Format guide:</strong><br>
+            &bull; <strong>GraphML</strong> &mdash; most portable, XML-based, widely supported<br>
+            &bull; <strong>GEXF</strong> &mdash; best for Gephi with temporal data<br>
+            &bull; <strong>DOT</strong> &mdash; simplest, render directly with Graphviz<br>
+            &bull; <strong>JSON</strong> &mdash; best for web dashboards
+        </div>
+    </div>
+
+    <!-- Recipe 6 -->
+    <div class="recipe" id="resilience">
+        <h3>6. Test Network Resilience</h3>
+        <div class="tags">
+            <span class="tag difficulty-medium">Medium</span>
+            <span class="tag">GraphResilienceAnalyzer</span>
+            <span class="tag">ArticulationPointAnalyzer</span>
+        </div>
+        <div class="desc">Find how robust a network is against node/edge removal. Identify critical failure points.</div>
+
+<pre class="code">import gvisual.GraphResilienceAnalyzer;
+import gvisual.ArticulationPointAnalyzer;
+
+// Find articulation points (nodes whose removal disconnects the graph)
+ArticulationPointAnalyzer apa = new ArticulationPointAnalyzer(graph);
+Set&lt;String&gt; cutPoints = apa.findArticulationPoints();
+System.out.println("Critical nodes (removal disconnects graph): " + cutPoints);
+
+// Full resilience analysis
+GraphResilienceAnalyzer gra = new GraphResilienceAnalyzer(graph);
+GraphResilienceAnalyzer.ResilienceReport report = gra.analyze();
+
+System.out.printf("Node connectivity: %d%n", report.getNodeConnectivity());
+System.out.printf("Edge connectivity: %d%n", report.getEdgeConnectivity());
+System.out.printf("Avg path length after removing top hub: %.2f%n",
+    report.getPathLengthAfterHubRemoval());
+
+// Simulate targeted attack (remove highest-degree nodes one by one)
+List&lt;Double&gt; fragmentation = gra.simulateTargetedAttack(10);
+for (int i = 0; i &lt; fragmentation.size(); i++) {
+    System.out.printf("  After removing %d hubs: %.1f%% still connected%n",
+        i + 1, fragmentation.get(i) * 100);
+}</pre>
+    </div>
+
+    <!-- Recipe 7 -->
+    <div class="recipe" id="anomaly">
+        <h3>7. Detect Anomalous Nodes</h3>
+        <div class="tags">
+            <span class="tag difficulty-medium">Medium</span>
+            <span class="tag">GraphAnomalyDetector</span>
+        </div>
+        <div class="desc">Find nodes with unusual connection patterns&mdash;potential outliers, bots, or interesting actors in social networks.</div>
+
+<pre class="code">import gvisual.GraphAnomalyDetector;
+
+GraphAnomalyDetector gad = new GraphAnomalyDetector(graph);
+List&lt;GraphAnomalyDetector.Anomaly&gt; anomalies = gad.detect();
+
+System.out.println("=== Detected Anomalies ===");
+for (GraphAnomalyDetector.Anomaly a : anomalies) {
+    System.out.printf("Node: %-15s  Type: %-20s  Score: %.3f%n",
+        a.getNode(), a.getType(), a.getScore());
+    System.out.println("  Reason: " + a.getReason());
+}
+
+// Common anomaly types:
+//  - DEGREE_OUTLIER: unusually many or few connections
+//  - BRIDGE_NODE: connects otherwise separate communities
+//  - ISOLATED_CLUSTER: small group connected only to each other</pre>
+    </div>
+
+    <!-- Recipe 8 -->
+    <div class="recipe" id="compare-graphs">
+        <h3>8. Compare Two Graph Snapshots</h3>
+        <div class="tags">
+            <span class="tag difficulty-medium">Medium</span>
+            <span class="tag">GraphDiffAnalyzer</span>
+            <span class="tag">GraphSimilarityAnalyzer</span>
+        </div>
+        <div class="desc">Track how a network evolves over time by comparing snapshots. Find new/removed nodes and edges, and compute structural similarity.</div>
+
+<pre class="code">import gvisual.GraphDiffAnalyzer;
+import gvisual.GraphSimilarityAnalyzer;
+
+// Diff: what changed between two graph snapshots?
+GraphDiffAnalyzer diff = new GraphDiffAnalyzer(graphBefore, graphAfter);
+GraphDiffAnalyzer.DiffResult dr = diff.analyze();
+
+System.out.println("Nodes added:   " + dr.getAddedVertices());
+System.out.println("Nodes removed: " + dr.getRemovedVertices());
+System.out.println("Edges added:   " + dr.getAddedEdges().size());
+System.out.println("Edges removed: " + dr.getRemovedEdges().size());
+
+// Similarity: how structurally similar are two graphs?
+GraphSimilarityAnalyzer gsa = new GraphSimilarityAnalyzer(graphA, graphB);
+GraphSimilarityAnalyzer.SimilarityResult sim = gsa.analyze();
+
+System.out.printf("Jaccard similarity (nodes): %.3f%n", sim.getNodeJaccard());
+System.out.printf("Jaccard similarity (edges): %.3f%n", sim.getEdgeJaccard());
+System.out.printf("Degree distribution correlation: %.3f%n",
+    sim.getDegreeCorrelation());</pre>
+    </div>
+
+    <!-- Recipe 9 -->
+    <div class="recipe" id="pagerank">
+        <h3>9. Run PageRank</h3>
+        <div class="tags">
+            <span class="tag difficulty-easy">Easy</span>
+            <span class="tag">PageRankAnalyzer</span>
+        </div>
+        <div class="desc">Compute PageRank scores to find globally important nodes. Unlike degree centrality, PageRank considers the importance of a node's neighbors.</div>
+
+<pre class="code">import gvisual.PageRankAnalyzer;
+
+PageRankAnalyzer pra = new PageRankAnalyzer(graph);
+// damping=0.85, maxIterations=100, convergence=1e-6
+pra.compute(0.85, 100, 1e-6);
+
+// Get ranked results
+List&lt;PageRankAnalyzer.PageRankResult&gt; ranked = pra.getRanking();
+System.out.println("=== PageRank Top 10 ===");
+for (int i = 0; i &lt; Math.min(10, ranked.size()); i++) {
+    PageRankAnalyzer.PageRankResult r = ranked.get(i);
+    System.out.printf("%2d. %-20s  PR=%.6f%n", i + 1, r.getNode(), r.getScore());
+}
+
+// Check convergence
+System.out.printf("Converged in %d iterations%n", pra.getIterationsUsed());</pre>
+
+        <div class="note"><strong>PageRank vs Betweenness:</strong> PageRank finds nodes connected to other important nodes (prestige). Betweenness finds nodes that control information flow (brokers). Use both for a complete picture.</div>
+    </div>
+
+    <!-- Recipe 10 -->
+    <div class="recipe" id="full-pipeline">
+        <h3>10. Full Analysis Pipeline</h3>
+        <div class="tags">
+            <span class="tag difficulty-advanced">Advanced</span>
+            <span class="tag">Multiple analyzers</span>
+        </div>
+        <div class="desc">Combine multiple analyzers to build a comprehensive network report. This pattern shows how the analyzers compose together.</div>
+
+<pre class="code">import gvisual.*;
+
+// 1. Generate or load a graph
+GraphGenerator gen = new GraphGenerator();
+Graph&lt;String, edge&gt; graph = gen.scaleFreeBa(500, 3).graph;
+
+// 2. Basic stats
+GraphStats stats = new GraphStats(graph);
+System.out.printf("Nodes: %d  Edges: %d  Density: %.4f%n",
+    stats.getVertexCount(), stats.getEdgeCount(), stats.getDensity());
+
+// 3. Community structure
+LouvainCommunityDetector louvain = new LouvainCommunityDetector(graph);
+var communities = louvain.detect();
+System.out.printf("Communities: %d  Modularity: %.3f%n",
+    communities.getCommunityCount(), communities.getModularity());
+
+// 4. Key players
+NodeCentralityAnalyzer nca = new NodeCentralityAnalyzer(graph);
+nca.compute();
+System.out.println("Top 5 central nodes:");
+for (var r : nca.getRanking(5)) {
+    System.out.printf("  %s (degree=%.3f, betweenness=%.3f)%n",
+        r.getNode(), r.getDegreeCentrality(), r.getBetweennessCentrality());
+}
+
+// 5. Resilience
+ArticulationPointAnalyzer apa = new ArticulationPointAnalyzer(graph);
+Set&lt;String&gt; cutPoints = apa.findArticulationPoints();
+System.out.println("Articulation points: " + cutPoints.size());
+
+// 6. Small-world properties
+SmallWorldAnalyzer swa = new SmallWorldAnalyzer(graph);
+SmallWorldAnalyzer.SmallWorldResult sw = swa.analyze();
+System.out.printf("Clustering coefficient: %.3f%n", sw.getClusteringCoefficient());
+System.out.printf("Avg path length: %.2f%n", sw.getAveragePathLength());
+System.out.println("Is small-world: " + sw.isSmallWorld());
+
+// 7. Export the full report
+NetworkReportGenerator nrg = new NetworkReportGenerator(graph);
+nrg.generateReport("analysis-report.html");
+
+// 8. Export for Gephi
+GraphMLExporter gml = new GraphMLExporter(graph);
+gml.export("network.graphml");</pre>
+
+        <div class="note"><strong>Performance:</strong> For graphs with 10K+ nodes, run centrality analysis in a separate thread using <code>AnalysisTask</code>. The Barnes-Hut optimization in <code>ForceDirectedLayout</code> kicks in automatically above 100 nodes.</div>
+    </div>
+
+    <footer style="margin-top:48px; padding:24px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:0.85em;">
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> &middot;
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> &middot;
+        Licensed under <a href="https://github.com/sauravbhattacharya001/GraphVisual/blob/master/LICENSE">MIT</a>
+    </footer>
+</main>
+
+</body>
+</html>
