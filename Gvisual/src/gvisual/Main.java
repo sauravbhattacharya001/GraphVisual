@@ -2608,6 +2608,51 @@ public class Main extends JFrame {
             });
         toolPanel.add(graphmlButton);
 
+        JButton dotButton = new JButton("<html><center>Export DOT<br/>Graphviz DOT<br/>format for dot,<br/>neato, fdp,<br/>viz-js.com</center></html>");
+        dotButton.setPreferredSize(new Dimension(140, 100));
+        dotButton.addActionListener(e -> {
+                DotExporter dotExporter = new DotExporter(g);
+                dotExporter.setGraphName("StudentNetwork");
+                dotExporter.setTimestamp(timeStamp);
+                dotExporter.setDescription("GraphVisual network — student community evolution");
+
+                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+                fileChooser.setDialogTitle("Export as Graphviz DOT");
+                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".dot"));
+                int returnVal = fileChooser.showSaveDialog(null);
+                if (returnVal != JFileChooser.APPROVE_OPTION) return;
+
+                File outFile = fileChooser.getSelectedFile();
+                if (!outFile.getName().endsWith(".dot") && !outFile.getName().endsWith(".gv")) {
+                    outFile = new File(outFile.getAbsolutePath() + ".dot");
+                }
+
+                if (outFile.exists()) {
+                    int confirm = JOptionPane.showConfirmDialog(null,
+                            "File already exists. Overwrite?",
+                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+                    if (confirm != JOptionPane.YES_OPTION) return;
+                }
+
+                try {
+                    dotExporter.export(outFile);
+                    JOptionPane.showMessageDialog(null,
+                            "DOT file exported successfully!\n"
+                            + "Nodes: " + g.getVertexCount() + "\n"
+                            + "Edges: " + g.getEdgeCount() + "\n"
+                            + "File: " + outFile.getName() + "\n\n"
+                            + "Render with: dot -Tpng " + outFile.getName() + " -o output.png\n"
+                            + "Or paste into https://viz-js.com",
+                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex1) {
+                    LOGGER.log(Level.SEVERE, null, ex1);
+                    JOptionPane.showMessageDialog(null,
+                            "Export failed: " + ex1.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        toolPanel.add(dotButton);
+
         JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
         csvReportButton.setPreferredSize(new Dimension(140, 100));
         csvReportButton.addActionListener(e -> {
