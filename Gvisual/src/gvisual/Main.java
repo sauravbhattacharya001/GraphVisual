@@ -2653,6 +2653,55 @@ public class Main extends JFrame {
             });
         toolPanel.add(dotButton);
 
+        JButton gexfButton = new JButton("<html><center>Export GEXF<br/>Gephi native<br/>format with<br/>dynamic/temporal<br/>support</center></html>");
+        gexfButton.setPreferredSize(new Dimension(140, 100));
+        gexfButton.addActionListener(e -> {
+                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
+                allEdges.addAll(friendEdges);
+                allEdges.addAll(fsEdges);
+                allEdges.addAll(classmateEdges);
+                allEdges.addAll(strangerEdges);
+                allEdges.addAll(studyGEdges);
+
+                GexfExporter gexfExporter = new GexfExporter(g, allEdges);
+                gexfExporter.setDescription("GraphVisual network — student community evolution");
+
+                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+                fileChooser.setDialogTitle("Export as GEXF (Gephi)");
+                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".gexf"));
+                int returnVal = fileChooser.showSaveDialog(null);
+                if (returnVal != JFileChooser.APPROVE_OPTION) return;
+
+                File outFile = fileChooser.getSelectedFile();
+                if (!outFile.getName().endsWith(".gexf")) {
+                    outFile = new File(outFile.getAbsolutePath() + ".gexf");
+                }
+
+                if (outFile.exists()) {
+                    int confirm = JOptionPane.showConfirmDialog(null,
+                            "File already exists. Overwrite?",
+                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+                    if (confirm != JOptionPane.YES_OPTION) return;
+                }
+
+                try {
+                    gexfExporter.export(outFile);
+                    JOptionPane.showMessageDialog(null,
+                            "GEXF exported successfully!\n"
+                            + "Nodes: " + g.getVertexCount() + "\n"
+                            + "Edges: " + g.getEdgeCount() + "\n"
+                            + "File: " + outFile.getName() + "\n\n"
+                            + "Open in Gephi for advanced visualization and analysis.",
+                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex1) {
+                    LOGGER.log(Level.SEVERE, null, ex1);
+                    JOptionPane.showMessageDialog(null,
+                            "Export failed: " + ex1.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        toolPanel.add(gexfButton);
+
         JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
         csvReportButton.setPreferredSize(new Dimension(140, 100));
         csvReportButton.addActionListener(e -> {
