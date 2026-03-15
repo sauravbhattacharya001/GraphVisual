@@ -41,7 +41,7 @@ The tool was developed for research on **social network analysis** — specifica
 - **Edge weighting** — Line thickness reflects interaction frequency × duration
 - **New member highlighting** — Nodes appearing for the first time are drawn larger
 - **Notes panel** — Annotate each timestamp during analysis
-- **Graph export** — Save visualizations as PNG images and edge lists
+- **Graph export** — Save visualizations as PNG images, edge lists, and JSON (D3.js/vis.js/Cytoscape.js compatible)
 - **Network statistics panel** — Real-time metrics including node/edge counts, per-category breakdowns, graph density, average/max degree, average edge weight, isolated node count, and top-3 hub nodes
 - **Centrality analysis** — Compute degree, betweenness (Brandes' algorithm), and closeness centrality for all nodes. Interactive panel with metric sorting, top-10 ranking with medals, network topology classification, and per-metric averages/maximums
 - **Small-world analysis** — Test whether a graph exhibits Watts-Strogatz small-world properties. Computes local/global clustering coefficients, average path length, sigma (σ) and omega (ω) coefficients, random/lattice baselines, and classifies networks as Small-World, Random-Like, Lattice-Like, or Disconnected
@@ -59,6 +59,7 @@ Gvisual/src/
 │   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
 │   ├── GraphStats.java                 # Network metrics (density, degree, hubs)
 │   ├── GraphMLExporter.java            # GraphML XML export
+│   ├── JsonGraphExporter.java          # JSON export (D3.js/vis.js/Cytoscape.js compatible)
 │   ├── GraphGenerator.java             # 10 synthetic graph topologies
 │   ├── GraphUtils.java                 # BFS, connected components, utility methods
 │   ├── GraphPartitioner.java           # Spectral/Kernighan-Lin partitioning
