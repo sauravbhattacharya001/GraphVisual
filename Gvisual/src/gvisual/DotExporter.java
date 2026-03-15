@@ -118,8 +118,10 @@ public class DotExporter {
      *
      * @param outputFile the file to write to
      * @throws IOException if writing fails
+     * @throws SecurityException if the path escapes allowed directories (CWE-22)
      */
     public void export(File outputFile) throws IOException {
+        ExportUtils.validateOutputPath(outputFile);
         try (Writer writer = new OutputStreamWriter(
                 new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
             writer.write(exportToString());
