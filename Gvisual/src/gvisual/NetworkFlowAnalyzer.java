@@ -203,16 +203,16 @@ public class NetworkFlowAnalyzer {
     }
 
     /**
-     * Returns edges that form the minimum cut (max-flow min-cut theorem).
-     * These are edges crossing from the source side to the sink side in
-     * the residual graph where no augmenting path exists.
+     * BFS from source through residual edges with positive capacity.
+     * This is the "source side" of the min cut — the set of vertices
+     * still reachable from source after max flow is saturated.
      *
-     * @return list of edges in the minimum cut
+     * <p>Extracted to avoid duplicating the same BFS in
+     * {@link #getMinCut()} and {@link #getSourceSide()}.</p>
+     *
+     * @return set of vertices reachable from source in the residual graph
      */
-    public List<edge> getMinCut() {
-        ensureComputed();
-
-        // BFS from source in residual graph to find reachable vertices
+    private Set<String> findReachableFromSource() {
         Set<String> reachable = new HashSet<String>();
         Queue<String> queue = new LinkedList<String>();
         queue.add(source);
@@ -223,14 +223,27 @@ public class NetworkFlowAnalyzer {
             Set<String> neighbors = residualAdj.get(u);
             if (neighbors == null) continue;
             for (String v : neighbors) {
-                List<String> key = directedKey(u, v);
                 if (!reachable.contains(v) &&
-                        residualCapacity.getOrDefault(key, 0.0) > 1e-9) {
+                        residualCapacity.getOrDefault(directedKey(u, v), 0.0) > 1e-9) {
                     reachable.add(v);
                     queue.add(v);
                 }
             }
         }
+        return reachable;
+    }
+
+    /**
+     * Returns edges that form the minimum cut (max-flow min-cut theorem).
+     * These are edges crossing from the source side to the sink side in
+     * the residual graph where no augmenting path exists.
+     *
+     * @return list of edges in the minimum cut
+     */
+    public List<edge> getMinCut() {
+        ensureComputed();
+
+        Set<String> reachable = findReachableFromSource();
 
         // Min cut edges: original edges with one end in reachable, other not
         List<edge> cut = new ArrayList<edge>();
@@ -253,24 +266,7 @@ public class NetworkFlowAnalyzer {
      */
     public Set<String> getSourceSide() {
         ensureComputed();
-        Set<String> reachable = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
-        queue.add(source);
-        reachable.add(source);
-
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            Set<String> neighbors = residualAdj.get(u);
-            if (neighbors == null) continue;
-            for (String v : neighbors) {
-                if (!reachable.contains(v) &&
-                        residualCapacity.getOrDefault(directedKey(u, v), 0.0) > 1e-9) {
-                    reachable.add(v);
-                    queue.add(v);
-                }
-            }
-        }
-        return Collections.unmodifiableSet(reachable);
+        return Collections.unmodifiableSet(findReachableFromSource());
     }
 
     /**
@@ -490,10 +486,12 @@ public class NetworkFlowAnalyzer {
     public FlowResult getResult() {
         ensureComputed();
         List<FlowPath> paths = decomposeFlowPaths();
+        List<edge> minCut = getMinCut();
+        List<edge> bottlenecks = getBottleneckEdges();
         return new FlowResult(
                 source, sink, maxFlowValue,
                 getTotalCapacity(), getUtilisation(),
-                getMinCut().size(), getBottleneckEdges().size(),
+                minCut.size(), bottlenecks.size(),
                 paths.size(), getEdgeFlows(), paths
         );
     }
@@ -507,6 +505,12 @@ public class NetworkFlowAnalyzer {
      */
     public String getSummary() {
         ensureComputed();
+
+        // Compute expensive results once
+        List<FlowPath> paths = decomposeFlowPaths();
+        List<edge> minCut = getMinCut();
+        List<edge> bottlenecks = getBottleneckEdges();
+
         StringBuilder sb = new StringBuilder();
         sb.append("=== Network Flow Analysis ===\n");
         sb.append(String.format("Vertices: %d | Edges: %d\n",
@@ -515,11 +519,8 @@ public class NetworkFlowAnalyzer {
         sb.append(String.format("Maximum flow: %.2f\n", maxFlowValue));
         sb.append(String.format("Total capacity: %.2f\n", getTotalCapacity()));
         sb.append(String.format("Utilisation: %.1f%%\n", getUtilisation()));
-        sb.append(String.format("Min-cut edges: %d\n", getMinCut().size()));
-        sb.append(String.format("Bottleneck edges: %d\n",
-                getBottleneckEdges().size()));
-
-        List<FlowPath> paths = decomposeFlowPaths();
+        sb.append(String.format("Min-cut edges: %d\n", minCut.size()));
+        sb.append(String.format("Bottleneck edges: %d\n", bottlenecks.size()));
         sb.append(String.format("Flow paths: %d\n", paths.size()));
 
         if (!paths.isEmpty()) {
