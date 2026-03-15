@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Explorer - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .explorer-container { display: flex; height: calc(100vh - 60px); }
+        .graph-panel { flex: 1; position: relative; background: var(--bg); overflow: hidden; }
+        .side-panel { width: 320px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px; }
+        .side-panel h3 { color: var(--accent); margin: 16px 0 8px; font-size: 1em; }
+        .side-panel h3:first-child { margin-top: 0; }
+
+        .toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .toolbar input[type="file"] { display: none; }
+        .toolbar label, .toolbar button { background: var(--border); color: var(--text); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+        .toolbar label:hover, .toolbar button:hover { background: var(--surface-hover); }
+        .toolbar .search-box { flex: 1; max-width: 280px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 0.85em; }
+
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .stat-row .val { color: var(--text); font-weight: 600; }
+
+        .legend-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 0.82em; color: var(--text-muted); }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+        .node-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .node-card .name { color: var(--accent); font-weight: 600; font-size: 1em; }
+        .node-card .meta { color: var(--text-muted); font-size: 0.82em; margin-top: 4px; }
+        .neighbor-list { max-height: 160px; overflow-y: auto; font-size: 0.82em; }
+        .neighbor-list a { color: var(--accent); text-decoration: none; cursor: pointer; }
+        .neighbor-list a:hover { text-decoration: underline; }
+
+        .path-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+        .path-controls input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 4px; font-size: 0.82em; }
+        .path-controls button { background: var(--accent); color: #000; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.82em; font-weight: 600; }
+
+        .path-result { font-size: 0.82em; color: var(--text-muted); padding: 6px 0; }
+        .path-result .path-nodes { color: var(--green); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state h2 { color: var(--text); margin-bottom: 12px; }
+        .empty-state p { margin-bottom: 20px; }
+
+        svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; fill: var(--text-muted); pointer-events: none; }
+        .link { stroke-opacity: 0.4; }
+        .link.highlighted { stroke-opacity: 1; stroke-width: 3px !important; }
+        .link.path-highlight { stroke: var(--green) !important; stroke-opacity: 1; stroke-width: 4px !important; }
+        .node circle { stroke: var(--bg); stroke-width: 1.5px; cursor: pointer; }
+        .node circle.dimmed { opacity: 0.15; }
+        .node circle.highlighted { stroke: var(--accent); stroke-width: 3px; }
+        .node circle.path-node { stroke: var(--green); stroke-width: 3px; }
+        .link.dimmed { stroke-opacity: 0.05; }
+        .node text.dimmed { opacity: 0.1; }
+
+        .controls-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .controls-row label { font-size: 0.82em; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+        .controls-row input[type="checkbox"] { accent-color: var(--accent); }
+        .controls-row input[type="range"] { width: 80px; accent-color: var(--accent); }
+
+        .comm-color { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; font-size: 0.85em; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 900px) {
+            .explorer-container { flex-direction: column; height: auto; }
+            .side-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+            .graph-panel { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>&#x1F4CA;</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">&#x1F30D;</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">&#x1F680;</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link active"><span class="icon">&#x1F50D;</span>Graph Explorer</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">&#x1F3D7;</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">&#x1F5C4;</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">&#x1F4D6;</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">&#x1F373;</span>Cookbook</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">&#9749;</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">&#x1F4E6;</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">&#x1F3F7;</span>Releases</a>
+    </div>
+</nav>
+
+<main class="content" style="padding:0; max-width:none;">
+    <div class="toolbar">
+        <label for="file-input">&#x1F4C2; Load JSON</label>
+        <input type="file" id="file-input" accept=".json">
+        <button onclick="loadDemo()">&#x1F3B2; Demo Graph</button>
+        <input type="text" class="search-box" id="search-box" placeholder="Search nodes..." oninput="searchNodes(this.value)">
+        <button onclick="resetView()">&#x21BA; Reset</button>
+        <button onclick="exportPNG()">&#x1F4F7; PNG</button>
+    </div>
+
+    <div class="explorer-container">
+        <div class="graph-panel" id="graph-panel">
+            <div class="empty-state" id="empty-state">
+                <h2>&#x1F50D; Graph Explorer</h2>
+                <p>Load a JSON graph exported by <code>JsonGraphExporter</code> to explore it interactively.</p>
+                <p>Or click <strong>Demo Graph</strong> to try with a sample network.</p>
+                <p style="font-size:0.82em; color:var(--text-subtle);">Expected format: <code>{ "nodes": [{id, degree}], "links": [{source, target, type, weight}] }</code></p>
+            </div>
+            <svg id="graph-svg" style="display:none;"></svg>
+        </div>
+
+        <div class="side-panel" id="side-panel">
+            <h3>&#x1F4CA; Statistics</h3>
+            <div id="stats-section">
+                <div class="stat-row"><span>Nodes</span><span class="val" id="stat-nodes">—</span></div>
+                <div class="stat-row"><span>Edges</span><span class="val" id="stat-edges">—</span></div>
+                <div class="stat-row"><span>Density</span><span class="val" id="stat-density">—</span></div>
+                <div class="stat-row"><span>Avg Degree</span><span class="val" id="stat-avg-deg">—</span></div>
+                <div class="stat-row"><span>Max Degree</span><span class="val" id="stat-max-deg">—</span></div>
+                <div class="stat-row"><span>Communities</span><span class="val" id="stat-communities">—</span></div>
+            </div>
+
+            <h3>&#x2699; Controls</h3>
+            <div class="controls-row">
+                <label><input type="checkbox" id="show-labels" checked onchange="toggleLabels()"> Labels</label>
+                <label><input type="checkbox" id="color-communities" onchange="toggleCommunities()"> Communities</label>
+            </div>
+            <div class="controls-row">
+                <label>Force: <input type="range" id="force-strength" min="-300" max="-10" value="-100" oninput="updateForce()"></label>
+                <label>Link dist: <input type="range" id="link-distance" min="10" max="200" value="60" oninput="updateForce()"></label>
+            </div>
+
+            <h3>&#x1F3A8; Edge Legend</h3>
+            <div id="legend-section"></div>
+
+            <h3>&#x1F464; Node Info</h3>
+            <div id="node-info">
+                <p style="font-size:0.82em; color:var(--text-subtle);">Click a node to see details.</p>
+            </div>
+
+            <h3>&#x1F6E4; Shortest Path</h3>
+            <div class="path-controls">
+                <input type="text" id="path-from" placeholder="From node...">
+                <input type="text" id="path-to" placeholder="To node...">
+                <button onclick="findPath()">Go</button>
+            </div>
+            <div class="path-result" id="path-result"></div>
+        </div>
+    </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+var graphData = null;
+var simulation = null;
+var svg, gLinks, gNodes, width, height;
+var nodeMap = {};       // id -> node data
+var adjList = {};       // id -> [{target, edge}]
+var communities = {};   // id -> community index
+var communityColors = [
+    '#58a6ff','#3fb950','#d29922','#f85149','#bc8cff',
+    '#f778ba','#79c0ff','#56d364','#e3b341','#ff7b72',
+    '#d2a8ff','#ffa657','#a5d6ff','#7ee787','#ffd33d'
+];
+
+var edgeTypeColors = {
+    f: '#58a6ff', fs: '#3fb950', c: '#d29922',
+    s: '#bc8cff', sg: '#f85149'
+};
+var edgeTypeLabels = {
+    f: 'Friend', fs: 'Friend (Strong)', c: 'Classmate',
+    s: 'Social', sg: 'Social Group'
+};
+
+// ── File Loading ──
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            var data = JSON.parse(ev.target.result);
+            initGraph(data);
+            showToast('Loaded ' + data.nodes.length + ' nodes, ' + data.links.length + ' edges');
+        } catch (err) {
+            showToast('Error parsing JSON: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+});
+
+function loadDemo() {
+    var nodes = [];
+    var links = [];
+    var types = ['f','fs','c','s','sg'];
+    var n = 40;
+    for (var i = 0; i < n; i++) {
+        nodes.push({ id: 'Node_' + i, degree: 0 });
+    }
+    // Create a connected graph with some structure
+    for (var i = 1; i < n; i++) {
+        var target = Math.floor(Math.random() * i);
+        links.push({ source: 'Node_' + i, target: 'Node_' + target, type: types[Math.floor(Math.random() * types.length)], weight: +(Math.random() * 2).toFixed(2) });
+        nodes[i].degree++;
+        nodes[target].degree++;
+    }
+    // Add extra edges for density
+    for (var k = 0; k < n; k++) {
+        var a = Math.floor(Math.random() * n);
+        var b = Math.floor(Math.random() * n);
+        if (a !== b) {
+            links.push({ source: 'Node_' + a, target: 'Node_' + b, type: types[Math.floor(Math.random() * types.length)], weight: +(Math.random() * 2).toFixed(2) });
+            nodes[a].degree++;
+            nodes[b].degree++;
+        }
+    }
+    initGraph({ nodes: nodes, links: links, metadata: { description: 'Demo random graph' } });
+    showToast('Demo graph loaded: ' + n + ' nodes');
+}
+
+// ── Graph Initialization ──
+
+function initGraph(data) {
+    graphData = data;
+    document.getElementById('empty-state').style.display = 'none';
+    var svgEl = document.getElementById('graph-svg');
+    svgEl.style.display = 'block';
+
+    var panel = document.getElementById('graph-panel');
+    width = panel.clientWidth;
+    height = panel.clientHeight;
+
+    // Build adjacency list and node map
+    nodeMap = {};
+    adjList = {};
+    for (var i = 0; i < data.nodes.length; i++) {
+        var nd = data.nodes[i];
+        nodeMap[nd.id] = nd;
+        adjList[nd.id] = [];
+    }
+    for (var i = 0; i < data.links.length; i++) {
+        var lk = data.links[i];
+        var src = typeof lk.source === 'object' ? lk.source.id : lk.source;
+        var tgt = typeof lk.target === 'object' ? lk.target.id : lk.target;
+        if (adjList[src]) adjList[src].push({ target: tgt, edge: lk });
+        if (adjList[tgt]) adjList[tgt].push({ target: src, edge: lk });
+    }
+
+    // Detect communities via BFS connected components
+    detectCommunities(data.nodes);
+
+    // Update stats
+    updateStats(data);
+
+    // Build legend
+    buildLegend(data.links);
+
+    // Render with D3
+    renderGraph(data);
+}
+
+function detectCommunities(nodes) {
+    communities = {};
+    var visited = {};
+    var commId = 0;
+    for (var i = 0; i < nodes.length; i++) {
+        var start = nodes[i].id;
+        if (visited[start]) continue;
+        var queue = [start];
+        visited[start] = true;
+        while (queue.length > 0) {
+            var curr = queue.shift();
+            communities[curr] = commId;
+            var neighbors = adjList[curr] || [];
+            for (var j = 0; j < neighbors.length; j++) {
+                var nb = neighbors[j].target;
+                if (!visited[nb]) {
+                    visited[nb] = true;
+                    queue.push(nb);
+                }
+            }
+        }
+        commId++;
+    }
+    document.getElementById('stat-communities').textContent = commId;
+}
+
+function updateStats(data) {
+    var n = data.nodes.length;
+    var e = data.links.length;
+    var maxPossible = n * (n - 1) / 2;
+    document.getElementById('stat-nodes').textContent = n;
+    document.getElementById('stat-edges').textContent = e;
+    document.getElementById('stat-density').textContent = maxPossible > 0 ? (e / maxPossible).toFixed(4) : '—';
+
+    var degrees = data.nodes.map(function(nd) {
+        return (adjList[nd.id] || []).length;
+    });
+    var totalDeg = degrees.reduce(function(s, d) { return s + d; }, 0);
+    document.getElementById('stat-avg-deg').textContent = n > 0 ? (totalDeg / n).toFixed(1) : '—';
+    document.getElementById('stat-max-deg').textContent = degrees.length > 0 ? Math.max.apply(null, degrees) : '—';
+}
+
+function buildLegend(links) {
+    var types = {};
+    for (var i = 0; i < links.length; i++) {
+        var t = links[i].type || 'unknown';
+        types[t] = (types[t] || 0) + 1;
+    }
+    var html = '';
+    var keys = Object.keys(types).sort();
+    for (var i = 0; i < keys.length; i++) {
+        var t = keys[i];
+        var color = edgeTypeColors[t] || '#8b949e';
+        var label = edgeTypeLabels[t] || t;
+        html += '<div class="legend-item"><span class="legend-dot" style="background:' + color + '"></span>' + esc(label) + ' <span style="color:var(--text-subtle)">(' + types[t] + ')</span></div>';
+    }
+    document.getElementById('legend-section').innerHTML = html;
+}
+
+// ── D3 Rendering ──
+
+function renderGraph(data) {
+    // Clear previous
+    var svgEl = document.getElementById('graph-svg');
+    svgEl.innerHTML = '';
+    svgEl.setAttribute('width', width);
+    svgEl.setAttribute('height', height);
+
+    // Create SVG groups
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var gMain = document.createElementNS(svgNS, 'g');
+    gMain.setAttribute('id', 'g-main');
+    svgEl.appendChild(gMain);
+
+    var gLinksEl = document.createElementNS(svgNS, 'g');
+    gLinksEl.setAttribute('id', 'g-links');
+    gMain.appendChild(gLinksEl);
+
+    var gNodesEl = document.createElementNS(svgNS, 'g');
+    gNodesEl.setAttribute('id', 'g-nodes');
+    gMain.appendChild(gNodesEl);
+
+    // Calculate node radii based on degree
+    var maxDeg = 1;
+    for (var i = 0; i < data.nodes.length; i++) {
+        var deg = (adjList[data.nodes[i].id] || []).length;
+        if (deg > maxDeg) maxDeg = deg;
+    }
+
+    // Create link elements
+    var linkEls = [];
+    for (var i = 0; i < data.links.length; i++) {
+        var lk = data.links[i];
+        var line = document.createElementNS(svgNS, 'line');
+        var t = lk.type || 'unknown';
+        line.setAttribute('class', 'link');
+        line.setAttribute('stroke', edgeTypeColors[t] || '#8b949e');
+        line.setAttribute('stroke-width', Math.max(1, Math.min(4, (lk.weight || 1))));
+        line.dataset.source = typeof lk.source === 'object' ? lk.source.id : lk.source;
+        line.dataset.target = typeof lk.target === 'object' ? lk.target.id : lk.target;
+        gLinksEl.appendChild(line);
+        linkEls.push(line);
+    }
+
+    // Create node elements
+    var nodeEls = [];
+    for (var i = 0; i < data.nodes.length; i++) {
+        var nd = data.nodes[i];
+        var g = document.createElementNS(svgNS, 'g');
+        g.setAttribute('class', 'node');
+        g.dataset.id = nd.id;
+
+        var deg = (adjList[nd.id] || []).length;
+        var radius = 4 + (deg / maxDeg) * 12;
+
+        var circle = document.createElementNS(svgNS, 'circle');
+        circle.setAttribute('r', radius);
+        circle.setAttribute('fill', communityColors[communities[nd.id] % communityColors.length] || '#58a6ff');
+        nd._defaultFill = circle.getAttribute('fill');
+        nd._radius = radius;
+        g.appendChild(circle);
+
+        var label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('dx', radius + 3);
+        label.setAttribute('dy', 3);
+        label.textContent = nd.id.length > 15 ? nd.id.substring(0, 15) + '...' : nd.id;
+        g.appendChild(label);
+
+        g.addEventListener('click', (function(nodeId) {
+            return function() { selectNode(nodeId); };
+        })(nd.id));
+
+        gNodesEl.appendChild(g);
+        nodeEls.push({ el: g, circle: circle, label: label, data: nd });
+    }
+
+    // Simple force simulation (no D3 dependency)
+    var positions = {};
+    for (var i = 0; i < data.nodes.length; i++) {
+        var nd = data.nodes[i];
+        positions[nd.id] = {
+            x: width / 2 + (Math.random() - 0.5) * width * 0.6,
+            y: height / 2 + (Math.random() - 0.5) * height * 0.6,
+            vx: 0, vy: 0
+        };
+    }
+
+    var forceStrength = parseFloat(document.getElementById('force-strength').value);
+    var linkDist = parseFloat(document.getElementById('link-distance').value);
+    var running = true;
+    var alpha = 1.0;
+    var alphaDecay = 0.02;
+
+    function tick() {
+        if (!running || alpha < 0.001) return;
+        alpha *= (1 - alphaDecay);
+
+        // Repulsion (simplified Barnes-Hut: just pairwise for small graphs)
+        var nodeIds = Object.keys(positions);
+        for (var i = 0; i < nodeIds.length; i++) {
+            for (var j = i + 1; j < nodeIds.length; j++) {
+                var pi = positions[nodeIds[i]];
+                var pj = positions[nodeIds[j]];
+                var dx = pj.x - pi.x;
+                var dy = pj.y - pi.y;
+                var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                var force = forceStrength * alpha / (dist * dist);
+                var fx = dx / dist * force;
+                var fy = dy / dist * force;
+                pi.vx -= fx; pi.vy -= fy;
+                pj.vx += fx; pj.vy += fy;
+            }
+        }
+
+        // Link attraction
+        for (var i = 0; i < data.links.length; i++) {
+            var lk = data.links[i];
+            var srcId = typeof lk.source === 'object' ? lk.source.id : lk.source;
+            var tgtId = typeof lk.target === 'object' ? lk.target.id : lk.target;
+            var ps = positions[srcId];
+            var pt = positions[tgtId];
+            if (!ps || !pt) continue;
+            var dx = pt.x - ps.x;
+            var dy = pt.y - ps.y;
+            var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            var force = (dist - linkDist) * 0.05 * alpha;
+            var fx = dx / dist * force;
+            var fy = dy / dist * force;
+            ps.vx += fx; ps.vy += fy;
+            pt.vx -= fx; pt.vy -= fy;
+        }
+
+        // Center gravity
+        for (var i = 0; i < nodeIds.length; i++) {
+            var p = positions[nodeIds[i]];
+            p.vx += (width / 2 - p.x) * 0.01 * alpha;
+            p.vy += (height / 2 - p.y) * 0.01 * alpha;
+        }
+
+        // Apply velocities with damping
+        for (var i = 0; i < nodeIds.length; i++) {
+            var p = positions[nodeIds[i]];
+            p.vx *= 0.6;
+            p.vy *= 0.6;
+            p.x += p.vx;
+            p.y += p.vy;
+            // Boundary clamping
+            p.x = Math.max(20, Math.min(width - 20, p.x));
+            p.y = Math.max(20, Math.min(height - 20, p.y));
+        }
+
+        // Update SVG positions
+        for (var i = 0; i < nodeEls.length; i++) {
+            var ne = nodeEls[i];
+            var p = positions[ne.data.id];
+            ne.el.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
+        }
+        for (var i = 0; i < linkEls.length; i++) {
+            var le = linkEls[i];
+            var ps = positions[le.dataset.source];
+            var pt = positions[le.dataset.target];
+            if (ps && pt) {
+                le.setAttribute('x1', ps.x);
+                le.setAttribute('y1', ps.y);
+                le.setAttribute('x2', pt.x);
+                le.setAttribute('y2', pt.y);
+            }
+        }
+
+        requestAnimationFrame(tick);
+    }
+
+    tick();
+
+    // Store references for interaction
+    window._graphState = {
+        data: data, positions: positions, nodeEls: nodeEls, linkEls: linkEls,
+        running: true, setForce: function(s, d) { forceStrength = s; linkDist = d; alpha = 0.3; tick(); }
+    };
+
+    // Zoom & pan via mouse wheel and drag
+    var viewBox = { x: 0, y: 0, w: width, h: height };
+    var dragging = false, dragStart = {};
+
+    svgEl.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        var scale = e.deltaY > 0 ? 1.1 : 0.9;
+        var mx = e.offsetX / width * viewBox.w + viewBox.x;
+        var my = e.offsetY / height * viewBox.h + viewBox.y;
+        viewBox.w *= scale; viewBox.h *= scale;
+        viewBox.x = mx - (e.offsetX / width) * viewBox.w;
+        viewBox.y = my - (e.offsetY / height) * viewBox.h;
+        svgEl.setAttribute('viewBox', viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h);
+    });
+
+    svgEl.addEventListener('mousedown', function(e) {
+        if (e.target === svgEl || e.target.tagName === 'svg') {
+            dragging = true;
+            dragStart = { x: e.clientX, y: e.clientY, vx: viewBox.x, vy: viewBox.y };
+        }
+    });
+    svgEl.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dx = (e.clientX - dragStart.x) * (viewBox.w / width);
+        var dy = (e.clientY - dragStart.y) * (viewBox.h / height);
+        viewBox.x = dragStart.vx - dx;
+        viewBox.y = dragStart.vy - dy;
+        svgEl.setAttribute('viewBox', viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h);
+    });
+    svgEl.addEventListener('mouseup', function() { dragging = false; });
+    svgEl.addEventListener('mouseleave', function() { dragging = false; });
+}
+
+// ── Node Selection ──
+
+var selectedNode = null;
+
+function selectNode(nodeId) {
+    selectedNode = nodeId;
+    var state = window._graphState;
+    if (!state) return;
+
+    // Highlight ego network
+    var neighbors = {};
+    var neighborEdges = {};
+    var adj = adjList[nodeId] || [];
+    for (var i = 0; i < adj.length; i++) {
+        neighbors[adj[i].target] = true;
+    }
+
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        var ne = state.nodeEls[i];
+        var isSelected = ne.data.id === nodeId;
+        var isNeighbor = neighbors[ne.data.id];
+        ne.circle.setAttribute('class', isSelected ? 'highlighted' : (isNeighbor ? '' : 'dimmed'));
+        ne.label.setAttribute('class', (isSelected || isNeighbor) ? '' : 'dimmed');
+    }
+    for (var i = 0; i < state.linkEls.length; i++) {
+        var le = state.linkEls[i];
+        var involves = le.dataset.source === nodeId || le.dataset.target === nodeId;
+        le.setAttribute('class', 'link' + (involves ? ' highlighted' : ' dimmed'));
+    }
+
+    // Update node info panel
+    var deg = (adjList[nodeId] || []).length;
+    var neighborList = (adjList[nodeId] || []).map(function(a) { return a.target; });
+    neighborList.sort();
+
+    var html = '<div class="node-card">';
+    html += '<div class="name">' + esc(nodeId) + '</div>';
+    html += '<div class="meta">Degree: ' + deg + ' &middot; Community: ' + (communities[nodeId] || 0) + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:0.82em; color:var(--text-muted); margin-bottom:4px;">Neighbors (' + neighborList.length + '):</div>';
+    html += '<div class="neighbor-list">';
+    for (var i = 0; i < neighborList.length; i++) {
+        html += '<div><a onclick="selectNode(\'' + esc(neighborList[i]) + '\')">' + esc(neighborList[i]) + '</a></div>';
+    }
+    html += '</div>';
+    document.getElementById('node-info').innerHTML = html;
+}
+
+// ── Search ──
+
+function searchNodes(query) {
+    var state = window._graphState;
+    if (!state || !query) {
+        if (state) clearHighlights();
+        return;
+    }
+    var q = query.toLowerCase();
+    var matches = {};
+
+    for (var i = 0; i < state.data.nodes.length; i++) {
+        var nd = state.data.nodes[i];
+        if (nd.id.toLowerCase().indexOf(q) >= 0) {
+            matches[nd.id] = true;
+        }
+    }
+
+    var matchCount = Object.keys(matches).length;
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        var ne = state.nodeEls[i];
+        var isMatch = matches[ne.data.id];
+        ne.circle.setAttribute('class', isMatch ? 'highlighted' : (matchCount > 0 ? 'dimmed' : ''));
+        ne.label.setAttribute('class', isMatch ? '' : (matchCount > 0 ? 'dimmed' : ''));
+    }
+    for (var i = 0; i < state.linkEls.length; i++) {
+        var le = state.linkEls[i];
+        var involves = matches[le.dataset.source] || matches[le.dataset.target];
+        le.setAttribute('class', 'link' + (matchCount > 0 && !involves ? ' dimmed' : ''));
+    }
+}
+
+// ── Shortest Path (BFS) ──
+
+function findPath() {
+    var from = document.getElementById('path-from').value.trim();
+    var to = document.getElementById('path-to').value.trim();
+    if (!from || !to || !graphData) return;
+
+    // Fuzzy match node IDs
+    from = fuzzyMatch(from);
+    to = fuzzyMatch(to);
+
+    if (!from || !to) {
+        document.getElementById('path-result').innerHTML = '<span style="color:var(--red)">Node not found</span>';
+        return;
+    }
+
+    // BFS
+    var visited = {};
+    var parent = {};
+    var queue = [from];
+    visited[from] = true;
+    parent[from] = null;
+    var found = false;
+
+    while (queue.length > 0 && !found) {
+        var curr = queue.shift();
+        var adj = adjList[curr] || [];
+        for (var i = 0; i < adj.length; i++) {
+            var nb = adj[i].target;
+            if (!visited[nb]) {
+                visited[nb] = true;
+                parent[nb] = curr;
+                if (nb === to) { found = true; break; }
+                queue.push(nb);
+            }
+        }
+    }
+
+    if (!found) {
+        document.getElementById('path-result').innerHTML = '<span style="color:var(--orange)">No path exists between ' + esc(from) + ' and ' + esc(to) + '</span>';
+        clearHighlights();
+        return;
+    }
+
+    // Reconstruct path
+    var path = [];
+    var curr = to;
+    while (curr !== null) {
+        path.unshift(curr);
+        curr = parent[curr];
+    }
+
+    // Highlight path
+    var pathSet = {};
+    for (var i = 0; i < path.length; i++) pathSet[path[i]] = true;
+    var pathEdges = {};
+    for (var i = 0; i < path.length - 1; i++) {
+        pathEdges[path[i] + '|' + path[i + 1]] = true;
+        pathEdges[path[i + 1] + '|' + path[i]] = true;
+    }
+
+    var state = window._graphState;
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        var ne = state.nodeEls[i];
+        ne.circle.setAttribute('class', pathSet[ne.data.id] ? 'path-node' : 'dimmed');
+        ne.label.setAttribute('class', pathSet[ne.data.id] ? '' : 'dimmed');
+    }
+    for (var i = 0; i < state.linkEls.length; i++) {
+        var le = state.linkEls[i];
+        var key = le.dataset.source + '|' + le.dataset.target;
+        le.setAttribute('class', 'link' + (pathEdges[key] ? ' path-highlight' : ' dimmed'));
+    }
+
+    document.getElementById('path-result').innerHTML =
+        '<span class="path-nodes">' + path.map(esc).join(' → ') + '</span>' +
+        '<br><span style="color:var(--text-subtle)">' + (path.length - 1) + ' hops</span>';
+}
+
+function fuzzyMatch(query) {
+    if (!graphData) return null;
+    var q = query.toLowerCase();
+    // Exact match first
+    for (var i = 0; i < graphData.nodes.length; i++) {
+        if (graphData.nodes[i].id === query) return query;
+    }
+    // Case-insensitive match
+    for (var i = 0; i < graphData.nodes.length; i++) {
+        if (graphData.nodes[i].id.toLowerCase() === q) return graphData.nodes[i].id;
+    }
+    // Substring match
+    for (var i = 0; i < graphData.nodes.length; i++) {
+        if (graphData.nodes[i].id.toLowerCase().indexOf(q) >= 0) return graphData.nodes[i].id;
+    }
+    return null;
+}
+
+// ── Controls ──
+
+function toggleLabels() {
+    var show = document.getElementById('show-labels').checked;
+    var state = window._graphState;
+    if (!state) return;
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        state.nodeEls[i].label.setAttribute('visibility', show ? 'visible' : 'hidden');
+    }
+}
+
+function toggleCommunities() {
+    var colorByCommunity = document.getElementById('color-communities').checked;
+    var state = window._graphState;
+    if (!state) return;
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        var ne = state.nodeEls[i];
+        if (colorByCommunity) {
+            var commIdx = communities[ne.data.id] || 0;
+            ne.circle.setAttribute('fill', communityColors[commIdx % communityColors.length]);
+        } else {
+            ne.circle.setAttribute('fill', ne.data._defaultFill || '#58a6ff');
+        }
+    }
+}
+
+function updateForce() {
+    var state = window._graphState;
+    if (!state) return;
+    var s = parseFloat(document.getElementById('force-strength').value);
+    var d = parseFloat(document.getElementById('link-distance').value);
+    state.setForce(s, d);
+}
+
+function resetView() {
+    if (!graphData) return;
+    clearHighlights();
+    document.getElementById('search-box').value = '';
+    document.getElementById('path-from').value = '';
+    document.getElementById('path-to').value = '';
+    document.getElementById('path-result').innerHTML = '';
+    document.getElementById('node-info').innerHTML = '<p style="font-size:0.82em; color:var(--text-subtle);">Click a node to see details.</p>';
+    var svgEl = document.getElementById('graph-svg');
+    svgEl.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    selectedNode = null;
+}
+
+function clearHighlights() {
+    var state = window._graphState;
+    if (!state) return;
+    for (var i = 0; i < state.nodeEls.length; i++) {
+        state.nodeEls[i].circle.setAttribute('class', '');
+        state.nodeEls[i].label.setAttribute('class', '');
+    }
+    for (var i = 0; i < state.linkEls.length; i++) {
+        state.linkEls[i].setAttribute('class', 'link');
+    }
+}
+
+// ── Export ──
+
+function exportPNG() {
+    var svgEl = document.getElementById('graph-svg');
+    if (svgEl.style.display === 'none') return;
+
+    var serializer = new XMLSerializer();
+    var svgStr = serializer.serializeToString(svgEl);
+    // Inline styles for export
+    svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" style="background:#0d1117"');
+
+    var canvas = document.createElement('canvas');
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    var ctx = canvas.getContext('2d');
+    var img = new Image();
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0, width * 2, height * 2);
+        var a = document.createElement('a');
+        a.download = 'graph-export.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        showToast('PNG exported');
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+}
+
+// ── Utilities ──
+
+function esc(s) {
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+</script>
+
+</body>
+</html>
