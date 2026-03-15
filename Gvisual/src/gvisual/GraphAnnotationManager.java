@@ -495,7 +495,9 @@ public class GraphAnnotationManager {
      * Export annotations to a file.
      */
     public void exportToFile(String filePath) throws IOException {
-        try (Writer w = new FileWriter(filePath)) {
+        java.io.File file = new java.io.File(filePath);
+        ExportUtils.validateOutputPath(file);
+        try (Writer w = new FileWriter(file)) {
             w.write(exportToJson());
         }
     }
@@ -504,8 +506,10 @@ public class GraphAnnotationManager {
      * Import annotations from a file.
      */
     public int importFromFile(String filePath) throws IOException {
+        java.io.File file = new java.io.File(filePath);
+        ExportUtils.validateOutputPath(file);
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader r = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = r.readLine()) != null) {
                 sb.append(line).append("\n");
