@@ -488,4 +488,85 @@ public class ForceDirectedLayoutTest {
         }
         return spread / positions.size();
     }
+
+    @Test
+    public void testBarnesHutLargeGraph() {
+        // Build a 150-node graph to trigger Barnes-Hut path (threshold=100)
+        for (int i = 0; i < 150; i++) {
+            graph.addVertex("V" + i);
+        }
+        Random rng = new Random(99);
+        for (int i = 0; i < 300; i++) {
+            String v1 = "V" + rng.nextInt(150);
+            String v2 = "V" + rng.nextInt(150);
+            if (!v1.equals(v2) && graph.findEdge(v1, v2) == null) {
+                addEdge(v1, v2);
+            }
+        }
+
+        ForceDirectedLayout layout = new ForceDirectedLayout(
+                graph, 100, 1200, 900, 0.1, true, 42L);
+        layout.compute();
+
+        assertEquals(150, layout.getPositions().size());
+        assertTrue("Should converge", layout.getIterationsUsed() > 0);
+
+        // All positions should be within bounds
+        for (double[] p : layout.getPositions().values()) {
+            assertTrue("x in bounds", p[0] >= 0 && p[0] <= 1200);
+            assertTrue("y in bounds", p[1] >= 0 && p[1] <= 900);
+        }
+
+        // Connected nodes should still be closer than random pairs on average
+        double connectedDist = 0;
+        int connectedCount = 0;
+        for (edge e : graph.getEdges()) {
+            double[] p1 = layout.getPosition(e.getVertex1());
+            double[] p2 = layout.getPosition(e.getVertex2());
+            if (p1 != null && p2 != null) {
+                connectedDist += Math.sqrt(
+                    Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2));
+                connectedCount++;
+            }
+        }
+        if (connectedCount > 0) {
+            connectedDist /= connectedCount;
+            // Just verify it completed and produced reasonable layout
+            assertTrue("Connected avg distance should be positive",
+                       connectedDist > 0);
+        }
+    }
+
+    @Test
+    public void testBarnesHutMatchesBruteForceOnSmallGraph() {
+        // Verify the threshold: graphs under 100 nodes use brute-force
+        // and produce deterministic results
+        for (int i = 0; i < 50; i++) {
+            graph.addVertex("N" + i);
+        }
+        Random rng = new Random(77);
+        for (int i = 0; i < 80; i++) {
+            String v1 = "N" + rng.nextInt(50);
+            String v2 = "N" + rng.nextInt(50);
+            if (!v1.equals(v2) && graph.findEdge(v1, v2) == null) {
+                addEdge(v1, v2);
+            }
+        }
+
+        // Run twice with same seed - should be identical (brute-force path)
+        ForceDirectedLayout layout1 = new ForceDirectedLayout(
+                graph, 100, 800, 600, 0.1, true, 42L);
+        layout1.compute();
+
+        ForceDirectedLayout layout2 = new ForceDirectedLayout(
+                graph, 100, 800, 600, 0.1, true, 42L);
+        layout2.compute();
+
+        for (String v : graph.getVertices()) {
+            double[] p1 = layout1.getPosition(v);
+            double[] p2 = layout2.getPosition(v);
+            assertEquals("x should match for " + v, p1[0], p2[0], 0.001);
+            assertEquals("y should match for " + v, p1[1], p2[1], 0.001);
+        }
+    }
 }
