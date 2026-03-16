@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Coloring — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .coloring-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .color-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .color-swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #000; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-item { padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+        .history-item .alg { color: var(--accent); }
+        textarea#jsonInput { width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: monospace; font-size: 12px; padding: 8px; border-radius: 6px; resize: vertical; }
+        .tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 12px; pointer-events: none; z-index: 100; display: none; }
+        @media (max-width: 900px) { .coloring-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link active"><span class="icon">🎨</span>Graph Coloring</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">📝</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="content-header">
+        <h1>🎨 Graph Coloring Visualizer</h1>
+        <p class="content-subtitle">Apply graph coloring algorithms and visualize chromatic assignments interactively</p>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+        <div class="stat-card"><div class="val" id="statColors">0</div><div class="lbl">Colors Used</div></div>
+        <div class="stat-card"><div class="val" id="statConflicts">0</div><div class="lbl">Conflicts</div></div>
+        <div class="stat-card"><div class="val" id="statTime">—</div><div class="lbl">Time (ms)</div></div>
+    </div>
+
+    <div class="coloring-layout">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>Load Graph</h3>
+                <div class="btn-row" style="margin-bottom:10px;">
+                    <button class="btn btn-secondary" onclick="loadPreset('petersen')">Petersen</button>
+                    <button class="btn btn-secondary" onclick="loadPreset('bipartite')">Bipartite</button>
+                    <button class="btn btn-secondary" onclick="loadPreset('planar')">Planar</button>
+                    <button class="btn btn-secondary" onclick="loadPreset('wheel')">Wheel</button>
+                    <button class="btn btn-secondary" onclick="loadPreset('complete')">K₆</button>
+                </div>
+                <div class="control-row">
+                    <label>Random nodes</label>
+                    <input type="number" id="randNodes" value="15" min="3" max="100">
+                </div>
+                <div class="control-row">
+                    <label>Edge prob</label>
+                    <input type="number" id="randProb" value="0.3" min="0.05" max="1" step="0.05">
+                </div>
+                <button class="btn btn-secondary" onclick="generateRandom()" style="width:100%">Generate Random</button>
+                <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted)">Import JSON</summary>
+                    <textarea id="jsonInput" placeholder='{"nodes":["A","B"],"edges":[["A","B"]]}'></textarea>
+                    <button class="btn btn-secondary" onclick="importJSON()" style="width:100%;margin-top:6px">Import</button>
+                </details>
+            </div>
+
+            <div class="control-group">
+                <h3>Algorithm</h3>
+                <div class="control-row">
+                    <select id="algorithm">
+                        <option value="greedy">Greedy</option>
+                        <option value="welsh-powell">Welsh-Powell</option>
+                        <option value="dsatur">DSatur</option>
+                        <option value="rlf">RLF (Recursive Largest First)</option>
+                        <option value="backtracking">Backtracking (exact, ≤20 nodes)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="runColoring()" style="width:100%">Color Graph</button>
+                <button class="btn btn-secondary" onclick="resetColors()" style="width:100%;margin-top:6px">Reset Colors</button>
+            </div>
+
+            <div class="control-group">
+                <h3>Display</h3>
+                <div class="control-row">
+                    <label>Node size</label>
+                    <input type="range" id="nodeSize" min="8" max="30" value="16">
+                </div>
+                <div class="control-row">
+                    <label>Show labels</label>
+                    <input type="checkbox" id="showLabels" checked style="flex:none">
+                </div>
+                <div class="control-row">
+                    <label>Animate</label>
+                    <input type="checkbox" id="animate" checked style="flex:none">
+                </div>
+                <div class="color-legend" id="colorLegend"></div>
+            </div>
+
+            <div class="control-group">
+                <h3>Compare Algorithms</h3>
+                <button class="btn btn-secondary" onclick="compareAll()" style="width:100%">Run All & Compare</button>
+                <div id="compareResults" style="margin-top:8px;font-size:12px;"></div>
+            </div>
+
+            <div class="control-group">
+                <h3>History</h3>
+                <div class="history-list" id="historyList"><em style="color:var(--text-subtle)">No runs yet</em></div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="exportPNG()" style="width:100%">📷 Export PNG</button>
+            <button class="btn btn-secondary" onclick="exportJSON()" style="width:100%">📦 Export JSON</button>
+        </div>
+
+        <div>
+            <canvas id="graphCanvas" width="900" height="650"></canvas>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+</main>
+
+<script>
+// ── Color palette ──
+const PALETTE = [
+    '#58a6ff','#3fb950','#f85149','#d29922','#bc8cff','#f778ba','#79c0ff',
+    '#56d4dd','#db6d28','#7ee787','#ff9bce','#ffd33d','#a5d6ff','#d2a8ff',
+    '#9ecbff','#ffa657','#ff7b72','#b392f0','#85e89d','#ffdf5d'
+];
+
+let graph = { nodes: [], edges: [] }; // { nodes: [{id,x,y,color}], edges: [[i,j]] }
+let colorAssignment = {};  // nodeId -> colorIndex
+let history = [];
+let dragging = null, dragOff = {x:0,y:0};
+let hoveredNode = null;
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = 650 * devicePixelRatio;
+    canvas.style.height = '650px';
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ── Presets ──
+const PRESETS = {
+    petersen: () => {
+        const n = [], e = [];
+        for(let i=0;i<5;i++) { n.push('O'+i); n.push('I'+i); }
+        for(let i=0;i<5;i++) { e.push(['O'+i,'O'+((i+1)%5)]); e.push(['I'+i,'I'+((i+2)%5)]); e.push(['O'+i,'I'+i]); }
+        return {nodes:n, edges:e};
+    },
+    bipartite: () => {
+        const n=[], e=[];
+        for(let i=0;i<4;i++) n.push('L'+i);
+        for(let i=0;i<4;i++) n.push('R'+i);
+        for(let i=0;i<4;i++) for(let j=0;j<4;j++) if(Math.random()<0.5) e.push(['L'+i,'R'+j]);
+        if(e.length===0) e.push(['L0','R0']);
+        return {nodes:n, edges:e};
+    },
+    planar: () => {
+        const n=['A','B','C','D','E','F','G','H'];
+        const e=[['A','B'],['B','C'],['C','D'],['D','A'],['A','E'],['B','F'],['C','G'],['D','H'],['E','F'],['F','G'],['G','H'],['H','E']];
+        return {nodes:n, edges:e};
+    },
+    wheel: () => {
+        const n=['Hub'];
+        for(let i=0;i<8;i++) n.push('S'+i);
+        const e=[];
+        for(let i=0;i<8;i++) { e.push(['Hub','S'+i]); e.push(['S'+i,'S'+((i+1)%8)]); }
+        return {nodes:n, edges:e};
+    },
+    complete: () => {
+        const n=[]; for(let i=0;i<6;i++) n.push('V'+i);
+        const e=[]; for(let i=0;i<6;i++) for(let j=i+1;j<6;j++) e.push(['V'+i,'V'+j]);
+        return {nodes:n, edges:e};
+    }
+};
+
+function loadPreset(name) {
+    const p = PRESETS[name]();
+    loadGraph(p.nodes, p.edges);
+}
+
+function generateRandom() {
+    const n = parseInt(document.getElementById('randNodes').value)||15;
+    const prob = parseFloat(document.getElementById('randProb').value)||0.3;
+    const nodes = []; for(let i=0;i<n;i++) nodes.push('N'+i);
+    const edges = [];
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(Math.random()<prob) edges.push([nodes[i],nodes[j]]);
+    loadGraph(nodes, edges);
+}
+
+function importJSON() {
+    try {
+        const d = JSON.parse(document.getElementById('jsonInput').value);
+        loadGraph(d.nodes||[], d.edges||[]);
+    } catch(e) { alert('Invalid JSON: '+e.message); }
+}
+
+function loadGraph(nodeIds, edgePairs) {
+    const w = canvas.width/devicePixelRatio, h = canvas.height/devicePixelRatio;
+    const cx=w/2, cy=h/2, r=Math.min(w,h)*0.38;
+    graph.nodes = nodeIds.map((id,i) => ({
+        id, x: cx + r*Math.cos(2*Math.PI*i/nodeIds.length - Math.PI/2),
+        y: cy + r*Math.sin(2*Math.PI*i/nodeIds.length - Math.PI/2), color: -1
+    }));
+    const idx = {}; graph.nodes.forEach((n,i)=>idx[n.id]=i);
+    graph.edges = edgePairs.filter(([a,b])=> a in idx && b in idx).map(([a,b])=>[idx[a],idx[b]]);
+    colorAssignment = {};
+    updateStats(); draw();
+}
+
+// ── Adjacency helpers ──
+function adjList() {
+    const adj = {}; graph.nodes.forEach(n=>adj[n.id]=[]);
+    graph.edges.forEach(([i,j])=>{ adj[graph.nodes[i].id].push(graph.nodes[j].id); adj[graph.nodes[j].id].push(graph.nodes[i].id); });
+    return adj;
+}
+
+// ── Coloring algorithms ──
+function greedyColor(order) {
+    const adj = adjList(), colors = {};
+    order.forEach(id => {
+        const used = new Set(adj[id].map(n=>colors[n]).filter(c=>c!==undefined));
+        let c=0; while(used.has(c)) c++;
+        colors[id]=c;
+    });
+    return colors;
+}
+
+function algoGreedy() { return greedyColor(graph.nodes.map(n=>n.id)); }
+
+function algoWelshPowell() {
+    const adj = adjList();
+    const order = graph.nodes.map(n=>n.id).sort((a,b)=>adj[b].length-adj[a].length);
+    return greedyColor(order);
+}
+
+function algoDSatur() {
+    const adj = adjList(), colors = {}, sat = {};
+    graph.nodes.forEach(n=>{sat[n.id]=new Set();});
+    const remaining = new Set(graph.nodes.map(n=>n.id));
+    while(remaining.size>0) {
+        let best=null, bestSat=-1, bestDeg=-1;
+        remaining.forEach(id => {
+            const s=sat[id].size, d=adj[id].length;
+            if(s>bestSat||(s===bestSat&&d>bestDeg)){best=id;bestSat=s;bestDeg=d;}
+        });
+        const used = new Set(adj[best].map(n=>colors[n]).filter(c=>c!==undefined));
+        let c=0; while(used.has(c)) c++;
+        colors[best]=c;
+        adj[best].forEach(n=>sat[n].add(c));
+        remaining.delete(best);
+    }
+    return colors;
+}
+
+function algoRLF() {
+    const adj = adjList(), colors = {};
+    const uncolored = new Set(graph.nodes.map(n=>n.id));
+    let colorIdx = 0;
+    while(uncolored.size>0) {
+        // Build independent set greedily
+        const candidates = new Set(uncolored);
+        const inClass = [];
+        // Start with highest-degree uncolored node
+        let start=null, maxD=-1;
+        candidates.forEach(id=>{ const d=adj[id].filter(n=>uncolored.has(n)).length; if(d>maxD){maxD=d;start=id;}});
+        inClass.push(start); candidates.delete(start);
+        adj[start].forEach(n=>candidates.delete(n));
+        while(candidates.size>0) {
+            // Pick candidate with most neighbors already excluded
+            let best=null, bestScore=-1;
+            candidates.forEach(id=>{
+                const score = adj[id].filter(n=>!candidates.has(n)&&uncolored.has(n)).length;
+                if(score>bestScore){bestScore=score;best=id;}
+            });
+            inClass.push(best); candidates.delete(best);
+            adj[best].forEach(n=>candidates.delete(n));
+        }
+        inClass.forEach(id=>{colors[id]=colorIdx; uncolored.delete(id);});
+        colorIdx++;
+    }
+    return colors;
+}
+
+function algoBacktracking() {
+    if(graph.nodes.length>20) { alert('Backtracking limited to ≤20 nodes'); return null; }
+    const adj = adjList(), ids = graph.nodes.map(n=>n.id);
+    // Find chromatic number by trying k=1,2,...
+    for(let k=1;k<=ids.length;k++) {
+        const colors = {};
+        if(btSolve(ids,0,k,colors,adj)) return colors;
+    }
+    return {};
+}
+function btSolve(ids,idx,k,colors,adj) {
+    if(idx===ids.length) return true;
+    const id=ids[idx];
+    for(let c=0;c<k;c++) {
+        if(adj[id].every(n=>colors[n]!==c)) {
+            colors[id]=c;
+            if(btSolve(ids,idx+1,k,colors,adj)) return true;
+            delete colors[id];
+        }
+    }
+    return false;
+}
+
+const ALGORITHMS = { greedy: algoGreedy, 'welsh-powell': algoWelshPowell, dsatur: algoDSatur, rlf: algoRLF, backtracking: algoBacktracking };
+
+function runColoring() {
+    const alg = document.getElementById('algorithm').value;
+    const t0 = performance.now();
+    const result = ALGORITHMS[alg]();
+    const elapsed = (performance.now()-t0).toFixed(2);
+    if(!result) return;
+    colorAssignment = result;
+    const animate = document.getElementById('animate').checked;
+    if(animate) {
+        const order = Object.keys(result);
+        let i=0;
+        const step = () => {
+            if(i>=order.length) { updateStats(elapsed); return; }
+            graph.nodes.find(n=>n.id===order[i]).color = result[order[i]];
+            draw(); i++;
+            requestAnimationFrame(step);
+        };
+        step();
+    } else {
+        graph.nodes.forEach(n=>n.color=result[n.id]??-1);
+        updateStats(elapsed);
+        draw();
+    }
+    const numColors = new Set(Object.values(result)).size;
+    history.unshift({alg, colors: numColors, time: elapsed, nodes: graph.nodes.length, edges: graph.edges.length});
+    renderHistory();
+}
+
+function resetColors() {
+    graph.nodes.forEach(n=>n.color=-1);
+    colorAssignment = {};
+    updateStats(); draw();
+}
+
+function updateStats(time) {
+    document.getElementById('statNodes').textContent = graph.nodes.length;
+    document.getElementById('statEdges').textContent = graph.edges.length;
+    const usedColors = new Set(graph.nodes.map(n=>n.color).filter(c=>c>=0));
+    document.getElementById('statColors').textContent = usedColors.size||0;
+    // Count conflicts
+    let conflicts = 0;
+    graph.edges.forEach(([i,j])=>{ if(graph.nodes[i].color>=0 && graph.nodes[i].color===graph.nodes[j].color) conflicts++; });
+    document.getElementById('statConflicts').textContent = conflicts;
+    document.getElementById('statTime').textContent = time||'—';
+    // Legend
+    const legend = document.getElementById('colorLegend');
+    legend.innerHTML = '';
+    [...usedColors].sort((a,b)=>a-b).forEach(c=>{
+        const s = document.createElement('span');
+        s.className='color-swatch'; s.style.background=PALETTE[c%PALETTE.length]; s.textContent=c;
+        legend.appendChild(s);
+    });
+}
+
+function renderHistory() {
+    const el = document.getElementById('historyList');
+    if(!history.length) { el.innerHTML='<em style="color:var(--text-subtle)">No runs yet</em>'; return; }
+    el.innerHTML = history.map(h=>`<div class="history-item"><span class="alg">${h.alg}</span> → ${h.colors} colors, ${h.time}ms (${h.nodes}n/${h.edges}e)</div>`).join('');
+}
+
+function compareAll() {
+    if(!graph.nodes.length) { alert('Load a graph first'); return; }
+    const results = [];
+    const algNames = ['greedy','welsh-powell','dsatur','rlf'];
+    if(graph.nodes.length<=20) algNames.push('backtracking');
+    algNames.forEach(alg=>{
+        const t0=performance.now();
+        const r = ALGORITHMS[alg]();
+        const t=(performance.now()-t0).toFixed(2);
+        if(r) results.push({alg, colors: new Set(Object.values(r)).size, time: t});
+    });
+    results.sort((a,b)=>a.colors-b.colors||parseFloat(a.time)-parseFloat(b.time));
+    const el = document.getElementById('compareResults');
+    el.innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr style="color:var(--accent)"><th style="text-align:left">Algorithm</th><th>Colors</th><th>Time</th></tr>'+
+        results.map((r,i)=>`<tr style="${i===0?'color:var(--green);font-weight:700':''}"><td>${r.alg}</td><td style="text-align:center">${r.colors}</td><td style="text-align:right">${r.time}ms</td></tr>`).join('')+
+        '</table>';
+}
+
+// ── Drawing ──
+function draw() {
+    const w=canvas.width/devicePixelRatio, h=canvas.height/devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    const ns = parseInt(document.getElementById('nodeSize').value)||16;
+    const showLabels = document.getElementById('showLabels').checked;
+    // Edges
+    ctx.lineWidth=1.5; ctx.strokeStyle='rgba(88,166,255,0.25)';
+    graph.edges.forEach(([i,j])=>{
+        const a=graph.nodes[i], b=graph.nodes[j];
+        // Conflict highlight
+        if(a.color>=0 && a.color===b.color) { ctx.strokeStyle='rgba(248,81,73,0.6)'; ctx.lineWidth=2.5; }
+        else { ctx.strokeStyle='rgba(88,166,255,0.25)'; ctx.lineWidth=1.5; }
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    });
+    // Nodes
+    graph.nodes.forEach((n,i)=>{
+        ctx.beginPath(); ctx.arc(n.x,n.y,ns,0,Math.PI*2);
+        ctx.fillStyle = n.color>=0 ? PALETTE[n.color%PALETTE.length] : '#30363d';
+        ctx.fill();
+        if(hoveredNode===i) { ctx.strokeStyle='#e6edf3'; ctx.lineWidth=2; ctx.stroke(); }
+        if(showLabels) {
+            ctx.fillStyle='#fff'; ctx.font=`${Math.max(9,ns-4)}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(n.id, n.x, n.y);
+        }
+    });
+}
+
+// ── Interaction ──
+function getNodeAt(mx,my) {
+    const ns=parseInt(document.getElementById('nodeSize').value)||16;
+    for(let i=graph.nodes.length-1;i>=0;i--) {
+        const dx=graph.nodes[i].x-mx, dy=graph.nodes[i].y-my;
+        if(dx*dx+dy*dy<=ns*ns) return i;
+    }
+    return -1;
+}
+
+canvas.addEventListener('mousedown', e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const i=getNodeAt(mx,my);
+    if(i>=0) { dragging=i; dragOff={x:graph.nodes[i].x-mx,y:graph.nodes[i].y-my}; }
+});
+canvas.addEventListener('mousemove', e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    if(dragging!==null) {
+        graph.nodes[dragging].x=mx+dragOff.x; graph.nodes[dragging].y=my+dragOff.y;
+        draw();
+    }
+    const i=getNodeAt(mx,my);
+    if(i!==hoveredNode) { hoveredNode=i; draw(); }
+    const tip=document.getElementById('tooltip');
+    if(i>=0) {
+        const n=graph.nodes[i], adj=adjList();
+        tip.style.display='block'; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY+12)+'px';
+        tip.innerHTML=`<strong>${n.id}</strong><br>Color: ${n.color>=0?n.color:'none'}<br>Degree: ${adj[n.id].length}`;
+    } else { tip.style.display='none'; }
+});
+canvas.addEventListener('mouseup', ()=>{ dragging=null; });
+canvas.addEventListener('mouseleave', ()=>{ dragging=null; hoveredNode=null; draw(); document.getElementById('tooltip').style.display='none'; });
+
+// Manual coloring via right-click
+canvas.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    const i=getNodeAt(e.clientX-rect.left, e.clientY-rect.top);
+    if(i>=0) {
+        graph.nodes[i].color = (graph.nodes[i].color+1) % PALETTE.length;
+        colorAssignment[graph.nodes[i].id] = graph.nodes[i].color;
+        updateStats(); draw();
+    }
+});
+
+function exportPNG() {
+    const a=document.createElement('a'); a.download='graph-coloring.png';
+    // Redraw at full res for export
+    const tmpCanvas=document.createElement('canvas');
+    tmpCanvas.width=canvas.width; tmpCanvas.height=canvas.height;
+    const tctx=tmpCanvas.getContext('2d');
+    tctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    tctx.fillStyle='#0d1117'; tctx.fillRect(0,0,tmpCanvas.width,tmpCanvas.height);
+    // Copy current render
+    tctx.drawImage(canvas,0,0);
+    a.href=tmpCanvas.toDataURL('image/png'); a.click();
+}
+
+function exportJSON() {
+    const data = {
+        nodes: graph.nodes.map(n=>({id:n.id,color:n.color>=0?n.color:null})),
+        edges: graph.edges.map(([i,j])=>[graph.nodes[i].id,graph.nodes[j].id]),
+        colorsUsed: new Set(graph.nodes.map(n=>n.color).filter(c=>c>=0)).size
+    };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.download='graph-coloring.json'; a.href=URL.createObjectURL(blob); a.click();
+}
+
+// Init
+resizeCanvas();
+loadPreset('petersen');
+</script>
+</body>
+</html>
