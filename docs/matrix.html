@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphVisual — Adjacency Matrix</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .matrix-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+        .matrix-toolbar select, .matrix-toolbar button, .matrix-toolbar input {
+            background:var(--surface); color:var(--text); border:1px solid var(--border);
+            padding:8px 14px; border-radius:6px; font-size:14px; cursor:pointer;
+        }
+        .matrix-toolbar button:hover { background:var(--surface-hover); border-color:var(--accent); }
+        .matrix-toolbar label { color:var(--text-muted); font-size:13px; }
+        .matrix-container { overflow:auto; max-height:calc(100vh - 240px); border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+        table.adj-matrix { border-collapse:collapse; }
+        table.adj-matrix th { position:sticky; background:var(--surface); z-index:2; padding:4px 6px; font-size:11px; color:var(--text-muted); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        table.adj-matrix th.col-header { top:0; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg); min-height:80px; }
+        table.adj-matrix th.row-header { left:0; z-index:3; text-align:right; padding-right:8px; }
+        table.adj-matrix th.corner { top:0; left:0; z-index:4; }
+        table.adj-matrix td { width:22px; height:22px; min-width:22px; min-height:22px; border:1px solid var(--bg); text-align:center; font-size:10px; cursor:pointer; transition:transform .1s; }
+        table.adj-matrix td:hover { transform:scale(1.4); z-index:5; position:relative; outline:2px solid var(--accent); }
+        .stats-bar { display:flex; gap:20px; margin:16px 0; flex-wrap:wrap; }
+        .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 18px; }
+        .stat-card .label { color:var(--text-muted); font-size:12px; }
+        .stat-card .value { font-size:22px; font-weight:600; color:var(--accent); }
+        .tooltip-box { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px 14px; font-size:13px; pointer-events:none; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,.5); display:none; }
+        .legend { display:flex; align-items:center; gap:6px; margin:12px 0; }
+        .legend-grad { width:200px; height:14px; border-radius:4px; }
+        .legend span { font-size:12px; color:var(--text-muted); }
+        .drop-zone { border:2px dashed var(--border); border-radius:12px; padding:60px 20px; text-align:center; color:var(--text-muted); font-size:16px; cursor:pointer; transition:border-color .2s; }
+        .drop-zone:hover, .drop-zone.dragover { border-color:var(--accent); color:var(--text); }
+        .community-colors { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
+        .community-swatch { width:14px; height:14px; border-radius:3px; border:1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link active"><span class="icon">🔢</span>Adjacency Matrix</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="hero" style="padding:30px 0 10px">
+        <h1>🔢 Adjacency Matrix Viewer</h1>
+        <p>Visualize graph structure as an interactive adjacency matrix with sorting, clustering, and edge-weight heatmaps.</p>
+    </div>
+
+    <div id="dropArea" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+        📂 Drop a JSON graph file here or click to browse<br>
+        <small>Format: { "nodes": [...], "edges": [...] } — same as Graph Explorer</small>
+        <input type="file" id="fileInput" accept=".json" style="display:none">
+    </div>
+
+    <div id="loaded" style="display:none">
+        <div class="stats-bar" id="statsBar"></div>
+
+        <div class="matrix-toolbar">
+            <label>Sort by:
+                <select id="sortMode">
+                    <option value="alpha">Alphabetical</option>
+                    <option value="degree-desc">Degree (high→low)</option>
+                    <option value="degree-asc">Degree (low→high)</option>
+                    <option value="community">Community cluster</option>
+                    <option value="original">Original order</option>
+                </select>
+            </label>
+            <label>Color:
+                <select id="colorMode">
+                    <option value="weight">Edge weight</option>
+                    <option value="binary">Binary (on/off)</option>
+                    <option value="type">Edge type</option>
+                </select>
+            </label>
+            <label><input type="checkbox" id="showLabels" checked> Show values</label>
+            <label><input type="checkbox" id="symmetric"> Force symmetric</label>
+            <button onclick="exportPNG()">📷 Export PNG</button>
+            <button onclick="exportCSV()">📋 Export CSV</button>
+            <button onclick="loadSample()">🎲 Sample Graph</button>
+        </div>
+
+        <div class="legend" id="legend"></div>
+        <div class="matrix-container" id="matrixContainer"></div>
+    </div>
+
+    <div class="tooltip-box" id="tip"></div>
+</div>
+
+<script>
+let graphData = null;
+let nodeOrder = [];
+let matrix = [];
+let edgeTypes = new Set();
+
+const PALETTES = {
+    weight: (v, max) => {
+        if (v === 0) return 'transparent';
+        const t = max > 0 ? v / max : 1;
+        const r = Math.round(13 + t * 75);
+        const g = Math.round(27 + t * 140);
+        const b = Math.round(34 + t * 221);
+        return `rgb(${r},${g},${b})`;
+    },
+    binary: (v) => v > 0 ? 'var(--accent)' : 'transparent',
+};
+const TYPE_COLORS = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#79c0ff','#f0883e','#a5d6ff','#7ee787','#ffa657'];
+
+// File loading
+const dropArea = document.getElementById('dropArea');
+const fileInput = document.getElementById('fileInput');
+
+dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('dragover'); });
+dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+document.getElementById('sortMode').addEventListener('change', render);
+document.getElementById('colorMode').addEventListener('change', render);
+document.getElementById('showLabels').addEventListener('change', render);
+document.getElementById('symmetric').addEventListener('change', render);
+
+function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            graphData = JSON.parse(e.target.result);
+            processGraph();
+            dropArea.style.display = 'none';
+            document.getElementById('loaded').style.display = 'block';
+            render();
+        } catch(err) { alert('Invalid JSON: ' + err.message); }
+    };
+    reader.readAsText(file);
+}
+
+function loadSample() {
+    const n = 15;
+    const nodes = Array.from({length:n}, (_,i) => ({id:'N'+i, label:'Node '+i}));
+    const edges = [];
+    const types = ['friend','colleague','family'];
+    for (let i=0; i<n; i++) {
+        const conns = 1 + Math.floor(Math.random()*3);
+        for (let c=0; c<conns; c++) {
+            const j = Math.floor(Math.random()*n);
+            if (j !== i) edges.push({source:'N'+i, target:'N'+j, weight:1+Math.floor(Math.random()*9), type:types[Math.floor(Math.random()*3)]});
+        }
+    }
+    graphData = {nodes, edges};
+    processGraph();
+    dropArea.style.display = 'none';
+    document.getElementById('loaded').style.display = 'block';
+    render();
+}
+
+function processGraph() {
+    edgeTypes.clear();
+    const nodeMap = new Map();
+    graphData.nodes.forEach((n,i) => {
+        const id = n.id || n.name || ('node_'+i);
+        nodeMap.set(id, {id, label: n.label||n.name||id, degree:0, community:0, origIndex:i});
+    });
+    graphData.edges.forEach(e => {
+        const s = e.source||e.from, t = e.target||e.to;
+        if (nodeMap.has(s)) nodeMap.get(s).degree++;
+        if (nodeMap.has(t)) nodeMap.get(t).degree++;
+        if (e.type) edgeTypes.add(e.type);
+    });
+    // Simple community detection (greedy label propagation)
+    const adj = new Map();
+    nodeMap.forEach((v,k) => adj.set(k, []));
+    graphData.edges.forEach(e => {
+        const s = e.source||e.from, t = e.target||e.to;
+        if (adj.has(s)) adj.get(s).push(t);
+        if (adj.has(t)) adj.get(t).push(s);
+    });
+    let labels = new Map();
+    let ci = 0;
+    nodeMap.forEach((v,k) => labels.set(k, ci++));
+    for (let iter=0; iter<10; iter++) {
+        nodeMap.forEach((v,k) => {
+            const neighbors = adj.get(k) || [];
+            if (!neighbors.length) return;
+            const freq = {};
+            neighbors.forEach(n => { const l = labels.get(n); freq[l] = (freq[l]||0)+1; });
+            let best = labels.get(k), bestC = 0;
+            for (const [l,c] of Object.entries(freq)) { if (c > bestC) { bestC=c; best=+l; } }
+            labels.set(k, best);
+        });
+    }
+    // Normalize community labels
+    const commMap = new Map();
+    let commId = 0;
+    labels.forEach((l,k) => {
+        if (!commMap.has(l)) commMap.set(l, commId++);
+        nodeMap.get(k).community = commMap.get(l);
+    });
+    graphData._nodeMap = nodeMap;
+    graphData._adj = adj;
+}
+
+function getOrder() {
+    const mode = document.getElementById('sortMode').value;
+    const nodes = Array.from(graphData._nodeMap.values());
+    switch(mode) {
+        case 'alpha': nodes.sort((a,b) => a.label.localeCompare(b.label)); break;
+        case 'degree-desc': nodes.sort((a,b) => b.degree - a.degree); break;
+        case 'degree-asc': nodes.sort((a,b) => a.degree - b.degree); break;
+        case 'community': nodes.sort((a,b) => a.community - b.community || a.label.localeCompare(b.label)); break;
+        default: nodes.sort((a,b) => a.origIndex - b.origIndex);
+    }
+    return nodes;
+}
+
+function buildMatrix(order) {
+    const n = order.length;
+    const idx = new Map();
+    order.forEach((nd,i) => idx.set(nd.id, i));
+    const mat = Array.from({length:n}, () => Array.from({length:n}, () => ({w:0, type:null})));
+    const sym = document.getElementById('symmetric').checked;
+    graphData.edges.forEach(e => {
+        const si = idx.get(e.source||e.from), ti = idx.get(e.target||e.to);
+        if (si === undefined || ti === undefined) return;
+        const w = e.weight || 1;
+        mat[si][ti] = {w, type:e.type||null};
+        if (sym) mat[ti][si] = {w, type:e.type||null};
+    });
+    return mat;
+}
+
+function render() {
+    const order = getOrder();
+    const mat = buildMatrix(order);
+    const n = order.length;
+    const colorMode = document.getElementById('colorMode').value;
+    const showVals = document.getElementById('showLabels').checked;
+
+    // Stats
+    let maxW = 0, edgeCount = 0, density = 0;
+    mat.forEach(row => row.forEach(c => { if (c.w > 0) { edgeCount++; maxW = Math.max(maxW, c.w); } }));
+    density = n > 1 ? (edgeCount / (n * (n-1))) * 100 : 0;
+    const communities = new Set(order.map(n => n.community)).size;
+
+    document.getElementById('statsBar').innerHTML = [
+        {l:'Nodes', v:n}, {l:'Edges', v:edgeCount}, {l:'Density', v:density.toFixed(1)+'%'},
+        {l:'Max Weight', v:maxW}, {l:'Communities', v:communities}
+    ].map(s => `<div class="stat-card"><div class="label">${s.l}</div><div class="value">${s.v}</div></div>`).join('');
+
+    // Legend
+    const legendEl = document.getElementById('legend');
+    if (colorMode === 'weight') {
+        const grad = `linear-gradient(to right, ${PALETTES.weight(1,maxW)}, ${PALETTES.weight(maxW,maxW)})`;
+        legendEl.innerHTML = `<span>0</span><div class="legend-grad" style="background:${grad}"></div><span>${maxW}</span>`;
+    } else if (colorMode === 'type') {
+        const types = [...edgeTypes];
+        legendEl.innerHTML = types.map((t,i) => `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${TYPE_COLORS[i%TYPE_COLORS.length]}"></span>${t}</span>`).join('');
+    } else {
+        legendEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--accent)"></span>Connected</span>`;
+    }
+
+    // Table
+    const typeArr = [...edgeTypes];
+    let html = '<table class="adj-matrix"><thead><tr><th class="corner"></th>';
+    order.forEach(nd => { html += `<th class="col-header" title="${nd.label}">${nd.label}</th>`; });
+    html += '</tr></thead><tbody>';
+    for (let i=0; i<n; i++) {
+        html += `<tr><th class="row-header" title="${order[i].label}">${order[i].label}</th>`;
+        for (let j=0; j<n; j++) {
+            const cell = mat[i][j];
+            let bg = 'transparent', txt = '';
+            if (cell.w > 0) {
+                if (colorMode === 'weight') bg = PALETTES.weight(cell.w, maxW);
+                else if (colorMode === 'binary') bg = 'var(--accent)';
+                else if (colorMode === 'type') bg = TYPE_COLORS[typeArr.indexOf(cell.type) % TYPE_COLORS.length] || 'var(--accent)';
+                if (showVals && cell.w > 0) txt = cell.w;
+            }
+            if (i === j) bg = cell.w > 0 ? bg : 'rgba(255,255,255,.03)';
+            html += `<td style="background:${bg}" data-r="${i}" data-c="${j}" data-w="${cell.w}" data-t="${cell.type||''}">${txt}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    document.getElementById('matrixContainer').innerHTML = html;
+
+    // Tooltip
+    const tip = document.getElementById('tip');
+    document.getElementById('matrixContainer').addEventListener('mouseover', e => {
+        const td = e.target.closest('td');
+        if (!td) { tip.style.display='none'; return; }
+        const r = +td.dataset.r, c = +td.dataset.c, w = +td.dataset.w, t = td.dataset.t;
+        tip.innerHTML = `<strong>${order[r].label} → ${order[c].label}</strong><br>Weight: ${w}${t ? '<br>Type: '+t : ''}`;
+        tip.style.display = 'block';
+    });
+    document.addEventListener('mousemove', e => {
+        tip.style.left = (e.clientX+12)+'px';
+        tip.style.top = (e.clientY+12)+'px';
+    });
+    document.getElementById('matrixContainer').addEventListener('mouseleave', () => tip.style.display='none');
+
+    nodeOrder = order;
+    matrix = mat;
+}
+
+function exportCSV() {
+    const order = nodeOrder;
+    let csv = ',' + order.map(n => '"'+n.label+'"').join(',') + '\n';
+    matrix.forEach((row,i) => {
+        csv += '"'+order[i].label+'",' + row.map(c => c.w).join(',') + '\n';
+    });
+    download(csv, 'adjacency_matrix.csv', 'text/csv');
+}
+
+function exportPNG() {
+    const el = document.querySelector('.adj-matrix');
+    if (!el) return;
+    // Simple: create canvas from table
+    const rows = matrix.length, cols = matrix[0]?.length || 0;
+    const cellSz = 20, pad = 100;
+    const canvas = document.createElement('canvas');
+    canvas.width = pad + cols * cellSz;
+    canvas.height = pad + rows * cellSz;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const colorMode = document.getElementById('colorMode').value;
+    const typeArr = [...edgeTypes];
+    let maxW = 0;
+    matrix.forEach(row => row.forEach(c => { if (c.w > maxW) maxW = c.w; }));
+
+    // Labels
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'right';
+    nodeOrder.forEach((nd,i) => {
+        ctx.fillText(nd.label.slice(0,10), pad-4, pad + i*cellSz + 14);
+    });
+    ctx.save();
+    nodeOrder.forEach((nd,j) => {
+        ctx.save();
+        ctx.translate(pad + j*cellSz + 14, pad - 4);
+        ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'left';
+        ctx.fillText(nd.label.slice(0,10), 0, 0);
+        ctx.restore();
+    });
+    ctx.restore();
+
+    // Cells
+    for (let i=0; i<rows; i++) {
+        for (let j=0; j<cols; j++) {
+            const c = matrix[i][j];
+            if (c.w > 0) {
+                if (colorMode === 'weight') {
+                    const t = maxW > 0 ? c.w/maxW : 1;
+                    ctx.fillStyle = `rgb(${Math.round(13+t*75)},${Math.round(27+t*140)},${Math.round(34+t*221)})`;
+                } else if (colorMode === 'type') {
+                    ctx.fillStyle = TYPE_COLORS[typeArr.indexOf(c.type)%TYPE_COLORS.length] || '#58a6ff';
+                } else {
+                    ctx.fillStyle = '#58a6ff';
+                }
+                ctx.fillRect(pad + j*cellSz, pad + i*cellSz, cellSz-1, cellSz-1);
+            }
+        }
+    }
+    const link = document.createElement('a');
+    link.download = 'adjacency_matrix.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+function download(content, filename, type) {
+    const blob = new Blob([content], {type});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+}
+</script>
+</body>
+</html>
