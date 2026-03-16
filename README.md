@@ -46,6 +46,7 @@ The tool was developed for research on **social network analysis** — specifica
 - **Centrality analysis** — Compute degree, betweenness (Brandes' algorithm), and closeness centrality for all nodes. Interactive panel with metric sorting, top-10 ranking with medals, network topology classification, and per-metric averages/maximums
 - **Small-world analysis** — Test whether a graph exhibits Watts-Strogatz small-world properties. Computes local/global clustering coefficients, average path length, sigma (σ) and omega (ω) coefficients, random/lattice baselines, and classifies networks as Small-World, Random-Like, Lattice-Like, or Disconnected
 - **Subgraph extraction** — Extract focused subgraphs using a fluent builder API. Filter by edge type, weight range, degree range, k-hop neighborhood, node whitelist, or time window. Export results as CSV edge lists with retention statistics and edge type breakdowns
+- **Random graph generator** — Interactive browser tool for generating graphs using 7 classic models (Erdős–Rényi, Barabási–Albert, Watts-Strogatz, Random Geometric, Complete, Star, Ring). Force-directed layout, degree/community coloring, drag-and-zoom, degree distribution chart, real-time stats (density, clustering, diameter, components), JSON/PNG export
 
 ## Architecture
 

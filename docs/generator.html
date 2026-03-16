@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Graph Generator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gen-container { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 60px); }
+        .gen-sidebar { width: 320px; flex-shrink: 0; overflow-y: auto; }
+        .gen-canvas-wrap { flex: 1; position: relative; background: #1a1a2e; border-radius: 12px; overflow: hidden; }
+        .gen-canvas-wrap canvas { width: 100%; height: 100%; }
+
+        .gen-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .gen-card h3 { margin: 0 0 12px; font-size: 14px; color: #495057; text-transform: uppercase; letter-spacing: 1px; }
+
+        .gen-field { margin-bottom: 10px; }
+        .gen-field label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+        .gen-field input[type=range] { width: 100%; }
+        .gen-field select, .gen-field input[type=number] { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+        .gen-val { float: right; font-size: 12px; color: #888; font-weight: normal; }
+
+        .gen-btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; margin: 4px 2px; }
+        .gen-btn-primary { background: #4361ee; color: #fff; }
+        .gen-btn-primary:hover { background: #3a56d4; }
+        .gen-btn-secondary { background: #e9ecef; color: #333; }
+        .gen-btn-secondary:hover { background: #dee2e6; }
+        .gen-btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .gen-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .gen-stat { background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #e9ecef; text-align: center; }
+        .gen-stat .val { font-size: 18px; font-weight: 700; color: #4361ee; }
+        .gen-stat .lbl { font-size: 11px; color: #888; }
+
+        .gen-model-desc { font-size: 12px; color: #666; line-height: 1.4; margin-top: 8px; padding: 8px; background: #fff; border-radius: 6px; }
+
+        .gen-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .gen-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+        .gen-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .gen-toolbar { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 10; }
+        .gen-info { position: absolute; bottom: 10px; left: 10px; color: #ffffff80; font-size: 11px; z-index: 10; }
+
+        @media (max-width: 800px) {
+            .gen-container { flex-direction: column; height: auto; }
+            .gen-sidebar { width: 100%; }
+            .gen-canvas-wrap { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link active"><span class="icon">🎲</span>Graph Generator</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content" style="padding:0; max-width: none;">
+    <div class="gen-container">
+        <div class="gen-sidebar">
+            <div class="gen-card">
+                <h3>🎲 Model</h3>
+                <div class="gen-field">
+                    <select id="model" onchange="updateModelUI()">
+                        <option value="erdos-renyi">Erdős–Rényi (G(n,p))</option>
+                        <option value="barabasi-albert">Barabási–Albert (Scale-Free)</option>
+                        <option value="watts-strogatz">Watts–Strogatz (Small-World)</option>
+                        <option value="random-geometric">Random Geometric</option>
+                        <option value="complete">Complete Graph (K_n)</option>
+                        <option value="star">Star Graph</option>
+                        <option value="ring">Ring Lattice</option>
+                    </select>
+                </div>
+                <div id="model-desc" class="gen-model-desc"></div>
+            </div>
+
+            <div class="gen-card">
+                <h3>⚙️ Parameters</h3>
+                <div class="gen-field">
+                    <label>Nodes <span class="gen-val" id="nodes-val">30</span></label>
+                    <input type="range" id="nodes" min="3" max="200" value="30" oninput="document.getElementById('nodes-val').textContent=this.value">
+                </div>
+                <div class="gen-field" id="param-p-wrap">
+                    <label>Edge Probability (p) <span class="gen-val" id="p-val">0.10</span></label>
+                    <input type="range" id="param-p" min="0" max="100" value="10" oninput="document.getElementById('p-val').textContent=(this.value/100).toFixed(2)">
+                </div>
+                <div class="gen-field" id="param-m-wrap" style="display:none">
+                    <label>Edges per new node (m) <span class="gen-val" id="m-val">2</span></label>
+                    <input type="range" id="param-m" min="1" max="10" value="2" oninput="document.getElementById('m-val').textContent=this.value">
+                </div>
+                <div class="gen-field" id="param-k-wrap" style="display:none">
+                    <label>Neighbors (k) <span class="gen-val" id="k-val">4</span></label>
+                    <input type="range" id="param-k" min="2" max="20" value="4" step="2" oninput="document.getElementById('k-val').textContent=this.value">
+                </div>
+                <div class="gen-field" id="param-beta-wrap" style="display:none">
+                    <label>Rewiring (β) <span class="gen-val" id="beta-val">0.30</span></label>
+                    <input type="range" id="param-beta" min="0" max="100" value="30" oninput="document.getElementById('beta-val').textContent=(this.value/100).toFixed(2)">
+                </div>
+                <div class="gen-field" id="param-r-wrap" style="display:none">
+                    <label>Radius (r) <span class="gen-val" id="r-val">0.25</span></label>
+                    <input type="range" id="param-r" min="5" max="80" value="25" oninput="document.getElementById('r-val').textContent=(this.value/100).toFixed(2)">
+                </div>
+                <div class="gen-field">
+                    <label>Seed</label>
+                    <input type="number" id="seed" value="42" style="width:80px">
+                </div>
+            </div>
+
+            <div class="gen-card">
+                <h3>🎨 Display</h3>
+                <div class="gen-field">
+                    <label>Node Color</label>
+                    <select id="color-mode">
+                        <option value="degree">By Degree</option>
+                        <option value="community">By Community (Greedy)</option>
+                        <option value="uniform">Uniform</option>
+                    </select>
+                </div>
+                <div class="gen-field">
+                    <label>
+                        <input type="checkbox" id="show-labels" checked> Show Labels
+                    </label>
+                </div>
+                <div class="gen-field">
+                    <label>
+                        <input type="checkbox" id="curved-edges"> Curved Edges
+                    </label>
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-bottom: 12px;">
+                <button class="gen-btn gen-btn-primary" onclick="generate()">🎲 Generate</button>
+                <button class="gen-btn gen-btn-secondary" onclick="exportJSON()">📥 JSON</button>
+                <button class="gen-btn gen-btn-secondary" onclick="exportPNG()">🖼️ PNG</button>
+            </div>
+
+            <div class="gen-card">
+                <h3>📊 Statistics</h3>
+                <div class="gen-stats" id="stats-grid">
+                    <div class="gen-stat"><div class="val" id="stat-nodes">—</div><div class="lbl">Nodes</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-edges">—</div><div class="lbl">Edges</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-density">—</div><div class="lbl">Density</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-avgdeg">—</div><div class="lbl">Avg Degree</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-components">—</div><div class="lbl">Components</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-clustering">—</div><div class="lbl">Clustering</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-diameter">—</div><div class="lbl">Diameter</div></div>
+                    <div class="gen-stat"><div class="val" id="stat-maxdeg">—</div><div class="lbl">Max Degree</div></div>
+                </div>
+            </div>
+
+            <div class="gen-card" id="degree-dist-card" style="display:none">
+                <h3>📈 Degree Distribution</h3>
+                <canvas id="degree-canvas" width="280" height="120"></canvas>
+            </div>
+        </div>
+
+        <div class="gen-canvas-wrap">
+            <canvas id="graph-canvas"></canvas>
+            <div class="gen-toolbar">
+                <button class="gen-btn gen-btn-secondary gen-btn-sm" onclick="resetView()">⟲ Reset</button>
+                <button class="gen-btn gen-btn-secondary gen-btn-sm" onclick="togglePhysics()" id="physics-btn">⏸ Physics</button>
+            </div>
+            <div class="gen-info" id="canvas-info">Generate a graph to begin</div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ========== SEEDED RNG ==========
+class SeededRNG {
+    constructor(seed) { this.state = seed % 2147483647; if (this.state <= 0) this.state += 2147483646; }
+    next() { this.state = this.state * 16807 % 2147483647; return (this.state - 1) / 2147483646; }
+}
+
+// ========== GRAPH MODELS ==========
+const MODELS = {
+    'erdos-renyi': {
+        desc: 'Each possible edge is included independently with probability p. Classic random graph model by Erdős and Rényi (1959). Exhibits phase transition at p = 1/n.',
+        generate(n, params, rng) {
+            const edges = [];
+            for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++)
+                if (rng.next() < params.p) edges.push([i, j]);
+            return edges;
+        }
+    },
+    'barabasi-albert': {
+        desc: 'Preferential attachment model — new nodes connect to m existing nodes with probability proportional to degree. Produces scale-free networks with power-law degree distributions.',
+        generate(n, params, rng) {
+            const m = params.m, edges = [], deg = new Array(n).fill(0);
+            // Start with m+1 complete
+            for (let i = 0; i <= m && i < n; i++)
+                for (let j = i+1; j <= m && j < n; j++) { edges.push([i,j]); deg[i]++; deg[j]++; }
+            for (let i = m+1; i < n; i++) {
+                const targets = new Set();
+                let totalDeg = deg.reduce((a,b) => a+b, 0) || 1;
+                while (targets.size < m) {
+                    let r = rng.next() * totalDeg, cum = 0;
+                    for (let j = 0; j < i; j++) { cum += deg[j] || 0.1; if (cum >= r) { targets.add(j); break; } }
+                }
+                for (const t of targets) { edges.push([i, t]); deg[i]++; deg[t]++; }
+            }
+            return edges;
+        }
+    },
+    'watts-strogatz': {
+        desc: 'Small-world model — start with a ring lattice where each node connects to k nearest neighbors, then rewire each edge with probability β. High clustering with short path lengths.',
+        generate(n, params, rng) {
+            const k = params.k, beta = params.beta, edges = [];
+            const edgeSet = new Set();
+            const key = (a,b) => Math.min(a,b)+','+Math.max(a,b);
+            // Ring lattice
+            for (let i = 0; i < n; i++)
+                for (let j = 1; j <= k/2; j++) { const t = (i+j)%n; edgeSet.add(key(i,t)); }
+            // Rewire
+            for (const e of [...edgeSet]) {
+                if (rng.next() < beta) {
+                    const [a] = e.split(',').map(Number);
+                    let newT;
+                    for (let tries = 0; tries < 100; tries++) {
+                        newT = Math.floor(rng.next() * n);
+                        if (newT !== a && !edgeSet.has(key(a, newT))) break;
+                    }
+                    if (newT !== undefined && newT !== a) { edgeSet.delete(e); edgeSet.add(key(a, newT)); }
+                }
+            }
+            for (const e of edgeSet) edges.push(e.split(',').map(Number));
+            return edges;
+        }
+    },
+    'random-geometric': {
+        desc: 'Nodes placed uniformly at random in a unit square. Edges connect nodes within distance r. Models spatial networks like wireless sensor networks.',
+        generate(n, params, rng) {
+            const r = params.r, edges = [], positions = [];
+            for (let i = 0; i < n; i++) positions.push([rng.next(), rng.next()]);
+            for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) {
+                const dx = positions[i][0]-positions[j][0], dy = positions[i][1]-positions[j][1];
+                if (Math.sqrt(dx*dx+dy*dy) <= r) edges.push([i,j]);
+            }
+            return edges;
+        }
+    },
+    'complete': {
+        desc: 'Every pair of nodes is connected. K_n has n(n−1)/2 edges. Maximum density.',
+        generate(n) { const e=[]; for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) e.push([i,j]); return e; }
+    },
+    'star': {
+        desc: 'One central hub connected to all other nodes. Minimum diameter (2), maximum centrality inequality.',
+        generate(n) { const e=[]; for(let i=1;i<n;i++) e.push([0,i]); return e; }
+    },
+    'ring': {
+        desc: 'Each node connected to its two immediate neighbors in a circle. Diameter = ⌊n/2⌋.',
+        generate(n) { const e=[]; for(let i=0;i<n;i++) e.push([i,(i+1)%n]); return e; }
+    }
+};
+
+const MODEL_DESCS = {};
+for (const [k,v] of Object.entries(MODELS)) MODEL_DESCS[k] = v.desc;
+
+// ========== STATE ==========
+let graph = { nodes: [], edges: [] };
+let physics = true;
+let dragging = null, dragOffset = {x:0,y:0};
+let camX = 0, camY = 0, camZoom = 1;
+let panStart = null;
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+const COLORS = ['#4361ee','#f72585','#4cc9f0','#7209b7','#f77f00','#06d6a0','#ef476f','#118ab2','#ffd166','#073b4c','#8338ec','#3a86a8'];
+
+function updateModelUI() {
+    const m = document.getElementById('model').value;
+    document.getElementById('model-desc').textContent = MODEL_DESCS[m] || '';
+    document.getElementById('param-p-wrap').style.display = m === 'erdos-renyi' ? '' : 'none';
+    document.getElementById('param-m-wrap').style.display = m === 'barabasi-albert' ? '' : 'none';
+    document.getElementById('param-k-wrap').style.display = m === 'watts-strogatz' ? '' : 'none';
+    document.getElementById('param-beta-wrap').style.display = m === 'watts-strogatz' ? '' : 'none';
+    document.getElementById('param-r-wrap').style.display = m === 'random-geometric' ? '' : 'none';
+}
+updateModelUI();
+
+// ========== COMMUNITY DETECTION (GREEDY MODULARITY) ==========
+function detectCommunities(n, edges) {
+    const adj = Array.from({length:n}, ()=>[]);
+    for (const [a,b] of edges) { adj[a].push(b); adj[b].push(a); }
+    // Simple label propagation
+    const labels = Array.from({length:n}, (_,i) => i);
+    for (let iter = 0; iter < 10; iter++) {
+        let changed = false;
+        const order = Array.from({length:n}, (_,i)=>i).sort(()=>Math.random()-0.5);
+        for (const i of order) {
+            const counts = {};
+            for (const nb of adj[i]) counts[labels[nb]] = (counts[labels[nb]]||0) + 1;
+            let best = labels[i], bestC = 0;
+            for (const [l,c] of Object.entries(counts)) if (c > bestC) { bestC = c; best = +l; }
+            if (best !== labels[i]) { labels[i] = best; changed = true; }
+        }
+        if (!changed) break;
+    }
+    // Remap to 0-based
+    const uniq = [...new Set(labels)];
+    const map = {}; uniq.forEach((l,i) => map[l] = i);
+    return labels.map(l => map[l]);
+}
+
+// ========== GRAPH STATS ==========
+function computeStats(n, edges) {
+    const deg = new Array(n).fill(0);
+    const adj = Array.from({length:n}, ()=>new Set());
+    for (const [a,b] of edges) { deg[a]++; deg[b]++; adj[a].add(b); adj[b].add(a); }
+    const maxPossible = n*(n-1)/2;
+    const density = maxPossible > 0 ? edges.length / maxPossible : 0;
+    const avgDeg = n > 0 ? deg.reduce((a,b)=>a+b,0)/n : 0;
+    const maxDeg = Math.max(0, ...deg);
+
+    // Components via BFS
+    const visited = new Array(n).fill(false);
+    let components = 0;
+    const compId = new Array(n).fill(-1);
+    const compSizes = [];
+    for (let i = 0; i < n; i++) {
+        if (visited[i]) continue;
+        components++;
+        const queue = [i]; visited[i] = true; let size = 0;
+        while (queue.length) {
+            const u = queue.shift(); compId[u] = components-1; size++;
+            for (const v of adj[u]) if (!visited[v]) { visited[v] = true; queue.push(v); }
+        }
+        compSizes.push(size);
+    }
+
+    // Clustering coefficient
+    let triCount = 0, triPossible = 0;
+    for (let i = 0; i < n; i++) {
+        const nb = [...adj[i]]; const k = nb.length;
+        if (k < 2) continue;
+        triPossible += k*(k-1)/2;
+        for (let a = 0; a < k; a++) for (let b = a+1; b < k; b++)
+            if (adj[nb[a]].has(nb[b])) triCount++;
+    }
+    const clustering = triPossible > 0 ? triCount / triPossible : 0;
+
+    // Diameter (BFS from a few nodes for speed)
+    let diameter = 0;
+    const sampleNodes = n <= 50 ? Array.from({length:n},(_,i)=>i) : Array.from({length:Math.min(20,n)},(_,i)=>Math.floor(i*n/20));
+    for (const s of sampleNodes) {
+        const dist = new Array(n).fill(-1); dist[s] = 0;
+        const q = [s];
+        while (q.length) { const u = q.shift(); for (const v of adj[u]) if (dist[v]===-1) { dist[v]=dist[u]+1; q.push(v); if(dist[v]>diameter)diameter=dist[v]; } }
+    }
+
+    return { density, avgDeg, maxDeg, components, clustering, diameter, deg };
+}
+
+// ========== GENERATE ==========
+function generate() {
+    const model = document.getElementById('model').value;
+    const n = +document.getElementById('nodes').value;
+    const seed = +document.getElementById('seed').value;
+    const rng = new SeededRNG(seed);
+    const params = {
+        p: +document.getElementById('param-p').value / 100,
+        m: +document.getElementById('param-m').value,
+        k: +document.getElementById('param-k').value,
+        beta: +document.getElementById('param-beta').value / 100,
+        r: +document.getElementById('param-r').value / 100
+    };
+
+    const edges = MODELS[model].generate(n, params, rng);
+
+    // Create nodes with initial positions
+    const W = canvas.width, H = canvas.height;
+    const nodes = [];
+    for (let i = 0; i < n; i++) {
+        const angle = (2*Math.PI*i)/n;
+        const rad = Math.min(W,H) * 0.35;
+        nodes.push({ id: i, x: W/2 + rad*Math.cos(angle), y: H/2 + rad*Math.sin(angle), vx:0, vy:0 });
+    }
+
+    // Color
+    const colorMode = document.getElementById('color-mode').value;
+    const stats = computeStats(n, edges);
+    let nodeColors;
+    if (colorMode === 'community') {
+        const comm = detectCommunities(n, edges);
+        nodeColors = comm.map(c => COLORS[c % COLORS.length]);
+    } else if (colorMode === 'degree') {
+        const md = stats.maxDeg || 1;
+        nodeColors = stats.deg.map(d => {
+            const t = d / md;
+            const r = Math.round(67 + t*180), g = Math.round(97 - t*60), b = Math.round(238 - t*100);
+            return `rgb(${r},${g},${b})`;
+        });
+    } else {
+        nodeColors = new Array(n).fill('#4361ee');
+    }
+
+    graph = { nodes, edges, nodeColors, n };
+
+    // Stats
+    document.getElementById('stat-nodes').textContent = n;
+    document.getElementById('stat-edges').textContent = edges.length;
+    document.getElementById('stat-density').textContent = stats.density.toFixed(3);
+    document.getElementById('stat-avgdeg').textContent = stats.avgDeg.toFixed(1);
+    document.getElementById('stat-components').textContent = stats.components;
+    document.getElementById('stat-clustering').textContent = stats.clustering.toFixed(3);
+    document.getElementById('stat-diameter').textContent = stats.diameter;
+    document.getElementById('stat-maxdeg').textContent = stats.maxDeg;
+
+    // Degree distribution chart
+    drawDegreeDistribution(stats.deg);
+
+    document.getElementById('canvas-info').textContent = `${MODELS[model].desc.split('.')[0]} | ${n} nodes, ${edges.length} edges`;
+
+    camX = 0; camY = 0; camZoom = 1;
+    physics = true;
+    document.getElementById('physics-btn').textContent = '⏸ Physics';
+    requestAnimationFrame(animate);
+}
+
+function drawDegreeDistribution(deg) {
+    const card = document.getElementById('degree-dist-card');
+    card.style.display = '';
+    const c = document.getElementById('degree-canvas');
+    const cx = c.getContext('2d');
+    cx.clearRect(0,0,c.width,c.height);
+
+    const freq = {};
+    for (const d of deg) freq[d] = (freq[d]||0)+1;
+    const keys = Object.keys(freq).map(Number).sort((a,b)=>a-b);
+    if (!keys.length) return;
+    const maxF = Math.max(...keys.map(k=>freq[k]));
+    const barW = Math.max(2, Math.min(20, (c.width-20) / keys.length - 1));
+    const h = c.height - 20;
+
+    keys.forEach((k, i) => {
+        const bh = (freq[k]/maxF) * h;
+        cx.fillStyle = '#4361ee';
+        cx.fillRect(10 + i*(barW+1), h - bh + 10, barW, bh);
+    });
+    cx.fillStyle = '#888'; cx.font = '9px sans-serif';
+    cx.fillText('degree →', c.width-50, c.height-2);
+}
+
+// ========== FORCE-DIRECTED LAYOUT ==========
+let animId = null;
+function animate() {
+    if (!graph.nodes.length) return;
+    resizeCanvas();
+    if (physics) simulateForces();
+    draw();
+    animId = requestAnimationFrame(animate);
+}
+
+function simulateForces() {
+    const nodes = graph.nodes, edges = graph.edges;
+    const n = nodes.length;
+    const W = canvas.width, H = canvas.height;
+    const k = Math.sqrt((W*H)/n) * 0.5;
+
+    // Repulsion
+    for (let i = 0; i < n; i++) {
+        for (let j = i+1; j < n; j++) {
+            let dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+            let dist = Math.sqrt(dx*dx+dy*dy) || 1;
+            let force = k*k / dist * 0.5;
+            let fx = dx/dist*force, fy = dy/dist*force;
+            nodes[i].vx += fx; nodes[i].vy += fy;
+            nodes[j].vx -= fx; nodes[j].vy -= fy;
+        }
+    }
+    // Attraction
+    for (const [a,b] of edges) {
+        let dx = nodes[b].x - nodes[a].x, dy = nodes[b].y - nodes[a].y;
+        let dist = Math.sqrt(dx*dx+dy*dy) || 1;
+        let force = dist / k * 0.3;
+        let fx = dx/dist*force, fy = dy/dist*force;
+        nodes[a].vx += fx; nodes[a].vy += fy;
+        nodes[b].vx -= fx; nodes[b].vy -= fy;
+    }
+    // Center gravity
+    const cx = W/2, cy = H/2;
+    for (const nd of nodes) {
+        nd.vx += (cx - nd.x) * 0.001;
+        nd.vy += (cy - nd.y) * 0.001;
+        nd.vx *= 0.9; nd.vy *= 0.9;
+        nd.x += nd.vx; nd.y += nd.vy;
+    }
+}
+
+function resizeCanvas() {
+    const wrap = canvas.parentElement;
+    if (canvas.width !== wrap.clientWidth || canvas.height !== wrap.clientHeight) {
+        canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight;
+    }
+}
+
+function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    ctx.translate(W/2 + camX, H/2 + camY);
+    ctx.scale(camZoom, camZoom);
+    ctx.translate(-W/2, -H/2);
+
+    const showLabels = document.getElementById('show-labels').checked;
+    const curved = document.getElementById('curved-edges').checked;
+
+    // Edges
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    for (const [a,b] of graph.edges) {
+        const na = graph.nodes[a], nb = graph.nodes[b];
+        ctx.beginPath();
+        if (curved) {
+            const mx = (na.x+nb.x)/2 + (na.y-nb.y)*0.15;
+            const my = (na.y+nb.y)/2 + (nb.x-na.x)*0.15;
+            ctx.moveTo(na.x, na.y); ctx.quadraticCurveTo(mx, my, nb.x, nb.y);
+        } else {
+            ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y);
+        }
+        ctx.stroke();
+    }
+
+    // Nodes
+    const n = graph.nodes.length;
+    const nodeR = Math.max(3, Math.min(8, 200/Math.sqrt(n)));
+    for (let i = 0; i < n; i++) {
+        const nd = graph.nodes[i];
+        ctx.beginPath();
+        ctx.arc(nd.x, nd.y, nodeR, 0, Math.PI*2);
+        ctx.fillStyle = graph.nodeColors[i];
+        ctx.fill();
+        if (showLabels && n <= 80) {
+            ctx.fillStyle = '#ffffffcc';
+            ctx.font = `${Math.max(8, 11-n/20)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(i, nd.x, nd.y - nodeR - 3);
+        }
+    }
+
+    ctx.restore();
+}
+
+// ========== INTERACTION ==========
+canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - canvas.width/2 - camX)/camZoom + canvas.width/2;
+    const my = (e.clientY - rect.top - canvas.height/2 - camY)/camZoom + canvas.height/2;
+    // Check nodes
+    for (const nd of graph.nodes) {
+        if (Math.hypot(nd.x-mx, nd.y-my) < 12) {
+            dragging = nd; dragOffset = {x: nd.x-mx, y: nd.y-my};
+            return;
+        }
+    }
+    panStart = {x: e.clientX - camX, y: e.clientY - camY};
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (dragging) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left - canvas.width/2 - camX)/camZoom + canvas.width/2;
+        const my = (e.clientY - rect.top - canvas.height/2 - camY)/camZoom + canvas.height/2;
+        dragging.x = mx + dragOffset.x; dragging.y = my + dragOffset.y;
+        dragging.vx = 0; dragging.vy = 0;
+    } else if (panStart) {
+        camX = e.clientX - panStart.x; camY = e.clientY - panStart.y;
+    }
+});
+
+canvas.addEventListener('mouseup', () => { dragging = null; panStart = null; });
+canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    camZoom *= e.deltaY > 0 ? 0.9 : 1.1;
+    camZoom = Math.max(0.1, Math.min(10, camZoom));
+}, {passive: false});
+
+function resetView() { camX = 0; camY = 0; camZoom = 1; }
+function togglePhysics() {
+    physics = !physics;
+    document.getElementById('physics-btn').textContent = physics ? '⏸ Physics' : '▶ Physics';
+}
+
+// ========== EXPORT ==========
+function exportJSON() {
+    if (!graph.nodes.length) return;
+    const data = {
+        nodes: graph.nodes.map((nd,i) => ({id: i, x: nd.x, y: nd.y})),
+        edges: graph.edges.map(([s,t]) => ({source: s, target: t})),
+        metadata: {
+            model: document.getElementById('model').value,
+            nodeCount: graph.n,
+            edgeCount: graph.edges.length,
+            seed: +document.getElementById('seed').value,
+            generated: new Date().toISOString()
+        }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `graph-${data.metadata.model}-n${graph.n}.json`; a.click();
+}
+
+function exportPNG() {
+    const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
+    a.download = `graph-${document.getElementById('model').value}-n${graph.n}.png`; a.click();
+}
+
+// Auto-generate on load
+generate();
+</script>
+
+</body>
+</html>
