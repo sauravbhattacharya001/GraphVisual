@@ -9,6 +9,13 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
+ * Detects face-to-face meetings between device pairs from WiFi co-location data.
+ *
+ * <p>Scans time-ordered trace events for pairs of IMEIs that share the same
+ * access point within a configurable time window ({@code WINDOW_SIZE} minutes).
+ * When a gap exceeds the window, the current meeting ends and a new one begins.
+ * Detected meetings are written to the {@code meeting} database table with
+ * start/end times and participant identifiers.</p>
  *
  * @author zalenix
  */

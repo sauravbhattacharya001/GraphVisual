@@ -4,6 +4,13 @@ package app;
 import java.sql.*;
 
 /**
+ * Maps Bluetooth node identifiers to IMEI device identifiers in trace data.
+ *
+ * <p>Processes the {@code event_3} table to resolve sender/source node IDs
+ * to their corresponding IMEI numbers using a two-pass approach: first
+ * matching by {@code sndrnode}, then by {@code srcnode} for records where
+ * the sender node is empty. Only considers records with RSSI above a
+ * configurable threshold to filter out noise from distant devices.</p>
  *
  * @author zalenix
  */

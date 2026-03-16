@@ -5,6 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
+ * Resolves meeting locations by cross-referencing WiFi access point data.
+ *
+ * <p>For each meeting record in the database, queries the trace/event tables
+ * to find the strongest common access point shared by the two participants
+ * during the meeting's time window. If no common AP exists, falls back to
+ * the strongest AP observed by either participant individually.</p>
  *
  * @author user
  */
