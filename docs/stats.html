@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Statistics Dashboard - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard { padding: 24px; }
+        .toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .toolbar input[type="file"] { display: none; }
+        .toolbar label, .toolbar button { background: var(--border); color: var(--text); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+        .toolbar label:hover, .toolbar button:hover { background: var(--surface-hover); }
+        .toolbar .title { font-weight: 600; margin-right: auto; font-size: 1.1em; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+        .summary-card .value { font-size: 2em; font-weight: 700; color: var(--accent); }
+        .summary-card .label { font-size: 0.82em; color: var(--text-muted); margin-top: 4px; }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+        .chart-card h3 { color: var(--accent); font-size: 0.95em; margin-bottom: 12px; }
+        .chart-card canvas { width: 100%; height: 240px; }
+
+        .table-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 24px; }
+        .table-section h3 { color: var(--accent); font-size: 0.95em; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        .stats-table th, .stats-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+        .stats-table th { color: var(--text-muted); font-weight: 600; }
+        .stats-table tr:hover { background: var(--surface-hover); }
+        .stats-table .num { text-align: right; font-family: 'SF Mono', monospace; color: var(--accent); }
+        .stats-table .bar-cell { width: 120px; }
+        .stats-table .bar-bg { background: var(--border); border-radius: 3px; height: 8px; }
+        .stats-table .bar-fill { background: var(--accent); border-radius: 3px; height: 8px; }
+
+        .components-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .comp-badge { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 0.82em; }
+        .comp-badge .comp-size { color: var(--accent); font-weight: 600; }
+
+        .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+        .empty-state h2 { color: var(--text); margin-bottom: 12px; }
+
+        .export-btn { background: var(--green) !important; color: #000 !important; font-weight: 600; }
+
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link active"><span class="icon">📈</span>Statistics</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Links</div>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual" class="sidebar-link"><span class="icon">💻</span>GitHub</a>
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual/releases" class="sidebar-link"><span class="icon">📦</span>Releases</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="toolbar">
+        <span class="title">📈 Graph Statistics Dashboard</span>
+        <label for="file-input">📂 Load JSON</label>
+        <input type="file" id="file-input" accept=".json">
+        <button id="btn-sample">🎲 Sample Graph</button>
+        <button id="btn-export" class="export-btn" style="display:none">📥 Export Report</button>
+    </div>
+
+    <div id="empty-state" class="empty-state">
+        <h2>Graph Statistics Dashboard</h2>
+        <p>Load a JSON graph or generate a sample to see comprehensive network analytics.</p>
+        <p style="font-size:0.85em">Expected format: <code>{"nodes": [{"id": "A", ...}], "edges": [{"source": "A", "target": "B", ...}]}</code></p>
+    </div>
+
+    <div id="dashboard" class="dashboard" style="display:none">
+        <div class="summary-grid" id="summary-cards"></div>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Degree Distribution</h3>
+                <canvas id="chart-degree"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Top Nodes by Betweenness Centrality</h3>
+                <canvas id="chart-centrality"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Clustering Coefficient Distribution</h3>
+                <canvas id="chart-clustering"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Edge Type Breakdown</h3>
+                <canvas id="chart-edge-types"></canvas>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <h3>Top 20 Nodes by Centrality</h3>
+            <table class="stats-table" id="centrality-table">
+                <thead><tr><th>#</th><th>Node</th><th>Degree</th><th>Betweenness</th><th>Closeness</th><th>Clustering</th><th></th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="table-section">
+            <h3>Connected Components</h3>
+            <div class="components-list" id="components-list"></div>
+        </div>
+
+        <div class="table-section">
+            <h3>Degree Statistics</h3>
+            <div id="degree-stats"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    let graphData = null;
+    let stats = null;
+
+    // ── Graph parsing ──────────────────────────────────────────
+    function parseGraph(json) {
+        const nodes = new Map();
+        const adj = new Map();
+        (json.nodes || []).forEach(n => {
+            const id = String(n.id || n.name || n.label);
+            nodes.set(id, n);
+            adj.set(id, []);
+        });
+        const edges = [];
+        (json.edges || json.links || []).forEach(e => {
+            const s = String(e.source || e.from);
+            const t = String(e.target || e.to);
+            if (!adj.has(s)) { adj.set(s, []); nodes.set(s, {id: s}); }
+            if (!adj.has(t)) { adj.set(t, []); nodes.set(t, {id: t}); }
+            adj.get(s).push({target: t, edge: e});
+            adj.get(t).push({target: s, edge: e});
+            edges.push(e);
+        });
+        return {nodes, adj, edges};
+    }
+
+    // ── Compute stats ──────────────────────────────────────────
+    function computeStats(g) {
+        const nodeIds = Array.from(g.nodes.keys());
+        const n = nodeIds.length;
+        const m = g.edges.length;
+
+        // Degree
+        const degrees = {};
+        nodeIds.forEach(id => { degrees[id] = g.adj.get(id).length; });
+        const degValues = Object.values(degrees);
+        const avgDeg = degValues.reduce((a,b) => a+b, 0) / (n || 1);
+        const maxDeg = Math.max(...degValues, 0);
+        const minDeg = Math.min(...degValues, 0);
+        const degVariance = degValues.reduce((s,d) => s + (d - avgDeg) ** 2, 0) / (n || 1);
+
+        // Density
+        const density = n > 1 ? (2 * m) / (n * (n - 1)) : 0;
+
+        // Connected components (BFS)
+        const visited = new Set();
+        const components = [];
+        nodeIds.forEach(start => {
+            if (visited.has(start)) return;
+            const comp = [];
+            const queue = [start];
+            visited.add(start);
+            while (queue.length) {
+                const cur = queue.shift();
+                comp.push(cur);
+                g.adj.get(cur).forEach(({target}) => {
+                    if (!visited.has(target)) { visited.add(target); queue.push(target); }
+                });
+            }
+            components.push(comp);
+        });
+        components.sort((a, b) => b.length - a.length);
+
+        // Clustering coefficient
+        const clustering = {};
+        nodeIds.forEach(id => {
+            const neighbors = g.adj.get(id).map(e => e.target);
+            const k = neighbors.length;
+            if (k < 2) { clustering[id] = 0; return; }
+            let triangles = 0;
+            const nset = new Set(neighbors);
+            for (let i = 0; i < neighbors.length; i++) {
+                for (let j = i + 1; j < neighbors.length; j++) {
+                    if (g.adj.get(neighbors[i]).some(e => e.target === neighbors[j])) triangles++;
+                }
+            }
+            clustering[id] = (2 * triangles) / (k * (k - 1));
+        });
+        const avgClustering = Object.values(clustering).reduce((a,b) => a+b, 0) / (n || 1);
+
+        // Betweenness centrality (Brandes algorithm, limit to 200 nodes for perf)
+        const betweenness = {};
+        nodeIds.forEach(id => { betweenness[id] = 0; });
+        const sampleNodes = n <= 200 ? nodeIds : nodeIds.slice(0, 200);
+        sampleNodes.forEach(s => {
+            const stack = [];
+            const pred = {}; nodeIds.forEach(v => { pred[v] = []; });
+            const sigma = {}; nodeIds.forEach(v => { sigma[v] = 0; }); sigma[s] = 1;
+            const dist = {}; nodeIds.forEach(v => { dist[v] = -1; }); dist[s] = 0;
+            const queue = [s];
+            while (queue.length) {
+                const v = queue.shift();
+                stack.push(v);
+                g.adj.get(v).forEach(({target: w}) => {
+                    if (dist[w] < 0) { dist[w] = dist[v] + 1; queue.push(w); }
+                    if (dist[w] === dist[v] + 1) { sigma[w] += sigma[v]; pred[w].push(v); }
+                });
+            }
+            const delta = {}; nodeIds.forEach(v => { delta[v] = 0; });
+            while (stack.length) {
+                const w = stack.pop();
+                pred[w].forEach(v => { delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]); });
+                if (w !== s) betweenness[w] += delta[w];
+            }
+        });
+        // Normalize
+        const bcScale = n > 2 ? 2 / ((n - 1) * (n - 2)) : 1;
+        if (n > 200) { const ratio = n / 200; nodeIds.forEach(id => { betweenness[id] *= ratio; }); }
+        nodeIds.forEach(id => { betweenness[id] *= bcScale; });
+
+        // Closeness centrality
+        const closeness = {};
+        nodeIds.forEach(s => {
+            const dist2 = {}; nodeIds.forEach(v => { dist2[v] = -1; }); dist2[s] = 0;
+            const q = [s]; let totalDist = 0; let reachable = 0;
+            while (q.length) {
+                const v = q.shift();
+                g.adj.get(v).forEach(({target: w}) => {
+                    if (dist2[w] < 0) { dist2[w] = dist2[v] + 1; totalDist += dist2[w]; reachable++; q.push(w); }
+                });
+            }
+            closeness[s] = reachable > 0 ? reachable / totalDist : 0;
+        });
+
+        // Edge types
+        const edgeTypes = {};
+        g.edges.forEach(e => {
+            const t = e.type || e.label || e.relationship || 'default';
+            edgeTypes[t] = (edgeTypes[t] || 0) + 1;
+        });
+
+        // Degree distribution histogram
+        const degHist = {};
+        degValues.forEach(d => { degHist[d] = (degHist[d] || 0) + 1; });
+
+        return {
+            nodeCount: n, edgeCount: m, density, avgDeg, maxDeg, minDeg, degVariance,
+            degrees, degHist, components, clustering, avgClustering,
+            betweenness, closeness, edgeTypes
+        };
+    }
+
+    // ── Drawing helpers ────────────────────────────────────────
+    const COLORS = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#79c0ff','#f0883e','#a5d6ff','#56d364','#db6d28'];
+
+    function drawBarChart(canvas, labels, values, color) {
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = {top: 10, right: 10, bottom: 30, left: 45};
+        const plotW = w - pad.left - pad.right;
+        const plotH = h - pad.top - pad.bottom;
+        const maxVal = Math.max(...values, 1);
+
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, w, h);
+
+        // Grid
+        ctx.strokeStyle = '#30363d';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i <= 4; i++) {
+            const y = pad.top + plotH - (i / 4) * plotH;
+            ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+            ctx.fillStyle = '#8b949e'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+            ctx.fillText(Math.round(maxVal * i / 4), pad.left - 5, y + 3);
+        }
+
+        // Bars
+        const barW = Math.max(2, (plotW / labels.length) - 2);
+        const gap = (plotW - barW * labels.length) / (labels.length + 1);
+        labels.forEach((lbl, i) => {
+            const x = pad.left + gap + i * (barW + gap);
+            const barH = (values[i] / maxVal) * plotH;
+            ctx.fillStyle = color || COLORS[i % COLORS.length];
+            ctx.fillRect(x, pad.top + plotH - barH, barW, barH);
+            if (labels.length <= 30) {
+                ctx.fillStyle = '#8b949e'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+                ctx.save(); ctx.translate(x + barW/2, h - 4); ctx.fillText(String(lbl), 0, 0); ctx.restore();
+            }
+        });
+    }
+
+    function drawHBarChart(canvas, labels, values, colors) {
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const pad = {top: 10, right: 10, bottom: 10, left: 100};
+        const plotW = w - pad.left - pad.right;
+        const plotH = h - pad.top - pad.bottom;
+        const maxVal = Math.max(...values, 0.001);
+        const barH = Math.min(20, (plotH / labels.length) - 4);
+        const gap = (plotH - barH * labels.length) / (labels.length + 1);
+
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, w, h);
+
+        labels.forEach((lbl, i) => {
+            const y = pad.top + gap + i * (barH + gap);
+            const bw = (values[i] / maxVal) * plotW;
+            ctx.fillStyle = (colors && colors[i]) || COLORS[i % COLORS.length];
+            ctx.fillRect(pad.left, y, bw, barH);
+            ctx.fillStyle = '#8b949e'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+            ctx.fillText(lbl.length > 14 ? lbl.slice(0,12)+'…' : lbl, pad.left - 5, y + barH/2 + 3);
+            ctx.textAlign = 'left'; ctx.fillStyle = '#e6edf3';
+            ctx.fillText(values[i].toFixed(4), pad.left + bw + 4, y + barH/2 + 3);
+        });
+    }
+
+    function drawPieChart(canvas, labels, values, colors) {
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        const w = rect.width, h = rect.height;
+        const cx = w * 0.4, cy = h / 2, r = Math.min(cx, cy) - 20;
+        const total = values.reduce((a,b) => a+b, 0) || 1;
+
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, w, h);
+
+        let angle = -Math.PI / 2;
+        labels.forEach((lbl, i) => {
+            const slice = (values[i] / total) * 2 * Math.PI;
+            ctx.beginPath(); ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, angle, angle + slice);
+            ctx.closePath();
+            ctx.fillStyle = (colors && colors[i]) || COLORS[i % COLORS.length];
+            ctx.fill();
+            // Label
+            if (slice > 0.15) {
+                const mid = angle + slice / 2;
+                const lx = cx + (r * 0.65) * Math.cos(mid);
+                const ly = cy + (r * 0.65) * Math.sin(mid);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(Math.round(values[i]/total*100)+'%', lx, ly);
+            }
+            angle += slice;
+        });
+
+        // Legend
+        const lx = w * 0.72, ly0 = 20;
+        labels.forEach((lbl, i) => {
+            const ly = ly0 + i * 18;
+            ctx.fillStyle = (colors && colors[i]) || COLORS[i % COLORS.length];
+            ctx.fillRect(lx, ly, 10, 10);
+            ctx.fillStyle = '#8b949e'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+            ctx.fillText(`${lbl} (${values[i]})`, lx + 14, ly + 9);
+        });
+    }
+
+    // ── Render dashboard ───────────────────────────────────────
+    function render(g, s) {
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('btn-export').style.display = '';
+
+        // Summary cards
+        const cards = [
+            {value: s.nodeCount, label: 'Nodes'},
+            {value: s.edgeCount, label: 'Edges'},
+            {value: (s.density * 100).toFixed(2) + '%', label: 'Density'},
+            {value: s.avgDeg.toFixed(2), label: 'Avg Degree'},
+            {value: s.maxDeg, label: 'Max Degree'},
+            {value: s.avgClustering.toFixed(4), label: 'Avg Clustering'},
+            {value: s.components.length, label: 'Components'},
+            {value: Math.sqrt(s.degVariance).toFixed(2), label: 'Degree Std Dev'},
+        ];
+        const summaryEl = document.getElementById('summary-cards');
+        summaryEl.innerHTML = cards.map(c => `<div class="summary-card"><div class="value">${c.value}</div><div class="label">${c.label}</div></div>`).join('');
+
+        // Degree distribution chart
+        const degKeys = Object.keys(s.degHist).map(Number).sort((a,b) => a-b);
+        drawBarChart(document.getElementById('chart-degree'), degKeys, degKeys.map(k => s.degHist[k]), '#58a6ff');
+
+        // Top betweenness centrality
+        const topBC = Object.entries(s.betweenness).sort((a,b) => b[1]-a[1]).slice(0, 15);
+        drawHBarChart(document.getElementById('chart-centrality'), topBC.map(e=>e[0]), topBC.map(e=>e[1]));
+
+        // Clustering coefficient distribution
+        const ccVals = Object.values(s.clustering);
+        const ccBins = 10;
+        const ccHist = new Array(ccBins).fill(0);
+        ccVals.forEach(v => { const bin = Math.min(ccBins-1, Math.floor(v * ccBins)); ccHist[bin]++; });
+        const ccLabels = Array.from({length: ccBins}, (_, i) => (i/ccBins).toFixed(1));
+        drawBarChart(document.getElementById('chart-clustering'), ccLabels, ccHist, '#3fb950');
+
+        // Edge types
+        const etEntries = Object.entries(s.edgeTypes).sort((a,b) => b[1]-a[1]);
+        drawPieChart(document.getElementById('chart-edge-types'), etEntries.map(e=>e[0]), etEntries.map(e=>e[1]));
+
+        // Centrality table
+        const allNodes = Array.from(g.nodes.keys());
+        allNodes.sort((a,b) => (s.betweenness[b]||0) - (s.betweenness[a]||0));
+        const top20 = allNodes.slice(0, 20);
+        const maxBC = Math.max(...top20.map(id => s.betweenness[id] || 0), 0.001);
+        const tbody = document.querySelector('#centrality-table tbody');
+        tbody.innerHTML = top20.map((id, i) => {
+            const bc = s.betweenness[id] || 0;
+            const pct = (bc / maxBC * 100).toFixed(0);
+            return `<tr>
+                <td>${i+1}</td><td>${esc(id)}</td>
+                <td class="num">${s.degrees[id]}</td>
+                <td class="num">${bc.toFixed(4)}</td>
+                <td class="num">${(s.closeness[id]||0).toFixed(4)}</td>
+                <td class="num">${(s.clustering[id]||0).toFixed(4)}</td>
+                <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></td>
+            </tr>`;
+        }).join('');
+
+        // Components
+        const compEl = document.getElementById('components-list');
+        compEl.innerHTML = s.components.map((c, i) =>
+            `<span class="comp-badge">Component ${i+1}: <span class="comp-size">${c.length} node${c.length!==1?'s':''}</span></span>`
+        ).join('');
+
+        // Degree stats
+        const sorted = Object.values(s.degrees).sort((a,b) => a-b);
+        const median = sorted.length % 2 === 0 ? (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2 : sorted[Math.floor(sorted.length/2)];
+        document.getElementById('degree-stats').innerHTML = `
+            <table class="stats-table"><tbody>
+                <tr><td>Min Degree</td><td class="num">${s.minDeg}</td></tr>
+                <tr><td>Max Degree</td><td class="num">${s.maxDeg}</td></tr>
+                <tr><td>Mean Degree</td><td class="num">${s.avgDeg.toFixed(2)}</td></tr>
+                <tr><td>Median Degree</td><td class="num">${median}</td></tr>
+                <tr><td>Std Deviation</td><td class="num">${Math.sqrt(s.degVariance).toFixed(2)}</td></tr>
+                <tr><td>Variance</td><td class="num">${s.degVariance.toFixed(2)}</td></tr>
+            </tbody></table>`;
+    }
+
+    function esc(s) { const d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+
+    // ── Load graph ─────────────────────────────────────────────
+    function loadGraph(json) {
+        const g = parseGraph(json);
+        stats = computeStats(g);
+        graphData = g;
+        render(g, stats);
+    }
+
+    // ── Sample graph ───────────────────────────────────────────
+    function generateSample() {
+        const nodes = []; const edges = [];
+        const n = 40 + Math.floor(Math.random() * 40);
+        for (let i = 0; i < n; i++) nodes.push({id: 'N' + i, group: Math.floor(Math.random() * 5)});
+        const types = ['friend', 'colleague', 'follows', 'cited'];
+        for (let i = 0; i < n; i++) {
+            const nEdges = 1 + Math.floor(Math.random() * 4);
+            for (let j = 0; j < nEdges; j++) {
+                const t = Math.floor(Math.random() * n);
+                if (t !== i) edges.push({source: 'N'+i, target: 'N'+t, type: types[Math.floor(Math.random()*types.length)]});
+            }
+        }
+        return {nodes, edges};
+    }
+
+    // ── Export ──────────────────────────────────────────────────
+    function exportReport() {
+        if (!stats) return;
+        const s = stats;
+        const top10 = Object.entries(s.betweenness).sort((a,b) => b[1]-a[1]).slice(0, 10);
+        const report = {
+            summary: {nodes: s.nodeCount, edges: s.edgeCount, density: s.density, avgDegree: s.avgDeg, maxDegree: s.maxDeg, avgClustering: s.avgClustering, components: s.components.length},
+            degreeDistribution: s.degHist,
+            topCentrality: top10.map(([id, bc]) => ({node: id, degree: s.degrees[id], betweenness: bc, closeness: s.closeness[id], clustering: s.clustering[id]})),
+            edgeTypes: s.edgeTypes,
+            componentSizes: s.components.map(c => c.length),
+        };
+        const blob = new Blob([JSON.stringify(report, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'graph-stats-report.json';
+        a.click();
+    }
+
+    // ── Events ─────────────────────────────────────────────────
+    document.getElementById('file-input').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { try { loadGraph(JSON.parse(ev.target.result)); } catch(err) { alert('Invalid JSON: ' + err.message); } };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('btn-sample').addEventListener('click', () => loadGraph(generateSample()));
+    document.getElementById('btn-export').addEventListener('click', exportReport);
+
+    // Redraw on resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { if (graphData && stats) render(graphData, stats); }, 200);
+    });
+})();
+</script>
+
+</body>
+</html>
