@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Builder - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .builder-container { display: flex; height: calc(100vh - 60px); }
+        .canvas-panel { flex: 1; position: relative; background: var(--bg); overflow: hidden; }
+        .canvas-panel canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+        .side-panel { width: 340px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px; }
+        .side-panel h3 { color: var(--accent); margin: 16px 0 8px; font-size: 1em; }
+        .side-panel h3:first-child { margin-top: 0; }
+        .toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .toolbar button, .toolbar label, .toolbar select { background: var(--border); color: var(--text); border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+        .toolbar button:hover, .toolbar label:hover { background: var(--surface-hover); }
+        .toolbar button.active { background: var(--accent); color: #000; }
+        .toolbar .sep { width: 1px; height: 24px; background: var(--border); }
+        .prop-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.85em; border-bottom: 1px solid var(--border); }
+        .prop-row label { color: var(--text-muted); }
+        .prop-row input, .prop-row select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; width: 140px; }
+        .node-list-item, .edge-list-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; font-size: 0.82em; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .node-list-item:hover, .edge-list-item:hover { background: var(--surface-hover); }
+        .node-list-item .del, .edge-list-item .del { color: var(--red); cursor: pointer; font-size: 0.9em; opacity: 0.6; }
+        .node-list-item .del:hover, .edge-list-item .del:hover { opacity: 1; }
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .stat-row .val { color: var(--text); font-weight: 600; }
+        .help-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.82em; color: var(--text-muted); line-height: 1.6; margin-top: 12px; }
+        .help-box kbd { background: var(--border); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: var(--text); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 8px 20px; border-radius: 6px; font-size: 0.85em; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+        .toast.show { opacity: 1; }
+        .color-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: inline-block; margin: 0 2px; }
+        .color-btn.selected { border-color: var(--text); }
+        .export-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 500; }
+        .export-modal.show { display: flex; }
+        .export-content { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 500px; max-height: 80vh; overflow: auto; }
+        .export-content h3 { color: var(--accent); margin-bottom: 12px; }
+        .export-content textarea { width: 100%; height: 300px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 0.85em; resize: vertical; }
+        .export-content .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+        .export-content button { background: var(--border); color: var(--text); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85em; }
+        .export-content button.primary { background: var(--accent); color: #000; }
+        .export-content button:hover { opacity: 0.85; }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="builder.html" class="sidebar-link active"><span class="icon">🔨</span>Graph Builder</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+        <a href="javadoc/index.html" class="sidebar-link"><span class="icon">☕</span>Javadoc</a>
+    </div>
+</nav>
+
+<main class="content" style="margin-left: var(--sidebar-width); padding: 0;">
+    <div class="toolbar" id="toolbar">
+        <button id="modeAdd" class="active" title="Add Node (click canvas)">➕ Node</button>
+        <button id="modeEdge" title="Draw Edge (click source, then target)">🔗 Edge</button>
+        <button id="modeSelect" title="Select & Move">🖱️ Select</button>
+        <button id="modeDelete" title="Delete (click node/edge)">🗑️ Delete</button>
+        <div class="sep"></div>
+        <button id="btnDirected" title="Toggle directed/undirected">Undirected</button>
+        <button id="btnWeighted" title="Toggle weighted edges">Unweighted</button>
+        <div class="sep"></div>
+        <button id="btnClear" title="Clear all">Clear</button>
+        <button id="btnLayout" title="Auto-layout (force-directed)">Layout</button>
+        <button id="btnUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
+        <div class="sep"></div>
+        <button id="btnExportJSON" title="Export as JSON">Export JSON</button>
+        <button id="btnExportGraphML" title="Export as GraphML">Export GraphML</button>
+        <button id="btnExportDOT" title="Export as DOT">Export DOT</button>
+        <button id="btnImport" title="Import graph">Import</button>
+        <input type="file" id="importFile" accept=".json,.graphml,.dot,.gv" style="display:none">
+        <div class="sep"></div>
+        <button id="btnTemplate" title="Load template graph">Templates ▾</button>
+    </div>
+
+    <div class="builder-container">
+        <div class="canvas-panel">
+            <canvas id="graphCanvas"></canvas>
+            <div id="toast" class="toast"></div>
+        </div>
+        <div class="side-panel">
+            <h3>📊 Statistics</h3>
+            <div id="stats">
+                <div class="stat-row"><span>Nodes</span><span class="val" id="statNodes">0</span></div>
+                <div class="stat-row"><span>Edges</span><span class="val" id="statEdges">0</span></div>
+                <div class="stat-row"><span>Density</span><span class="val" id="statDensity">0.000</span></div>
+                <div class="stat-row"><span>Components</span><span class="val" id="statComponents">0</span></div>
+                <div class="stat-row"><span>Avg Degree</span><span class="val" id="statAvgDeg">0.00</span></div>
+            </div>
+
+            <h3>🎨 Selected Node</h3>
+            <div id="nodeProps" style="display:none;">
+                <div class="prop-row"><label>Label</label><input id="propLabel" type="text" placeholder="Node label"></div>
+                <div class="prop-row"><label>Color</label>
+                    <div id="colorPicker">
+                        <span class="color-btn" data-color="#58a6ff" style="background:#58a6ff"></span>
+                        <span class="color-btn" data-color="#3fb950" style="background:#3fb950"></span>
+                        <span class="color-btn" data-color="#d29922" style="background:#d29922"></span>
+                        <span class="color-btn" data-color="#f85149" style="background:#f85149"></span>
+                        <span class="color-btn" data-color="#bc8cff" style="background:#bc8cff"></span>
+                        <span class="color-btn" data-color="#8b949e" style="background:#8b949e"></span>
+                        <span class="color-btn" data-color="#f0883e" style="background:#f0883e"></span>
+                        <span class="color-btn" data-color="#e6edf3" style="background:#e6edf3"></span>
+                    </div>
+                </div>
+                <div class="prop-row"><label>Size</label><input id="propSize" type="range" min="8" max="40" value="16"></div>
+            </div>
+            <div id="noSelection" style="font-size:0.82em;color:var(--text-muted);">Click a node to edit properties</div>
+
+            <h3>🔗 Selected Edge</h3>
+            <div id="edgeProps" style="display:none;">
+                <div class="prop-row"><label>Weight</label><input id="propWeight" type="number" min="0" step="0.1" value="1"></div>
+                <div class="prop-row"><label>Label</label><input id="propEdgeLabel" type="text" placeholder="Edge label"></div>
+            </div>
+            <div id="noEdgeSelection" style="font-size:0.82em;color:var(--text-muted);">Click an edge to edit properties</div>
+
+            <h3>📋 Nodes (<span id="nodeCount">0</span>)</h3>
+            <div id="nodeList" style="max-height:180px;overflow-y:auto;"></div>
+
+            <h3>📋 Edges (<span id="edgeCount">0</span>)</h3>
+            <div id="edgeList" style="max-height:180px;overflow-y:auto;"></div>
+
+            <div class="help-box">
+                <strong>Keyboard shortcuts</strong><br>
+                <kbd>1</kbd> Add Node &nbsp; <kbd>2</kbd> Draw Edge &nbsp; <kbd>3</kbd> Select &nbsp; <kbd>4</kbd> Delete<br>
+                <kbd>Ctrl+Z</kbd> Undo &nbsp; <kbd>Del</kbd> Delete selected<br>
+                <kbd>Ctrl+E</kbd> Export JSON &nbsp; <kbd>Ctrl+I</kbd> Import
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="export-modal" id="exportModal">
+    <div class="export-content">
+        <h3 id="exportTitle">Export</h3>
+        <textarea id="exportText" readonly></textarea>
+        <div class="btn-row">
+            <button class="primary" id="exportCopy">📋 Copy</button>
+            <button id="exportDownload">⬇ Download</button>
+            <button id="exportClose">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="export-modal" id="templateModal">
+    <div class="export-content">
+        <h3>Load Template</h3>
+        <div id="templateList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+        <div class="btn-row"><button id="templateClose">Close</button></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+
+    let nodes = [], edges = [], nextId = 1;
+    let mode = 'add';
+    let directed = false, weighted = false;
+    let selectedNode = null, selectedEdge = null;
+    let edgeSource = null;
+    let dragging = null, dragOffX = 0, dragOffY = 0;
+    let undoStack = [];
+    const MAX_UNDO = 50;
+    const COLORS = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#8b949e','#f0883e','#e6edf3'];
+
+    function resize() {
+        const r = canvas.parentElement.getBoundingClientRect();
+        dpr = window.devicePixelRatio || 1;
+        W = r.width; H = r.height;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+    window.addEventListener('resize', resize);
+
+    function saveUndo() {
+        undoStack.push(JSON.stringify({ nodes, edges, nextId }));
+        if (undoStack.length > MAX_UNDO) undoStack.shift();
+    }
+    function undo() {
+        if (!undoStack.length) return;
+        const s = JSON.parse(undoStack.pop());
+        nodes = s.nodes; edges = s.edges; nextId = s.nextId;
+        selectedNode = null; selectedEdge = null; edgeSource = null;
+        updateUI(); draw();
+    }
+
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = '#1c2129'; ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        edges.forEach((e, i) => {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) return;
+            const sel = selectedEdge === i;
+            ctx.strokeStyle = sel ? '#fff' : '#58a6ff';
+            ctx.lineWidth = sel ? 3 : 1.5;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            if (directed) {
+                const angle = Math.atan2(b.y - a.y, b.x - a.x);
+                const r = b.size || 16;
+                const tx = b.x - Math.cos(angle) * r;
+                const ty = b.y - Math.sin(angle) * r;
+                ctx.fillStyle = sel ? '#fff' : '#58a6ff';
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx - 10 * Math.cos(angle - 0.3), ty - 10 * Math.sin(angle - 0.3));
+                ctx.lineTo(tx - 10 * Math.cos(angle + 0.3), ty - 10 * Math.sin(angle + 0.3));
+                ctx.closePath(); ctx.fill();
+            }
+            if (weighted || e.label) {
+                const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                const txt = e.label || String(e.weight);
+                ctx.font = '11px sans-serif'; ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
+                const tw = ctx.measureText(txt).width;
+                ctx.fillRect(mx - tw / 2 - 3, my - 8, tw + 6, 16);
+                ctx.fillStyle = '#e6edf3'; ctx.fillText(txt, mx, my + 4);
+            }
+        });
+
+        if (mode === 'edge' && edgeSource) {
+            const s = nodes.find(n => n.id === edgeSource);
+            if (s && hoverPos) {
+                ctx.strokeStyle = '#58a6ff55'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+                ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(hoverPos.x, hoverPos.y); ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        nodes.forEach(n => {
+            const sel = selectedNode && selectedNode.id === n.id;
+            const r = n.size || 16;
+            ctx.beginPath(); ctx.arc(n.x, n.y, r + 2, 0, Math.PI * 2);
+            ctx.fillStyle = sel ? 'rgba(88,166,255,0.3)' : 'transparent'; ctx.fill();
+            ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = n.color || '#58a6ff'; ctx.fill();
+            if (sel) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+            const label = n.label || String(n.id);
+            ctx.font = 'bold ' + Math.max(10, r * 0.7) + 'px sans-serif';
+            ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(label, n.x, n.y);
+        });
+    }
+
+    let hoverPos = null;
+
+    function nodeAt(x, y) {
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i], r = n.size || 16;
+            if ((x - n.x) ** 2 + (y - n.y) ** 2 <= (r + 4) ** 2) return n;
+        }
+        return null;
+    }
+
+    function edgeAt(x, y) {
+        for (let i = edges.length - 1; i >= 0; i--) {
+            const e = edges[i];
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 1) continue;
+            const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (len * len)));
+            const px = a.x + t * dx, py = a.y + t * dy;
+            if ((x - px) ** 2 + (y - py) ** 2 < 64) return i;
+        }
+        return -1;
+    }
+
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        const p = getPos(e);
+        const n = nodeAt(p.x, p.y);
+
+        if (mode === 'add') {
+            if (n) { selectNode(n); mode = 'select'; setModeBtn('modeSelect'); dragging = n; dragOffX = p.x - n.x; dragOffY = p.y - n.y; return; }
+            saveUndo();
+            const nn = { id: nextId++, x: p.x, y: p.y, label: '', color: COLORS[nodes.length % COLORS.length], size: 16 };
+            nodes.push(nn);
+            selectNode(nn); updateUI(); draw();
+            toast('Node ' + nn.id + ' added');
+        } else if (mode === 'edge') {
+            if (n) {
+                if (!edgeSource) { edgeSource = n.id; selectNode(n); toast('Click target node'); }
+                else if (n.id !== edgeSource) {
+                    const dup = edges.some(ee => ee.from === edgeSource && ee.to === n.id || (!directed && ee.from === n.id && ee.to === edgeSource));
+                    if (!dup) { saveUndo(); edges.push({ from: edgeSource, to: n.id, weight: 1, label: '' }); toast('Edge added'); }
+                    edgeSource = null; updateUI(); draw();
+                }
+            }
+        } else if (mode === 'select') {
+            if (n) { selectNode(n); dragging = n; dragOffX = p.x - n.x; dragOffY = p.y - n.y; }
+            else { const ei = edgeAt(p.x, p.y); if (ei >= 0) selectEdge(ei); else { selectNode(null); selectEdge(-1); } }
+        } else if (mode === 'delete') {
+            if (n) { saveUndo(); edges = edges.filter(ee => ee.from !== n.id && ee.to !== n.id); nodes = nodes.filter(x => x.id !== n.id); if (selectedNode && selectedNode.id === n.id) selectNode(null); updateUI(); draw(); toast('Deleted node'); }
+            else { const ei = edgeAt(p.x, p.y); if (ei >= 0) { saveUndo(); edges.splice(ei, 1); selectEdge(-1); updateUI(); draw(); toast('Deleted edge'); } }
+        }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        hoverPos = getPos(e);
+        if (dragging) { dragging.x = hoverPos.x - dragOffX; dragging.y = hoverPos.y - dragOffY; draw(); }
+        if (mode === 'edge' && edgeSource) draw();
+        const n = nodeAt(hoverPos.x, hoverPos.y);
+        if (mode === 'select') canvas.style.cursor = n ? 'grab' : 'default';
+        else if (mode === 'delete') canvas.style.cursor = (n || edgeAt(hoverPos.x, hoverPos.y) >= 0) ? 'pointer' : 'crosshair';
+        else canvas.style.cursor = 'crosshair';
+    });
+
+    canvas.addEventListener('mouseup', () => { dragging = null; });
+
+    function selectNode(n) {
+        selectedNode = n;
+        const props = document.getElementById('nodeProps');
+        const noSel = document.getElementById('noSelection');
+        if (n) {
+            props.style.display = 'block'; noSel.style.display = 'none';
+            document.getElementById('propLabel').value = n.label || '';
+            document.getElementById('propSize').value = n.size || 16;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.toggle('selected', b.dataset.color === n.color));
+        } else { props.style.display = 'none'; noSel.style.display = 'block'; }
+        draw();
+    }
+
+    function selectEdge(i) {
+        selectedEdge = i >= 0 ? i : null;
+        const props = document.getElementById('edgeProps');
+        const noSel = document.getElementById('noEdgeSelection');
+        if (i >= 0 && edges[i]) {
+            props.style.display = 'block'; noSel.style.display = 'none';
+            document.getElementById('propWeight').value = edges[i].weight;
+            document.getElementById('propEdgeLabel').value = edges[i].label || '';
+        } else { props.style.display = 'none'; noSel.style.display = 'block'; }
+        draw();
+    }
+
+    document.getElementById('propLabel').addEventListener('input', e => { if (selectedNode) { selectedNode.label = e.target.value; updateUI(); draw(); } });
+    document.getElementById('propSize').addEventListener('input', e => { if (selectedNode) { selectedNode.size = +e.target.value; draw(); } });
+    document.getElementById('propWeight').addEventListener('input', e => { if (selectedEdge != null && edges[selectedEdge]) { edges[selectedEdge].weight = +e.target.value; updateUI(); draw(); } });
+    document.getElementById('propEdgeLabel').addEventListener('input', e => { if (selectedEdge != null && edges[selectedEdge]) { edges[selectedEdge].label = e.target.value; updateUI(); draw(); } });
+    document.querySelectorAll('.color-btn').forEach(b => b.addEventListener('click', () => {
+        if (selectedNode) { selectedNode.color = b.dataset.color; document.querySelectorAll('.color-btn').forEach(x => x.classList.toggle('selected', x === b)); draw(); }
+    }));
+
+    function setModeBtn(id) {
+        ['modeAdd','modeEdge','modeSelect','modeDelete'].forEach(x => document.getElementById(x).classList.toggle('active', x === id));
+    }
+    document.getElementById('modeAdd').onclick = () => { mode = 'add'; edgeSource = null; setModeBtn('modeAdd'); };
+    document.getElementById('modeEdge').onclick = () => { mode = 'edge'; edgeSource = null; setModeBtn('modeEdge'); toast('Click source node, then target'); };
+    document.getElementById('modeSelect').onclick = () => { mode = 'select'; edgeSource = null; setModeBtn('modeSelect'); };
+    document.getElementById('modeDelete').onclick = () => { mode = 'delete'; edgeSource = null; setModeBtn('modeDelete'); };
+
+    document.getElementById('btnDirected').onclick = function() { directed = !directed; this.textContent = directed ? 'Directed' : 'Undirected'; draw(); };
+    document.getElementById('btnWeighted').onclick = function() { weighted = !weighted; this.textContent = weighted ? 'Weighted' : 'Unweighted'; draw(); };
+    document.getElementById('btnClear').onclick = () => { saveUndo(); nodes = []; edges = []; nextId = 1; selectedNode = null; selectedEdge = null; edgeSource = null; updateUI(); draw(); toast('Cleared'); };
+    document.getElementById('btnUndo').onclick = undo;
+
+    document.getElementById('btnLayout').onclick = () => {
+        if (nodes.length < 2) return;
+        saveUndo();
+        const cx = W / 2, cy = H / 2;
+        nodes.forEach((n, i) => { const a = (i / nodes.length) * Math.PI * 2; n.x = cx + Math.cos(a) * 150; n.y = cy + Math.sin(a) * 150; });
+        for (let iter = 0; iter < 100; iter++) {
+            nodes.forEach(n => { n.fx = 0; n.fy = 0; });
+            for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+                let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+                let d = Math.sqrt(dx * dx + dy * dy) || 1;
+                let f = 5000 / (d * d);
+                nodes[i].fx -= f * dx / d; nodes[i].fy -= f * dy / d;
+                nodes[j].fx += f * dx / d; nodes[j].fy += f * dy / d;
+            }
+            edges.forEach(ee => {
+                const a = nodes.find(n => n.id === ee.from), b = nodes.find(n => n.id === ee.to);
+                if (!a || !b) return;
+                let dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+                let f = (d - 100) * 0.05;
+                a.fx += f * dx / d; a.fy += f * dy / d;
+                b.fx -= f * dx / d; b.fy -= f * dy / d;
+            });
+            nodes.forEach(n => { n.fx += (cx - n.x) * 0.01; n.fy += (cy - n.y) * 0.01; });
+            nodes.forEach(n => { n.x += n.fx * 0.5; n.y += n.fy * 0.5; n.x = Math.max(30, Math.min(W - 30, n.x)); n.y = Math.max(30, Math.min(H - 30, n.y)); });
+        }
+        draw(); toast('Layout applied');
+    };
+
+    function showExport(title, text, ext) {
+        document.getElementById('exportTitle').textContent = title;
+        document.getElementById('exportText').value = text;
+        document.getElementById('exportModal').classList.add('show');
+        document.getElementById('exportDownload').onclick = () => {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'graph.' + ext; a.click();
+        };
+    }
+
+    function toJSON() {
+        return JSON.stringify({ directed, weighted, nodes: nodes.map(n => ({ id: n.id, label: n.label || String(n.id), color: n.color, size: n.size, x: Math.round(n.x), y: Math.round(n.y) })),
+            edges: edges.map(e => ({ from: e.from, to: e.to, weight: e.weight, label: e.label || '' })) }, null, 2);
+    }
+
+    function toGraphML() {
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<graphml xmlns="http://graphml.graphstruct.org/xmlns">\n';
+        xml += '  <key id="label" for="node" attr.name="label" attr.type="string"/>\n';
+        xml += '  <key id="color" for="node" attr.name="color" attr.type="string"/>\n';
+        xml += '  <key id="weight" for="edge" attr.name="weight" attr.type="double"/>\n';
+        xml += '  <graph id="G" edgedefault="' + (directed ? 'directed' : 'undirected') + '">\n';
+        nodes.forEach(n => { xml += '    <node id="n' + n.id + '"><data key="label">' + (n.label || n.id) + '</data><data key="color">' + n.color + '</data></node>\n'; });
+        edges.forEach((e, i) => { xml += '    <edge id="e' + i + '" source="n' + e.from + '" target="n' + e.to + '"><data key="weight">' + e.weight + '</data></edge>\n'; });
+        xml += '  </graph>\n</graphml>';
+        return xml;
+    }
+
+    function toDOT() {
+        const kw = directed ? 'digraph' : 'graph';
+        const arrow = directed ? ' -> ' : ' -- ';
+        let dot = kw + ' G {\n';
+        nodes.forEach(n => { dot += '  ' + (n.label || n.id) + ' [color="' + n.color + '"];\n'; });
+        edges.forEach(e => {
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+            if (!a || !b) return;
+            dot += '  ' + (a.label || a.id) + arrow + (b.label || b.id) + (weighted ? ' [weight=' + e.weight + ']' : '') + ';\n';
+        });
+        dot += '}';
+        return dot;
+    }
+
+    document.getElementById('btnExportJSON').onclick = () => showExport('Export JSON', toJSON(), 'json');
+    document.getElementById('btnExportGraphML').onclick = () => showExport('Export GraphML', toGraphML(), 'graphml');
+    document.getElementById('btnExportDOT').onclick = () => showExport('Export DOT', toDOT(), 'dot');
+    document.getElementById('exportCopy').onclick = () => { navigator.clipboard.writeText(document.getElementById('exportText').value); toast('Copied!'); };
+    document.getElementById('exportClose').onclick = () => document.getElementById('exportModal').classList.remove('show');
+
+    document.getElementById('btnImport').onclick = () => document.getElementById('importFile').click();
+    document.getElementById('importFile').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const text = ev.target.result;
+                if (file.name.endsWith('.json')) {
+                    const data = JSON.parse(text);
+                    saveUndo();
+                    nodes = (data.nodes || []).map(n => ({ id: n.id, label: n.label || '', color: n.color || '#58a6ff', size: n.size || 16, x: n.x || Math.random() * W, y: n.y || Math.random() * H }));
+                    edges = (data.edges || []).map(ee => ({ from: ee.from, to: ee.to, weight: ee.weight || 1, label: ee.label || '' }));
+                    directed = data.directed || false; weighted = data.weighted || false;
+                    nextId = Math.max(...nodes.map(n => n.id), 0) + 1;
+                    document.getElementById('btnDirected').textContent = directed ? 'Directed' : 'Undirected';
+                    document.getElementById('btnWeighted').textContent = weighted ? 'Weighted' : 'Unweighted';
+                    updateUI(); draw(); toast('Imported ' + nodes.length + ' nodes');
+                } else { toast('JSON import only for now'); }
+            } catch(err) { toast('Import error: ' + err.message); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    const templates = {
+        'Complete K5': () => { const ns = []; for (let i = 1; i <= 5; i++) { const a = (i/5)*Math.PI*2; ns.push({id:i,label:''+i,color:COLORS[(i-1)%8],size:16,x:W/2+120*Math.cos(a),y:H/2+120*Math.sin(a)}); } const es=[]; for(let i=1;i<=5;i++) for(let j=i+1;j<=5;j++) es.push({from:i,to:j,weight:1,label:''}); return{nodes:ns,edges:es,nextId:6}; },
+        'Petersen Graph': () => { const ns=[], es=[]; for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2-Math.PI/2;ns.push({id:i+1,label:''+(i+1),color:'#58a6ff',size:16,x:W/2+160*Math.cos(a),y:H/2+160*Math.sin(a)});} for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2-Math.PI/2;ns.push({id:i+6,label:''+(i+6),color:'#3fb950',size:16,x:W/2+70*Math.cos(a),y:H/2+70*Math.sin(a)});} for(let i=0;i<5;i++){es.push({from:i+1,to:((i+1)%5)+1,weight:1,label:''});es.push({from:i+1,to:i+6,weight:1,label:''});es.push({from:i+6,to:((i+2)%5)+6,weight:1,label:''});} return{nodes:ns,edges:es,nextId:11}; },
+        'Binary Tree (depth 3)': () => { const ns=[], es=[]; let id=1; function add(d,x,y,sp){ns.push({id,label:''+id,color:COLORS[d%8],size:16,x,y}); const me=id++; if(d<3){es.push({from:me,to:id,weight:1,label:''});add(d+1,x-sp,y+60,sp/2);es.push({from:me,to:id,weight:1,label:''});add(d+1,x+sp,y+60,sp/2);}} add(0,W/2,60,150); return{nodes:ns,edges:es,nextId:id}; },
+        'Star (6 leaves)': () => { const ns=[{id:1,label:'Hub',color:'#d29922',size:24,x:W/2,y:H/2}]; const es=[]; for(let i=0;i<6;i++){const a=(i/6)*Math.PI*2;ns.push({id:i+2,label:''+(i+2),color:'#58a6ff',size:16,x:W/2+150*Math.cos(a),y:H/2+150*Math.sin(a)});es.push({from:1,to:i+2,weight:1,label:''});} return{nodes:ns,edges:es,nextId:8}; },
+        'Grid 4x4': () => { const ns=[], es=[]; let id=1; for(let r=0;r<4;r++) for(let c=0;c<4;c++){ns.push({id,label:''+id,color:COLORS[(r+c)%8],size:14,x:W/2-60+c*40,y:H/2-60+r*40}); if(c<3)es.push({from:id,to:id+1,weight:1,label:''}); if(r<3)es.push({from:id,to:id+4,weight:1,label:''}); id++;} return{nodes:ns,edges:es,nextId:id}; },
+        'Cycle (8)': () => { const ns=[], es=[]; for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;ns.push({id:i+1,label:''+(i+1),color:COLORS[i%8],size:16,x:W/2+130*Math.cos(a),y:H/2+130*Math.sin(a)});es.push({from:i+1,to:(i+1)%8+1,weight:1,label:''});} return{nodes:ns,edges:es,nextId:9}; },
+    };
+
+    document.getElementById('btnTemplate').onclick = () => {
+        const list = document.getElementById('templateList');
+        list.innerHTML = '';
+        Object.keys(templates).forEach(name => {
+            const btn = document.createElement('button');
+            btn.textContent = name; btn.style.textAlign = 'left';
+            btn.onclick = () => {
+                saveUndo();
+                const t = templates[name]();
+                nodes = t.nodes; edges = t.edges; nextId = t.nextId;
+                selectedNode = null; selectedEdge = null;
+                updateUI(); draw();
+                document.getElementById('templateModal').classList.remove('show');
+                toast('Loaded ' + name);
+            };
+            list.appendChild(btn);
+        });
+        document.getElementById('templateModal').classList.add('show');
+    };
+    document.getElementById('templateClose').onclick = () => document.getElementById('templateModal').classList.remove('show');
+
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.key === '1') { mode = 'add'; edgeSource = null; setModeBtn('modeAdd'); }
+        if (e.key === '2') { mode = 'edge'; edgeSource = null; setModeBtn('modeEdge'); }
+        if (e.key === '3') { mode = 'select'; edgeSource = null; setModeBtn('modeSelect'); }
+        if (e.key === '4') { mode = 'delete'; edgeSource = null; setModeBtn('modeDelete'); }
+        if (e.key === 'z' && e.ctrlKey) { e.preventDefault(); undo(); }
+        if (e.key === 'Delete') {
+            if (selectedNode) { saveUndo(); edges = edges.filter(ee => ee.from !== selectedNode.id && ee.to !== selectedNode.id); nodes = nodes.filter(n => n.id !== selectedNode.id); selectNode(null); updateUI(); draw(); }
+            else if (selectedEdge != null) { saveUndo(); edges.splice(selectedEdge, 1); selectEdge(-1); updateUI(); draw(); }
+        }
+        if (e.key === 'e' && e.ctrlKey) { e.preventDefault(); showExport('Export JSON', toJSON(), 'json'); }
+        if (e.key === 'i' && e.ctrlKey) { e.preventDefault(); document.getElementById('importFile').click(); }
+    });
+
+    function updateUI() {
+        document.getElementById('statNodes').textContent = nodes.length;
+        document.getElementById('statEdges').textContent = edges.length;
+        document.getElementById('nodeCount').textContent = nodes.length;
+        document.getElementById('edgeCount').textContent = edges.length;
+        const maxEdges = directed ? nodes.length * (nodes.length - 1) : nodes.length * (nodes.length - 1) / 2;
+        document.getElementById('statDensity').textContent = maxEdges > 0 ? (edges.length / maxEdges).toFixed(3) : '0.000';
+        const degMap = {};
+        nodes.forEach(n => degMap[n.id] = 0);
+        edges.forEach(e => { degMap[e.from] = (degMap[e.from] || 0) + 1; degMap[e.to] = (degMap[e.to] || 0) + 1; });
+        const avgDeg = nodes.length ? Object.values(degMap).reduce((a, b) => a + b, 0) / nodes.length : 0;
+        document.getElementById('statAvgDeg').textContent = avgDeg.toFixed(2);
+        const visited = new Set(); let comps = 0;
+        nodes.forEach(n => {
+            if (visited.has(n.id)) return;
+            comps++; const q = [n.id];
+            while (q.length) {
+                const c = q.shift(); if (visited.has(c)) continue; visited.add(c);
+                edges.forEach(e => { if (e.from === c && !visited.has(e.to)) q.push(e.to); if (e.to === c && !visited.has(e.from)) q.push(e.from); });
+            }
+        });
+        document.getElementById('statComponents').textContent = comps;
+        const nl = document.getElementById('nodeList'); nl.innerHTML = '';
+        nodes.forEach(n => {
+            const d = document.createElement('div'); d.className = 'node-list-item';
+            d.innerHTML = '<span><span style="color:' + n.color + '">&#9679;</span> ' + (n.label || n.id) + '</span><span class="del" data-id="' + n.id + '">&#10005;</span>';
+            d.querySelector('span').onclick = () => { selectNode(n); mode = 'select'; setModeBtn('modeSelect'); draw(); };
+            d.querySelector('.del').onclick = ev => { ev.stopPropagation(); saveUndo(); edges = edges.filter(ee => ee.from !== n.id && ee.to !== n.id); nodes = nodes.filter(x => x.id !== n.id); if (selectedNode && selectedNode.id === n.id) selectNode(null); updateUI(); draw(); };
+            nl.appendChild(d);
+        });
+        const el = document.getElementById('edgeList'); el.innerHTML = '';
+        edges.forEach((e, i) => {
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+            const d = document.createElement('div'); d.className = 'edge-list-item';
+            const lbl = (a ? a.label || a.id : '?') + (directed ? ' \u2192 ' : ' \u2014 ') + (b ? b.label || b.id : '?');
+            d.innerHTML = '<span>' + lbl + (weighted ? ' (w:' + e.weight + ')' : '') + '</span><span class="del" data-idx="' + i + '">&#10005;</span>';
+            d.querySelector('span').onclick = () => { selectEdge(i); draw(); };
+            d.querySelector('.del').onclick = ev => { ev.stopPropagation(); saveUndo(); edges.splice(i, 1); selectEdge(-1); updateUI(); draw(); };
+            el.appendChild(d);
+        });
+    }
+
+    document.getElementById('exportModal').addEventListener('click', e => { if (e.target === document.getElementById('exportModal')) document.getElementById('exportModal').classList.remove('show'); });
+    document.getElementById('templateModal').addEventListener('click', e => { if (e.target === document.getElementById('templateModal')) document.getElementById('templateModal').classList.remove('show'); });
+
+    setTimeout(() => { resize(); updateUI(); }, 50);
+})();
+</script>
+</body>
+</html>
