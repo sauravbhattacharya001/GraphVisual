@@ -315,8 +315,8 @@ public class GraphCompressor {
         Map<String, SuperEdgeInfo> superEdgeInfos = new HashMap<>();
 
         for (edge e : graph.getEdges()) {
-            String v1 = graph.getEndpoints(e).getFirst();
-            String v2 = graph.getEndpoints(e).getSecond();
+            String v1 = e.getVertex1();
+            String v2 = e.getVertex2();
             String s1 = nodeToSupernode.get(v1);
             String s2 = nodeToSupernode.get(v2);
 
