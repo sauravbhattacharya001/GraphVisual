@@ -621,16 +621,13 @@ public class Main extends JFrame {
         g = parseResult.getGraph();
 
         // Populate classified edge lists from parse result
-        friendEdges.clear();
-        fsEdges.clear();
-        strangerEdges.clear();
-        classmateEdges.clear();
-        studyGEdges.clear();
-        friendEdges.addAll(parseResult.getEdges(EdgeType.FRIEND));
-        classmateEdges.addAll(parseResult.getEdges(EdgeType.CLASSMATE));
-        fsEdges.addAll(parseResult.getEdges(EdgeType.FAMILIAR));
-        strangerEdges.addAll(parseResult.getEdges(EdgeType.STRANGER));
-        studyGEdges.addAll(parseResult.getEdges(EdgeType.STUDY_GROUP));
+        for (EdgeType type : EdgeType.values()) {
+            List<edge> list = getEdgeList(type);
+            if (list != null) {
+                list.clear();
+                list.addAll(parseResult.getEdges(type));
+            }
+        }
 
         createLayout();
         vv = new VisualizationViewer<String, edge>(graphLayout);
@@ -2494,35 +2491,13 @@ public class Main extends JFrame {
         JButton graphmlButton = new JButton("<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>");
         graphmlButton.setPreferredSize(new Dimension(140, 100));
         graphmlButton.addActionListener(e -> {
-                // Collect all edges from all categories
-                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
-                allEdges.addAll(friendEdges);
-                allEdges.addAll(fsEdges);
-                allEdges.addAll(classmateEdges);
-                allEdges.addAll(strangerEdges);
-                allEdges.addAll(studyGEdges);
-
-                GraphMLExporter exporter = new GraphMLExporter(g, allEdges);
+                GraphMLExporter exporter = new GraphMLExporter(g, collectAllEdges());
                 exporter.setTimestamp(timeStamp);
                 exporter.setDescription("GraphVisual network — student community evolution");
 
-                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                fileChooser.setDialogTitle("Export as GraphML");
-                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".graphml"));
-                int returnVal = fileChooser.showSaveDialog(null);
-                if (returnVal != JFileChooser.APPROVE_OPTION) return;
-
-                File outFile = fileChooser.getSelectedFile();
-                if (!outFile.getName().endsWith(".graphml")) {
-                    outFile = new File(outFile.getAbsolutePath() + ".graphml");
-                }
-
-                if (outFile.exists()) {
-                    int confirm = JOptionPane.showConfirmDialog(null,
-                            "File already exists. Overwrite?",
-                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-                    if (confirm != JOptionPane.YES_OPTION) return;
-                }
+                File outFile = showExportSaveDialog("Export as GraphML",
+                        "graph_" + timeStamp + ".graphml", ".graphml");
+                if (outFile == null) return;
 
                 try {
                     exporter.export(outFile);
@@ -2549,23 +2524,9 @@ public class Main extends JFrame {
                 dotExporter.setTimestamp(timeStamp);
                 dotExporter.setDescription("GraphVisual network — student community evolution");
 
-                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                fileChooser.setDialogTitle("Export as Graphviz DOT");
-                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".dot"));
-                int returnVal = fileChooser.showSaveDialog(null);
-                if (returnVal != JFileChooser.APPROVE_OPTION) return;
-
-                File outFile = fileChooser.getSelectedFile();
-                if (!outFile.getName().endsWith(".dot") && !outFile.getName().endsWith(".gv")) {
-                    outFile = new File(outFile.getAbsolutePath() + ".dot");
-                }
-
-                if (outFile.exists()) {
-                    int confirm = JOptionPane.showConfirmDialog(null,
-                            "File already exists. Overwrite?",
-                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-                    if (confirm != JOptionPane.YES_OPTION) return;
-                }
+                File outFile = showExportSaveDialog("Export as Graphviz DOT",
+                        "graph_" + timeStamp + ".dot", ".dot", ".gv");
+                if (outFile == null) return;
 
                 try {
                     dotExporter.export(outFile);
@@ -2589,33 +2550,12 @@ public class Main extends JFrame {
         JButton gexfButton = new JButton("<html><center>Export GEXF<br/>Gephi native<br/>format with<br/>dynamic/temporal<br/>support</center></html>");
         gexfButton.setPreferredSize(new Dimension(140, 100));
         gexfButton.addActionListener(e -> {
-                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
-                allEdges.addAll(friendEdges);
-                allEdges.addAll(fsEdges);
-                allEdges.addAll(classmateEdges);
-                allEdges.addAll(strangerEdges);
-                allEdges.addAll(studyGEdges);
-
-                GexfExporter gexfExporter = new GexfExporter(g, allEdges);
+                GexfExporter gexfExporter = new GexfExporter(g, collectAllEdges());
                 gexfExporter.setDescription("GraphVisual network — student community evolution");
 
-                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                fileChooser.setDialogTitle("Export as GEXF (Gephi)");
-                fileChooser.setSelectedFile(new File("graph_" + timeStamp + ".gexf"));
-                int returnVal = fileChooser.showSaveDialog(null);
-                if (returnVal != JFileChooser.APPROVE_OPTION) return;
-
-                File outFile = fileChooser.getSelectedFile();
-                if (!outFile.getName().endsWith(".gexf")) {
-                    outFile = new File(outFile.getAbsolutePath() + ".gexf");
-                }
-
-                if (outFile.exists()) {
-                    int confirm = JOptionPane.showConfirmDialog(null,
-                            "File already exists. Overwrite?",
-                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-                    if (confirm != JOptionPane.YES_OPTION) return;
-                }
+                File outFile = showExportSaveDialog("Export as GEXF (Gephi)",
+                        "graph_" + timeStamp + ".gexf", ".gexf");
+                if (outFile == null) return;
 
                 try {
                     gexfExporter.export(outFile);
@@ -2638,33 +2578,12 @@ public class Main extends JFrame {
         JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
         csvReportButton.setPreferredSize(new Dimension(140, 100));
         csvReportButton.addActionListener(e -> {
-                java.util.List<edge> allEdges = new java.util.ArrayList<edge>();
-                allEdges.addAll(friendEdges);
-                allEdges.addAll(fsEdges);
-                allEdges.addAll(classmateEdges);
-                allEdges.addAll(strangerEdges);
-                allEdges.addAll(studyGEdges);
-
-                CsvReportExporter exporter = new CsvReportExporter(g, allEdges);
+                CsvReportExporter exporter = new CsvReportExporter(g, collectAllEdges());
                 exporter.setTimestamp(timeStamp);
 
-                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                fileChooser.setDialogTitle("Export Node Metrics CSV");
-                fileChooser.setSelectedFile(new File("node_metrics_" + timeStamp + ".csv"));
-                int returnVal = fileChooser.showSaveDialog(null);
-                if (returnVal != JFileChooser.APPROVE_OPTION) return;
-
-                File outFile = fileChooser.getSelectedFile();
-                if (!outFile.getName().endsWith(".csv")) {
-                    outFile = new File(outFile.getAbsolutePath() + ".csv");
-                }
-
-                if (outFile.exists()) {
-                    int confirm = JOptionPane.showConfirmDialog(null,
-                            "File already exists. Overwrite?",
-                            "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-                    if (confirm != JOptionPane.YES_OPTION) return;
-                }
+                File outFile = showExportSaveDialog("Export Node Metrics CSV",
+                        "node_metrics_" + timeStamp + ".csv", ".csv");
+                if (outFile == null) return;
 
                 try {
                     exporter.export(outFile);
@@ -2693,6 +2612,56 @@ public class Main extends JFrame {
 
         toolPanel.add(legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
+    }
+
+    /**
+     * Collects all edges from every category into a single list.
+     * Replaces the 5-line addAll() pattern duplicated across export handlers.
+     */
+    private List<edge> collectAllEdges() {
+        List<edge> allEdges = new ArrayList<>();
+        for (EdgeType type : EdgeType.values()) {
+            List<edge> list = getEdgeList(type);
+            if (list != null) {
+                allEdges.addAll(list);
+            }
+        }
+        return allEdges;
+    }
+
+    /**
+     * Shows a save dialog with overwrite confirmation and automatic extension appending.
+     *
+     * @param dialogTitle  title for the file chooser dialog
+     * @param defaultName  default file name (e.g. "graph_2011-03-01.graphml")
+     * @param extensions   accepted file extensions including the dot (e.g. ".graphml", ".gv")
+     * @return the chosen File, or null if the user cancelled
+     */
+    private File showExportSaveDialog(String dialogTitle, String defaultName, String... extensions) {
+        JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+        fileChooser.setDialogTitle(dialogTitle);
+        fileChooser.setSelectedFile(new File(defaultName));
+        int returnVal = fileChooser.showSaveDialog(null);
+        if (returnVal != JFileChooser.APPROVE_OPTION) return null;
+
+        File outFile = fileChooser.getSelectedFile();
+        if (extensions.length > 0) {
+            boolean hasExt = false;
+            for (String ext : extensions) {
+                if (outFile.getName().endsWith(ext)) { hasExt = true; break; }
+            }
+            if (!hasExt) {
+                outFile = new File(outFile.getAbsolutePath() + extensions[0]);
+            }
+        }
+
+        if (outFile.exists()) {
+            int confirm = JOptionPane.showConfirmDialog(null,
+                    "File already exists. Overwrite?",
+                    "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION) return null;
+        }
+        return outFile;
     }
 
     // copyfile() removed — replaced with FileUtils.copyFile() from commons-io
