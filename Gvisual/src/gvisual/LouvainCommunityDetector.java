@@ -388,12 +388,29 @@ public class LouvainCommunityDetector {
         boolean anyMoved = false;
         boolean changed = true;
 
+        // Pre-compute constants to avoid repeated division in the inner loop
+        double m2Half = m2 / 2.0;
+        double invM2Half = 1.0 / m2Half;
+        double m2SqHalf = m2 * m2 / 2.0;
+        double resOverM2SqHalf = resolution / m2SqHalf;
+
         // Use a large enough array for community degree sums
         // Find max community id
         int maxC = 0;
         for (int i = 0; i < n; i++) if (community[i] > maxC) maxC = community[i];
-        double[] cDegSum = new double[maxC + n + 1];
+        int cArrayLen = maxC + n + 1;
+        double[] cDegSum = new double[cArrayLen];
         for (int i = 0; i < n; i++) cDegSum[community[i]] += degree[i];
+
+        // Reusable map for neighbor community weights — avoids allocating a new
+        // HashMap for every node in every pass (major GC pressure reduction on
+        // large graphs with many Louvain iterations)
+        Map<Integer, Double> nw = new HashMap<Integer, Double>();
+
+        // Track which communities were touched so we can clear nw in O(touched)
+        // instead of calling nw.clear() which is O(capacity) for HashMap
+        int[] touchedCommunities = new int[n];
+        int touchedCount;
 
         while (changed) {
             changed = false;
@@ -401,11 +418,17 @@ public class LouvainCommunityDetector {
                 int curC = community[i];
                 double ki = degree[i];
 
-                Map<Integer, Double> nw = new HashMap<Integer, Double>();
+                // Aggregate neighbor edge weights by community, reusing nw map
+                touchedCount = 0;
                 for (Map.Entry<Integer, Double> e : adj.get(i).entrySet()) {
                     int cj = community[e.getKey()];
                     Double ex = nw.get(cj);
-                    nw.put(cj, ex == null ? e.getValue() : ex + e.getValue());
+                    if (ex == null) {
+                        nw.put(cj, e.getValue());
+                        touchedCommunities[touchedCount++] = cj;
+                    } else {
+                        nw.put(cj, ex + e.getValue());
+                    }
                 }
 
                 cDegSum[curC] -= ki;
@@ -416,17 +439,27 @@ public class LouvainCommunityDetector {
                 int bestC = curC;
                 double bestDQ = 0.0;
 
-                for (Map.Entry<Integer, Double> e : nw.entrySet()) {
-                    int tc = e.getKey();
-                    double kiT = e.getValue();
-                    double dq = (kiT - kiCur) / (m2 / 2.0)
-                            - resolution * ki * (cDegSum[tc] - cDegSum[curC]) / (m2 * m2 / 2.0);
+                // Pre-compute the term that depends on curC but not on the
+                // candidate community, avoiding redundant subtraction in the loop
+                double curCTerm = kiCur * invM2Half + resOverM2SqHalf * ki * cDegSum[curC];
+
+                for (int t = 0; t < touchedCount; t++) {
+                    int tc = touchedCommunities[t];
+                    double kiT = nw.get(tc);
+                    double dq = kiT * invM2Half
+                            - resOverM2SqHalf * ki * cDegSum[tc]
+                            - curCTerm;
                     if (dq > bestDQ) { bestDQ = dq; bestC = tc; }
                 }
 
                 community[i] = bestC;
                 cDegSum[bestC] += ki;
                 if (bestC != curC) { changed = true; anyMoved = true; }
+
+                // Clear only touched entries (O(touched) instead of O(capacity))
+                for (int t = 0; t < touchedCount; t++) {
+                    nw.remove(touchedCommunities[t]);
+                }
             }
         }
         return anyMoved;
