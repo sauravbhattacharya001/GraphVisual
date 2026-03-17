@@ -723,7 +723,7 @@ public class IndependentSetAnalyzer {
 
 
     @SuppressWarnings("unchecked")
-    private Collection<String> Collection<String> c {
+    private Collection<String> ensureCollection(Collection<String> c) {
         return c;
     }
 }
