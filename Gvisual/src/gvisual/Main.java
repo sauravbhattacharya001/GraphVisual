@@ -614,90 +614,23 @@ public class Main extends JFrame {
         }
 
 
-        g = new UndirectedSparseGraph<String, edge>();
+        // Parse graph file using extracted parser (separates I/O from UI)
+        GraphFileParser.ParseResult parseResult = GraphFileParser.parse(
+                fileName, this::isEdgeTypeVisible);
 
+        g = parseResult.getGraph();
 
+        // Populate classified edge lists from parse result
         friendEdges.clear();
         fsEdges.clear();
         strangerEdges.clear();
         classmateEdges.clear();
         studyGEdges.clear();
-
-        File database = new File(fileName);
-        LineIterator lineIterator = null;
-
-        try {
-            lineIterator = FileUtils.lineIterator(database);
-            int count = 0;   // count =0 for nodes and count = 1 for edges
-            while (lineIterator.hasNext()) {
-                String line = lineIterator.nextLine();
-                if (line.equalsIgnoreCase("nodes")) {
-                    count = 0;
-                } else if (line.equalsIgnoreCase("edges")) {
-                    count = 1;
-                } else {
-                    if (count == 0) {
-                        final String[] nodeParam = line.split(" ");
-                        if (nodeParam.length < 1 || nodeParam[0].isEmpty()) {
-                            continue; // skip malformed node lines
-                        }
-                        g.addVertex(nodeParam[0]);
-                        //graphLayout.setLocation(nodeParam[0], new Point(Integer.parseInt(nodeParam[1]), Integer.parseInt(nodeParam[2])));
-                    } else {
-
-
-
-                        String[] edgeParam = line.split(" ");
-                        // Validate edge line: need at least 4 fields
-                        // (type, vertex1, vertex2, weight)
-                        if (edgeParam.length < 4) {
-                            System.err.println("Skipping malformed edge line: " + line);
-                            continue;
-                        }
-                        float weight;
-                        try {
-                            weight = Float.parseFloat(edgeParam[3]);
-                        } catch (NumberFormatException nfe) {
-                            System.err.println("Skipping edge with invalid weight: " + line);
-                            continue;
-                        }
-                        if (Float.isNaN(weight) || Float.isInfinite(weight)) {
-                            System.err.println("Skipping edge with non-finite weight: " + line);
-                            continue;
-                        }
-                        edge curEdge = new edge(edgeParam[0], edgeParam[1], edgeParam[2]);
-                        curEdge.setWeight(weight);
-
-                        // Classify edge by type and add to the appropriate list
-                        EdgeType edgeType = EdgeType.fromCode(edgeParam[0]);
-                        if (edgeType != null) {
-                            List<edge> targetList = getEdgeList(edgeType);
-                            if (targetList != null) {
-                                // Set label on first edge of each type for the legend
-                                boolean alreadyLabelled = !targetList.isEmpty()
-                                    && targetList.stream().anyMatch(e -> e.getLabel() != null);
-                                if (!alreadyLabelled) {
-                                    curEdge.setLabel(edgeType.getDisplayLabel());
-                                }
-                                targetList.add(curEdge);
-                            }
-                        }
-
-                        if (!isEdgeTypeVisible(edgeParam[0])) {
-                            continue;
-                        }
-
-                        g.addEdge(curEdge, edgeParam[1], edgeParam[2]);
-                    }
-                }
-
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            LineIterator.closeQuietly(lineIterator);
-        }
+        friendEdges.addAll(parseResult.getEdges(EdgeType.FRIEND));
+        classmateEdges.addAll(parseResult.getEdges(EdgeType.CLASSMATE));
+        fsEdges.addAll(parseResult.getEdges(EdgeType.FAMILIAR));
+        strangerEdges.addAll(parseResult.getEdges(EdgeType.STRANGER));
+        studyGEdges.addAll(parseResult.getEdges(EdgeType.STUDY_GROUP));
 
         createLayout();
         vv = new VisualizationViewer<String, edge>(graphLayout);
