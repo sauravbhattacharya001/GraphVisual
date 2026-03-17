@@ -99,6 +99,7 @@ public class GexfExporter {
         if (file == null) {
             throw new IllegalArgumentException("File must not be null");
         }
+        ExportUtils.validateOutputPath(file);
         File parent = file.getParentFile();
         if (parent != null && !parent.exists()) {
             parent.mkdirs();

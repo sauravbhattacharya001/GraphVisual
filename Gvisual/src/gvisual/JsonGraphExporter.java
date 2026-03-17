@@ -207,6 +207,7 @@ public class JsonGraphExporter {
      * @throws IOException if writing fails
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (Writer writer = new OutputStreamWriter(
                 new FileOutputStream(file), StandardCharsets.UTF_8)) {
             writer.write(exportToString());
