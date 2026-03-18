@@ -2488,119 +2488,71 @@ public class Main extends JFrame {
             });
         toolPanel.add(exportButton);
 
-        JButton graphmlButton = new JButton("<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>");
-        graphmlButton.setPreferredSize(new Dimension(140, 100));
-        graphmlButton.addActionListener(e -> {
-                GraphMLExporter exporter = new GraphMLExporter(g, collectAllEdges());
-                exporter.setTimestamp(timeStamp);
-                exporter.setDescription("GraphVisual network — student community evolution");
-
-                File outFile = showExportSaveDialog("Export as GraphML",
-                        "graph_" + timeStamp + ".graphml", ".graphml");
-                if (outFile == null) return;
-
-                try {
+        ExportActions.addExportButton(toolPanel, this,
+                "<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>",
+                "Export as GraphML",
+                () -> "graph_" + timeStamp + ".graphml",
+                new String[]{".graphml"},
+                outFile -> {
+                    GraphMLExporter exporter = new GraphMLExporter(g, collectAllEdges());
+                    exporter.setTimestamp(timeStamp);
+                    exporter.setDescription("GraphVisual network \u2014 student community evolution");
                     exporter.export(outFile);
-                    JOptionPane.showMessageDialog(null,
-                            "GraphML exported successfully!\n"
+                    return "GraphML exported successfully!\n"
                             + "Nodes: " + exporter.getVertexCount() + "\n"
                             + "Edges: " + exporter.getEdgeCount() + "\n"
-                            + "File: " + outFile.getName(),
-                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex1) {
-                    LOGGER.log(Level.SEVERE, null, ex1);
-                    JOptionPane.showMessageDialog(null,
-                            "Export failed: " + ex1.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            });
-        toolPanel.add(graphmlButton);
+                            + "File: " + outFile.getName();
+                });
 
-        JButton dotButton = new JButton("<html><center>Export DOT<br/>Graphviz DOT<br/>format for dot,<br/>neato, fdp,<br/>viz-js.com</center></html>");
-        dotButton.setPreferredSize(new Dimension(140, 100));
-        dotButton.addActionListener(e -> {
-                DotExporter dotExporter = new DotExporter(g);
-                dotExporter.setGraphName("StudentNetwork");
-                dotExporter.setTimestamp(timeStamp);
-                dotExporter.setDescription("GraphVisual network — student community evolution");
-
-                File outFile = showExportSaveDialog("Export as Graphviz DOT",
-                        "graph_" + timeStamp + ".dot", ".dot", ".gv");
-                if (outFile == null) return;
-
-                try {
+        ExportActions.addExportButton(toolPanel, this,
+                "<html><center>Export DOT<br/>Graphviz DOT<br/>format for dot,<br/>neato, fdp,<br/>viz-js.com</center></html>",
+                "Export as Graphviz DOT",
+                () -> "graph_" + timeStamp + ".dot",
+                new String[]{".dot", ".gv"},
+                outFile -> {
+                    DotExporter dotExporter = new DotExporter(g);
+                    dotExporter.setGraphName("StudentNetwork");
+                    dotExporter.setTimestamp(timeStamp);
+                    dotExporter.setDescription("GraphVisual network \u2014 student community evolution");
                     dotExporter.export(outFile);
-                    JOptionPane.showMessageDialog(null,
-                            "DOT file exported successfully!\n"
+                    return "DOT file exported successfully!\n"
                             + "Nodes: " + g.getVertexCount() + "\n"
                             + "Edges: " + g.getEdgeCount() + "\n"
                             + "File: " + outFile.getName() + "\n\n"
                             + "Render with: dot -Tpng " + outFile.getName() + " -o output.png\n"
-                            + "Or paste into https://viz-js.com",
-                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex1) {
-                    LOGGER.log(Level.SEVERE, null, ex1);
-                    JOptionPane.showMessageDialog(null,
-                            "Export failed: " + ex1.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            });
-        toolPanel.add(dotButton);
+                            + "Or paste into https://viz-js.com";
+                });
 
-        JButton gexfButton = new JButton("<html><center>Export GEXF<br/>Gephi native<br/>format with<br/>dynamic/temporal<br/>support</center></html>");
-        gexfButton.setPreferredSize(new Dimension(140, 100));
-        gexfButton.addActionListener(e -> {
-                GexfExporter gexfExporter = new GexfExporter(g, collectAllEdges());
-                gexfExporter.setDescription("GraphVisual network — student community evolution");
-
-                File outFile = showExportSaveDialog("Export as GEXF (Gephi)",
-                        "graph_" + timeStamp + ".gexf", ".gexf");
-                if (outFile == null) return;
-
-                try {
+        ExportActions.addExportButton(toolPanel, this,
+                "<html><center>Export GEXF<br/>Gephi native<br/>format with<br/>dynamic/temporal<br/>support</center></html>",
+                "Export as GEXF (Gephi)",
+                () -> "graph_" + timeStamp + ".gexf",
+                new String[]{".gexf"},
+                outFile -> {
+                    GexfExporter gexfExporter = new GexfExporter(g, collectAllEdges());
+                    gexfExporter.setDescription("GraphVisual network \u2014 student community evolution");
                     gexfExporter.export(outFile);
-                    JOptionPane.showMessageDialog(null,
-                            "GEXF exported successfully!\n"
+                    return "GEXF exported successfully!\n"
                             + "Nodes: " + g.getVertexCount() + "\n"
                             + "Edges: " + g.getEdgeCount() + "\n"
                             + "File: " + outFile.getName() + "\n\n"
-                            + "Open in Gephi for advanced visualization and analysis.",
-                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex1) {
-                    LOGGER.log(Level.SEVERE, null, ex1);
-                    JOptionPane.showMessageDialog(null,
-                            "Export failed: " + ex1.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            });
-        toolPanel.add(gexfButton);
+                            + "Open in Gephi for advanced visualization and analysis.";
+                });
 
-        JButton csvReportButton = new JButton("<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>");
-        csvReportButton.setPreferredSize(new Dimension(140, 100));
-        csvReportButton.addActionListener(e -> {
-                CsvReportExporter exporter = new CsvReportExporter(g, collectAllEdges());
-                exporter.setTimestamp(timeStamp);
-
-                File outFile = showExportSaveDialog("Export Node Metrics CSV",
-                        "node_metrics_" + timeStamp + ".csv", ".csv");
-                if (outFile == null) return;
-
-                try {
+        ExportActions.addExportButton(toolPanel, this,
+                "<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>",
+                "Export Node Metrics CSV",
+                () -> "node_metrics_" + timeStamp + ".csv",
+                new String[]{".csv"},
+                outFile -> {
+                    CsvReportExporter exporter = new CsvReportExporter(g, collectAllEdges());
+                    exporter.setTimestamp(timeStamp);
                     exporter.export(outFile);
-                    JOptionPane.showMessageDialog(null,
-                            "Node metrics CSV exported!\n"
+                    return "Node metrics CSV exported!\n"
                             + "Nodes: " + g.getVertexCount() + "\n"
                             + "Columns: 13 metrics per node\n"
-                            + "File: " + outFile.getName(),
-                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex1) {
-                    LOGGER.log(Level.SEVERE, null, ex1);
-                    JOptionPane.showMessageDialog(null,
-                            "Export failed: " + ex1.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            });
-        toolPanel.add(csvReportButton);
+                            + "File: " + outFile.getName();
+                });
 
         JButton heatmapButton = new JButton("<html><center>Adjacency Matrix<br/>View graph as a<br/> color-coded<br/> heatmap matrix<br/> with zoom/pan</center></html>");
         heatmapButton.setPreferredSize(new Dimension(140, 100));
@@ -2629,40 +2581,7 @@ public class Main extends JFrame {
         return allEdges;
     }
 
-    /**
-     * Shows a save dialog with overwrite confirmation and automatic extension appending.
-     *
-     * @param dialogTitle  title for the file chooser dialog
-     * @param defaultName  default file name (e.g. "graph_2011-03-01.graphml")
-     * @param extensions   accepted file extensions including the dot (e.g. ".graphml", ".gv")
-     * @return the chosen File, or null if the user cancelled
-     */
-    private File showExportSaveDialog(String dialogTitle, String defaultName, String... extensions) {
-        JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-        fileChooser.setDialogTitle(dialogTitle);
-        fileChooser.setSelectedFile(new File(defaultName));
-        int returnVal = fileChooser.showSaveDialog(null);
-        if (returnVal != JFileChooser.APPROVE_OPTION) return null;
-
-        File outFile = fileChooser.getSelectedFile();
-        if (extensions.length > 0) {
-            boolean hasExt = false;
-            for (String ext : extensions) {
-                if (outFile.getName().endsWith(ext)) { hasExt = true; break; }
-            }
-            if (!hasExt) {
-                outFile = new File(outFile.getAbsolutePath() + extensions[0]);
-            }
-        }
-
-        if (outFile.exists()) {
-            int confirm = JOptionPane.showConfirmDialog(null,
-                    "File already exists. Overwrite?",
-                    "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-            if (confirm != JOptionPane.YES_OPTION) return null;
-        }
-        return outFile;
-    }
+    // showExportSaveDialog() moved to ExportActions.showExportSaveDialog()
 
     // copyfile() removed — replaced with FileUtils.copyFile() from commons-io
     // (which was already a project dependency). The hand-rolled byte-copy loop
