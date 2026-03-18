@@ -401,18 +401,28 @@ public class NodeCentralityAnalyzer {
             idxMap.put(vertexList.get(i), i);
         }
 
-        // Pre-build adjacency as index arrays for cache-friendly traversal
-        @SuppressWarnings("unchecked")
-        List<Integer>[] adj = new List[n];
-        for (int i = 0; i < n; i++) {
-            adj[i] = new ArrayList<Integer>();
-        }
-        for (edge e : graph.getEdges()) {
-            Integer ui = idxMap.get(e.getVertex1());
-            Integer vi = idxMap.get(e.getVertex2());
-            if (ui != null && vi != null && !ui.equals(vi)) {
-                adj[ui].add(vi);
-                adj[vi].add(ui);
+        // Pre-build adjacency as int[][] for cache-friendly, boxing-free traversal
+        int[][] adj = new int[n][];
+        {
+            @SuppressWarnings("unchecked")
+            List<Integer>[] adjTmp = new List[n];
+            for (int i = 0; i < n; i++) {
+                adjTmp[i] = new ArrayList<Integer>();
+            }
+            for (edge e : graph.getEdges()) {
+                Integer ui = idxMap.get(e.getVertex1());
+                Integer vi = idxMap.get(e.getVertex2());
+                if (ui != null && vi != null && !ui.equals(vi)) {
+                    adjTmp[ui].add(vi);
+                    adjTmp[vi].add(ui);
+                }
+            }
+            for (int i = 0; i < n; i++) {
+                List<Integer> neighbors = adjTmp[i];
+                adj[i] = new int[neighbors.size()];
+                for (int j = 0; j < neighbors.size(); j++) {
+                    adj[i][j] = neighbors.get(j);
+                }
             }
         }
 
