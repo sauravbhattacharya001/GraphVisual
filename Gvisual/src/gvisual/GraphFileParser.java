@@ -136,15 +136,15 @@ public class GraphFileParser {
                         continue;
                     }
 
-                    float weight;
+                    double weight;
                     try {
-                        weight = Float.parseFloat(parts[3]);
+                        weight = Double.parseDouble(parts[3]);
                     } catch (NumberFormatException e) {
                         LOGGER.warning("Skipping edge with invalid weight: " + line);
                         skipped++;
                         continue;
                     }
-                    if (Float.isNaN(weight) || Float.isInfinite(weight)) {
+                    if (Double.isNaN(weight) || Double.isInfinite(weight)) {
                         LOGGER.warning("Skipping edge with non-finite weight: " + line);
                         skipped++;
                         continue;

@@ -12,7 +12,7 @@ public class edge {
     private String edgeType;
     private String vertex1;
     private String vertex2;
-    private float weight;
+    private double weight;
     private String label;
     private Long timestamp;       // epoch millis (null = static/untimed edge)
     private Long endTimestamp;     // optional: for interval-based edges
@@ -63,12 +63,12 @@ public class edge {
         this.vertex2 = vertex2;
     }
 
-    public void setWeight(float weight)
+    public void setWeight(double weight)
     {
         this.weight = weight;
     }
 
-    public float getWeight()
+    public double getWeight()
     {
         return this.weight;
     }
