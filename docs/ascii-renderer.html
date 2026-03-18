@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Renderer - GraphVisual</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }
+        h1 { color: #16213e; border-bottom: 3px solid #0f3460; padding-bottom: 0.5rem; }
+        h2 { color: #0f3460; margin-top: 2rem; }
+        pre { background: #0d1117; color: #c9d1d9; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; }
+        code { background: #e8eaf6; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem; }
+        .feature { background: #f0f4ff; border-left: 4px solid #0f3460; padding: 0.5rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+        a { color: #0f3460; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        th { background: #0f3460; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔤 ASCII Graph Renderer</h1>
+    <p>Render graphs as ASCII or Unicode art directly in the terminal — no GUI or external tools needed.</p>
+
+    <h2>Features</h2>
+    <div class="feature">Force-directed node placement on a text grid</div>
+    <div class="feature">ASCII and Unicode box-drawing edge styles</div>
+    <div class="feature">Node labels with optional degree annotations</div>
+    <div class="feature">Configurable grid size (width × height)</div>
+    <div class="feature">Node highlighting by name or degree threshold</div>
+    <div class="feature">Adjacency list view (alternative to spatial layout)</div>
+    <div class="feature">Degree histogram as horizontal bar chart</div>
+    <div class="feature">Legend with graph statistics and edge type breakdown</div>
+    <div class="feature">Export to file</div>
+
+    <h2>Quick Start</h2>
+    <pre>
+GraphAsciiRenderer renderer = new GraphAsciiRenderer(graph);
+renderer.setWidth(120);
+renderer.setHeight(40);
+renderer.setUnicode(true);
+renderer.setShowDegree(true);
+System.out.println(renderer.render());
+    </pre>
+
+    <h2>Render Modes</h2>
+    <table>
+        <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><code>render()</code></td><td>Spatial force-directed layout on a character grid</td></tr>
+        <tr><td><code>renderAdjacencyList()</code></td><td>Sorted adjacency list with tree-style formatting</td></tr>
+        <tr><td><code>renderDegreeHistogram()</code></td><td>Horizontal bar chart of degree distribution</td></tr>
+    </table>
+
+    <h2>Configuration</h2>
+    <table>
+        <tr><th>Method</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>setWidth(int)</code></td><td>100</td><td>Grid width in characters</td></tr>
+        <tr><td><code>setHeight(int)</code></td><td>35</td><td>Grid height in characters</td></tr>
+        <tr><td><code>setUnicode(boolean)</code></td><td>false</td><td>Use Unicode box-drawing characters</td></tr>
+        <tr><td><code>setShowDegree(boolean)</code></td><td>false</td><td>Show degree count next to labels</td></tr>
+        <tr><td><code>setShowWeight(boolean)</code></td><td>false</td><td>Show edge weights</td></tr>
+        <tr><td><code>setShowLegend(boolean)</code></td><td>true</td><td>Show statistics legend below graph</td></tr>
+        <tr><td><code>setLayoutIterations(int)</code></td><td>200</td><td>Force-directed layout iterations</td></tr>
+        <tr><td><code>addHighlightNode(String)</code></td><td>—</td><td>Highlight specific nodes</td></tr>
+        <tr><td><code>setHighlightDegreeThreshold(int)</code></td><td>-1</td><td>Highlight nodes with degree ≥ threshold</td></tr>
+    </table>
+
+    <h2>Example Output (ASCII mode)</h2>
+    <pre>
++------------------------------------+
+|                                    |
+|   * Alice                          |
+|    \                               |
+|     \                              |
+|      * Bob                         |
+|     / \                            |
+|    /   \                           |
+|   * Carol * Dave                   |
+|                                    |
++------------------------------------+
+
+  Graph: 4 nodes, 4 edges
+  Degree: min=1, max=3, avg=2.0
+  Edge types: f=2, c=2
+    </pre>
+
+    <h2>Example Output (Unicode mode)</h2>
+    <pre>
+╔════════════════════════════════════╗
+║                                    ║
+║   ● Alice                          ║
+║    ╲                               ║
+║     ╲                              ║
+║      ● Bob                         ║
+║     ╱ ╲                            ║
+║    ╱   ╲                           ║
+║   ● Carol ● Dave                   ║
+║                                    ║
+╚════════════════════════════════════╝
+    </pre>
+
+    <p><a href="index.html">← Back to Documentation</a></p>
+</body>
+</html>
