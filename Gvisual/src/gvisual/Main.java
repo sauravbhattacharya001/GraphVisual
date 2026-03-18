@@ -2562,6 +2562,42 @@ public class Main extends JFrame {
             });
         toolPanel.add(heatmapButton);
 
+        // Diff HTML export — compare current graph to a second graph file
+        JButton diffHtmlButton = new JButton("<html><center>Diff HTML<br/>Compare two<br/>graph snapshots<br/>in interactive<br/>HTML diff view</center></html>");
+        diffHtmlButton.setPreferredSize(new Dimension(140, 100));
+        diffHtmlButton.addActionListener(e -> {
+            if (g == null || g.getVertexCount() == 0) {
+                JOptionPane.showMessageDialog(this, "Load a graph first.", "No Graph", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            // Ask user to pick a second graph file to diff against
+            JFileChooser fc = new JFileChooser(System.getProperty("user.dir"));
+            fc.setDialogTitle("Select second graph file to compare");
+            if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+            try {
+                GraphFileParser.ParseResult parseResult = GraphFileParser.parse(fc.getSelectedFile().getAbsolutePath());
+                Graph<String, edge> graphB = parseResult.getGraph();
+                GraphDiffHtmlExporter exporter = new GraphDiffHtmlExporter(g, graphB);
+                exporter.setTitle("Graph Diff: current vs " + fc.getSelectedFile().getName());
+                exporter.setLabelA("Current Graph");
+                exporter.setLabelB(fc.getSelectedFile().getName());
+                exporter.setDarkMode(true);
+                File outFile = ExportActions.showExportSaveDialog(this, "Export Diff HTML",
+                        "graph_diff_" + timeStamp + ".html", ".html");
+                if (outFile != null) {
+                    exporter.export(outFile);
+                    JOptionPane.showMessageDialog(this,
+                            "Diff visualization exported!\nFile: " + outFile.getName(),
+                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Failed to generate diff: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        toolPanel.add(diffHtmlButton);
+
         toolPanel.add(legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }

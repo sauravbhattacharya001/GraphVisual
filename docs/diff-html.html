@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Graph Diff HTML Exporter | GraphVisual Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+<h1>Graph Diff HTML Exporter</h1>
+<p>Visually compare two graph snapshots in an interactive HTML page. Nodes and edges are color-coded by diff status: <span style="color:#00e676">green = added</span>, <span style="color:#ff5252">red = removed</span>, <span style="color:#78909c">gray = common</span>.</p>
+
+<h2>Features</h2>
+<ul>
+<li>Force-directed D3.js layout with drag, zoom, and pan</li>
+<li>Color-coded nodes and edges by diff status</li>
+<li>Filter toggles to show/hide added, removed, or common elements</li>
+<li>Statistics panel with Jaccard similarity, edit distance, degree changes</li>
+<li>Hover tooltips showing node ID, status, degree in each graph</li>
+<li>Dark/light theme toggle</li>
+<li>Self-contained HTML — no server required</li>
+</ul>
+
+<h2>GUI Usage</h2>
+<p>Click the <strong>"Diff HTML"</strong> button in the toolbar. Select a second graph file to compare against the currently loaded graph. Choose an output location and the diff visualization will be exported as an HTML file.</p>
+
+<h2>Programmatic Usage</h2>
+<pre><code>GraphDiffHtmlExporter exporter = new GraphDiffHtmlExporter(graphA, graphB);
+exporter.setTitle("Network Evolution: Jan → Feb");
+exporter.setLabelA("January");
+exporter.setLabelB("February");
+exporter.setDarkMode(true);
+exporter.export(new File("diff.html"));
+
+// Or get the HTML as a string
+String html = exporter.exportToString();</code></pre>
+
+<h2>Options</h2>
+<table>
+<tr><th>Method</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>setTitle(String)</code></td><td>"Graph Diff Visualization"</td><td>Page title</td></tr>
+<tr><td><code>setLabelA(String)</code></td><td>"Graph A"</td><td>Label for the baseline graph</td></tr>
+<tr><td><code>setLabelB(String)</code></td><td>"Graph B"</td><td>Label for the comparison graph</td></tr>
+<tr><td><code>setDarkMode(boolean)</code></td><td>true</td><td>Start in dark or light theme</td></tr>
+<tr><td><code>setWidth(int)</code></td><td>1200</td><td>SVG width</td></tr>
+<tr><td><code>setHeight(int)</code></td><td>700</td><td>SVG height</td></tr>
+</table>
+
+<h2>How It Works</h2>
+<p>Uses <code>GraphDiffAnalyzer</code> to compute the structural diff between two graphs, then renders the merged result as an interactive D3.js force-directed graph. Removed edges are shown with dashed lines. The statistics panel shows Jaccard similarity scores, edit distance, and per-node degree changes.</p>
+
+<p><a href="index.html">← Back to Documentation</a></p>
+</div>
+</body>
+</html>
