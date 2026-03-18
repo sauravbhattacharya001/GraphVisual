@@ -5,6 +5,20 @@
 
 package gvisual;
 /**
+ * Represents a weighted, typed edge between two vertices in a social network graph.
+ *
+ * <p>Each edge connects two vertices (identified by string IDs) and carries a
+ * relationship type (e.g., "f" for friend, "c" for classmate), an optional numeric
+ * weight, a display label, and optional temporal bounds for time-windowed analysis.</p>
+ *
+ * <h3>Edge Types</h3>
+ * <ul>
+ *   <li><b>f</b> — Friend</li>
+ *   <li><b>fs</b> — Familiar Stranger</li>
+ *   <li><b>c</b> — Classmate</li>
+ *   <li><b>s</b> — Stranger</li>
+ *   <li><b>sg</b> — Study Group</li>
+ * </ul>
  *
  * @author user
  */
@@ -63,21 +77,42 @@ public class edge {
         this.vertex2 = vertex2;
     }
 
+    /**
+     * Sets the numeric weight of this edge.
+     * Weight typically represents interaction strength (e.g., frequency × duration).
+     *
+     * @param weight the edge weight (higher = stronger relationship)
+     */
     public void setWeight(float weight)
     {
         this.weight = weight;
     }
 
+    /**
+     * Returns the numeric weight of this edge.
+     *
+     * @return the edge weight
+     */
     public float getWeight()
     {
         return this.weight;
     }
 
+    /**
+     * Sets a display label for this edge (shown in visualizations).
+     *
+     * @param label the label text, or null for no label
+     */
     public void setLabel(String label)
     {
         this.label = label;
     }
 
+    /**
+     * Returns the display label for this edge.
+     *
+     * @return the label text, or null if none set
+     */
     public String getLabel()
     {
         return this.label;
