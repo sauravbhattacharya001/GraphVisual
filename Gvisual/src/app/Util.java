@@ -59,27 +59,30 @@ public class Util {
         return host;
     }
 
-    public static Connection getAppConnection() throws Exception {
+    /**
+     * Opens a JDBC connection to the specified PostgreSQL database.
+     *
+     * @param dbName the database name (e.g. "nic_apps", "nic_aziala")
+     * @return an open connection to the database
+     * @throws Exception if the driver is unavailable or the connection fails
+     */
+    private static Connection getConnection(String dbName) throws Exception {
         String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
         String user = requireEnv("DB_USER");
         String pass = requireEnv("DB_PASS");
 
         Class.forName("org.postgresql.Driver");
         Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://" + host + "/nic_apps", user, pass);
-        System.out.println("Successfully connected to database \"nic_apps\"");
+                "jdbc:postgresql://" + host + "/" + dbName, user, pass);
+        System.out.println("Successfully connected to database \"" + dbName + "\"");
         return conn;
     }
 
-    public static Connection getAzialaConnection() throws Exception {
-        String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
-        String user = requireEnv("DB_USER");
-        String pass = requireEnv("DB_PASS");
+    public static Connection getAppConnection() throws Exception {
+        return getConnection("nic_apps");
+    }
 
-        Class.forName("org.postgresql.Driver");
-        Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://" + host + "/nic_aziala", user, pass);
-        System.out.println("Successfully connected to database \"nic_aziala\"");
-        return conn;
+    public static Connection getAzialaConnection() throws Exception {
+        return getConnection("nic_aziala");
     }
 }

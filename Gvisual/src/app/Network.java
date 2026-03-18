@@ -8,36 +8,91 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
+ * Generates graph edge-list files from meeting database records.
  *
+ * <p>Queries the meeting table for different relationship types
+ * (friends, classmates, study-groups, strangers, familiar strangers)
+ * and writes the results as a weighted edge list file.</p>
  *
  * @author zalenix
  */
 public class Network {
 
     /**
-     *
-     * Connects to database and writes out the edge-list from the meeting DB table, forming edges of kind:
-     * friends, classmates, study-groups, strangers and familiar strangers (depending upon parameters).
+     * Describes a single meeting query: the SQL, edge type code,
+     * duration threshold, count threshold, and whether the duration
+     * comparison is {@code >} or {@code <} / count is {@code >=} or
+     * other comparison.
+     */
+    private static class MeetingQuery {
+        final String sql;
+        final String edgeCode;
+        final int durationThreshold;
+        final int countThreshold;
+
+        MeetingQuery(String sql, String edgeCode, int durationThreshold,
+                     int countThreshold) {
+            this.sql = sql;
+            this.edgeCode = edgeCode;
+            this.durationThreshold = durationThreshold;
+            this.countThreshold = countThreshold;
+        }
+    }
+
+    // ── SQL templates ──────────────────────────────────────────────
+    // Each query follows the same structure: filter meetings by month,
+    // date, location, and duration; group by IMEI pair; filter by count;
+    // join with deviceID to resolve human-readable IDs.
+
+    private static final String LOCATION_MEETING_SQL =
+            " SELECT x.id, y.id, C, d"
+            + " FROM (SELECT imei1, imei2, count(*) as C, avg(duration) as d"
+            + "       FROM (SELECT imei1, imei2, duration"
+            + "             FROM meeting"
+            + "             WHERE month = ? AND date = ? AND %s AND duration %s ?) as b"
+            + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
+            + " WHERE C %s ? AND a.imei1 = x.imei AND a.imei2 = y.imei";
+
+    private static String buildSql(String locationFilter,
+                                   String durationOp,
+                                   String countOp) {
+        return String.format(LOCATION_MEETING_SQL,
+                locationFilter, durationOp, countOp);
+    }
+
+    // Location filters
+    private static final String LOC_PUBLIC = "location = 'public'";
+    private static final String LOC_CLASS = "location = 'class'";
+    private static final String LOC_NON_CLASS =
+            "location NOT IN ('class', 'unknown', '')";
+
+    /**
+     * Connects to the database and writes out the edge-list from the
+     * meeting DB table, forming edges of kind: friends, classmates,
+     * study-groups, strangers and familiar strangers.
      *
      * <p>The output path is validated to prevent directory traversal —
      * it must resolve to a location within the current working directory.</p>
      *
-     * @param path output file path (must be within the working directory)
-     * @param Month
-     * @param Date
-     * @param dThresF
-     * @param CThresF
-     * @param dThresFS
-     * @param CThresFS
-     * @param dThresC
-     * @param CThresC
-     * @param dThresS
-     * @param CThresS
-     * @param dThresSg
-     * @param CThresSg
-     * @throws Exception
+     * @param path      output file path (must be within the working directory)
+     * @param month     month filter
+     * @param date      date filter
+     * @param dThresF   friend duration threshold
+     * @param cThresF   friend count threshold
+     * @param dThresFS  familiar stranger duration threshold
+     * @param cThresFS  familiar stranger count threshold
+     * @param dThresC   classmate duration threshold
+     * @param cThresC   classmate count threshold
+     * @param dThresS   stranger duration threshold
+     * @param cThresS   stranger count threshold
+     * @param dThresSg  study group duration threshold
+     * @param cThresSg  study group count threshold
+     * @throws Exception if database or file I/O fails
      */
-    public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
+    public static void generateFile(String path, String month, String date,
+            int dThresF, int cThresF, int dThresFS, int cThresFS,
+            int dThresC, int cThresC, int dThresS, int cThresS,
+            int dThresSg, int cThresSg) throws Exception {
 
         // Validate output path — prevent directory traversal attacks
         File outputFile = new File(path).getCanonicalFile();
@@ -50,142 +105,72 @@ public class Network {
 
         System.out.println("connecting...");
 
-        // Parameterized query template for location-based meeting queries.
-        // Parameters: month, date, location, duration threshold, count threshold.
-
-        // --- Friends query ---
-        String friendSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Study groups query ---
-        String studygSql = " SELECT x.id , y.id , C , d   "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C <= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Classmates query ---
-        String cmateSql = " SELECT x.id , y.id, C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Strangers query ---
-        // Exclude both 'class' and 'unknown' locations so only meetings with
-        // a resolved location (e.g. 'public', 'path') are considered.
-        String strangerSql = " SELECT x.id , y.id , C , d "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C < ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Familiar strangers query ---
-        String famstrangerSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a , deviceID as x, deviceID as y"
-                + " WHERE C > ? AND a.imei1= x.imei AND a.imei2 = y.imei";
+        // Define all queries with their parameters
+        MeetingQuery[] queries = {
+            new MeetingQuery(
+                buildSql(LOC_PUBLIC, ">", ">="),
+                "f", dThresF, cThresF),
+            new MeetingQuery(
+                buildSql(LOC_CLASS, ">", "<="),
+                "sg", dThresSg, cThresSg),
+            new MeetingQuery(
+                buildSql(LOC_CLASS, ">", ">="),
+                "c", dThresC, cThresC),
+            new MeetingQuery(
+                buildSql(LOC_NON_CLASS, "<", "<"),
+                "s", dThresS, cThresS),
+            new MeetingQuery(
+                buildSql(LOC_NON_CLASS, "<", ">"),
+                "fs", dThresFS, cThresFS),
+        };
 
         try (Connection conn = Util.getAppConnection()) {
-
-            // Use StringBuilder instead of String concatenation for performance
             StringBuilder sb = new StringBuilder("edges");
 
-            // --- Friends ---
-            try (PreparedStatement psFriend = conn.prepareStatement(friendSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psFriend.setString(1, Month);
-                psFriend.setString(2, Date);
-                psFriend.setInt(3, dThresF);
-                psFriend.setInt(4, CThresF);
-                try (ResultSet rs = psFriend.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nf ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Study groups ---
-            try (PreparedStatement psStudyg = conn.prepareStatement(studygSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psStudyg.setString(1, Month);
-                psStudyg.setString(2, Date);
-                psStudyg.setInt(3, dThresSg);
-                psStudyg.setInt(4, CThresSg);
-                try (ResultSet rs = psStudyg.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nsg ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Classmates ---
-            try (PreparedStatement psCmate = conn.prepareStatement(cmateSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psCmate.setString(1, Month);
-                psCmate.setString(2, Date);
-                psCmate.setInt(3, dThresC);
-                psCmate.setInt(4, CThresC);
-                try (ResultSet rs = psCmate.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nc ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Strangers ---
-            try (PreparedStatement psStranger = conn.prepareStatement(strangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psStranger.setString(1, Month);
-                psStranger.setString(2, Date);
-                psStranger.setInt(3, dThresS);
-                psStranger.setInt(4, CThresS);
-                try (ResultSet rs = psStranger.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\ns ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Familiar strangers ---
-            try (PreparedStatement psFamstranger = conn.prepareStatement(famstrangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psFamstranger.setString(1, Month);
-                psFamstranger.setString(2, Date);
-                psFamstranger.setInt(3, dThresFS);
-                psFamstranger.setInt(4, CThresFS);
-                try (ResultSet rs = psFamstranger.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nfs ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
+            for (MeetingQuery mq : queries) {
+                appendEdges(conn, sb, mq, month, date);
             }
 
             // Write output file — use validated outputFile, not raw path
             if (outputFile.exists()) {
                 outputFile.delete();
             }
-            try (BufferedWriter out = new BufferedWriter(new FileWriter(outputFile))) {
+            try (BufferedWriter out = new BufferedWriter(
+                    new FileWriter(outputFile))) {
                 out.write(sb.toString());
+            }
+        }
+    }
+
+    /**
+     * Executes a single meeting query and appends matching edges to the
+     * StringBuilder.
+     *
+     * @param conn   database connection
+     * @param sb     output buffer
+     * @param mq     the query descriptor
+     * @param month  month parameter
+     * @param date   date parameter
+     * @throws Exception if the query fails
+     */
+    private static void appendEdges(Connection conn, StringBuilder sb,
+            MeetingQuery mq, String month, String date) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(
+                mq.sql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY)) {
+            ps.setString(1, month);
+            ps.setString(2, date);
+            ps.setInt(3, mq.durationThreshold);
+            ps.setInt(4, mq.countThreshold);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                    sb.append('\n').append(mq.edgeCode).append(' ')
+                      .append(rs.getString(1)).append(' ')
+                      .append(rs.getString(2)).append(' ')
+                      .append(weight);
+                }
             }
         }
     }
