@@ -514,21 +514,24 @@ public class ForceDirectedLayout {
         int n = vertexList != null ? vertexList.size() : 0;
         if (n < 2) return 0;
 
-        // BFS shortest paths
-        Map<String, Map<String, Integer>> shortestPaths =
-                new HashMap<String, Map<String, Integer>>();
-        for (String v : vertexList) {
-            shortestPaths.put(v, GraphUtils.bfsDistances(graph, v));
-        }
+        // Ideal edge length: constant for this graph/layout
+        double k = Math.sqrt(width * height / n);
 
+        // Compute BFS one source at a time to reduce memory from O(V²) to O(V).
+        // The previous implementation stored all-pairs shortest paths in a
+        // Map<String, Map<String, Integer>> before iterating — for a graph
+        // with V vertices this allocates V HashMap instances with up to V
+        // entries each, plus V² Integer box objects. By computing BFS for
+        // vertex i, consuming distances to vertices j > i, and then
+        // discarding the map, we keep only one BFS result alive at a time.
         double stress = 0;
         double normalizer = 0;
-        // Ideal edge length: constant for this graph/layout, hoist out of loop
-        double k = Math.sqrt(width * height / n);
+
         for (int i = 0; i < n; i++) {
             String vi = vertexList.get(i);
             double[] pi = positions.get(vi);
-            Map<String, Integer> viPaths = shortestPaths.get(vi);
+            Map<String, Integer> viPaths = GraphUtils.bfsDistances(graph, vi);
+
             for (int j = i + 1; j < n; j++) {
                 String vj = vertexList.get(j);
                 Integer graphDist = viPaths.get(vj);
