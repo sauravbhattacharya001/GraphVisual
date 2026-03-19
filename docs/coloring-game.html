@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Coloring Game — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .game-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; margin-top: 24px; }
+        .game-panel { display: flex; flex-direction: column; gap: 14px; }
+        .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .panel-card h3 { font-size: 13px; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.85; }
+        .btn-success { background: var(--green); color: #000; }
+        .btn-success:hover { opacity: 0.85; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        canvas#gameCanvas { width: 100%; aspect-ratio: 4/3; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+        .color-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+        .color-btn { width: 36px; height: 36px; border-radius: 8px; border: 3px solid transparent; cursor: pointer; transition: all 0.15s; position: relative; }
+        .color-btn:hover { transform: scale(1.15); }
+        .color-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+        .color-btn.used::after { content: attr(data-count); position: absolute; bottom: -6px; right: -6px; background: var(--bg); color: var(--text-muted); font-size: 9px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+        .stat-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-muted); }
+        .stat-val { font-weight: 600; }
+        .stat-val.good { color: var(--green); }
+        .stat-val.warn { color: var(--orange); }
+        .stat-val.bad { color: var(--red); }
+        .conflict-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+        .difficulty-select { display: flex; gap: 6px; }
+        .diff-btn { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; background: var(--surface-hover); color: var(--text-muted); border: 1px solid var(--border); transition: all 0.2s; }
+        .diff-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .diff-btn:hover:not(.active) { background: var(--border); }
+        .hint-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--text-muted); line-height: 1.5; display: none; }
+        .hint-box.visible { display: block; }
+        .message-banner { padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; display: none; }
+        .message-banner.win { display: block; background: rgba(63,185,80,0.15); border: 1px solid var(--green); color: var(--green); }
+        .message-banner.conflict { display: block; background: rgba(248,81,73,0.1); border: 1px solid var(--red); color: var(--red); }
+        .scoreboard { max-height: 150px; overflow-y: auto; }
+        .score-entry { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--border); }
+        .score-entry .rank { color: var(--accent); font-weight: 600; width: 20px; }
+        .score-entry .detail { color: var(--text-muted); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .node-conflict { animation: pulse 0.8s ease-in-out 3; }
+        @media (max-width: 800px) { .game-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link active"><span class="icon">🧩</span>Coloring Game</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🧩 Graph Coloring Game
+    <span class="subtitle">Color every vertex so no two neighbors share a color — using as few colors as possible!</span>
+</h1>
+
+<div id="messageBanner" class="message-banner"></div>
+
+<div class="game-layout">
+    <div class="game-panel">
+        <!-- Difficulty -->
+        <div class="panel-card">
+            <h3>Difficulty</h3>
+            <div class="difficulty-select">
+                <div class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy')">Easy</div>
+                <div class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">Medium</div>
+                <div class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">Hard</div>
+            </div>
+        </div>
+
+        <!-- Color Palette -->
+        <div class="panel-card">
+            <h3>🎨 Pick a Color</h3>
+            <div id="colorPalette" class="color-palette"></div>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Select a color, then click a vertex on the graph.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="panel-card">
+            <h3>📊 Progress</h3>
+            <div id="gameStats">
+                <div class="stat-row"><span class="stat-label">Vertices colored</span><span id="statColored" class="stat-val">0 / 0</span></div>
+                <div class="stat-row"><span class="stat-label">Colors used</span><span id="statColors" class="stat-val">0</span></div>
+                <div class="stat-row"><span class="stat-label">Conflicts</span><span id="statConflicts" class="stat-val good">0</span></div>
+                <div class="stat-row"><span class="stat-label">Optimal (χ)</span><span id="statOptimal" class="stat-val">?</span></div>
+                <div class="stat-row"><span class="stat-label">Moves</span><span id="statMoves" class="stat-val">0</span></div>
+                <div class="stat-row"><span class="stat-label">Time</span><span id="statTime" class="stat-val">0:00</span></div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="panel-card">
+            <h3>Actions</h3>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="newGame()">New Graph</button>
+                <button class="btn btn-secondary" onclick="resetColors()">Reset</button>
+                <button class="btn btn-secondary" onclick="undoMove()">Undo</button>
+            </div>
+            <div class="btn-row" style="margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="showHint()">💡 Hint</button>
+                <button class="btn btn-secondary btn-sm" onclick="showSolution()">🔑 Solution</button>
+            </div>
+            <div id="hintBox" class="hint-box" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="panel-card">
+            <h3>🏆 Best Scores</h3>
+            <div id="scoreboard" class="scoreboard"><p style="font-size:12px;color:var(--text-muted);">Complete a game to see scores!</p></div>
+        </div>
+    </div>
+
+    <div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// --- Constants ---
+const PALETTE = ['#f85149','#58a6ff','#3fb950','#d29922','#bc8cff','#f778ba','#79c0ff','#ffa657','#56d364','#ff7b72','#d2a8ff','#a5d6ff'];
+const DIFFICULTIES = {
+    easy:   { nodes: [6,8],   edgeFactor: [0.3,0.45], label: 'Easy' },
+    medium: { nodes: [10,14], edgeFactor: [0.3,0.5],  label: 'Medium' },
+    hard:   { nodes: [16,22], edgeFactor: [0.35,0.55], label: 'Hard' }
+};
+
+// --- State ---
+let nodes = [], edges = [], nodeColors = {}, selectedColor = 0;
+let difficulty = 'easy', moveHistory = [], moveCount = 0;
+let timerStart = null, timerInterval = null, elapsed = 0;
+let chromaticNumber = 0, solved = false;
+let scores = JSON.parse(localStorage.getItem('gv-coloring-scores') || '[]');
+let canvas, ctx;
+
+// --- Graph Generation ---
+function rand(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
+function randF(a,b) { return a+Math.random()*(b-a); }
+
+function generateGraph() {
+    const cfg = DIFFICULTIES[difficulty];
+    const n = rand(cfg.nodes[0], cfg.nodes[1]);
+    const maxEdges = n*(n-1)/2;
+    const targetEdges = Math.floor(maxEdges * randF(cfg.edgeFactor[0], cfg.edgeFactor[1]));
+    
+    // Place nodes with force-directed spacing
+    nodes = [];
+    const w = 700, h = 520, pad = 50;
+    for (let i = 0; i < n; i++) {
+        nodes.push({ id: i, x: pad + Math.random()*(w-2*pad), y: pad + Math.random()*(h-2*pad), label: String.fromCharCode(65+i%26)+(i>=26?Math.floor(i/26):'') });
+    }
+    // Relax positions
+    for (let iter = 0; iter < 80; iter++) {
+        for (let i = 0; i < n; i++) {
+            let fx=0, fy=0;
+            for (let j = 0; j < n; j++) {
+                if (i===j) continue;
+                let dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+                let d = Math.sqrt(dx*dx+dy*dy)||1;
+                if (d < 100) { fx += (dx/d)*3; fy += (dy/d)*3; }
+            }
+            nodes[i].x = Math.max(pad, Math.min(w-pad, nodes[i].x+fx));
+            nodes[i].y = Math.max(pad, Math.min(h-pad, nodes[i].y+fy));
+        }
+    }
+
+    // Generate edges
+    let possible = [];
+    for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) possible.push([i,j]);
+    // Shuffle
+    for (let i=possible.length-1;i>0;i--) { let j=rand(0,i); [possible[i],possible[j]]=[possible[j],possible[i]]; }
+    
+    // Ensure connected: spanning tree first
+    edges = [];
+    let connected = new Set([0]);
+    let remaining = new Set(Array.from({length:n},(_,i)=>i).slice(1));
+    while (remaining.size > 0) {
+        let from = [...connected][rand(0,connected.size-1)];
+        let to = [...remaining][rand(0,remaining.size-1)];
+        edges.push([Math.min(from,to), Math.max(from,to)]);
+        connected.add(to);
+        remaining.delete(to);
+    }
+    
+    // Add more edges up to target
+    let edgeSet = new Set(edges.map(e=>e[0]+','+e[1]));
+    for (let e of possible) {
+        if (edges.length >= targetEdges) break;
+        let key = e[0]+','+e[1];
+        if (!edgeSet.has(key)) { edges.push(e); edgeSet.add(key); }
+    }
+
+    nodeColors = {};
+    chromaticNumber = computeChromaticBound();
+}
+
+// --- DSatur greedy for chromatic bound ---
+function greedyColor() {
+    let coloring = {};
+    let sat = {}; // saturation per node
+    for (let n of nodes) { sat[n.id] = new Set(); coloring[n.id] = -1; }
+    
+    for (let step = 0; step < nodes.length; step++) {
+        // Pick uncolored node with max saturation, break ties by degree
+        let best = -1, bestSat = -1, bestDeg = -1;
+        for (let n of nodes) {
+            if (coloring[n.id] !== -1) continue;
+            let s = sat[n.id].size;
+            let d = edges.filter(e=>e[0]===n.id||e[1]===n.id).length;
+            if (s > bestSat || (s===bestSat && d > bestDeg)) { best=n.id; bestSat=s; bestDeg=d; }
+        }
+        // Assign smallest available color
+        let neighborColors = new Set();
+        for (let e of edges) {
+            if (e[0]===best && coloring[e[1]]!==-1) neighborColors.add(coloring[e[1]]);
+            if (e[1]===best && coloring[e[0]]!==-1) neighborColors.add(coloring[e[0]]);
+        }
+        let c = 0;
+        while (neighborColors.has(c)) c++;
+        coloring[best] = c;
+        // Update saturation
+        for (let e of edges) {
+            let neighbor = e[0]===best ? e[1] : (e[1]===best ? e[0] : -1);
+            if (neighbor !== -1) sat[neighbor].add(c);
+        }
+    }
+    return coloring;
+}
+
+function computeChromaticBound() {
+    let coloring = greedyColor();
+    return Math.max(...Object.values(coloring)) + 1;
+}
+
+// --- Rendering ---
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = (rect.width * 3/4) * devicePixelRatio;
+    canvas.style.height = (rect.width * 3/4) + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+
+function draw() {
+    const w = canvas.width / devicePixelRatio;
+    const h = canvas.height / devicePixelRatio;
+    ctx.clearRect(0, 0, w, h);
+    
+    // Scale to fit
+    const scaleX = w / 700, scaleY = h / 520;
+
+    // Draw edges
+    for (let e of edges) {
+        const a = nodes[e[0]], b = nodes[e[1]];
+        const hasConflict = nodeColors[e[0]] !== undefined && nodeColors[e[1]] !== undefined && nodeColors[e[0]] === nodeColors[e[1]];
+        ctx.beginPath();
+        ctx.moveTo(a.x*scaleX, a.y*scaleY);
+        ctx.lineTo(b.x*scaleX, b.y*scaleY);
+        ctx.strokeStyle = hasConflict ? '#f85149' : '#30363d';
+        ctx.lineWidth = hasConflict ? 2.5 : 1.5;
+        ctx.stroke();
+    }
+
+    // Draw nodes
+    const r = difficulty === 'hard' ? 16 : 20;
+    for (let n of nodes) {
+        const x = n.x*scaleX, y = n.y*scaleY;
+        const colored = nodeColors[n.id] !== undefined;
+        
+        // Glow for conflicts
+        const conflicts = getNodeConflicts(n.id);
+        if (conflicts > 0) {
+            ctx.beginPath();
+            ctx.arc(x, y, r+6, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(248,81,73,0.25)';
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fillStyle = colored ? PALETTE[nodeColors[n.id]] : '#1c2129';
+        ctx.fill();
+        ctx.strokeStyle = colored ? 'rgba(255,255,255,0.3)' : '#58a6ff';
+        ctx.lineWidth = colored ? 2 : 2.5;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = colored ? '#000' : '#e6edf3';
+        ctx.font = `bold ${r*0.7}px -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, x, y);
+    }
+}
+
+function getNodeConflicts(id) {
+    if (nodeColors[id] === undefined) return 0;
+    let c = 0;
+    for (let e of edges) {
+        if (e[0]===id && nodeColors[e[1]]===nodeColors[id]) c++;
+        if (e[1]===id && nodeColors[e[0]]===nodeColors[id]) c++;
+    }
+    return c;
+}
+
+function getTotalConflicts() {
+    let c = 0;
+    for (let e of edges) {
+        if (nodeColors[e[0]]!==undefined && nodeColors[e[1]]!==undefined && nodeColors[e[0]]===nodeColors[e[1]]) c++;
+    }
+    return c;
+}
+
+function getUsedColors() {
+    return new Set(Object.values(nodeColors)).size;
+}
+
+// --- Game Logic ---
+function handleCanvasClick(e) {
+    if (solved) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left), my = (e.clientY - rect.top);
+    const scaleX = (canvas.width/devicePixelRatio)/700, scaleY = (canvas.height/devicePixelRatio)/520;
+    const r = difficulty === 'hard' ? 16 : 20;
+    
+    let closest = -1, minD = Infinity;
+    for (let n of nodes) {
+        const dx = n.x*scaleX - mx, dy = n.y*scaleY - my;
+        const d = Math.sqrt(dx*dx+dy*dy);
+        if (d < r+8 && d < minD) { closest = n.id; minD = d; }
+    }
+    
+    if (closest === -1) return;
+    
+    // Record for undo
+    moveHistory.push({ id: closest, prev: nodeColors[closest] });
+    nodeColors[closest] = selectedColor;
+    moveCount++;
+    
+    // Start timer on first move
+    if (!timerStart) startTimer();
+    
+    updateUI();
+    checkWin();
+}
+
+function startTimer() {
+    timerStart = Date.now();
+    timerInterval = setInterval(() => {
+        elapsed = Math.floor((Date.now()-timerStart)/1000);
+        document.getElementById('statTime').textContent = formatTime(elapsed);
+    }, 500);
+}
+
+function formatTime(s) { return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+function checkWin() {
+    const allColored = Object.keys(nodeColors).length === nodes.length;
+    const noConflicts = getTotalConflicts() === 0;
+    const banner = document.getElementById('messageBanner');
+    
+    if (allColored && noConflicts) {
+        solved = true;
+        clearInterval(timerInterval);
+        const used = getUsedColors();
+        const optimal = used <= chromaticNumber;
+        banner.className = 'message-banner win';
+        banner.textContent = optimal 
+            ? `🎉 Perfect! You used the optimal ${used} color${used>1?'s':''} in ${formatTime(elapsed)}!`
+            : `✅ Solved with ${used} colors! (Optimal: ${chromaticNumber}) — Time: ${formatTime(elapsed)}`;
+        banner.style.display = 'block';
+        saveScore(used, elapsed, moveCount);
+    } else if (allColored && !noConflicts) {
+        banner.className = 'message-banner conflict';
+        banner.textContent = `⚠️ All vertices colored but ${getTotalConflicts()} conflict${getTotalConflicts()>1?'s':''} remain!`;
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function undoMove() {
+    if (moveHistory.length === 0) return;
+    const last = moveHistory.pop();
+    if (last.prev === undefined) delete nodeColors[last.id];
+    else nodeColors[last.id] = last.prev;
+    updateUI();
+}
+
+function resetColors() {
+    nodeColors = {};
+    moveHistory = [];
+    moveCount = 0;
+    solved = false;
+    elapsed = 0;
+    clearInterval(timerInterval);
+    timerStart = null;
+    document.getElementById('messageBanner').style.display = 'none';
+    document.getElementById('hintBox').className = 'hint-box';
+    updateUI();
+}
+
+function newGame() {
+    resetColors();
+    generateGraph();
+    updateUI();
+}
+
+function setDifficulty(d) {
+    difficulty = d;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff===d));
+    newGame();
+}
+
+function showHint() {
+    const box = document.getElementById('hintBox');
+    // Find uncolored node with most colored neighbors (most constrained)
+    let best=-1, bestScore=-1;
+    for (let n of nodes) {
+        if (nodeColors[n.id]!==undefined) continue;
+        let score = 0;
+        for (let e of edges) {
+            if (e[0]===n.id && nodeColors[e[1]]!==undefined) score++;
+            if (e[1]===n.id && nodeColors[e[0]]!==undefined) score++;
+        }
+        if (score > bestScore) { best=n.id; bestScore=score; }
+    }
+    if (best===-1) {
+        // Check conflicts
+        if (getTotalConflicts()>0) {
+            box.innerHTML = '💡 You have conflicts! Try changing the color of vertices connected by <span style="color:var(--red)">red edges</span>.';
+        } else {
+            box.innerHTML = '💡 All vertices are colored with no conflicts. Nice!';
+        }
+    } else {
+        const node = nodes[best];
+        const neighborColors = new Set();
+        for (let e of edges) {
+            if (e[0]===best && nodeColors[e[1]]!==undefined) neighborColors.add(nodeColors[e[1]]);
+            if (e[1]===best && nodeColors[e[0]]!==undefined) neighborColors.add(nodeColors[e[0]]);
+        }
+        let suggest = 0;
+        while (neighborColors.has(suggest)) suggest++;
+        box.innerHTML = `💡 Try vertex <b>${node.label}</b> — it has ${bestScore} colored neighbor${bestScore>1?'s':''}. Color <b>#${suggest+1}</b> (${getColorName(suggest)}) works.`;
+    }
+    box.className = 'hint-box visible';
+}
+
+function getColorName(i) {
+    return ['Red','Blue','Green','Gold','Purple','Pink','Sky','Orange','Lime','Coral','Lavender','Ice'][i]||`Color ${i+1}`;
+}
+
+function showSolution() {
+    const sol = greedyColor();
+    for (let id in sol) nodeColors[parseInt(id)] = sol[id];
+    solved = true;
+    clearInterval(timerInterval);
+    document.getElementById('messageBanner').className = 'message-banner win';
+    document.getElementById('messageBanner').textContent = `🔑 Solution shown using ${computeChromaticBound()} colors (DSatur algorithm).`;
+    document.getElementById('messageBanner').style.display = 'block';
+    updateUI();
+}
+
+function saveScore(colors, time, moves) {
+    scores.push({ difficulty, nodes: nodes.length, edges: edges.length, colors, optimal: chromaticNumber, time, moves, date: new Date().toISOString() });
+    scores.sort((a,b) => (a.colors-b.colors)||(a.time-b.time));
+    scores = scores.slice(0, 20);
+    localStorage.setItem('gv-coloring-scores', JSON.stringify(scores));
+    renderScoreboard();
+}
+
+function renderScoreboard() {
+    const el = document.getElementById('scoreboard');
+    if (scores.length === 0) { el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">Complete a game to see scores!</p>'; return; }
+    el.innerHTML = scores.slice(0,10).map((s,i) =>
+        `<div class="score-entry"><span class="rank">#${i+1}</span><span>${s.difficulty} ${s.nodes}n — <b>${s.colors}</b> colors${s.colors<=s.optimal?' ⭐':''}</span><span class="detail">${formatTime(s.time)} · ${s.moves} moves</span></div>`
+    ).join('');
+}
+
+// --- UI Updates ---
+function buildPalette() {
+    const el = document.getElementById('colorPalette');
+    const maxColors = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 8 : 12;
+    el.innerHTML = '';
+    for (let i = 0; i < maxColors; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'color-btn' + (i===selectedColor?' active':'');
+        btn.style.background = PALETTE[i];
+        btn.title = getColorName(i);
+        btn.onclick = () => { selectedColor = i; buildPalette(); };
+        // Count usage
+        const count = Object.values(nodeColors).filter(c=>c===i).length;
+        if (count > 0) { btn.classList.add('used'); btn.dataset.count = count; }
+        el.appendChild(btn);
+    }
+}
+
+function updateUI() {
+    draw();
+    buildPalette();
+    document.getElementById('statColored').textContent = `${Object.keys(nodeColors).length} / ${nodes.length}`;
+    const used = getUsedColors();
+    document.getElementById('statColors').textContent = used;
+    const conflicts = getTotalConflicts();
+    const ce = document.getElementById('statConflicts');
+    ce.textContent = conflicts;
+    ce.className = 'stat-val ' + (conflicts===0?'good':'bad');
+    document.getElementById('statOptimal').textContent = chromaticNumber;
+    document.getElementById('statMoves').textContent = moveCount;
+}
+
+// --- Init ---
+window.addEventListener('DOMContentLoaded', () => {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    resizeCanvas();
+    generateGraph();
+    updateUI();
+    renderScoreboard();
+    canvas.addEventListener('click', handleCanvasClick);
+    window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+});
+</script>
+
+</body>
+</html>
