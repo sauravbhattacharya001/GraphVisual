@@ -42,9 +42,9 @@ import java.util.stream.Collectors;
  */
 public class GraphQueryEngine {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
-    public GraphQueryEngine(Graph<String, edge> graph) {
+    public GraphQueryEngine(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
     }
 
@@ -104,7 +104,7 @@ public class GraphQueryEngine {
         }
         if (nodeCount == 0) minDeg = 0;
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String t = e.getType() != null ? e.getType() : "unknown";
             typeCounts.merge(t, 1, Integer::sum);
         }
@@ -119,10 +119,10 @@ public class GraphQueryEngine {
      * Chainable builder for filtering graph vertices.
      */
     public static class NodeQuery {
-        private final Graph<String, edge> graph;
+        private final Graph<String, Edge> graph;
         private final List<Predicate<String>> filters = new ArrayList<>();
 
-        NodeQuery(Graph<String, edge> graph) {
+        NodeQuery(Graph<String, Edge> graph) {
             this.graph = graph;
         }
 
@@ -172,7 +172,7 @@ public class GraphQueryEngine {
         /** Keep only nodes that have at least one edge of the given type. */
         public NodeQuery connectedByType(String edgeType) {
             filters.add(v -> {
-                for (edge e : graph.getIncidentEdges(v)) {
+                for (Edge e : graph.getIncidentEdges(v)) {
                     if (edgeType.equals(e.getType())) return true;
                 }
                 return false;
@@ -247,10 +247,10 @@ public class GraphQueryEngine {
      * Chainable builder for filtering graph edges.
      */
     public static class EdgeQuery {
-        private final Graph<String, edge> graph;
-        private final List<Predicate<edge>> filters = new ArrayList<>();
+        private final Graph<String, Edge> graph;
+        private final List<Predicate<Edge>> filters = new ArrayList<>();
 
-        EdgeQuery(Graph<String, edge> graph) {
+        EdgeQuery(Graph<String, Edge> graph) {
             this.graph = graph;
         }
 
@@ -272,7 +272,7 @@ public class GraphQueryEngine {
             return this;
         }
 
-        /** Keep only edges where both endpoints are in the given set. */
+        /** Keep only Edges where both endpoints are in the given set. */
         public EdgeQuery betweenNodes(Set<String> nodeSet) {
             filters.add(e -> nodeSet.contains(e.getVertex1()) && nodeSet.contains(e.getVertex2()));
             return this;
@@ -315,13 +315,13 @@ public class GraphQueryEngine {
         }
 
         /** Add a custom predicate filter. */
-        public EdgeQuery where(Predicate<edge> predicate) {
+        public EdgeQuery where(Predicate<Edge> predicate) {
             filters.add(predicate);
             return this;
         }
 
         /** Execute the query and return matching edges. */
-        public Set<edge> results() {
+        public Set<Edge> results() {
             return graph.getEdges().stream()
                     .filter(e -> filters.stream().allMatch(f -> f.test(e)))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -333,7 +333,7 @@ public class GraphQueryEngine {
         }
 
         /** Execute and return results sorted by weight (descending). */
-        public List<edge> sortedByWeight() {
+        public List<Edge> sortedByWeight() {
             return results().stream()
                     .sorted(Comparator.comparing(edge::getWeight).reversed())
                     .collect(Collectors.toList());
@@ -342,7 +342,7 @@ public class GraphQueryEngine {
         /** Execute and return a type breakdown of matching edges. */
         public Map<String, Integer> typeBreakdown() {
             Map<String, Integer> counts = new LinkedHashMap<>();
-            for (edge e : results()) {
+            for (Edge e : results()) {
                 String t = e.getType() != null ? e.getType() : "unknown";
                 counts.merge(t, 1, Integer::sum);
             }
@@ -351,12 +351,12 @@ public class GraphQueryEngine {
 
         /** Execute and return a summary string for display. */
         public String summary() {
-            Set<edge> r = results();
+            Set<Edge> r = results();
             if (r.isEmpty()) return "No matching edges.";
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("Found %d edge(s):\n", r.size()));
             int shown = 0;
-            for (edge e : r) {
+            for (Edge e : r) {
                 sb.append(String.format("  %s --%s--> %s  (w=%.2f)\n",
                         e.getVertex1(), e.getType(), e.getVertex2(), e.getWeight()));
                 if (++shown >= 50) {

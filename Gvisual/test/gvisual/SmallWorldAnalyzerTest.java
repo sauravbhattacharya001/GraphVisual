@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  */
 public class SmallWorldAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -23,7 +23,7 @@ public class SmallWorldAnalyzerTest {
     }
 
     private void addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
     }
@@ -280,7 +280,7 @@ public class SmallWorldAnalyzerTest {
 
     @Test
     public void testSparse_classification() {
-        // Tree: n=5, edges=4, mean degree < 2
+        // Tree: n=5, Edges=4, mean degree < 2
         addEdge("A", "B");
         addEdge("A", "C");
         addEdge("A", "D");

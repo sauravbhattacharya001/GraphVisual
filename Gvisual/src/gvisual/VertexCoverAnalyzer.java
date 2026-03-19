@@ -41,7 +41,7 @@ import java.util.*;
  */
 public class VertexCoverAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> adj;
 
     /**
@@ -50,7 +50,7 @@ public class VertexCoverAnalyzer {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public VertexCoverAnalyzer(Graph<String, edge> graph) {
+    public VertexCoverAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -71,7 +71,7 @@ public class VertexCoverAnalyzer {
         Set<String> cover = new LinkedHashSet<String>();
         Set<String> coveredEdgeKeys = new HashSet<String>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             String key = edgeKey(v1, v2);
@@ -198,7 +198,7 @@ public class VertexCoverAnalyzer {
             for (int i = 0; i < targetSize; i++) {
                 mask |= (1L << combo[i]);
             }
-            for (int[] ep : edges) {
+            for (int[] ep : Edges) {
                 if ((mask & (1L << ep[0])) == 0 && (mask & (1L << ep[1])) == 0) {
                     return null;
                 }
@@ -231,7 +231,7 @@ public class VertexCoverAnalyzer {
         if (cover == null) {
             throw new IllegalArgumentException("Cover set must not be null");
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (!cover.contains(e.getVertex1()) && !cover.contains(e.getVertex2())) {
                 return false;
             }
@@ -253,7 +253,7 @@ public class VertexCoverAnalyzer {
             throw new IllegalArgumentException("Cover set must not be null");
         }
         List<String[]> uncovered = new ArrayList<String[]>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (!cover.contains(e.getVertex1()) && !cover.contains(e.getVertex2())) {
                 uncovered.add(new String[]{e.getVertex1(), e.getVertex2()});
             }
@@ -325,7 +325,7 @@ public class VertexCoverAnalyzer {
     private int greedyMaxMatchingSize() {
         Set<String> matched = new HashSet<String>();
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (!matched.contains(v1) && !matched.contains(v2)) {
@@ -381,7 +381,7 @@ public class VertexCoverAnalyzer {
 
             cover.add(best);
             for (String n : adj.get(best)) {
-                String key = edgeKey(best, n);
+                String key = EdgeKey(best, n);
                 if (!coveredEdgeKeys.contains(key)) {
                     coveredEdgeKeys.add(key);
                     uncoveredDeg.put(n, uncoveredDeg.get(n) - 1);
@@ -424,7 +424,7 @@ public class VertexCoverAnalyzer {
         // In the LP relaxation of vertex cover, the optimal fractional
         // solution assigns 0.5 to every vertex incident to any edge.
         Set<String> incidentVertices = new HashSet<String>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             incidentVertices.add(e.getVertex1());
             incidentVertices.add(e.getVertex2());
         }
@@ -541,7 +541,7 @@ public class VertexCoverAnalyzer {
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
-    private String edgeKey(String a, String b) {
+    private String EdgeKey(String a, String b) {
         return a.compareTo(b) <= 0 ? a + "|" + b : b + "|" + a;
     }
 

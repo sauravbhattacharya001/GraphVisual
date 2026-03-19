@@ -16,10 +16,10 @@ import static org.junit.Assert.*;
  */
 public class RichClubAnalyzerTest {
 
-    private Graph<String, edge> starGraph;
-    private Graph<String, edge> completeGraph;
-    private Graph<String, edge> bipartiteGraph;
-    private Graph<String, edge> hubAndSpoke;
+    private Graph<String, Edge> starGraph;
+    private Graph<String, Edge> completeGraph;
+    private Graph<String, Edge> bipartiteGraph;
+    private Graph<String, Edge> hubAndSpoke;
 
     @Before
     public void setUp() {
@@ -29,7 +29,7 @@ public class RichClubAnalyzerTest {
         for (int i = 1; i <= 5; i++) {
             String leaf = "L" + i;
             starGraph.addVertex(leaf);
-            edge e = new edge("c", "center", leaf);
+            Edge e = new Edge("c", "center", leaf);
             starGraph.addEdge(e, "center", leaf);
         }
 
@@ -40,7 +40,7 @@ public class RichClubAnalyzerTest {
         int eid = 0;
         for (int i = 0; i < nodes.length; i++) {
             for (int j = i + 1; j < nodes.length; j++) {
-                edge e = new edge("c", nodes[i], nodes[j]);
+                Edge e = new Edge("c", nodes[i], nodes[j]);
                 completeGraph.addEdge(e, nodes[i], nodes[j]);
             }
         }
@@ -54,24 +54,24 @@ public class RichClubAnalyzerTest {
             String b = "B" + i;
             bipartiteGraph.addVertex(a);
             bipartiteGraph.addVertex(b);
-            bipartiteGraph.addEdge(new edge("c", "H1", a), "H1", a);
-            bipartiteGraph.addEdge(new edge("c", "H2", b), "H2", b);
+            bipartiteGraph.addEdge(new Edge("c", "H1", a), "H1", a);
+            bipartiteGraph.addEdge(new Edge("c", "H2", b), "H2", b);
         }
-        bipartiteGraph.addEdge(new edge("c", "H1", "H2"), "H1", "H2");
+        bipartiteGraph.addEdge(new Edge("c", "H1", "H2"), "H1", "H2");
 
         // Hub-and-spoke with interconnected hubs
         hubAndSpoke = new UndirectedSparseGraph<>();
         for (int h = 1; h <= 3; h++) hubAndSpoke.addVertex("Hub" + h);
         // Connect hubs to each other
-        hubAndSpoke.addEdge(new edge("c", "Hub1", "Hub2"), "Hub1", "Hub2");
-        hubAndSpoke.addEdge(new edge("c", "Hub2", "Hub3"), "Hub2", "Hub3");
-        hubAndSpoke.addEdge(new edge("c", "Hub1", "Hub3"), "Hub1", "Hub3");
+        hubAndSpoke.addEdge(new Edge("c", "Hub1", "Hub2"), "Hub1", "Hub2");
+        hubAndSpoke.addEdge(new Edge("c", "Hub2", "Hub3"), "Hub2", "Hub3");
+        hubAndSpoke.addEdge(new Edge("c", "Hub1", "Hub3"), "Hub1", "Hub3");
         // Add spokes
         for (int h = 1; h <= 3; h++) {
             for (int s = 1; s <= 4; s++) {
                 String spoke = "S" + h + "_" + s;
                 hubAndSpoke.addVertex(spoke);
-                hubAndSpoke.addEdge(new edge("c", "Hub" + h, spoke), "Hub" + h, spoke);
+                hubAndSpoke.addEdge(new Edge("c", "Hub" + h, spoke), "Hub" + h, spoke);
             }
         }
     }
@@ -198,7 +198,7 @@ public class RichClubAnalyzerTest {
     @Test
     public void testAssortativityStar() {
         RichClubAnalyzer rca = new RichClubAnalyzer(starGraph);
-        // Star: all edges connect degree-5 center to degree-1 leaves
+        // Star: all Edges connect degree-5 center to degree-1 leaves
         // Zero variance on one side, so correlation is 0 (degenerate case)
         double a = rca.degreeAssortativity();
         // Just verify it returns a finite value
@@ -311,10 +311,10 @@ public class RichClubAnalyzerTest {
 
     @Test
     public void testSingleEdgeGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("X");
         g.addVertex("Y");
-        g.addEdge(new edge("c", "X", "Y"), "X", "Y");
+        g.addEdge(new Edge("c", "X", "Y"), "X", "Y");
         RichClubAnalyzer rca = new RichClubAnalyzer(g);
         double phi = rca.richClubCoefficient(0);
         assertEquals(1.0, phi, 0.001); // 2 nodes, 1 edge, φ = 2*1/(2*1) = 1
@@ -322,11 +322,11 @@ public class RichClubAnalyzerTest {
 
     @Test
     public void testDisconnectedNodes() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
-        g.addEdge(new edge("c", "A", "B"), "A", "B");
+        g.addEdge(new Edge("c", "A", "B"), "A", "B");
         // C is isolated (degree 0)
         RichClubAnalyzer rca = new RichClubAnalyzer(g);
         List<String> members = rca.getRichClubMembers(0);
@@ -362,21 +362,21 @@ public class RichClubAnalyzerTest {
 
     @Test
     public void testLargerGraphPerformance() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // Build a scale-free-ish graph: 50 nodes, preferential attachment
         for (int i = 0; i < 50; i++) g.addVertex("N" + i);
         Random r = new Random(99);
         // Connect in a ring first
         for (int i = 0; i < 50; i++) {
             String a = "N" + i, b = "N" + ((i + 1) % 50);
-            g.addEdge(new edge("c", a, b), a, b);
+            g.addEdge(new Edge("c", a, b), a, b);
         }
         // Add some hub edges
         for (int i = 0; i < 30; i++) {
             String hub = "N" + (i % 3); // nodes 0-2 become hubs
             String target = "N" + (3 + r.nextInt(47));
             if (!g.isNeighbor(hub, target)) {
-                g.addEdge(new edge("c", hub, target), hub, target);
+                g.addEdge(new Edge("c", hub, target), hub, target);
             }
         }
 

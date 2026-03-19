@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class TreeAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeId;
 
     @Before
@@ -23,8 +23,8 @@ public class TreeAnalyzerTest {
         edgeId = 0;
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         e.setLabel("e" + (edgeId++));
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
@@ -89,7 +89,7 @@ public class TreeAnalyzerTest {
         TreeAnalyzer.TreeCheck check = ta.checkTree();
         assertTrue(check.isTree);
         assertEquals(2, check.vertexCount);
-        assertEquals(1, check.edgeCount);
+        assertEquals(1, check.EdgeCount);
     }
 
     @Test
@@ -446,9 +446,9 @@ public class TreeAnalyzerTest {
         TreeAnalyzer ta1 = new TreeAnalyzer(graph);
         String form1 = ta1.canonicalForm();
 
-        Graph<String, edge> graph2 = new UndirectedSparseGraph<>();
-        edge e1 = new edge("f", "X", "Y"); e1.setWeight(1); e1.setLabel("e0");
-        edge e2 = new edge("f", "Y", "Z"); e2.setWeight(1); e2.setLabel("e1");
+        Graph<String, Edge> graph2 = new UndirectedSparseGraph<>();
+        Edge e1 = new Edge("f", "X", "Y"); e1.setWeight(1); e1.setLabel("e0");
+        Edge e2 = new Edge("f", "Y", "Z"); e2.setWeight(1); e2.setLabel("e1");
         graph2.addEdge(e1, "X", "Y");
         graph2.addEdge(e2, "Y", "Z");
         TreeAnalyzer ta2 = new TreeAnalyzer(graph2);
@@ -464,10 +464,10 @@ public class TreeAnalyzerTest {
         TreeAnalyzer ta1 = new TreeAnalyzer(graph);
 
         // Star of 4
-        Graph<String, edge> graph2 = new UndirectedSparseGraph<>();
-        edge e1 = new edge("f", "H", "X"); e1.setWeight(1); e1.setLabel("e0");
-        edge e2 = new edge("f", "H", "Y"); e2.setWeight(1); e2.setLabel("e1");
-        edge e3 = new edge("f", "H", "Z"); e3.setWeight(1); e3.setLabel("e2");
+        Graph<String, Edge> graph2 = new UndirectedSparseGraph<>();
+        Edge e1 = new Edge("f", "H", "X"); e1.setWeight(1); e1.setLabel("e0");
+        Edge e2 = new Edge("f", "H", "Y"); e2.setWeight(1); e2.setLabel("e1");
+        Edge e3 = new Edge("f", "H", "Z"); e3.setWeight(1); e3.setLabel("e2");
         graph2.addEdge(e1, "H", "X");
         graph2.addEdge(e2, "H", "Y");
         graph2.addEdge(e3, "H", "Z");
@@ -481,10 +481,10 @@ public class TreeAnalyzerTest {
         buildPath("A", "B", "C", "D");
         TreeAnalyzer ta1 = new TreeAnalyzer(graph);
 
-        Graph<String, edge> graph2 = new UndirectedSparseGraph<>();
-        edge e1 = new edge("f", "1", "2"); e1.setWeight(1); e1.setLabel("e0");
-        edge e2 = new edge("f", "2", "3"); e2.setWeight(1); e2.setLabel("e1");
-        edge e3 = new edge("f", "3", "4"); e3.setWeight(1); e3.setLabel("e2");
+        Graph<String, Edge> graph2 = new UndirectedSparseGraph<>();
+        Edge e1 = new Edge("f", "1", "2"); e1.setWeight(1); e1.setLabel("e0");
+        Edge e2 = new Edge("f", "2", "3"); e2.setWeight(1); e2.setLabel("e1");
+        Edge e3 = new Edge("f", "3", "4"); e3.setWeight(1); e3.setLabel("e2");
         graph2.addEdge(e1, "1", "2");
         graph2.addEdge(e2, "2", "3");
         graph2.addEdge(e3, "3", "4");
@@ -504,8 +504,8 @@ public class TreeAnalyzerTest {
         buildPath("A", "B", "C");
         TreeAnalyzer ta1 = new TreeAnalyzer(graph);
 
-        Graph<String, edge> graph2 = new UndirectedSparseGraph<>();
-        edge e1 = new edge("f", "X", "Y"); e1.setWeight(1); e1.setLabel("e0");
+        Graph<String, Edge> graph2 = new UndirectedSparseGraph<>();
+        Edge e1 = new Edge("f", "X", "Y"); e1.setWeight(1); e1.setLabel("e0");
         graph2.addEdge(e1, "X", "Y");
         TreeAnalyzer ta2 = new TreeAnalyzer(graph2);
 

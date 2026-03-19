@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class InteractiveHtmlExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private String title = "Graph Visualization";
     private String description = "";
     private boolean showStats = true;
@@ -51,7 +51,7 @@ public class InteractiveHtmlExporter {
      * Creates an exporter for the given graph.
      * @param graph the JUNG graph to visualize
      */
-    public InteractiveHtmlExporter(Graph<String, edge> graph) {
+    public InteractiveHtmlExporter(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
     }
@@ -98,7 +98,7 @@ public class InteractiveHtmlExporter {
         List<int[]> edgeList = new ArrayList<>();
         List<String> edgeTypes = new ArrayList<>();
         List<Float> edgeWeights = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null && nodeIndex.containsKey(v1) && nodeIndex.containsKey(v2)) {
@@ -196,7 +196,7 @@ public class InteractiveHtmlExporter {
             sb.append(",type:\"").append(escJs(edgeTypes.get(i))).append("\"");
             sb.append(",weight:").append(edgeWeights.get(i));
             sb.append("}");
-            if (i < edgeList.size() - 1) sb.append(",");
+            if (i < EdgeList.size() - 1) sb.append(",");
             sb.append("\n");
         }
         sb.append("  ]\n};\n");

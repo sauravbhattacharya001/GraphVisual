@@ -14,11 +14,11 @@ import java.util.*;
  */
 public class LinkPredictionAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -41,8 +41,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -60,8 +60,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -79,11 +79,11 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("D");
         graph.addVertex("E");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
-        graph.addEdge(new edge("f", "D", "E"), "D", "E");
-        graph.addEdge(new edge("f", "C", "E"), "C", "E");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "D", "E"), "D", "E");
+        graph.addEdge(new Edge("f", "C", "E"), "C", "E");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -103,10 +103,10 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("D");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "B", "D"), "B", "D");
-        graph.addEdge(new edge("f", "C", "D"), "C", "D");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "B", "D"), "B", "D");
+        graph.addEdge(new Edge("f", "C", "D"), "C", "D");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -124,8 +124,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -140,9 +140,9 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -157,7 +157,7 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -171,7 +171,7 @@ public class LinkPredictionAnalyzerTest {
     public void testSummaryNotNull() {
         graph.addVertex("A");
         graph.addVertex("B");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
         graph.addVertex("C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
@@ -221,8 +221,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("isolated");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -242,12 +242,12 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
         // Component 2: D-E
         graph.addVertex("D");
         graph.addVertex("E");
-        graph.addEdge(new edge("f", "D", "E"), "D", "E");
+        graph.addEdge(new Edge("f", "D", "E"), "D", "E");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -271,10 +271,10 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("D");
         graph.addVertex("E");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
-        graph.addEdge(new edge("f", "A", "E"), "A", "E");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "A", "E"), "A", "E");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -289,8 +289,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -309,11 +309,11 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("D");
         graph.addVertex("E");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
-        graph.addEdge(new edge("f", "A", "E"), "A", "E");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "A", "E"), "A", "E");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -340,11 +340,11 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("D");
         graph.addVertex("E");
         graph.addVertex("F");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
-        graph.addEdge(new edge("f", "A", "E"), "A", "E");
-        graph.addEdge(new edge("f", "B", "F"), "B", "F");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "A", "E"), "A", "E");
+        graph.addEdge(new Edge("f", "B", "F"), "B", "F");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -371,8 +371,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -390,10 +390,10 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("D");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "D", "B"), "D", "B");
-        graph.addEdge(new edge("f", "D", "C"), "D", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "D", "B"), "D", "B");
+        graph.addEdge(new Edge("f", "D", "C"), "D", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -421,11 +421,11 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("D");
         graph.addVertex("E");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
-        graph.addEdge(new edge("f", "D", "E"), "D", "E");
-        graph.addEdge(new edge("f", "C", "E"), "C", "E");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "D", "E"), "D", "E");
+        graph.addEdge(new Edge("f", "C", "E"), "C", "E");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -451,8 +451,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("D");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -482,9 +482,9 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -500,8 +500,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -522,9 +522,9 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("D");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "D"), "A", "D");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -554,8 +554,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -578,10 +578,10 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("D");
         // A--B, A--C, D--B, D--C → predict A-D, common = {B, C}
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
-        graph.addEdge(new edge("f", "D", "B"), "D", "B");
-        graph.addEdge(new edge("f", "D", "C"), "D", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "D", "B"), "D", "B");
+        graph.addEdge(new Edge("f", "D", "C"), "D", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -604,8 +604,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =
@@ -619,8 +619,8 @@ public class LinkPredictionAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         LinkPredictionAnalyzer analyzer = new LinkPredictionAnalyzer(graph);
         LinkPredictionAnalyzer.PredictionResult result =

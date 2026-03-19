@@ -13,17 +13,17 @@ import java.util.*;
  */
 public class GraphSamplerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private void addEdge(String v1, String v2) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
     }
@@ -126,7 +126,7 @@ public class GraphSamplerTest {
         GraphSampler.SampleResult result = sampler.randomNode(0.5);
 
         assertEquals(5, result.getNodeCount());
-        assertTrue(result.getEdgeCount() <= 4); // at most 4 chain edges
+        assertTrue(result.getEdgeCount() <= 4); // at most 4 chain Edges
     }
 
     @Test

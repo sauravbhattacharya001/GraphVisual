@@ -43,7 +43,7 @@ import java.util.*;
  */
 public class TournamentAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final List<String> vertices;
     private final Map<String, Set<String>> beats;  // u → set of v where u beats v
 
@@ -53,7 +53,7 @@ public class TournamentAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public TournamentAnalyzer(Graph<String, edge> graph) {
+    public TournamentAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -71,7 +71,7 @@ public class TournamentAnalyzer {
         for (String v : vertices) {
             adj.put(v, new HashSet<String>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String from = e.getVertex1();
             String to = e.getVertex2();
             if (from != null && to != null && adj.containsKey(from)) {
@@ -94,7 +94,7 @@ public class TournamentAnalyzer {
         int n = vertices.size();
         if (n <= 1) return true;
 
-        // A tournament on n vertices has exactly n*(n-1)/2 edges
+        // A tournament on n vertices has exactly n*(n-1)/2 Edges
         if (graph.getEdgeCount() != (long) n * (n - 1) / 2) return false;
 
         for (int i = 0; i < n; i++) {
@@ -134,7 +134,7 @@ public class TournamentAnalyzer {
                 if (!uv && !vu) {
                     errors.add("Missing edge between " + u + " and " + v);
                 } else if (uv && vu) {
-                    errors.add("Duplicate edge between " + u + " and " + v);
+                    errors.add("Duplicate Edge between " + u + " and " + v);
                 }
             }
         }
@@ -800,7 +800,7 @@ public class TournamentAnalyzer {
     }
 
     /**
-     * Counts disagreements in a linear ordering: number of edges (u→v)
+     * Counts disagreements in a linear ordering: number of Edges (u→v)
      * where u appears after v in the ordering.
      */
     private int countDisagreements(List<String> order) {

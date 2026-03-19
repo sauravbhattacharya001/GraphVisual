@@ -14,19 +14,19 @@ import java.util.*;
  */
 public class ForceDirectedLayoutTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeCounter;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         edgeCounter = 0;
     }
 
-    private edge addEdge(String v1, String v2) {
+    private Edge addEdge(String v1, String v2) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge("test", v1, v2);
+        Edge e = new Edge("test", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
         edgeCounter++;
@@ -242,7 +242,7 @@ public class ForceDirectedLayoutTest {
                                    Math.pow(pA[1] - pC[1], 2));
 
         // With weights, heavy edge A-B should pull tighter than weak A-C
-        assertTrue("Heavy edge should produce closer nodes: AB=" +
+        assertTrue("Heavy Edge should produce closer nodes: AB=" +
                 distAB + " AC=" + distAC, distAB < distAC);
     }
 
@@ -520,7 +520,7 @@ public class ForceDirectedLayoutTest {
         // Connected nodes should still be closer than random pairs on average
         double connectedDist = 0;
         int connectedCount = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = layout.getPosition(e.getVertex1());
             double[] p2 = layout.getPosition(e.getVertex2());
             if (p1 != null && p2 != null) {

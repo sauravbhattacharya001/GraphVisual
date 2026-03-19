@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class StronglyConnectedComponentsAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new SCC analyzer for the given graph.
@@ -45,7 +45,7 @@ public class StronglyConnectedComponentsAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public StronglyConnectedComponentsAnalyzer(Graph<String, edge> graph) {
+    public StronglyConnectedComponentsAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -86,12 +86,12 @@ public class StronglyConnectedComponentsAnalyzer {
     public static class SCCResult {
         private final List<Component> components;
         private final Map<String, Integer> vertexToComponent;
-        private final Graph<String, edge> condensation;
-        private final List<edge> bridgeEdges;
+        private final Graph<String, Edge> condensation;
+        private final List<Edge> bridgeEdges;
         private final String algorithm;
 
         public SCCResult(List<Component> components, Map<String, Integer> vertexToComponent,
-                         Graph<String, edge> condensation, List<edge> bridgeEdges, String algorithm) {
+                         Graph<String, Edge> condensation, List<Edge> bridgeEdges, String algorithm) {
             this.components = Collections.unmodifiableList(components);
             this.vertexToComponent = Collections.unmodifiableMap(vertexToComponent);
             this.condensation = condensation;
@@ -102,8 +102,8 @@ public class StronglyConnectedComponentsAnalyzer {
         public List<Component> getComponents() { return components; }
         public int getComponentCount() { return components.size(); }
         public Map<String, Integer> getVertexToComponent() { return vertexToComponent; }
-        public Graph<String, edge> getCondensation() { return condensation; }
-        public List<edge> getBridgeEdges() { return bridgeEdges; }
+        public Graph<String, Edge> getCondensation() { return condensation; }
+        public List<Edge> getBridgeEdges() { return bridgeEdges; }
         public String getAlgorithm() { return algorithm; }
 
         /** Get the component containing a specific vertex. */
@@ -276,7 +276,7 @@ public class StronglyConnectedComponentsAnalyzer {
         for (String v : graph.getVertices()) {
             transpose.put(v, new ArrayList<String>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String src = getSource(e);
             String dst = getDest(e);
             if (src != null && dst != null) {
@@ -363,16 +363,16 @@ public class StronglyConnectedComponentsAnalyzer {
         }
 
         // Build condensation DAG
-        Graph<String, edge> condensation = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> condensation = new DirectedSparseGraph<String, Edge>();
         for (Component c : components) {
             condensation.addVertex("SCC-" + c.getId());
         }
 
-        List<edge> bridgeEdges = new ArrayList<edge>();
+        List<Edge> bridgeEdges = new ArrayList<Edge>();
         Set<String> condensationEdgeSet = new HashSet<String>();
         int edgeId = 0;
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String src = getSource(e);
             String dst = getDest(e);
             if (src == null || dst == null) continue;
@@ -385,7 +385,7 @@ public class StronglyConnectedComponentsAnalyzer {
                 String key = srcComp + "->" + dstComp;
                 if (!condensationEdgeSet.contains(key)) {
                     condensationEdgeSet.add(key);
-                    edge ce = new edge("bridge", "SCC-" + srcComp, "SCC-" + dstComp);
+                    Edge ce = new Edge("bridge", "SCC-" + srcComp, "SCC-" + dstComp);
                     ce.setLabel("ce" + edgeId++);
                     condensation.addEdge(ce, "SCC-" + srcComp, "SCC-" + dstComp);
                 }
@@ -474,9 +474,9 @@ public class StronglyConnectedComponentsAnalyzer {
 
     private List<String> getSuccessors(String v) {
         List<String> result = new ArrayList<String>();
-        Collection<edge> outEdges = graph.getOutEdges(v);
+        Collection<Edge> outEdges = graph.getOutEdges(v);
         if (outEdges != null) {
-            for (edge e : outEdges) {
+            for (Edge e : outEdges) {
                 String dest = getDest(e);
                 if (dest != null && !dest.equals(v)) {
                     result.add(dest);
@@ -489,11 +489,11 @@ public class StronglyConnectedComponentsAnalyzer {
         return result;
     }
 
-    private String getSource(edge e) {
+    private String getSource(Edge e) {
         return e.getVertex1();
     }
 
-    private String getDest(edge e) {
+    private String getDest(Edge e) {
         return e.getVertex2();
     }
 }

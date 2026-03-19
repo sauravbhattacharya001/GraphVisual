@@ -14,7 +14,7 @@ import java.util.*;
  *
  * <p>Uses a multi-stage approach:</p>
  * <ol>
- *   <li><b>Fast rejection:</b> vertex count, edge count, degree sequence</li>
+ *   <li><b>Fast rejection:</b> vertex count, Edge count, degree sequence</li>
  *   <li><b>Degree-based partitioning:</b> vertices grouped by degree</li>
  *   <li><b>Backtracking search:</b> VF2-style matching with feasibility pruning</li>
  * </ol>
@@ -26,8 +26,8 @@ import java.util.*;
  */
 public class GraphIsomorphismAnalyzer {
 
-    private final Graph<String, edge> graph1;
-    private final Graph<String, edge> graph2;
+    private final Graph<String, Edge> graph1;
+    private final Graph<String, Edge> graph2;
 
     /**
      * Create a new isomorphism analyzer for two graphs.
@@ -36,8 +36,8 @@ public class GraphIsomorphismAnalyzer {
      * @param graph2 the second graph (must not be null)
      * @throws IllegalArgumentException if either graph is null
      */
-    public GraphIsomorphismAnalyzer(Graph<String, edge> graph1,
-                                     Graph<String, edge> graph2) {
+    public GraphIsomorphismAnalyzer(Graph<String, Edge> graph1,
+                                     Graph<String, Edge> graph2) {
         if (graph1 == null || graph2 == null) {
             throw new IllegalArgumentException("Both graphs must not be null");
         }
@@ -193,7 +193,7 @@ public class GraphIsomorphismAnalyzer {
     /**
      * Compute the sorted degree sequence of a graph.
      */
-    private List<Integer> getSortedDegreeSequence(Graph<String, edge> g,
+    private List<Integer> getSortedDegreeSequence(Graph<String, Edge> g,
                                                    List<String> vertices) {
         List<Integer> degrees = new ArrayList<Integer>(vertices.size());
         for (String v : vertices) {
@@ -209,7 +209,7 @@ public class GraphIsomorphismAnalyzer {
     /**
      * Group vertices by their degree.
      */
-    private Map<Integer, List<String>> groupByDegree(Graph<String, edge> g,
+    private Map<Integer, List<String>> groupByDegree(Graph<String, Edge> g,
                                                       List<String> vertices) {
         Map<Integer, List<String>> groups =
                 new HashMap<Integer, List<String>>();

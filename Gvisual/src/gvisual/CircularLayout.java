@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  *   <li>Edge crossing count metric</li>
  *   <li>SVG export with node labels and edges</li>
  *   <li>Layout quality report</li>
- *   <li>Works with any JUNG {@code Graph<String, edge>}</li>
+ *   <li>Works with any JUNG {@code Graph<String, Edge>}</li>
  * </ul>
  *
  * <h3>When to use</h3>
@@ -83,7 +83,7 @@ public class CircularLayout {
         MINIMIZE_CROSSINGS
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final double width;
     private final double height;
     private final double padding;
@@ -114,7 +114,7 @@ public class CircularLayout {
 
     /** Builder for flexible construction. */
     public static class Builder {
-        private final Graph<String, edge> graph;
+        private final Graph<String, Edge> graph;
         private double width = 800;
         private double height = 800;
         private double padding = 50;
@@ -123,7 +123,7 @@ public class CircularLayout {
         private boolean dualRing = false;
         private double hubThreshold = 0.9;
 
-        public Builder(Graph<String, edge> graph) {
+        public Builder(Graph<String, Edge> graph) {
             if (graph == null) throw new IllegalArgumentException("Graph must not be null");
             this.graph = graph;
         }
@@ -294,7 +294,7 @@ public class CircularLayout {
         }
 
         List<int[]> edgeIndices = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null && indexMap.containsKey(v1) && indexMap.containsKey(v2)) {
@@ -311,7 +311,7 @@ public class CircularLayout {
         for (int i = 0; i < edgeIndices.size(); i++) {
             for (int j = i + 1; j < edgeIndices.size(); j++) {
                 int[] e1 = edgeIndices.get(i);
-                int[] e2 = edgeIndices.get(j);
+                int[] e2 = EdgeIndices.get(j);
                 // Two chords on a circle cross iff their endpoints interleave
                 if (chordsIntersect(e1[0], e1[1], e2[0], e2[1], n)) {
                     crossings++;
@@ -482,14 +482,14 @@ public class CircularLayout {
             width, height));
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null && positions.containsKey(v1) && positions.containsKey(v2)) {
                 double[] p1 = positions.get(v1);
                 double[] p2 = positions.get(v2);
                 svg.append(String.format(
-                    "  <line class=\"edge\" x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\"/>\n",
+                    "  <line class=\"Edge\" x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\"/>\n",
                     p1[0], p1[1], p2[0], p2[1]));
             }
         }

@@ -10,11 +10,11 @@ import java.util.*;
 
 /**
  * Tests for GraphPartitioner — BFS, Kernighan-Lin, and spectral
- * partitioning strategies with balance, edge cut, and conductance metrics.
+ * partitioning strategies with balance, Edge cut, and conductance metrics.
  */
 public class GraphPartitionerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,7 +24,7 @@ public class GraphPartitionerTest {
     // ---- Helpers ----
 
     private void addEdge(String u, String v) {
-        edge e = new edge("f", u, v);
+        Edge e = new Edge("f", u, v);
         graph.addEdge(e, u, v);
     }
 
@@ -208,7 +208,7 @@ public class GraphPartitionerTest {
         GraphPartitioner p = new GraphPartitioner(graph);
         GraphPartitioner.PartitionResult bfs = p.partition(2, GraphPartitioner.Strategy.BFS);
         GraphPartitioner.PartitionResult kl = p.partition(2, GraphPartitioner.Strategy.KERNIGHAN_LIN);
-        // KL should have same or fewer edge cuts than BFS
+        // KL should have same or fewer Edge cuts than BFS
         assertTrue("KL cuts " + kl.getEdgeCuts() + " >= BFS cuts " + bfs.getEdgeCuts(),
             kl.getEdgeCuts() <= bfs.getEdgeCuts());
     }
@@ -416,7 +416,7 @@ public class GraphPartitionerTest {
     public void testConductanceSinglePartition() {
         buildTriangle();
         GraphPartitioner.PartitionResult result = new GraphPartitioner(graph).partition(1);
-        // Single partition: no external edges → conductance = 0
+        // Single partition: no external Edges → conductance = 0
         assertEquals(0.0, result.getPartitions().get(0).getConductance(), 1e-9);
     }
 

@@ -43,8 +43,8 @@ public class GexfExporter {
     private static final String GEXF_NS = "http://gexf.net/1.3";
     private static final String VIZ_NS = "http://gexf.net/1.3/viz";
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String creator = "GraphVisual";
     private String description = "";
     private boolean includeVizData = true;
@@ -66,12 +66,12 @@ public class GexfExporter {
      * @param allEdges all edges, including those filtered from the current view
      * @throws IllegalArgumentException if graph is null
      */
-    public GexfExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public GexfExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
     }
 
     /** Sets the creator metadata field. */
@@ -139,7 +139,7 @@ public class GexfExporter {
         sb.append("  </meta>\n");
 
         // Graph element
-        sb.append("  <graph defaultedgetype=\"undirected\"");
+        sb.append("  <graph defaultEdgetype=\"undirected\"");
         if (hasTemporal) {
             sb.append(" mode=\"dynamic\" timeformat=\"double\"");
         }
@@ -149,8 +149,8 @@ public class GexfExporter {
         sb.append("    <attributes class=\"node\">\n");
         sb.append("      <attribute id=\"0\" title=\"degree\" type=\"integer\"/>\n");
         sb.append("    </attributes>\n");
-        sb.append("    <attributes class=\"edge\">\n");
-        sb.append("      <attribute id=\"0\" title=\"edgetype\" type=\"string\"/>\n");
+        sb.append("    <attributes class=\"Edge\">\n");
+        sb.append("      <attribute id=\"0\" title=\"Edgetype\" type=\"string\"/>\n");
         sb.append("      <attribute id=\"1\" title=\"label\" type=\"string\"/>\n");
         sb.append("    </attributes>\n");
 
@@ -181,10 +181,10 @@ public class GexfExporter {
         sb.append("    </nodes>\n");
 
         // Edges — use visible edges from the graph
-        sb.append("    <edges>\n");
-        Collection<edge> edges = graph.getEdges();
+        sb.append("    <Edges>\n");
+        Collection<Edge> edges = graph.getEdges();
         int edgeId = 0;
-        for (edge e : edges) {
+        for (Edge e : edges) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             // Only include edges whose vertices are in the graph
@@ -192,7 +192,7 @@ public class GexfExporter {
                 continue;
             }
 
-            sb.append("      <edge id=\"").append(edgeId++)
+            sb.append("      <edge id=\"").append(EdgeId++)
               .append("\" source=\"").append(escapeXml(v1))
               .append("\" target=\"").append(escapeXml(v2))
               .append("\" weight=\"").append(e.getWeight()).append("\">\n");
@@ -225,9 +225,9 @@ public class GexfExporter {
                 sb.append("        </spells>\n");
             }
 
-            sb.append("      </edge>\n");
+            sb.append("      </Edge>\n");
         }
-        sb.append("    </edges>\n");
+        sb.append("    </Edges>\n");
 
         sb.append("  </graph>\n");
         sb.append("</gexf>\n");
@@ -239,7 +239,7 @@ public class GexfExporter {
      * Checks whether any edge in the graph carries temporal data.
      */
     private boolean hasTemporalEdges() {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (e.getTimestamp() != null) return true;
         }
         return false;

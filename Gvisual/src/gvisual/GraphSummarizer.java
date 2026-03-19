@@ -25,14 +25,14 @@ import java.util.*;
  */
 public class GraphSummarizer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final GraphStats stats;
     private final CommunityDetector communities;
-    private final List<edge> friendEdges;
-    private final List<edge> fsEdges;
-    private final List<edge> classmateEdges;
-    private final List<edge> strangerEdges;
-    private final List<edge> studyGEdges;
+    private final List<Edge> friendEdges;
+    private final List<Edge> fsEdges;
+    private final List<Edge> classmateEdges;
+    private final List<Edge> strangerEdges;
+    private final List<Edge> studyGEdges;
 
     /**
      * Creates a new GraphSummarizer.
@@ -45,21 +45,21 @@ public class GraphSummarizer {
      * @param studyGEdges    study group edges
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphSummarizer(Graph<String, edge> graph,
-                           List<edge> friendEdges,
-                           List<edge> fsEdges,
-                           List<edge> classmateEdges,
-                           List<edge> strangerEdges,
-                           List<edge> studyGEdges) {
+    public GraphSummarizer(Graph<String, Edge> graph,
+                           List<Edge> friendEdges,
+                           List<Edge> fsEdges,
+                           List<Edge> classmateEdges,
+                           List<Edge> strangerEdges,
+                           List<Edge> studyGEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.friendEdges = friendEdges != null ? friendEdges : new ArrayList<edge>();
-        this.fsEdges = fsEdges != null ? fsEdges : new ArrayList<edge>();
-        this.classmateEdges = classmateEdges != null ? classmateEdges : new ArrayList<edge>();
-        this.strangerEdges = strangerEdges != null ? strangerEdges : new ArrayList<edge>();
-        this.studyGEdges = studyGEdges != null ? studyGEdges : new ArrayList<edge>();
+        this.friendEdges = friendEdges != null ? friendEdges : new ArrayList<Edge>();
+        this.fsEdges = fsEdges != null ? fsEdges : new ArrayList<Edge>();
+        this.classmateEdges = classmateEdges != null ? classmateEdges : new ArrayList<Edge>();
+        this.strangerEdges = strangerEdges != null ? strangerEdges : new ArrayList<Edge>();
+        this.studyGEdges = studyGEdges != null ? studyGEdges : new ArrayList<Edge>();
         this.stats = new GraphStats(graph, this.friendEdges, this.fsEdges,
                 this.classmateEdges, this.strangerEdges, this.studyGEdges);
         this.communities = new CommunityDetector(graph);
@@ -283,7 +283,7 @@ public class GraphSummarizer {
     private String getSizeContext(int nodes, int edges) {
         if (nodes == 0) return "The graph contains no data.";
         if (edges == 0) return "No connections exist between nodes.";
-        double ratio = (double) edges / nodes;
+        double ratio = (double) Edges / nodes;
         if (ratio < 1) return "The network is sparsely connected.";
         if (ratio < 3) return "The network has moderate connectivity.";
         return "The network is richly interconnected.";

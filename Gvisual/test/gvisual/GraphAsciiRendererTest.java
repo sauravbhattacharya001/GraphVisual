@@ -19,10 +19,10 @@ import static org.junit.Assert.*;
  */
 public class GraphAsciiRendererTest {
 
-    private Graph<String, edge> emptyGraph;
-    private Graph<String, edge> singleNodeGraph;
-    private Graph<String, edge> triangleGraph;
-    private Graph<String, edge> starGraph;
+    private Graph<String, Edge> emptyGraph;
+    private Graph<String, Edge> singleNodeGraph;
+    private Graph<String, Edge> triangleGraph;
+    private Graph<String, Edge> starGraph;
 
     @Before
     public void setUp() {
@@ -36,11 +36,11 @@ public class GraphAsciiRendererTest {
         triangleGraph.addVertex("A");
         triangleGraph.addVertex("B");
         triangleGraph.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
+        Edge e1 = new Edge("f", "A", "B");
         e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C");
+        Edge e2 = new Edge("c", "B", "C");
         e2.setWeight(2.0f);
-        edge e3 = new edge("f", "C", "A");
+        Edge e3 = new Edge("f", "C", "A");
         e3.setWeight(1.5f);
         triangleGraph.addEdge(e1, "A", "B");
         triangleGraph.addEdge(e2, "B", "C");
@@ -52,7 +52,7 @@ public class GraphAsciiRendererTest {
         for (int i = 1; i <= 4; i++) {
             String leaf = "Leaf" + i;
             starGraph.addVertex(leaf);
-            edge e = new edge("f", "Center", leaf);
+            Edge e = new Edge("f", "Center", leaf);
             e.setWeight(1.0f);
             starGraph.addEdge(e, "Center", leaf);
         }
@@ -229,7 +229,7 @@ public class GraphAsciiRendererTest {
         assertTrue(output.contains("B"));
         assertTrue(output.contains("C"));
         assertTrue(output.contains("3 nodes"));
-        assertTrue(output.contains("3 edges"));
+        assertTrue(output.contains("3 Edges"));
     }
 
     @Test
@@ -328,12 +328,12 @@ public class GraphAsciiRendererTest {
 
     @Test
     public void largeGraphRendersWithoutError() {
-        Graph<String, edge> large = new UndirectedSparseGraph<>();
+        Graph<String, Edge> large = new UndirectedSparseGraph<>();
         for (int i = 0; i < 50; i++) {
             large.addVertex("N" + i);
         }
         for (int i = 0; i < 49; i++) {
-            edge e = new edge("f", "N" + i, "N" + (i + 1));
+            Edge e = new Edge("f", "N" + i, "N" + (i + 1));
             e.setWeight(1.0f);
             large.addEdge(e, "N" + i, "N" + (i + 1));
         }

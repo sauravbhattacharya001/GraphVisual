@@ -145,7 +145,7 @@ public class NetworkRoleClassifier {
 
     // ── Instance fields ─────────────────────────────────────────
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, NodeRole> roles;
     private boolean classified;
 
@@ -161,7 +161,7 @@ public class NetworkRoleClassifier {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public NetworkRoleClassifier(Graph<String, edge> graph) {
+    public NetworkRoleClassifier(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

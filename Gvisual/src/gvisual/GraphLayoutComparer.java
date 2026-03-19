@@ -36,10 +36,10 @@ import java.util.*;
  */
 public class GraphLayoutComparer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private String title = "Graph Layout Comparison";
 
-    public GraphLayoutComparer(Graph<String, edge> graph) {
+    public GraphLayoutComparer(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
     }
 
@@ -63,7 +63,7 @@ public class GraphLayoutComparer {
     public String exportToString() {
         StringBuilder sb = new StringBuilder(16384);
         Collection<String> vertices = graph.getVertices();
-        Collection<edge> edges = graph.getEdges();
+        Collection<Edge> edges = graph.getEdges();
 
         // Build JSON data
         StringBuilder nodeJson = new StringBuilder("[");
@@ -81,7 +81,7 @@ public class GraphLayoutComparer {
 
         StringBuilder linkJson = new StringBuilder("[");
         boolean first = true;
-        for (edge e : edges) {
+        for (Edge e : edges) {
             String v1 = e.getVertex1() != null ? e.getVertex1() :
                     graph.getEndpoints(e).getFirst().toString();
             String v2 = e.getVertex2() != null ? e.getVertex2() :

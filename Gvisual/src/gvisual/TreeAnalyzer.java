@@ -35,7 +35,7 @@ import java.util.*;
  */
 public class TreeAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new tree analyzer for the given graph.
@@ -43,7 +43,7 @@ public class TreeAnalyzer {
      * @param graph the JUNG graph to analyze (should be undirected)
      * @throws IllegalArgumentException if graph is null
      */
-    public TreeAnalyzer(Graph<String, edge> graph) {
+    public TreeAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -191,7 +191,7 @@ public class TreeAnalyzer {
          *
          * @param u first vertex
          * @param v second vertex
-         * @return distance (number of edges) between u and v
+         * @return distance (number of Edges) between u and v
          */
         public int distance(String u, String v) {
             if (!firstOccurrence.containsKey(u) || !firstOccurrence.containsKey(v)) {
@@ -555,7 +555,7 @@ public class TreeAnalyzer {
      *
      * @param sequence the Prüfer sequence
      * @param vertices the full set of vertex labels
-     * @return list of edges as [vertex1, vertex2] pairs
+     * @return list of Edges as [vertex1, vertex2] pairs
      * @throws IllegalArgumentException if sequence length != vertices.size() - 2
      */
     public static List<String[]> decodePrufer(List<String> sequence, List<String> vertices) {

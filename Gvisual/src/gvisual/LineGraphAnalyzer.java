@@ -31,13 +31,13 @@ import java.util.*;
  */
 public class LineGraphAnalyzer {
 
-    private final Graph<String, edge> graph;
-    private Graph<String, edge> lineGraph;
-    private Map<String, edge> vertexToEdge;
+    private final Graph<String, Edge> graph;
+    private Graph<String, Edge> lineGraph;
+    private Map<String, Edge> vertexToEdge;
     private Map<String, String> edgeToVertex;
     private boolean computed;
 
-    public LineGraphAnalyzer(Graph<String, edge> graph) {
+    public LineGraphAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -53,13 +53,13 @@ public class LineGraphAnalyzer {
     }
 
     private void buildLineGraph() {
-        lineGraph = new UndirectedSparseGraph<String, edge>();
-        vertexToEdge = new LinkedHashMap<String, edge>();
+        lineGraph = new UndirectedSparseGraph<String, Edge>();
+        vertexToEdge = new LinkedHashMap<String, Edge>();
         edgeToVertex = new HashMap<String, String>();
 
-        List<edge> edges = new ArrayList<edge>(graph.getEdges());
+        List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
         for (int i = 0; i < edges.size(); i++) {
-            edge e = edges.get(i);
+            Edge e = edges.get(i);
             String label = edgeLabel(e);
             lineGraph.addVertex(label);
             vertexToEdge.put(label, e);
@@ -68,12 +68,12 @@ public class LineGraphAnalyzer {
 
         for (int i = 0; i < edges.size(); i++) {
             for (int j = i + 1; j < edges.size(); j++) {
-                edge e1 = edges.get(i);
-                edge e2 = edges.get(j);
+                Edge e1 = edges.get(i);
+                Edge e2 = edges.get(j);
                 if (sharesEndpoint(e1, e2)) {
                     String v1 = edgeToVertex.get(edgeKey(e1));
                     String v2 = edgeToVertex.get(edgeKey(e2));
-                    edge lgEdge = new edge("lg", v1, v2);
+                    Edge lgEdge = new Edge("lg", v1, v2);
                     lgEdge.setLabel(v1 + "-" + v2);
                     lineGraph.addEdge(lgEdge, v1, v2);
                 }
@@ -81,7 +81,7 @@ public class LineGraphAnalyzer {
         }
     }
 
-    private String edgeLabel(edge e) {
+    private String edgeLabel(Edge e) {
         String v1 = null, v2 = null;
         Collection<String> endpoints = graph.getEndpoints(e);
         if (endpoints != null && endpoints.size() == 2) {
@@ -98,18 +98,18 @@ public class LineGraphAnalyzer {
         return "e" + System.identityHashCode(e);
     }
 
-    private String edgeKey(edge e) {
+    private String edgeKey(Edge e) {
         return edgeLabel(e);
     }
 
-    private boolean sharesEndpoint(edge e1, edge e2) {
+    private boolean sharesEndpoint(Edge e1, Edge e2) {
         String[] ep1 = getEndpoints(e1);
         String[] ep2 = getEndpoints(e2);
         return ep1[0].equals(ep2[0]) || ep1[0].equals(ep2[1])
             || ep1[1].equals(ep2[0]) || ep1[1].equals(ep2[1]);
     }
 
-    private String[] getEndpoints(edge e) {
+    private String[] getEndpoints(Edge e) {
         Collection<String> endpoints = graph.getEndpoints(e);
         if (endpoints != null && endpoints.size() == 2) {
             Iterator<String> it = endpoints.iterator();
@@ -122,12 +122,12 @@ public class LineGraphAnalyzer {
 
     // ── Accessors ───────────────────────────────────────────────────
 
-    public Graph<String, edge> getLineGraph() {
+    public Graph<String, Edge> getLineGraph() {
         ensureComputed();
         return lineGraph;
     }
 
-    public Map<String, edge> getVertexToEdgeMapping() {
+    public Map<String, Edge> getVertexToEdgeMapping() {
         ensureComputed();
         return Collections.unmodifiableMap(vertexToEdge);
     }
@@ -286,12 +286,12 @@ public class LineGraphAnalyzer {
         List<int[]> seq = new ArrayList<int[]>();
         seq.add(new int[]{graph.getVertexCount(), graph.getEdgeCount()});
 
-        Graph<String, edge> current = graph;
+        Graph<String, Edge> current = graph;
         String convergence = "growing";
 
         for (int i = 0; i < iterations; i++) {
             if (current.getEdgeCount() == 0) {
-                convergence = "collapsed (no edges)";
+                convergence = "collapsed (no Edges)";
                 break;
             }
             if (current.getEdgeCount() > 10000) {
@@ -502,7 +502,7 @@ public class LineGraphAnalyzer {
 
         for (String v : graph.getVertices()) {
             Set<String> clique = new TreeSet<String>();
-            for (edge e : graph.getIncidentEdges(v)) {
+            for (Edge e : graph.getIncidentEdges(v)) {
                 String label = edgeToVertex.get(edgeKey(e));
                 if (label != null) clique.add(label);
             }

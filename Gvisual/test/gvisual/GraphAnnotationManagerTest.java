@@ -267,15 +267,15 @@ public class GraphAnnotationManagerTest {
 
     @Test
     public void testAutoTagByDegree() {
-        Graph<String, edge> graph = new UndirectedSparseGraph<>();
+        Graph<String, Edge> graph = new UndirectedSparseGraph<>();
         graph.addVertex("hub");
         graph.addVertex("leaf1");
         graph.addVertex("leaf2");
         graph.addVertex("leaf3");
         graph.addVertex("isolated");
-        graph.addEdge(new edge("f", "hub", "leaf1"), "hub", "leaf1");
-        graph.addEdge(new edge("f", "hub", "leaf2"), "hub", "leaf2");
-        graph.addEdge(new edge("f", "hub", "leaf3"), "hub", "leaf3");
+        graph.addEdge(new Edge("f", "hub", "leaf1"), "hub", "leaf1");
+        graph.addEdge(new Edge("f", "hub", "leaf2"), "hub", "leaf2");
+        graph.addEdge(new Edge("f", "hub", "leaf3"), "hub", "leaf3");
 
         int count = manager.autoTagByDegree(graph, 3, 0);
         assertTrue(count > 0);
@@ -285,11 +285,11 @@ public class GraphAnnotationManagerTest {
 
     @Test
     public void testAutoTagIsolated() {
-        Graph<String, edge> graph = new UndirectedSparseGraph<>();
+        Graph<String, Edge> graph = new UndirectedSparseGraph<>();
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
 
         int count = manager.autoTagIsolated(graph);
         assertEquals(1, count);

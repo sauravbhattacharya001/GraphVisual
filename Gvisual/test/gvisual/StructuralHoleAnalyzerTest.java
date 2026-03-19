@@ -15,43 +15,43 @@ public class StructuralHoleAnalyzerTest {
 
     // ── Graph builders ──────────────────────────────────────────
 
-    private Graph<String, edge> emptyGraph() {
+    private Graph<String, Edge> emptyGraph() {
         return new UndirectedSparseGraph<>();
     }
 
-    private Graph<String, edge> singleVertex() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> singleVertex() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         return g;
     }
 
-    private Graph<String, edge> singleEdge() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> singleEdge() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
-        g.addEdge(new edge("f", "A", "B"), "A", "B");
+        g.addEdge(new Edge("f", "A", "B"), "A", "B");
         return g;
     }
 
     /** Triangle: A-B, B-C, A-C — fully connected, no structural holes */
-    private Graph<String, edge> triangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> triangle() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
-        g.addEdge(new edge("f", "A", "B"), "A", "B");
-        g.addEdge(new edge("f", "B", "C"), "B", "C");
-        g.addEdge(new edge("f", "A", "C"), "A", "C");
+        g.addEdge(new Edge("f", "A", "B"), "A", "B");
+        g.addEdge(new Edge("f", "B", "C"), "B", "C");
+        g.addEdge(new Edge("f", "A", "C"), "A", "C");
         return g;
     }
 
     /** Star: center connected to A, B, C, D — spokes not connected */
-    private Graph<String, edge> star() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> star() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("center"); g.addVertex("A");
         g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
-        g.addEdge(new edge("f", "center", "A"), "center", "A");
-        g.addEdge(new edge("f", "center", "B"), "center", "B");
-        g.addEdge(new edge("f", "center", "C"), "center", "C");
-        g.addEdge(new edge("f", "center", "D"), "center", "D");
+        g.addEdge(new Edge("f", "center", "A"), "center", "A");
+        g.addEdge(new Edge("f", "center", "B"), "center", "B");
+        g.addEdge(new Edge("f", "center", "C"), "center", "C");
+        g.addEdge(new Edge("f", "center", "D"), "center", "D");
         return g;
     }
 
@@ -59,56 +59,56 @@ public class StructuralHoleAnalyzerTest {
      * Bow-tie: two triangles connected by a single bridge node.
      * A-B-C triangle, C-D-E triangle, C is the broker.
      */
-    private Graph<String, edge> bowTie() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> bowTie() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C", "D", "E"}) g.addVertex(v);
-        g.addEdge(new edge("f", "A", "B"), "A", "B");
-        g.addEdge(new edge("f", "A", "C"), "A", "C");
-        g.addEdge(new edge("f", "B", "C"), "B", "C");
-        g.addEdge(new edge("f", "C", "D"), "C", "D");
-        g.addEdge(new edge("f", "C", "E"), "C", "E");
-        g.addEdge(new edge("f", "D", "E"), "D", "E");
+        g.addEdge(new Edge("f", "A", "B"), "A", "B");
+        g.addEdge(new Edge("f", "A", "C"), "A", "C");
+        g.addEdge(new Edge("f", "B", "C"), "B", "C");
+        g.addEdge(new Edge("f", "C", "D"), "C", "D");
+        g.addEdge(new Edge("f", "C", "E"), "C", "E");
+        g.addEdge(new Edge("f", "D", "E"), "D", "E");
         return g;
     }
 
     /** Path: A-B-C-D — B and C are brokers between endpoints */
-    private Graph<String, edge> path() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> path() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C", "D"}) g.addVertex(v);
-        g.addEdge(new edge("f", "A", "B"), "A", "B");
-        g.addEdge(new edge("f", "B", "C"), "B", "C");
-        g.addEdge(new edge("f", "C", "D"), "C", "D");
+        g.addEdge(new Edge("f", "A", "B"), "A", "B");
+        g.addEdge(new Edge("f", "B", "C"), "B", "C");
+        g.addEdge(new Edge("f", "C", "D"), "C", "D");
         return g;
     }
 
     /** Complete K4 — fully connected, maximum redundancy */
-    private Graph<String, edge> complete4() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> complete4() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[] vs = {"A", "B", "C", "D"};
         for (String v : vs) g.addVertex(v);
         for (int i = 0; i < vs.length; i++) {
             for (int j = i + 1; j < vs.length; j++) {
-                g.addEdge(new edge("f", vs[i], vs[j]), vs[i], vs[j]);
+                g.addEdge(new Edge("f", vs[i], vs[j]), vs[i], vs[j]);
             }
         }
         return g;
     }
 
     /** Two cliques connected by a single bridge */
-    private Graph<String, edge> twoClusters() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> twoClusters() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // Cluster 1: A, B, C (triangle)
         for (String v : new String[]{"A", "B", "C"}) g.addVertex(v);
-        g.addEdge(new edge("f", "A", "B"), "A", "B");
-        g.addEdge(new edge("f", "A", "C"), "A", "C");
-        g.addEdge(new edge("f", "B", "C"), "B", "C");
+        g.addEdge(new Edge("f", "A", "B"), "A", "B");
+        g.addEdge(new Edge("f", "A", "C"), "A", "C");
+        g.addEdge(new Edge("f", "B", "C"), "B", "C");
         // Cluster 2: D, E, F (triangle)
         for (String v : new String[]{"D", "E", "F"}) g.addVertex(v);
-        g.addEdge(new edge("f", "D", "E"), "D", "E");
-        g.addEdge(new edge("f", "D", "F"), "D", "F");
-        g.addEdge(new edge("f", "E", "F"), "E", "F");
+        g.addEdge(new Edge("f", "D", "E"), "D", "E");
+        g.addEdge(new Edge("f", "D", "F"), "D", "F");
+        g.addEdge(new Edge("f", "E", "F"), "E", "F");
         // Bridge: C -- D
-        g.addEdge(new edge("f", "C", "D"), "C", "D");
+        g.addEdge(new Edge("f", "C", "D"), "C", "D");
         return g;
     }
 
@@ -567,7 +567,7 @@ public class StructuralHoleAnalyzerTest {
 
     @Test
     public void testConstraintNonnegative() {
-        for (Graph<String, edge> g : Arrays.asList(star(), triangle(), bowTie(), path(), complete4())) {
+        for (Graph<String, Edge> g : Arrays.asList(star(), triangle(), bowTie(), path(), complete4())) {
             StructuralHoleAnalyzer a = new StructuralHoleAnalyzer(g);
             for (StructuralHoleAnalyzer.VertexMetrics vm : a.analyzeAll()) {
                 assertTrue("Constraint should be non-negative for " + vm.getVertex(),
@@ -578,7 +578,7 @@ public class StructuralHoleAnalyzerTest {
 
     @Test
     public void testEfficiencyBetweenZeroAndOne() {
-        for (Graph<String, edge> g : Arrays.asList(star(), triangle(), bowTie(), path(), complete4())) {
+        for (Graph<String, Edge> g : Arrays.asList(star(), triangle(), bowTie(), path(), complete4())) {
             StructuralHoleAnalyzer a = new StructuralHoleAnalyzer(g);
             for (StructuralHoleAnalyzer.VertexMetrics vm : a.analyzeAll()) {
                 if (vm.getDegree() > 0) {

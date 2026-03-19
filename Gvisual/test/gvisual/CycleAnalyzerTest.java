@@ -17,44 +17,44 @@ public class CycleAnalyzerTest {
 
     // ── Helper methods ──────────────────────────────────────────
 
-    private Graph<String, edge> buildUndirected(String[][] edges) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> buildUndirected(String[][] edges) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int id = 0;
         for (String[] e : edges) {
             if (!g.containsVertex(e[0])) g.addVertex(e[0]);
             if (!g.containsVertex(e[1])) g.addVertex(e[1]);
-            edge ed = new edge("link", e[0], e[1]);
+            Edge ed = new Edge("link", e[0], e[1]);
             ed.setLabel("e" + id++);
             g.addEdge(ed, e[0], e[1]);
         }
         return g;
     }
 
-    private Graph<String, edge> buildDirected(String[][] edges) {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> buildDirected(String[][] edges) {
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         int id = 0;
         for (String[] e : edges) {
             if (!g.containsVertex(e[0])) g.addVertex(e[0]);
             if (!g.containsVertex(e[1])) g.addVertex(e[1]);
-            edge ed = new edge("link", e[0], e[1]);
+            Edge ed = new Edge("link", e[0], e[1]);
             ed.setLabel("e" + id++);
             g.addEdge(ed, e[0], e[1]);
         }
         return g;
     }
 
-    private Graph<String, edge> emptyUndirected() {
-        return new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> emptyUndirected() {
+        return new UndirectedSparseGraph<String, Edge>();
     }
 
-    private Graph<String, edge> emptyDirected() {
-        return new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> emptyDirected() {
+        return new DirectedSparseGraph<String, Edge>();
     }
 
-    private Graph<String, edge> singleVertex(boolean directed) {
-        Graph<String, edge> g = directed
-                ? new DirectedSparseGraph<String, edge>()
-                : new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> singleVertex(boolean directed) {
+        Graph<String, Edge> g = directed
+                ? new DirectedSparseGraph<String, Edge>()
+                : new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         return g;
     }
@@ -80,7 +80,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_treeUndirected_false() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"B", "D"}
         });
         assertFalse(new CycleAnalyzer(g).hasCycles());
@@ -88,7 +88,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_triangleUndirected_true() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -96,7 +96,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_squareUndirected_true() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}
         });
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -104,7 +104,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_disconnectedWithOneCyclic_true() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"},  // triangle
                 {"D", "E"}                            // separate tree edge
         });
@@ -125,7 +125,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_dagDirected_false() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         assertFalse(new CycleAnalyzer(g).hasCycles());
@@ -133,7 +133,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_directedTriangle_true() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -141,7 +141,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_selfLoop_directed_true() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "A"}
         });
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -149,7 +149,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void hasCycles_twoNodeCycleDirected_true() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "A"}
         });
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -164,7 +164,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_tree_negative1() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}
         });
         assertEquals(-1, new CycleAnalyzer(g).girth());
@@ -172,7 +172,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_triangle_3() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         assertEquals(3, new CycleAnalyzer(g).girth());
@@ -180,7 +180,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_square_4() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}
         });
         assertEquals(4, new CycleAnalyzer(g).girth());
@@ -189,7 +189,7 @@ public class CycleAnalyzerTest {
     @Test
     public void girth_squareWithDiagonal_3() {
         // Square ABCD with diagonal AC creates two triangles
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}, {"A", "C"}
         });
         assertEquals(3, new CycleAnalyzer(g).girth());
@@ -197,7 +197,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_directed_triangle_3() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         assertEquals(3, new CycleAnalyzer(g).girth());
@@ -205,7 +205,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_directed_selfLoop_1() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "A"}
         });
         assertEquals(1, new CycleAnalyzer(g).girth());
@@ -213,7 +213,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void girth_directed_twoNodeCycle_2() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "A"}
         });
         assertEquals(2, new CycleAnalyzer(g).girth());
@@ -223,7 +223,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void fundamentalBasis_tree_empty() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}
         });
         List<CycleAnalyzer.Cycle> basis = new CycleAnalyzer(g).fundamentalCycleBasis();
@@ -232,7 +232,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void fundamentalBasis_triangle_oneCycle() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         List<CycleAnalyzer.Cycle> basis = new CycleAnalyzer(g).fundamentalCycleBasis();
@@ -243,7 +243,7 @@ public class CycleAnalyzerTest {
     @Test
     public void fundamentalBasis_squareWithDiagonal_twoCycles() {
         // 4 vertices, 5 edges, 1 component → cyclomatic number = 5-4+1 = 2
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}, {"A", "C"}
         });
         List<CycleAnalyzer.Cycle> basis = new CycleAnalyzer(g).fundamentalCycleBasis();
@@ -253,7 +253,7 @@ public class CycleAnalyzerTest {
     @Test
     public void fundamentalBasis_K4_threeCycles() {
         // K4: 4 vertices, 6 edges, 1 component → 6-4+1 = 3
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"A", "D"},
                 {"B", "C"}, {"B", "D"}, {"C", "D"}
         });
@@ -264,7 +264,7 @@ public class CycleAnalyzerTest {
     @Test
     public void fundamentalBasis_disconnected_correctCount() {
         // Two triangles: 6V, 6E, 2 components → 6-6+2 = 2
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"},
                 {"D", "E"}, {"E", "F"}, {"F", "D"}
         });
@@ -283,7 +283,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void allCycles_tree_none() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -294,7 +294,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void allCycles_triangle_oneCycle() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -306,7 +306,7 @@ public class CycleAnalyzerTest {
     @Test
     public void allCycles_K4_sevenCycles() {
         // K4 has 7 simple cycles: 4 triangles + 3 four-cycles
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"A", "D"},
                 {"B", "C"}, {"B", "D"}, {"C", "D"}
         });
@@ -318,7 +318,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void allCycles_directedTriangle_oneCycle() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -328,7 +328,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void allCycles_directedTwoNodeCycle() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "A"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -340,7 +340,7 @@ public class CycleAnalyzerTest {
     @Test
     public void allCycles_limit_respectsBound() {
         // K4 has 7 cycles; limit to 3
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"A", "D"},
                 {"B", "C"}, {"B", "D"}, {"C", "D"}
         });
@@ -358,7 +358,7 @@ public class CycleAnalyzerTest {
     @Test
     public void allCycles_noDuplicates() {
         // Square ABCD: should find exactly 1 cycle
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -369,7 +369,7 @@ public class CycleAnalyzerTest {
     @Test
     public void allCycles_squareWithDiagonal() {
         // Square + diagonal: 3 cycles (2 triangles + 1 square)
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}, {"A", "C"}
         });
         CycleAnalyzer.CycleEnumerationResult result =
@@ -413,11 +413,11 @@ public class CycleAnalyzerTest {
 
     @Test
     public void cycle_totalWeight() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         // Set weights
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             e.setWeight(2.0f);
         }
         CycleAnalyzer.Cycle c = new CycleAnalyzer.Cycle(
@@ -441,7 +441,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_acyclicGraph() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}
         });
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -459,7 +459,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_triangle() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -475,7 +475,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_K4_vertexParticipation() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"A", "D"},
                 {"B", "C"}, {"B", "D"}, {"C", "D"}
         });
@@ -500,7 +500,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_summary_containsKey_info() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         String summary = new CycleAnalyzer(g).analyze().getSummary();
@@ -512,7 +512,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_summary_acyclic() {
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}
         });
         String summary = new CycleAnalyzer(g).analyze().getSummary();
@@ -523,7 +523,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_directed_dag() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -534,7 +534,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void analyze_directed_withCycle() {
-        Graph<String, edge> g = buildDirected(new String[][] {
+        Graph<String, Edge> g = buildDirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "A"}, {"C", "D"}
         });
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -547,7 +547,7 @@ public class CycleAnalyzerTest {
     @Test
     public void analyze_circumference_longestCycle() {
         // Pentagon: single 5-cycle
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "E"}, {"E", "A"}
         });
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -559,7 +559,7 @@ public class CycleAnalyzerTest {
     @Test
     public void analyze_withLimit_reportsIncomplete() {
         // K4 has 7 cycles, limit to 2
-        Graph<String, edge> g = buildUndirected(new String[][] {
+        Graph<String, Edge> g = buildUndirected(new String[][] {
                 {"A", "B"}, {"A", "C"}, {"A", "D"},
                 {"B", "C"}, {"B", "D"}, {"C", "D"}
         });

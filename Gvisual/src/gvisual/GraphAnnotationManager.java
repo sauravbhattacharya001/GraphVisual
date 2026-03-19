@@ -154,7 +154,7 @@ public class GraphAnnotationManager {
      */
     public Annotation annotateEdge(String v1, String v2) {
         String key = edgeKey(v1, v2);
-        return edgeAnnotations.computeIfAbsent(key,
+        return EdgeAnnotations.computeIfAbsent(key,
             id -> new Annotation(id, Annotation.ElementType.EDGE));
     }
 

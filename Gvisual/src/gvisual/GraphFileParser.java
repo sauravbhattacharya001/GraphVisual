@@ -42,13 +42,13 @@ public class GraphFileParser {
      * lists, and the set of all vertices found.
      */
     public static class ParseResult {
-        private final Graph<String, edge> graph;
-        private final Map<EdgeType, List<edge>> edgesByType;
+        private final Graph<String, Edge> graph;
+        private final Map<EdgeType, List<Edge>> edgesByType;
         private final Set<String> vertices;
         private final int skippedLines;
 
-        ParseResult(Graph<String, edge> graph,
-                    Map<EdgeType, List<edge>> edgesByType,
+        ParseResult(Graph<String, Edge> graph,
+                    Map<EdgeType, List<Edge>> edgesByType,
                     Set<String> vertices,
                     int skippedLines) {
             this.graph = graph;
@@ -58,13 +58,13 @@ public class GraphFileParser {
         }
 
         /** The parsed JUNG graph (undirected, sparse). */
-        public Graph<String, edge> getGraph() { return graph; }
+        public Graph<String, Edge> getGraph() { return graph; }
 
         /** Edges grouped by {@link EdgeType}. */
-        public Map<EdgeType, List<edge>> getEdgesByType() { return edgesByType; }
+        public Map<EdgeType, List<Edge>> getEdgesByType() { return edgesByType; }
 
         /** Convenience accessor for a single edge type's list (never null). */
-        public List<edge> getEdges(EdgeType type) {
+        public List<Edge> getEdges(EdgeType type) {
             return edgesByType.getOrDefault(type, Collections.emptyList());
         }
 
@@ -82,14 +82,14 @@ public class GraphFileParser {
      * @param visibleFilter  predicate that returns {@code true} for edge type
      *                       codes that should be added to the graph (not just
      *                       classified). Pass {@code code -> true} to include all.
-     * @return parsed result containing graph, edge lists, and vertices
+     * @return parsed result containing graph, Edge lists, and vertices
      * @throws IOException if the file cannot be read
      */
     public static ParseResult parse(String filePath, Predicate<String> visibleFilter)
             throws IOException {
 
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        Map<EdgeType, List<edge>> edgesByType = new EnumMap<>(EdgeType.class);
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        Map<EdgeType, List<Edge>> edgesByType = new EnumMap<>(EdgeType.class);
         for (EdgeType t : EdgeType.values()) {
             edgesByType.put(t, new ArrayList<>());
         }
@@ -150,13 +150,13 @@ public class GraphFileParser {
                         continue;
                     }
 
-                    edge curEdge = new edge(parts[0], parts[1], parts[2]);
+                    Edge curEdge = new Edge(parts[0], parts[1], parts[2]);
                     curEdge.setWeight(weight);
 
                     // Classify by type
                     EdgeType edgeType = EdgeType.fromCode(parts[0]);
                     if (edgeType != null) {
-                        List<edge> typeList = edgesByType.get(edgeType);
+                        List<Edge> typeList = edgesByType.get(edgeType);
                         // Set label on first edge of each type for the legend
                         if (typeList.stream().noneMatch(e -> e.getLabel() != null)) {
                             curEdge.setLabel(edgeType.getDisplayLabel());

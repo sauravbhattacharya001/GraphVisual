@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public class TreewidthAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * A bag in a tree decomposition.
@@ -114,7 +114,7 @@ public class TreewidthAnalyzer {
         }
     }
 
-    public TreewidthAnalyzer(Graph<String, edge> graph) {
+    public TreewidthAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph cannot be null");
         this.graph = graph;
     }
@@ -301,7 +301,7 @@ public class TreewidthAnalyzer {
 
     /**
      * Computes MMD (minimum maximum degree) lower bound.
-     * Iteratively contracts the edge with minimum degree endpoint.
+     * Iteratively contracts the Edge with minimum degree endpoint.
      */
     public int computeMMDLowerBound() {
         if (graph.getVertexCount() == 0) return 0;
@@ -686,7 +686,7 @@ public class TreewidthAnalyzer {
         }
 
         // Check every edge is covered by some bag
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             List<String> epList = new ArrayList<>(endpoints);
             if (epList.size() != 2) continue;
@@ -763,7 +763,7 @@ public class TreewidthAnalyzer {
         }
 
         // Complete graph
-        if (edgeCount == (long) n * (n - 1) / 2) {
+        if (EdgeCount == (long) n * (n - 1) / 2) {
             return "complete graph K" + n + " (tw=" + (n - 1) + ")";
         }
 
@@ -903,7 +903,7 @@ public class TreewidthAnalyzer {
 
         sb.append("=== Treewidth Analysis Report ===\n\n");
         sb.append("Graph: ").append(graph.getVertexCount()).append(" vertices, ")
-          .append(graph.getEdgeCount()).append(" edges\n");
+          .append(graph.getEdgeCount()).append(" Edges\n");
         sb.append("Classification: ").append(report.classification).append("\n\n");
 
         sb.append("--- Bounds ---\n");

@@ -53,7 +53,7 @@ public class GraphEntropyAnalyzer {
     private static final double EPSILON = 1e-12;
     private static final int JACOBI_MAX_SWEEPS = 100;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private boolean computed;
 
     // ── Results ─────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ public class GraphEntropyAnalyzer {
     private double avgNeighbourhoodEntropy;
     private String complexityClass;
 
-    public GraphEntropyAnalyzer(Graph<String, edge> graph) {
+    public GraphEntropyAnalyzer(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
         this.computed = false;
         this.neighbourhoodEntropy = new LinkedHashMap<>();
@@ -251,7 +251,7 @@ public class GraphEntropyAnalyzer {
         if (m == 0) { edgeTypeEntropy = 0; return; }
 
         Map<String, Integer> freq = new HashMap<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String type = e.getType();
             if (type == null) type = "unknown";
             Integer old = freq.get(type);
@@ -479,7 +479,7 @@ public class GraphEntropyAnalyzer {
         for (int i = 0; i < n; i++) idx.put(vList.get(i), i);
 
         double[][] L = new double[n][n];
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             int i = idx.get(v1);
@@ -580,7 +580,7 @@ public class GraphEntropyAnalyzer {
         sb.append(String.format("  Max degree entropy:           %.4f bits\n", getMaxDegreeEntropy()));
         sb.append(String.format("  Normalised degree entropy:    %.4f\n", getNormalisedDegreeEntropy()));
         sb.append(String.format("  Von Neumann entropy:          %.4f bits\n", vonNeumannEntropy));
-        sb.append(String.format("  Edge type entropy:            %.4f bits\n", edgeTypeEntropy));
+        sb.append(String.format("  Edge type entropy:            %.4f bits\n", EdgeTypeEntropy));
         sb.append(String.format("  Topological info content:     %.4f bits\n", topologicalInfoContent));
         sb.append(String.format("  Random walk entropy rate:     %.4f bits/step\n", randomWalkEntropyRate));
         sb.append(String.format("  Chromatic entropy:            %.4f bits\n", chromaticEntropy));

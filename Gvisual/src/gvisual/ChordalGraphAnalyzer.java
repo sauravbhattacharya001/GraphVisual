@@ -192,7 +192,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return MCS ordering (last eliminated first)
      */
-    public static List<String> maximumCardinalitySearch(Graph<String, edge> graph) {
+    public static List<String> maximumCardinalitySearch(Graph<String, Edge> graph) {
         if (graph == null) return Collections.emptyList();
         Collection<String> vertices = graph.getVertices();
         if (vertices == null || vertices.isEmpty()) return Collections.emptyList();
@@ -247,7 +247,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return ChordalityResult with PEO if chordal, or a chordless cycle if not
      */
-    public static ChordalityResult testChordality(Graph<String, edge> graph) {
+    public static ChordalityResult testChordality(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return new ChordalityResult(true, Collections.<String>emptyList(), null);
         }
@@ -349,7 +349,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return coloring result
      */
-    public static ColoringResult optimalColoring(Graph<String, edge> graph) {
+    public static ColoringResult optimalColoring(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return new ColoringResult(Collections.<String, Integer>emptyMap(), 0);
         }
@@ -396,7 +396,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return vertices of a maximum clique
      */
-    public static Set<String> maximumClique(Graph<String, edge> graph) {
+    public static Set<String> maximumClique(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return Collections.emptySet();
         }
@@ -433,7 +433,7 @@ public final class ChordalGraphAnalyzer {
         return best;
     }
 
-    private static Set<String> findMaxCliqueGreedy(Graph<String, edge> graph) {
+    private static Set<String> findMaxCliqueGreedy(Graph<String, Edge> graph) {
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         // Sort vertices by degree descending
         List<String> sorted = new ArrayList<>(graph.getVertices());
@@ -467,7 +467,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return list of maximal cliques
      */
-    public static List<Set<String>> allMaximalCliques(Graph<String, edge> graph) {
+    public static List<Set<String>> allMaximalCliques(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return Collections.emptyList();
         }
@@ -528,7 +528,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return list of clique tree nodes with neighbor relationships
      */
-    public static List<CliqueTreeNode> buildCliqueTree(Graph<String, edge> graph) {
+    public static List<CliqueTreeNode> buildCliqueTree(Graph<String, Edge> graph) {
         List<Set<String>> cliques = allMaximalCliques(graph);
         if (cliques.isEmpty()) return Collections.emptyList();
 
@@ -597,7 +597,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return fill-in result with list of edges to add
      */
-    public static FillInResult computeFillIn(Graph<String, edge> graph) {
+    public static FillInResult computeFillIn(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return new FillInResult(Collections.<String[]>emptyList());
         }
@@ -633,7 +633,7 @@ public final class ChordalGraphAnalyzer {
                     String u = laterNeighbors.get(a);
                     String w = laterNeighbors.get(b);
                     if (!augmented.get(u).contains(w)) {
-                        // Add fill edge
+                        // Add fill Edge
                         augmented.get(u).add(w);
                         augmented.get(w).add(u);
                         String first = u.compareTo(w) < 0 ? u : w;
@@ -656,7 +656,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return list of minimal separators
      */
-    public static List<Set<String>> minimalSeparators(Graph<String, edge> graph) {
+    public static List<Set<String>> minimalSeparators(Graph<String, Edge> graph) {
         List<Set<String>> cliques = allMaximalCliques(graph);
         List<CliqueTreeNode> tree = buildCliqueTree(graph);
         if (tree.size() <= 1) return Collections.emptyList();
@@ -684,7 +684,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return treewidth, or -1 for empty graph
      */
-    public static int treewidth(Graph<String, edge> graph) {
+    public static int treewidth(Graph<String, Edge> graph) {
         Set<String> mc = maximumClique(graph);
         return mc.isEmpty() ? -1 : mc.size() - 1;
     }
@@ -698,7 +698,7 @@ public final class ChordalGraphAnalyzer {
      * @param order elimination order
      * @return list of cliques formed at each elimination step
      */
-    public static List<Set<String>> eliminationCliques(Graph<String, edge> graph,
+    public static List<Set<String>> eliminationCliques(Graph<String, Edge> graph,
                                                         List<String> order) {
         if (graph == null || order == null) return Collections.emptyList();
 
@@ -745,7 +745,7 @@ public final class ChordalGraphAnalyzer {
      * @param graph the graph
      * @return full analysis report
      */
-    public static ChordalReport analyze(Graph<String, edge> graph) {
+    public static ChordalReport analyze(Graph<String, Edge> graph) {
         int vc = graph != null ? graph.getVertexCount() : 0;
         int ec = graph != null ? graph.getEdgeCount() : 0;
 

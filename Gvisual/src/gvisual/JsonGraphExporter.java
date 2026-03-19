@@ -35,8 +35,8 @@ import java.util.*;
  */
 public class JsonGraphExporter {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String timestamp;
     private String description;
     private boolean prettyPrint;
@@ -48,12 +48,12 @@ public class JsonGraphExporter {
      * @param graph    the JUNG graph to export
      * @param allEdges all edges (including those not currently visible)
      */
-    public JsonGraphExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public JsonGraphExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
         this.timestamp = "";
         this.description = "";
         this.prettyPrint = true;
@@ -93,7 +93,7 @@ public class JsonGraphExporter {
         String sep = prettyPrint ? " " : "";
 
         Collection<String> vertices = graph.getVertices();
-        Collection<edge> edges = graph.getEdges();
+        Collection<Edge> edges = graph.getEdges();
 
         sb.append("{").append(nl);
 
@@ -149,9 +149,9 @@ public class JsonGraphExporter {
                 sb.append(",").append(sep).append("\"inDegree\":").append(sep).append(inDeg);
                 sb.append(",").append(sep).append("\"outDegree\":").append(sep).append(outDeg);
             }
-            // Count edges by type for this node
+            // Count Edges by type for this node
             Map<String, Integer> typeCounts = new TreeMap<String, Integer>();
-            for (edge e : graph.getIncidentEdges(v)) {
+            for (Edge e : graph.getIncidentEdges(v)) {
                 String type = e.getType() != null ? e.getType() : "unknown";
                 typeCounts.put(type, typeCounts.containsKey(type) ? typeCounts.get(type) + 1 : 1);
             }
@@ -173,9 +173,9 @@ public class JsonGraphExporter {
 
         // Links
         sb.append(indent).append("\"links\":").append(sep).append("[").append(nl);
-        List<edge> sortedEdges = new ArrayList<edge>(edges);
+        List<Edge> sortedEdges = new ArrayList<Edge>(edges);
         for (int i = 0; i < sortedEdges.size(); i++) {
-            edge e = sortedEdges.get(i);
+            Edge e = sortedEdges.get(i);
             sb.append(indent2).append("{");
             sb.append("\"source\":").append(sep).append(jsonString(e.getVertex1())).append(",").append(sep);
             sb.append("\"target\":").append(sep).append(jsonString(e.getVertex2())).append(",").append(sep);

@@ -49,7 +49,7 @@ public class GraphAnomalyDetector {
     /** Number of metric dimensions. */
     private static final int NUM_DIMENSIONS = 4;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private List<AnomalyResult> results;
     private boolean analyzed;
 
@@ -71,7 +71,7 @@ public class GraphAnomalyDetector {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphAnomalyDetector(Graph<String, edge> graph) {
+    public GraphAnomalyDetector(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -403,7 +403,7 @@ public class GraphAnomalyDetector {
         int k = nbrs.size();
         if (k < 2) return 0.0;
 
-        // Count edges among neighbors (triangles)
+        // Count Edges among neighbors (triangles)
         int triangleEdges = 0;
         Set<String> nbrSet = new HashSet<String>(nbrs);
         for (int i = 0; i < k; i++) {
@@ -427,12 +427,12 @@ public class GraphAnomalyDetector {
      * <p>Normalized to [0, 1] by dividing by log(numCategories).</p>
      */
     private double computeEdgeDiversity(String v) {
-        Collection<edge> edges = graph.getIncidentEdges(v);
+        Collection<Edge> edges = graph.getIncidentEdges(v);
         if (edges == null || edges.isEmpty()) return 0.0;
 
         Map<String, Integer> typeCounts = new HashMap<String, Integer>();
         int total = 0;
-        for (edge e : edges) {
+        for (Edge e : edges) {
             String type = e.getType();
             if (type == null) type = "unknown";
             Integer count = typeCounts.get(type);

@@ -131,16 +131,16 @@ public class CommunityEvolutionTracker {
             throw new IllegalArgumentException("Need at least 2 windows to track evolution");
         }
 
-        List<Map.Entry<Long, Graph<String, edge>>> windows =
+        List<Map.Entry<Long, Graph<String, Edge>>> windows =
             temporalGraph.generateWindows(windowCount);
 
         List<CommunitySnapshot> snapshots = new ArrayList<>();
         List<EvolutionEvent> events = new ArrayList<>();
 
         // Detect communities at each window
-        for (Map.Entry<Long, Graph<String, edge>> entry : windows) {
+        for (Map.Entry<Long, Graph<String, Edge>> entry : windows) {
             long timestamp = entry.getKey();
-            Graph<String, edge> windowGraph = entry.getValue();
+            Graph<String, Edge> windowGraph = entry.getValue();
             CommunityDetector detector = new CommunityDetector(windowGraph);
             CommunityDetector.DetectionResult detection = detector.detect();
 
@@ -178,7 +178,7 @@ public class CommunityEvolutionTracker {
         List<EvolutionEvent> events = new ArrayList<>();
 
         for (long time : timePoints) {
-            Graph<String, edge> snapshot = temporalGraph.snapshotAt(time);
+            Graph<String, Edge> snapshot = temporalGraph.snapshotAt(time);
             CommunityDetector detector = new CommunityDetector(snapshot);
             CommunityDetector.DetectionResult detection = detector.detect();
 
@@ -398,7 +398,7 @@ public class CommunityEvolutionTracker {
 
         public CommunitySnapshot(long timestamp,
                                   List<CommunityDetector.Community> communities,
-                                  Graph<String, edge> graph) {
+                                  Graph<String, Edge> graph) {
             this.timestamp = timestamp;
             this.communities = Collections.unmodifiableList(new ArrayList<>(communities));
             this.vertexCount = graph.getVertexCount();

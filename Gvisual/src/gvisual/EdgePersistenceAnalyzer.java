@@ -53,26 +53,26 @@ public class EdgePersistenceAnalyzer {
      *
      * @return a map from each edge to its persistence classification
      */
-    public Map<edge, String> classify() {
-        List<Map.Entry<Long, Graph<String, edge>>> windows =
+    public Map<Edge, String> classify() {
+        List<Map.Entry<Long, Graph<String, Edge>>> windows =
             temporalGraph.generateWindows(windowCount);
 
         // Count how many windows each edge appears in
-        Map<edge, Integer> edgeAppearances = new LinkedHashMap<>();
-        for (edge e : temporalGraph.getFullGraph().getEdges()) {
+        Map<Edge, Integer> edgeAppearances = new LinkedHashMap<>();
+        for (Edge e : temporalGraph.getFullGraph().getEdges()) {
             edgeAppearances.put(e, 0);
         }
 
-        for (Map.Entry<Long, Graph<String, edge>> window : windows) {
-            Graph<String, edge> g = window.getValue();
-            for (edge e : g.getEdges()) {
+        for (Map.Entry<Long, Graph<String, Edge>> window : windows) {
+            Graph<String, Edge> g = window.getValue();
+            for (Edge e : g.getEdges()) {
                 edgeAppearances.merge(e, 1, Integer::sum);
             }
         }
 
         // Classify based on appearance ratio
-        Map<edge, String> result = new LinkedHashMap<>();
-        for (Map.Entry<edge, Integer> entry : edgeAppearances.entrySet()) {
+        Map<Edge, String> result = new LinkedHashMap<>();
+        for (Map.Entry<Edge, Integer> entry : edgeAppearances.entrySet()) {
             double ratio = (double) entry.getValue() / windowCount;
             if (ratio >= 0.75) {
                 result.put(entry.getKey(), PERSISTENT);
@@ -91,7 +91,7 @@ public class EdgePersistenceAnalyzer {
      * @return map with keys "persistent", "periodic", "transient" and integer counts
      */
     public Map<String, Integer> summary() {
-        Map<edge, String> classified = classify();
+        Map<Edge, String> classified = classify();
         Map<String, Integer> counts = new LinkedHashMap<>();
         counts.put(PERSISTENT, 0);
         counts.put(PERIODIC, 0);
@@ -108,10 +108,10 @@ public class EdgePersistenceAnalyzer {
      * @param classification one of {@link #PERSISTENT}, {@link #PERIODIC}, {@link #TRANSIENT}
      * @return set of edges matching the classification
      */
-    public Set<edge> getEdgesByClassification(String classification) {
-        Map<edge, String> classified = classify();
-        Set<edge> result = new LinkedHashSet<>();
-        for (Map.Entry<edge, String> entry : classified.entrySet()) {
+    public Set<Edge> getEdgesByClassification(String classification) {
+        Map<Edge, String> classified = classify();
+        Set<Edge> result = new LinkedHashSet<>();
+        for (Map.Entry<Edge, String> entry : classified.entrySet()) {
             if (classification.equals(entry.getValue())) {
                 result.add(entry.getKey());
             }

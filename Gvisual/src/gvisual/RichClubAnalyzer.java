@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
  */
 public class RichClubAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Random random;
 
     /**
@@ -48,7 +48,7 @@ public class RichClubAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null or empty
      */
-    public RichClubAnalyzer(Graph<String, edge> graph) {
+    public RichClubAnalyzer(Graph<String, Edge> graph) {
         this(graph, new Random(42));
     }
 
@@ -57,7 +57,7 @@ public class RichClubAnalyzer {
      * @param graph the JUNG graph to analyze
      * @param random random number generator for rewiring
      */
-    public RichClubAnalyzer(Graph<String, edge> graph, Random random) {
+    public RichClubAnalyzer(Graph<String, Edge> graph, Random random) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         if (graph.getVertexCount() == 0) throw new IllegalArgumentException("Graph must not be empty");
         if (random == null) throw new IllegalArgumentException("Random must not be null");
@@ -183,7 +183,7 @@ public class RichClubAnalyzer {
     }
 
     /**
-     * Computes degree assortativity (Pearson correlation of degrees at edge endpoints).
+     * Computes degree assortativity (Pearson correlation of degrees at Edge endpoints).
      * Positive values indicate rich-club tendency (hubs connect to hubs).
      * Negative values indicate disassortative mixing (hubs connect to periphery).
      *
@@ -191,13 +191,13 @@ public class RichClubAnalyzer {
      */
     public double degreeAssortativity() {
         Map<String, Integer> degrees = computeDegrees();
-        Collection<edge> edges = graph.getEdges();
+        Collection<Edge> edges = graph.getEdges();
         if (edges.isEmpty()) return 0.0;
 
         double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
         int m = 0;
 
-        for (edge e : edges) {
+        for (Edge e : edges) {
             Collection<String> endpoints = graph.getIncidentVertices(e);
             if (endpoints == null || endpoints.size() != 2) continue;
             Iterator<String> it = endpoints.iterator();
@@ -302,7 +302,7 @@ public class RichClubAnalyzer {
 
     private int countInternalEdges(Set<String> memberSet) {
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getIncidentVertices(e);
             if (endpoints == null || endpoints.size() != 2) continue;
             Iterator<String> it = endpoints.iterator();
@@ -338,7 +338,7 @@ public class RichClubAnalyzer {
         int nk = aboveK.size();
         if (nk < 2) return 0.0;
 
-        // Expected edges in configuration model among nodes with degree > k:
+        // Expected Edges in configuration model among nodes with degree > k:
         // E_rand = (Σ d_i)^2 / (2 × 2M) for the subgroup
         double sumD = aboveK.stream().mapToDouble(Integer::doubleValue).sum();
         double twoM = 2.0 * graph.getEdgeCount();

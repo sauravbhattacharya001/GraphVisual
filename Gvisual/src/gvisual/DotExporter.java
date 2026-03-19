@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class DotExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private String graphName = "G";
     private String timestamp;
     private String description;
@@ -67,7 +67,7 @@ public class DotExporter {
      * @param graph the JUNG graph to export
      * @throws IllegalArgumentException if graph is null
      */
-    public DotExporter(Graph<String, edge> graph) {
+    public DotExporter(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -171,7 +171,7 @@ public class DotExporter {
         // Legend as subgraph (if coloring by type)
         if (colorByEdgeType) {
             Set<String> usedTypes = new HashSet<>();
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 if (e.getType() != null) usedTypes.add(e.getType());
             }
             if (!usedTypes.isEmpty()) {
@@ -235,7 +235,7 @@ public class DotExporter {
         // Compute weight range for edge scaling
         float minWeight = Float.MAX_VALUE, maxWeight = Float.MIN_VALUE;
         if (scaleEdgesByWeight) {
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 float w = e.getWeight();
                 if (w < minWeight) minWeight = w;
                 if (w > maxWeight) maxWeight = w;
@@ -245,13 +245,13 @@ public class DotExporter {
         // Edges
         sb.append("\n    // Edges\n");
         Set<String> emittedEdges = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             // Deduplicate for undirected graphs
             String edgeKey = directed ? v1 + "->" + v2 :
                     (v1.compareTo(v2) < 0 ? v1 + "--" + v2 : v2 + "--" + v1);
-            String typeKey = (e.getType() != null) ? edgeKey + ":" + e.getType() : edgeKey;
+            String typeKey = (e.getType() != null) ? edgeKey + ":" + e.getType() : EdgeKey;
             if (!emittedEdges.add(typeKey)) continue;
 
             sb.append("    ").append(quote(v1)).append(connector).append(quote(v2));

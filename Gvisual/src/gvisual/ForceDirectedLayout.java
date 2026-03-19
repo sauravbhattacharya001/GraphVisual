@@ -24,7 +24,7 @@ import java.util.*;
  *   <li>Optional gravity force to prevent disconnected components from
  *       drifting apart</li>
  *   <li>Edge-weight awareness — heavier edges pull more strongly</li>
- *   <li>Layout quality metrics: edge crossing count, edge length uniformity,
+ *   <li>Layout quality metrics: edge crossing count, Edge length uniformity,
  *       angular resolution, stress</li>
  *   <li>Bounding box normalization for display in arbitrary viewport sizes</li>
  *   <li>Convergence detection via energy tracking</li>
@@ -45,7 +45,7 @@ public class ForceDirectedLayout {
     /** Barnes-Hut opening angle: lower = more accurate, higher = faster. */
     private static final double BH_THETA = 0.8;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final int maxIterations;
     private final double width;
     private final double height;
@@ -65,7 +65,7 @@ public class ForceDirectedLayout {
      * @param graph the JUNG graph to lay out
      * @throws IllegalArgumentException if graph is null
      */
-    public ForceDirectedLayout(Graph<String, edge> graph) {
+    public ForceDirectedLayout(Graph<String, Edge> graph) {
         this(graph, 300, 800, 600, 0.1, true, 42L);
     }
 
@@ -78,11 +78,11 @@ public class ForceDirectedLayout {
      * @param height        canvas height for the layout area
      * @param gravity       gravity constant pulling nodes toward center
      *                      (0.0 = none, 0.1 = gentle, 1.0 = strong)
-     * @param useEdgeWeights if true, edge weights scale attractive forces
+     * @param useEdgeWeights if true, Edge weights scale attractive forces
      * @param seed          random seed for reproducible initial placement
      * @throws IllegalArgumentException if graph is null or parameters invalid
      */
-    public ForceDirectedLayout(Graph<String, edge> graph, int maxIterations,
+    public ForceDirectedLayout(Graph<String, Edge> graph, int maxIterations,
                                 double width, double height, double gravity,
                                 boolean useEdgeWeights, long seed) {
         if (graph == null) {
@@ -164,10 +164,10 @@ public class ForceDirectedLayout {
             indexMap.put(vertexList.get(i), i);
         }
 
-        // Build edge list as index pairs with weights
+        // Build Edge list as index pairs with weights
         List<int[]> edgeIndices = new ArrayList<int[]>();
         List<Double> edgeWeights = new ArrayList<Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Integer u = indexMap.get(e.getVertex1());
             Integer v = indexMap.get(e.getVertex2());
             if (u != null && v != null && !u.equals(v)) {
@@ -228,7 +228,7 @@ public class ForceDirectedLayout {
                 double dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < MIN_DIST) dist = MIN_DIST;
 
-                // Attractive force: dist² / k, scaled by edge weight
+                // Attractive force: dist² / k, scaled by Edge weight
                 double force = (dist * dist) / k * w;
                 double fx = (dx / dist) * force;
                 double fy = (dy / dist) * force;
@@ -387,7 +387,7 @@ public class ForceDirectedLayout {
      */
     public int countEdgeCrossings() {
         ensureComputed();
-        List<edge> edges = new ArrayList<edge>(graph.getEdges());
+        List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
         int m = edges.size();
 
         // Pre-compute endpoint positions and vertex names into arrays
@@ -400,7 +400,7 @@ public class ForceDirectedLayout {
         boolean[] valid = new boolean[m];
 
         for (int i = 0; i < m; i++) {
-            edge e = edges.get(i);
+            Edge e = edges.get(i);
             v1[i] = e.getVertex1();
             v2[i] = e.getVertex2();
             ep1[i] = positions.get(v1[i]);
@@ -436,10 +436,10 @@ public class ForceDirectedLayout {
      *
      * @return CV of edge lengths (0 = perfectly uniform)
      */
-    public double edgeLengthUniformity() {
+    public double EdgeLengthUniformity() {
         ensureComputed();
         List<Double> lengths = new ArrayList<Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = positions.get(e.getVertex1());
             double[] p2 = positions.get(e.getVertex2());
             if (p1 == null || p2 == null) continue;
@@ -587,7 +587,7 @@ public class ForceDirectedLayout {
         ensureComputed();
         return new LayoutQuality(
                 countEdgeCrossings(),
-                edgeLengthUniformity(),
+                EdgeLengthUniformity(),
                 minAngularResolution(),
                 computeStress(),
                 iterationsUsed,
@@ -622,12 +622,12 @@ public class ForceDirectedLayout {
         sb.append("  </style>\n");
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = norm.get(e.getVertex1());
             double[] p2 = norm.get(e.getVertex2());
             if (p1 == null || p2 == null) continue;
             sb.append(String.format(
-                    "  <line class=\"edge\" x1=\"%.1f\" y1=\"%.1f\" " +
+                    "  <line class=\"Edge\" x1=\"%.1f\" y1=\"%.1f\" " +
                     "x2=\"%.1f\" y2=\"%.1f\"/>\n",
                     p1[0], p1[1], p2[0], p2[1]));
         }
@@ -727,7 +727,7 @@ public class ForceDirectedLayout {
             return String.format(
                     "LayoutQuality{crossings=%d, lengthCV=%.4f, " +
                     "angularRes=%.1f°, stress=%.4f, iter=%d, converged=%s}",
-                    edgeCrossings, edgeLengthCV, minAngularResolution,
+                    edgeCrossings, EdgeLengthCV, minAngularResolution,
                     stress, iterations, converged);
         }
     }

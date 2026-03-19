@@ -19,7 +19,7 @@ import java.util.*;
  *       level.</li>
  *   <li><b>Entropy Profile Distance</b> — L2 (Euclidean) distance between
  *       normalised entropy vectors (degree entropy, Von Neumann entropy,
- *       neighbourhood entropy, edge type entropy, topological info content,
+ *       neighbourhood entropy, Edge type entropy, topological info content,
  *       random walk entropy rate). Captures multi-faceted structural
  *       differences.</li>
  *   <li><b>Similarity score</b> — combined [0, 1] similarity derived from
@@ -41,8 +41,8 @@ public class GraphSimilarityAnalyzer {
     private static final double EPSILON = 1e-12;
     private static final int JACOBI_MAX_SWEEPS = 100;
 
-    private final Graph<String, edge> graph1;
-    private final Graph<String, edge> graph2;
+    private final Graph<String, Edge> graph1;
+    private final Graph<String, Edge> graph2;
     private boolean computed;
 
     // ── Results ─────────────────────────────────────────────────────
@@ -62,8 +62,8 @@ public class GraphSimilarityAnalyzer {
      * @param graph2 the second graph
      * @throws NullPointerException if either graph is null
      */
-    public GraphSimilarityAnalyzer(Graph<String, edge> graph1,
-                                    Graph<String, edge> graph2) {
+    public GraphSimilarityAnalyzer(Graph<String, Edge> graph1,
+                                    Graph<String, Edge> graph2) {
         this.graph1 = Objects.requireNonNull(graph1, "graph1 must not be null");
         this.graph2 = Objects.requireNonNull(graph2, "graph2 must not be null");
         this.computed = false;
@@ -299,7 +299,7 @@ public class GraphSimilarityAnalyzer {
     /**
      * Gets the degree probability distribution for a graph.
      */
-    private Map<Integer, Double> getDegreeDistribution(Graph<String, edge> g) {
+    private Map<Integer, Double> getDegreeDistribution(Graph<String, Edge> g) {
         Map<Integer, Integer> freq = new HashMap<>();
         int n = g.getVertexCount();
         if (n == 0) return new HashMap<>();
@@ -320,7 +320,7 @@ public class GraphSimilarityAnalyzer {
     /**
      * Gets sorted Laplacian eigenvalues for a graph.
      */
-    private double[] getLaplacianEigenvalues(Graph<String, edge> g) {
+    private double[] getLaplacianEigenvalues(Graph<String, Edge> g) {
         int n = g.getVertexCount();
         if (n <= 1) return new double[0];
 
@@ -470,7 +470,7 @@ public class GraphSimilarityAnalyzer {
         StringBuilder sb = new StringBuilder();
         sb.append("=== Graph Similarity Analysis ===\n\n");
         sb.append(String.format("Graph 1: %d vertices, %d edges\n", n1, m1));
-        sb.append(String.format("Graph 2: %d vertices, %d edges\n\n", n2, m2));
+        sb.append(String.format("Graph 2: %d vertices, %d Edges\n\n", n2, m2));
 
         sb.append("── Divergence Measures ──\n");
         sb.append(String.format("  Jensen-Shannon Divergence:    %.6f", jensenShannonDivergence));

@@ -16,7 +16,7 @@ import java.util.*;
  *       of the Laplacian) to find a natural split, refined with KL swaps.</li>
  * </ul>
  *
- * <p>Produces a {@link PartitionResult} with per-partition membership, edge cut count,
+ * <p>Produces a {@link PartitionResult} with per-partition membership, Edge cut count,
  * imbalance ratio, cut ratio, and partition-level metrics (size, internal/external edges,
  * conductance).</p>
  *
@@ -42,7 +42,7 @@ public class GraphPartitioner {
         SPECTRAL
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new GraphPartitioner for the given graph.
@@ -50,7 +50,7 @@ public class GraphPartitioner {
      * @param graph the JUNG graph to partition
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphPartitioner(Graph<String, edge> graph) {
+    public GraphPartitioner(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -606,7 +606,7 @@ public class GraphPartitioner {
         private final double cutRatio;
         private final List<PartitionInfo> partitions;
 
-        PartitionResult(Map<String, Integer> assignment, int k, Graph<String, edge> graph) {
+        PartitionResult(Map<String, Integer> assignment, int k, Graph<String, Edge> graph) {
             this.assignment = Collections.unmodifiableMap(new HashMap<>(assignment));
             this.k = k;
 
@@ -624,7 +624,7 @@ public class GraphPartitioner {
             Map<Integer, Integer> internalEdges = new HashMap<>();
             Map<Integer, Integer> externalEdges = new HashMap<>();
 
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Collection<String> endpoints = graph.getEndpoints(e);
                 if (endpoints.size() < 2) continue;
                 Iterator<String> it = endpoints.iterator();

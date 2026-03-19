@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class MotifAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Set<String>> neighborCache;
     private boolean computed;
 
@@ -61,7 +61,7 @@ public class MotifAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public MotifAnalyzer(Graph<String, edge> graph) {
+    public MotifAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -138,7 +138,7 @@ public class MotifAnalyzer {
 
             for (int i = 0; i < nList.size(); i++) {
                 for (int j = i + 1; j < nList.size(); j++) {
-                    localWedges++;
+                    localWEdges++;
                     String a = nList.get(i);
                     String b = nList.get(j);
                     Set<String> aN = neighborCache.get(a);
@@ -406,7 +406,7 @@ public class MotifAnalyzer {
 
     /**
      * Returns the global clustering coefficient (3 × triangles / wedges).
-     * Ranges from 0.0 (no clustering) to 1.0 (every wedge is closed).
+     * Ranges from 0.0 (no clustering) to 1.0 (every wEdge is closed).
      * @return clustering coefficient
      */
     public double getClusteringCoefficient() {

@@ -34,8 +34,8 @@ import java.util.*;
  */
 public class GraphDiffHtmlExporter {
 
-    private final Graph<String, edge> graphA;
-    private final Graph<String, edge> graphB;
+    private final Graph<String, Edge> graphA;
+    private final Graph<String, Edge> graphB;
     private String title = "Graph Diff Visualization";
     private String labelA = "Graph A";
     private String labelB = "Graph B";
@@ -43,7 +43,7 @@ public class GraphDiffHtmlExporter {
     private int width = 1200;
     private int height = 700;
 
-    public GraphDiffHtmlExporter(Graph<String, edge> graphA, Graph<String, edge> graphB) {
+    public GraphDiffHtmlExporter(Graph<String, Edge> graphA, Graph<String, Edge> graphB) {
         if (graphA == null || graphB == null) {
             throw new IllegalArgumentException("Both graphs must not be null");
         }
