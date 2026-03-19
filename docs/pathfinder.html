@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shortest Path Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .pathfinder-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 280px; }
+        #graph-canvas {
+            width: 100%; height: 500px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .pf-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .pf-btn:hover { background: var(--surface-hover); }
+        .pf-btn.active { border-color: var(--accent); color: var(--accent); }
+        .pf-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pf-btn.primary:hover { background: var(--accent-hover); }
+        .pf-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .path-result { font-size: 1.1rem; color: var(--green); font-weight: 600; }
+        .step-display {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 250px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .step-row { padding: 2px 4px; border-radius: 3px; }
+        .step-row.current { background: rgba(88,166,255,0.15); color: var(--accent); }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .weight-input {
+            position: absolute; width: 50px; background: var(--surface); color: var(--text);
+            border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; font-size: 0.85rem;
+            text-align: center; z-index: 10;
+        }
+        .algo-select { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link active"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="page-header">
+        <h1>🧭 Shortest Path Finder</h1>
+        <p>Build a weighted graph and visualize shortest-path algorithms step by step.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div>Unvisited</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div>In Queue</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>Processing</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>Shortest Path</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Visited</div>
+    </div>
+
+    <div class="toolbar">
+        <button class="pf-btn active" id="btn-add-node" title="Click canvas to add nodes">➕ Node</button>
+        <button class="pf-btn" id="btn-add-edge" title="Click two nodes to connect them">🔗 Edge</button>
+        <button class="pf-btn" id="btn-set-start" title="Click a node to set as source">🟢 Start</button>
+        <button class="pf-btn" id="btn-set-end" title="Click a node to set as target">🔴 End</button>
+        <button class="pf-btn" id="btn-delete" title="Click node/edge to delete">🗑️ Delete</button>
+        <span style="flex:1"></span>
+        <button class="pf-btn danger" id="btn-clear">Clear All</button>
+    </div>
+
+    <div class="presets">
+        <span style="color:var(--text-muted);font-size:0.85rem;line-height:2">Presets:</span>
+        <button class="pf-btn" onclick="loadPreset('triangle')">Triangle</button>
+        <button class="pf-btn" onclick="loadPreset('grid')">Grid 3×3</button>
+        <button class="pf-btn" onclick="loadPreset('star')">Star</button>
+        <button class="pf-btn" onclick="loadPreset('complex')">Complex</button>
+        <button class="pf-btn" onclick="loadPreset('disconnected')">Disconnected</button>
+    </div>
+
+    <div class="pathfinder-container">
+        <div class="canvas-panel">
+            <canvas id="graph-canvas"></canvas>
+        </div>
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>Algorithm</h3>
+                <div class="algo-select">
+                    <button class="pf-btn active" id="algo-dijkstra">Dijkstra</button>
+                    <button class="pf-btn" id="algo-bfs">BFS</button>
+                    <button class="pf-btn" id="algo-bellman">Bellman-Ford</button>
+                </div>
+                <div class="speed-control">
+                    <span style="font-size:0.8rem;color:var(--text-muted)">Speed</span>
+                    <input type="range" id="speed-slider" min="50" max="1500" value="500" step="50">
+                    <span id="speed-label" style="font-size:0.8rem;color:var(--text-muted)">500ms</span>
+                </div>
+                <button class="pf-btn primary" id="btn-run" style="width:100%">▶ Run</button>
+                <button class="pf-btn" id="btn-step" style="width:100%;margin-top:0.5rem">⏭ Step</button>
+                <button class="pf-btn" id="btn-reset" style="width:100%;margin-top:0.5rem">↺ Reset</button>
+            </div>
+            <div class="info-card">
+                <h3>Result</h3>
+                <div id="path-result" class="path-result">—</div>
+                <div id="path-cost" style="font-size:0.85rem;color:var(--text-muted);margin-top:4px"></div>
+            </div>
+            <div class="info-card">
+                <h3>Steps</h3>
+                <div id="step-log" class="step-display"><em style="color:var(--text-muted)">Run algorithm to see steps…</em></div>
+            </div>
+            <div class="info-card">
+                <h3>Graph Info</h3>
+                <div id="graph-info" style="font-size:0.85rem;color:var(--text-muted)">0 nodes, 0 edges</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+(() => {
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    let nodes = []; // {id, x, y, label}
+    let edges = []; // {from, to, weight}
+    let nextId = 0;
+    let mode = 'add-node'; // add-node, add-edge, set-start, set-end, delete
+    let startNode = null, endNode = null;
+    let edgeFrom = null;
+    let algo = 'dijkstra';
+    let animSpeed = 500;
+    let animRunning = false;
+    let animTimer = null;
+    let steps = [];
+    let stepIdx = -1;
+    let nodeStates = {}; // id -> 'unvisited'|'queued'|'processing'|'visited'|'path'
+    let edgeStates = {}; // 'from-to' -> 'default'|'considered'|'path'
+    let dragging = null;
+    let dragOffset = {x:0,y:0};
+
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 0);
+
+    // Mode buttons
+    const modeButtons = {
+        'add-node': document.getElementById('btn-add-node'),
+        'add-edge': document.getElementById('btn-add-edge'),
+        'set-start': document.getElementById('btn-set-start'),
+        'set-end': document.getElementById('btn-set-end'),
+        'delete': document.getElementById('btn-delete')
+    };
+    Object.entries(modeButtons).forEach(([m, btn]) => {
+        btn.addEventListener('click', () => { setMode(m); });
+    });
+    function setMode(m) {
+        mode = m; edgeFrom = null;
+        Object.values(modeButtons).forEach(b => b.classList.remove('active'));
+        if (modeButtons[m]) modeButtons[m].classList.add('active');
+        canvas.style.cursor = m === 'add-node' ? 'crosshair' : 'pointer';
+    }
+
+    // Algo buttons
+    const algoBtns = { dijkstra: document.getElementById('algo-dijkstra'), bfs: document.getElementById('algo-bfs'), bellman: document.getElementById('algo-bellman') };
+    Object.entries(algoBtns).forEach(([a, btn]) => {
+        btn.addEventListener('click', () => {
+            algo = a;
+            Object.values(algoBtns).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    // Speed
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+    speedSlider.addEventListener('input', () => { animSpeed = +speedSlider.value; speedLabel.textContent = animSpeed + 'ms'; });
+
+    // Clear
+    document.getElementById('btn-clear').addEventListener('click', () => {
+        nodes = []; edges = []; nextId = 0; startNode = null; endNode = null;
+        resetViz(); draw(); updateInfo();
+    });
+
+    function nodeAt(x, y) {
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i];
+            if (Math.hypot(n.x - x, n.y - y) < 20) return n;
+        }
+        return null;
+    }
+
+    function edgeKey(a, b) { return Math.min(a,b) + '-' + Math.max(a,b); }
+
+    function edgeAt(x, y) {
+        for (const e of edges) {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            const dist = pointToSegDist(x, y, a.x, a.y, b.x, b.y);
+            if (dist < 10) return e;
+        }
+        return null;
+    }
+
+    function pointToSegDist(px, py, ax, ay, bx, by) {
+        const dx = bx-ax, dy = by-ay, len2 = dx*dx+dy*dy;
+        if (len2 === 0) return Math.hypot(px-ax, py-ay);
+        let t = ((px-ax)*dx+(py-ay)*dy)/len2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+    }
+
+    // Canvas events
+    let mouseDown = false;
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        const n = nodeAt(x, y);
+
+        if (mode === 'add-node') {
+            if (n) { dragging = n; dragOffset = {x: x-n.x, y: y-n.y}; mouseDown = true; }
+            else { addNode(x, y); }
+        } else if (mode === 'add-edge') {
+            if (n) {
+                if (!edgeFrom) { edgeFrom = n; }
+                else if (edgeFrom.id !== n.id) {
+                    const existing = edges.find(e => edgeKey(e.from,e.to) === edgeKey(edgeFrom.id, n.id));
+                    if (!existing) { promptWeight(edgeFrom, n); }
+                    edgeFrom = null;
+                }
+            }
+        } else if (mode === 'set-start') {
+            if (n) { startNode = n.id; resetViz(); draw(); }
+        } else if (mode === 'set-end') {
+            if (n) { endNode = n.id; resetViz(); draw(); }
+        } else if (mode === 'delete') {
+            if (n) {
+                edges = edges.filter(e => e.from !== n.id && e.to !== n.id);
+                nodes = nodes.filter(nd => nd.id !== n.id);
+                if (startNode === n.id) startNode = null;
+                if (endNode === n.id) endNode = null;
+                resetViz(); draw(); updateInfo();
+            } else {
+                const ed = edgeAt(x, y);
+                if (ed) { edges = edges.filter(e => e !== ed); resetViz(); draw(); updateInfo(); }
+            }
+        }
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const rect = canvas.getBoundingClientRect();
+        dragging.x = e.clientX - rect.left - dragOffset.x + dragOffset.x;
+        dragging.y = e.clientY - rect.top - dragOffset.y + dragOffset.y;
+        // simplify
+        dragging.x = e.clientX - rect.left;
+        dragging.y = e.clientY - rect.top;
+        draw();
+    });
+    canvas.addEventListener('mouseup', () => { dragging = null; mouseDown = false; });
+
+    function addNode(x, y) {
+        const label = String.fromCharCode(65 + (nextId % 26)) + (nextId >= 26 ? Math.floor(nextId/26) : '');
+        nodes.push({id: nextId, x, y, label});
+        nextId++;
+        resetViz(); draw(); updateInfo();
+    }
+
+    function promptWeight(fromNode, toNode) {
+        const w = prompt('Edge weight (positive number):', '1');
+        if (w === null) return;
+        const weight = Math.max(0.1, parseFloat(w) || 1);
+        edges.push({from: fromNode.id, to: toNode.id, weight});
+        resetViz(); draw(); updateInfo();
+    }
+
+    function updateInfo() {
+        document.getElementById('graph-info').textContent = `${nodes.length} nodes, ${edges.length} edges`;
+    }
+
+    // Drawing
+    const colors = {
+        unvisited: '#8b949e', queued: '#d29922', processing: '#58a6ff',
+        visited: '#f85149', path: '#3fb950'
+    };
+
+    function draw() {
+        const w = canvas.width / dpr, h = canvas.height / dpr;
+        ctx.clearRect(0, 0, w, h);
+
+        // Edges
+        for (const e of edges) {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            const ek = edgeKey(e.from, e.to);
+            const state = edgeStates[ek] || 'default';
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = state === 'path' ? colors.path : state === 'considered' ? colors.queued : '#30363d';
+            ctx.lineWidth = state === 'path' ? 3 : 1.5;
+            ctx.stroke();
+            // Weight label
+            const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+            ctx.font = '11px monospace';
+            ctx.fillStyle = state === 'path' ? colors.path : '#6e7681';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText(e.weight, mx, my - 4);
+        }
+
+        // Nodes
+        for (const n of nodes) {
+            const state = nodeStates[n.id] || 'unvisited';
+            const isStart = n.id === startNode, isEnd = n.id === endNode;
+            const r = 18;
+            ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+            ctx.fillStyle = state !== 'unvisited' ? colors[state] + '33' : '#161b22';
+            ctx.fill();
+            ctx.strokeStyle = isStart ? colors.path : isEnd ? colors.visited : colors[state];
+            ctx.lineWidth = (isStart || isEnd) ? 3 : 2;
+            ctx.stroke();
+
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = colors[state];
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(n.label, n.x, n.y);
+
+            if (isStart) { ctx.font = '9px sans-serif'; ctx.fillStyle = colors.path; ctx.fillText('START', n.x, n.y+r+10); }
+            if (isEnd) { ctx.font = '9px sans-serif'; ctx.fillStyle = colors.visited; ctx.fillText('END', n.x, n.y+r+10); }
+        }
+
+        // Edge-from indicator
+        if (edgeFrom && mode === 'add-edge') {
+            const n = edgeFrom;
+            ctx.beginPath(); ctx.arc(n.x, n.y, 22, 0, Math.PI*2);
+            ctx.strokeStyle = colors.processing; ctx.lineWidth = 2; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+        }
+    }
+
+    // Algorithms
+    function getAdj() {
+        const adj = {};
+        for (const n of nodes) adj[n.id] = [];
+        for (const e of edges) {
+            adj[e.from].push({to: e.to, w: e.weight});
+            adj[e.to].push({to: e.from, w: e.weight});
+        }
+        return adj;
+    }
+
+    function dijkstra() {
+        if (startNode === null || endNode === null) return alert('Set both start and end nodes.');
+        const adj = getAdj();
+        const dist = {}, prev = {}, visited = new Set();
+        for (const n of nodes) { dist[n.id] = Infinity; prev[n.id] = null; }
+        dist[startNode] = 0;
+        const pq = [{id: startNode, d: 0}];
+        steps = [];
+        steps.push({type:'init', msg:`Initialize: dist[${label(startNode)}]=0, all others=∞`});
+
+        while (pq.length) {
+            pq.sort((a,b) => a.d - b.d);
+            const {id: u} = pq.shift();
+            if (visited.has(u)) continue;
+            visited.add(u);
+            steps.push({type:'visit', node: u, msg:`Visit ${label(u)} (dist=${fmt(dist[u])})`});
+
+            if (u === endNode) break;
+
+            for (const {to: v, w} of adj[u]) {
+                if (visited.has(v)) continue;
+                const alt = dist[u] + w;
+                steps.push({type:'consider', from: u, to: v, msg:`  Consider ${label(u)}→${label(v)}: ${fmt(dist[u])}+${w}=${fmt(alt)} vs ${fmt(dist[v])}`});
+                if (alt < dist[v]) {
+                    dist[v] = alt; prev[v] = u;
+                    pq.push({id: v, d: alt});
+                    steps.push({type:'relax', node: v, msg:`  ✓ Relax ${label(v)}: dist=${fmt(alt)}`});
+                }
+            }
+        }
+
+        // Trace path
+        if (dist[endNode] === Infinity) {
+            steps.push({type:'done', msg:'No path found!'});
+        } else {
+            const path = []; let c = endNode;
+            while (c !== null) { path.unshift(c); c = prev[c]; }
+            steps.push({type:'path', path, cost: dist[endNode], msg:`Shortest path: ${path.map(label).join(' → ')} (cost: ${fmt(dist[endNode])})`});
+        }
+        return steps;
+    }
+
+    function bfs() {
+        if (startNode === null || endNode === null) return alert('Set both start and end nodes.');
+        const adj = getAdj();
+        const visited = new Set(), prev = {};
+        for (const n of nodes) prev[n.id] = null;
+        const queue = [startNode];
+        visited.add(startNode);
+        steps = [];
+        steps.push({type:'init', msg:'BFS: unweighted shortest path (hop count)'});
+
+        while (queue.length) {
+            const u = queue.shift();
+            steps.push({type:'visit', node: u, msg:`Visit ${label(u)}`});
+            if (u === endNode) break;
+            for (const {to: v} of adj[u]) {
+                if (!visited.has(v)) {
+                    visited.add(v);
+                    prev[v] = u;
+                    queue.push(v);
+                    steps.push({type:'relax', node: v, msg:`  Enqueue ${label(v)}`});
+                }
+            }
+        }
+
+        if (!visited.has(endNode)) {
+            steps.push({type:'done', msg:'No path found!'});
+        } else {
+            const path = []; let c = endNode;
+            while (c !== null) { path.unshift(c); c = prev[c]; }
+            steps.push({type:'path', path, cost: path.length-1, msg:`Path: ${path.map(label).join(' → ')} (${path.length-1} hops)`});
+        }
+        return steps;
+    }
+
+    function bellmanFord() {
+        if (startNode === null || endNode === null) return alert('Set both start and end nodes.');
+        const dist = {}, prev = {};
+        for (const n of nodes) { dist[n.id] = Infinity; prev[n.id] = null; }
+        dist[startNode] = 0;
+        steps = [];
+        steps.push({type:'init', msg:`Bellman-Ford: ${nodes.length-1} relaxation rounds`});
+
+        const allEdges = [];
+        for (const e of edges) {
+            allEdges.push({u: e.from, v: e.to, w: e.weight});
+            allEdges.push({u: e.to, v: e.from, w: e.weight});
+        }
+
+        for (let i = 0; i < nodes.length - 1; i++) {
+            let changed = false;
+            steps.push({type:'visit', node: null, msg:`Round ${i+1}:`});
+            for (const {u, v, w} of allEdges) {
+                if (dist[u] === Infinity) continue;
+                const alt = dist[u] + w;
+                if (alt < dist[v]) {
+                    dist[v] = alt; prev[v] = u; changed = true;
+                    steps.push({type:'relax', node: v, msg:`  Relax ${label(u)}→${label(v)}: ${fmt(alt)}`});
+                }
+            }
+            if (!changed) { steps.push({type:'visit', node: null, msg:'  No changes — done early'}); break; }
+        }
+
+        if (dist[endNode] === Infinity) {
+            steps.push({type:'done', msg:'No path found!'});
+        } else {
+            const path = []; let c = endNode;
+            while (c !== null) { path.unshift(c); c = prev[c]; }
+            steps.push({type:'path', path, cost: dist[endNode], msg:`Path: ${path.map(label).join(' → ')} (cost: ${fmt(dist[endNode])})`});
+        }
+        return steps;
+    }
+
+    function label(id) { const n = nodes.find(n => n.id === id); return n ? n.label : '?'; }
+    function fmt(v) { return v === Infinity ? '∞' : Math.round(v*100)/100; }
+
+    function resetViz() {
+        stopAnim();
+        nodeStates = {}; edgeStates = {};
+        steps = []; stepIdx = -1;
+        document.getElementById('path-result').textContent = '—';
+        document.getElementById('path-cost').textContent = '';
+        document.getElementById('step-log').innerHTML = '<em style="color:var(--text-muted)">Run algorithm to see steps…</em>';
+    }
+
+    function applyStep(i) {
+        const s = steps[i];
+        if (!s) return;
+        if (s.type === 'visit' && s.node !== null) nodeStates[s.node] = 'processing';
+        if (s.type === 'consider') edgeStates[edgeKey(s.from, s.to)] = 'considered';
+        if (s.type === 'relax') nodeStates[s.node] = 'queued';
+        if (s.type === 'path') {
+            // Clear all states first, then highlight path
+            for (const n of nodes) nodeStates[n.id] = nodeStates[n.id] === 'unvisited' ? 'unvisited' : 'visited';
+            for (const k in edgeStates) edgeStates[k] = 'default';
+            for (const id of s.path) nodeStates[id] = 'path';
+            for (let j = 0; j < s.path.length - 1; j++) edgeStates[edgeKey(s.path[j], s.path[j+1])] = 'path';
+            document.getElementById('path-result').textContent = s.path.map(label).join(' → ');
+            document.getElementById('path-cost').textContent = `Total cost: ${fmt(s.cost)}`;
+        }
+        if (s.type === 'done') {
+            document.getElementById('path-result').textContent = 'No path found';
+            document.getElementById('path-result').style.color = 'var(--red)';
+        }
+        // Previously processing nodes become visited
+        if (s.type === 'visit' && s.node !== null) {
+            for (const id in nodeStates) {
+                if (+id !== s.node && nodeStates[id] === 'processing') nodeStates[id] = 'visited';
+            }
+        }
+        draw();
+        renderStepLog(i);
+    }
+
+    function renderStepLog(currentIdx) {
+        const log = document.getElementById('step-log');
+        log.innerHTML = steps.slice(0, currentIdx + 1).map((s, i) =>
+            `<div class="step-row${i===currentIdx?' current':''}">${s.msg}</div>`
+        ).join('');
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function runAlgo() {
+        resetViz();
+        document.getElementById('path-result').style.color = 'var(--green)';
+        const fn = {dijkstra, bfs, bellman: bellmanFord}[algo];
+        steps = fn();
+        if (!steps) return;
+        stepIdx = -1;
+    }
+
+    function stopAnim() { if (animTimer) { clearInterval(animTimer); animTimer = null; } animRunning = false; document.getElementById('btn-run').textContent = '▶ Run'; }
+
+    document.getElementById('btn-run').addEventListener('click', () => {
+        if (animRunning) { stopAnim(); return; }
+        runAlgo();
+        if (!steps || !steps.length) return;
+        animRunning = true;
+        document.getElementById('btn-run').textContent = '⏸ Pause';
+        animTimer = setInterval(() => {
+            stepIdx++;
+            if (stepIdx >= steps.length) { stopAnim(); return; }
+            applyStep(stepIdx);
+        }, animSpeed);
+    });
+
+    document.getElementById('btn-step').addEventListener('click', () => {
+        if (steps.length === 0) runAlgo();
+        if (!steps || !steps.length) return;
+        stopAnim();
+        stepIdx++;
+        if (stepIdx >= steps.length) return;
+        applyStep(stepIdx);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => { resetViz(); draw(); });
+
+    // Presets
+    window.loadPreset = function(name) {
+        nodes = []; edges = []; nextId = 0; startNode = null; endNode = null;
+        resetViz();
+        const rect = canvas.getBoundingClientRect();
+        const W = rect.width, H = rect.height;
+        const cx = W/2, cy = H/2;
+
+        if (name === 'triangle') {
+            addN(cx, cy-100); addN(cx-120, cy+80); addN(cx+120, cy+80);
+            addE(0,1,4); addE(1,2,3); addE(0,2,7);
+            startNode = 0; endNode = 2;
+        } else if (name === 'grid') {
+            const s = 100, ox = cx-s, oy = cy-s;
+            for (let r=0;r<3;r++) for (let c=0;c<3;c++) addN(ox+c*s, oy+r*s);
+            for (let r=0;r<3;r++) for (let c=0;c<3;c++) {
+                const i = r*3+c;
+                if (c<2) addE(i, i+1, 1+Math.floor(Math.random()*5));
+                if (r<2) addE(i, i+3, 1+Math.floor(Math.random()*5));
+            }
+            startNode = 0; endNode = 8;
+        } else if (name === 'star') {
+            addN(cx, cy);
+            for (let i=0;i<6;i++) {
+                const a = i*Math.PI/3 - Math.PI/2;
+                addN(cx + Math.cos(a)*150, cy + Math.sin(a)*150);
+                addE(0, i+1, 1+Math.floor(Math.random()*8));
+            }
+            for (let i=1;i<=6;i++) addE(i, i%6+1, 1+Math.floor(Math.random()*4));
+            startNode = 1; endNode = 4;
+        } else if (name === 'complex') {
+            addN(cx-200, cy-80); addN(cx-80, cy-120); addN(cx+60, cy-100);
+            addN(cx+180, cy-40); addN(cx-140, cy+60); addN(cx, cy+20);
+            addN(cx+120, cy+80); addN(cx-60, cy+140); addN(cx+60, cy+160);
+            addE(0,1,2); addE(0,4,6); addE(1,2,3); addE(1,5,1); addE(2,3,4);
+            addE(2,5,2); addE(3,6,5); addE(4,5,3); addE(4,7,4); addE(5,6,7);
+            addE(5,7,2); addE(6,8,1); addE(7,8,3);
+            startNode = 0; endNode = 8;
+        } else if (name === 'disconnected') {
+            addN(cx-150, cy-50); addN(cx-50, cy-50); addN(cx-100, cy+50);
+            addN(cx+80, cy-50); addN(cx+180, cy-50); addN(cx+130, cy+50);
+            addE(0,1,2); addE(1,2,3); addE(0,2,4);
+            addE(3,4,1); addE(4,5,2); addE(3,5,5);
+            startNode = 0; endNode = 5;
+        }
+        draw(); updateInfo();
+    };
+
+    function addN(x, y) {
+        const lbl = String.fromCharCode(65 + (nextId % 26)) + (nextId >= 26 ? Math.floor(nextId/26) : '');
+        nodes.push({id: nextId, x, y, label: lbl}); nextId++;
+    }
+    function addE(a, b, w) { edges.push({from: a, to: b, weight: w}); }
+
+    // Load default
+    setTimeout(() => { loadPreset('complex'); }, 100);
+})();
+</script>
+</body>
+</html>
