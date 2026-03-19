@@ -2506,6 +2506,24 @@ public class Main extends JFrame {
         });
         toolPanel.add(diffHtmlButton);
 
+        // Layout Comparison HTML export — same graph with 4 different layouts
+        ExportActions.addExportButton(toolPanel, this,
+                "<html><center>Layout Compare<br/>Compare 4 layout<br/>algorithms for<br/>the same graph<br/>in one HTML page</center></html>",
+                "Export Layout Comparison HTML",
+                () -> "layout_compare_" + timeStamp + ".html",
+                new String[]{".html"},
+                outFile -> {
+                    GraphLayoutComparer comparer = new GraphLayoutComparer(g);
+                    comparer.setTitle("Layout Comparison \u2014 " + timeStamp);
+                    comparer.export(outFile);
+                    return "Layout comparison exported!\n"
+                            + "Nodes: " + g.getVertexCount() + "\n"
+                            + "Edges: " + g.getEdgeCount() + "\n"
+                            + "Layouts: Force-Directed, Circular, Grid, Radial\n"
+                            + "File: " + outFile.getName() + "\n\n"
+                            + "Open in any browser. Hover a node to highlight it across all layouts.";
+                });
+
         toolPanel.add(legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }

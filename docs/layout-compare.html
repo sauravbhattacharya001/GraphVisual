@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Layout Comparer – GraphVisual</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
+  h1 { border-bottom: 2px solid #4fc3f7; padding-bottom: 8px; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
+  pre { background: #f0f0f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
+  .grid-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+  .grid-demo div { background: #e3f2fd; padding: 12px; border-radius: 6px; text-align: center; font-weight: 600; }
+  a { color: #1976d2; }
+</style>
+</head>
+<body>
+<h1>📐 Graph Layout Comparer</h1>
+<p>Export your graph as a self-contained HTML page showing <strong>4 layout algorithms side-by-side</strong> in a 2×2 grid. Compare how different spatial arrangements reveal different structural properties of the same network.</p>
+
+<h2>Layouts</h2>
+<div class="grid-demo">
+  <div>🔄 Force-Directed<br><small>Clusters &amp; communities</small></div>
+  <div>⭕ Circular<br><small>Symmetry &amp; connectivity</small></div>
+  <div>📐 Grid<br><small>Node count overview</small></div>
+  <div>🎯 Radial (by Degree)<br><small>Hub hierarchy</small></div>
+</div>
+
+<h2>Features</h2>
+<ul>
+  <li><strong>Synchronized hover</strong> — hover a node in one panel to highlight it and its neighbors across all four views</li>
+  <li><strong>Zoom &amp; pan</strong> — each panel has independent zoom/pan via mouse wheel and drag</li>
+  <li><strong>Edge type coloring</strong> — friend, classmate, familiar stranger, stranger, study group</li>
+  <li><strong>Node sizing</strong> — nodes scaled by degree centrality</li>
+  <li><strong>Dark/light theme</strong> — toggle with one click</li>
+  <li><strong>Zero dependencies</strong> — single HTML file, just open in a browser</li>
+</ul>
+
+<h2>Usage (GUI)</h2>
+<p>Click the <strong>"Layout Compare"</strong> button in the toolbar, choose a save location, and open the exported HTML file in any modern browser.</p>
+
+<h2>Usage (Code)</h2>
+<pre>GraphLayoutComparer comparer = new GraphLayoutComparer(graph);
+comparer.setTitle("Student Network 2011");
+comparer.export(new File("layout-comparison.html"));</pre>
+
+<h2>When to use which layout?</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;">
+<tr><th>Layout</th><th>Best for revealing</th></tr>
+<tr><td>Force-Directed</td><td>Natural clusters, community structure, densely connected groups</td></tr>
+<tr><td>Circular</td><td>Overall connectivity patterns, edge crossing density, symmetry</td></tr>
+<tr><td>Grid</td><td>Full node inventory, finding isolated nodes, total graph size</td></tr>
+<tr><td>Radial</td><td>Hub nodes, degree hierarchy, core-periphery structure</td></tr>
+</table>
+
+<p><a href="index.html">← Back to docs</a></p>
+</body>
+</html>
