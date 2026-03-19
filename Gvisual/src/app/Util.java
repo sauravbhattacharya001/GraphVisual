@@ -59,27 +59,43 @@ public class Util {
         return host;
     }
 
-    public static Connection getAppConnection() throws Exception {
+    /**
+     * Opens a JDBC connection to the specified PostgreSQL database.
+     *
+     * <p>Credentials and host are read from environment variables
+     * ({@code DB_HOST}, {@code DB_USER}, {@code DB_PASS}).
+     *
+     * @param database the database name to connect to
+     * @return an open {@link Connection}
+     * @throws Exception if the driver cannot be loaded or the connection fails
+     */
+    private static Connection getConnection(String database) throws Exception {
+        if (database == null || database.isEmpty()) {
+            throw new IllegalArgumentException("database name must not be null or empty");
+        }
+        // Reject database names that could inject JDBC parameters
+        if (!database.matches("[a-zA-Z0-9_]+")) {
+            throw new IllegalArgumentException(
+                "database name contains invalid characters: " + database
+                + ". Only alphanumerics and underscores are allowed.");
+        }
+
         String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
         String user = requireEnv("DB_USER");
         String pass = requireEnv("DB_PASS");
 
         Class.forName("org.postgresql.Driver");
         Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://" + host + "/nic_apps", user, pass);
-        System.out.println("Successfully connected to database \"nic_apps\"");
+                "jdbc:postgresql://" + host + "/" + database, user, pass);
+        System.out.println("Successfully connected to database \"" + database + "\"");
         return conn;
     }
 
-    public static Connection getAzialaConnection() throws Exception {
-        String host = validateHost(envOrDefault("DB_HOST", DEFAULT_HOST));
-        String user = requireEnv("DB_USER");
-        String pass = requireEnv("DB_PASS");
+    public static Connection getAppConnection() throws Exception {
+        return getConnection("nic_apps");
+    }
 
-        Class.forName("org.postgresql.Driver");
-        Connection conn = DriverManager.getConnection(
-                "jdbc:postgresql://" + host + "/nic_aziala", user, pass);
-        System.out.println("Successfully connected to database \"nic_aziala\"");
-        return conn;
+    public static Connection getAzialaConnection() throws Exception {
+        return getConnection("nic_aziala");
     }
 }
