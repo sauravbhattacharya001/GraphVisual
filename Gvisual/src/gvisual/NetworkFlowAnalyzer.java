@@ -40,16 +40,16 @@ public class NetworkFlowAnalyzer {
 
     private final Graph<String, edge> graph;
 
-    // Residual capacities: directedKey -> remaining capacity
-    private Map<List<String>, Double> residualCapacity;
-    // Flow values: directedKey -> flow
-    private Map<List<String>, Double> flow;
+    // Residual capacities: ArcKey -> remaining capacity
+    private Map<ArcKey, Double> residualCapacity;
+    // Flow values: ArcKey -> flow
+    private Map<ArcKey, Double> flow;
     // Adjacency list for residual graph
     private Map<String, Set<String>> residualAdj;
     // Original capacities
-    private Map<List<String>, Double> capacity;
-    // Edge lookup: directedKey -> original edge (null for reverse arcs)
-    private Map<List<String>, edge> edgeLookup;
+    private Map<ArcKey, Double> capacity;
+    // Edge lookup: ArcKey -> original edge (null for reverse arcs)
+    private Map<ArcKey, edge> edgeLookup;
 
     private String source;
     private String sink;
@@ -69,6 +69,41 @@ public class NetworkFlowAnalyzer {
         }
         this.graph = graph;
         this.computed = false;
+    }
+
+    // ── ArcKey ─────────────────────────────────────────────────────
+
+    /**
+     * Immutable key for a directed arc between two vertices.
+     * Replaces the previous {@code List<String>} map-key pattern with a
+     * type-safe, allocation-light alternative.
+     */
+    static final class ArcKey {
+        final String from;
+        final String to;
+
+        ArcKey(String from, String to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ArcKey)) return false;
+            ArcKey that = (ArcKey) o;
+            return from.equals(that.from) && to.equals(that.to);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * from.hashCode() + to.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return from + "->" + to;
+        }
     }
 
     // ── Core computation ───────────────────────────────────────────
@@ -100,7 +135,7 @@ public class NetworkFlowAnalyzer {
         // Edmonds–Karp: BFS for shortest augmenting path
         while (true) {
             Map<String, String> parent = new LinkedHashMap<String, String>();
-            Map<String, List<String>> parentArcKey = new LinkedHashMap<String, List<String>>();
+            Map<String, ArcKey> parentArcKey = new LinkedHashMap<String, ArcKey>();
             double pathFlow = bfsAugmentingPath(parent, parentArcKey);
 
             if (pathFlow <= 0) break;
@@ -109,8 +144,8 @@ public class NetworkFlowAnalyzer {
             String v = sink;
             while (!v.equals(source)) {
                 String u = parent.get(v);
-                List<String> fwd = directedKey(u, v);
-                List<String> rev = directedKey(v, u);
+                ArcKey fwd = directedKey(u, v);
+                ArcKey rev = directedKey(v, u);
 
                 residualCapacity.put(fwd,
                         residualCapacity.get(fwd) - pathFlow);
@@ -173,17 +208,17 @@ public class NetworkFlowAnalyzer {
         ensureComputed();
         Map<String, Double> result = new LinkedHashMap<String, Double>();
         for (edge e : graph.getEdges()) {
-            List<String> fwd = directedKey(e.getVertex1(), e.getVertex2());
-            List<String> rev = directedKey(e.getVertex2(), e.getVertex1());
+            ArcKey fwd = directedKey(e.getVertex1(), e.getVertex2());
+            ArcKey rev = directedKey(e.getVertex2(), e.getVertex1());
 
             double fwdFlow = flow.getOrDefault(fwd, 0.0);
             double revFlow = flow.getOrDefault(rev, 0.0);
 
             // Net flow direction
             if (fwdFlow > 1e-9) {
-                result.put(formatKey(fwd), fwdFlow);
+                result.put(fwd.toString(), fwdFlow);
             } else if (revFlow > 1e-9) {
-                result.put(formatKey(rev), revFlow);
+                result.put(rev.toString(), revFlow);
             }
         }
         return Collections.unmodifiableMap(result);
@@ -346,7 +381,7 @@ public class NetworkFlowAnalyzer {
         ensureComputed();
 
         // Work on a copy of flows
-        Map<List<String>, Double> flowCopy = new HashMap<List<String>, Double>(flow);
+        Map<ArcKey, Double> flowCopy = new HashMap<ArcKey, Double>(flow);
         List<FlowPath> paths = new ArrayList<FlowPath>();
 
         while (true) {
@@ -362,7 +397,7 @@ public class NetworkFlowAnalyzer {
                 Set<String> neighbors = residualAdj.get(u);
                 if (neighbors == null) continue;
                 for (String v : neighbors) {
-                    List<String> key = directedKey(u, v);
+                    ArcKey key = directedKey(u, v);
                     if (!parent.containsKey(v) &&
                             flowCopy.getOrDefault(key, 0.0) > 1e-9) {
                         parent.put(v, u);
@@ -394,7 +429,7 @@ public class NetworkFlowAnalyzer {
 
             // Subtract flow
             for (int i = 0; i < pathVertices.size() - 1; i++) {
-                List<String> key = directedKey(pathVertices.get(i), pathVertices.get(i + 1));
+                ArcKey key = directedKey(pathVertices.get(i), pathVertices.get(i + 1));
                 flowCopy.put(key, flowCopy.getOrDefault(key, 0.0) - pathFlow);
             }
 
@@ -536,8 +571,8 @@ public class NetworkFlowAnalyzer {
             for (edge e : graph.getEdges()) {
                 String v1 = e.getVertex1();
                 String v2 = e.getVertex2();
-                List<String> fwdKey = directedKey(v1, v2);
-                List<String> revKey = directedKey(v2, v1);
+                ArcKey fwdKey = directedKey(v1, v2);
+                ArcKey revKey = directedKey(v2, v1);
 
                 double fwdFlow = flow.getOrDefault(fwdKey, 0.0);
                 double revFlow = flow.getOrDefault(revKey, 0.0);
@@ -545,11 +580,11 @@ public class NetworkFlowAnalyzer {
 
                 if (fwdFlow > 1e-9) {
                     sb.append(String.format("  %s: %.2f / %.2f%s\n",
-                            formatKey(fwdKey), fwdFlow, cap,
+                            fwdKey, fwdFlow, cap,
                             Math.abs(fwdFlow - cap) < 1e-9 ? " [SATURATED]" : ""));
                 } else if (revFlow > 1e-9) {
                     sb.append(String.format("  %s: %.2f / %.2f%s\n",
-                            formatKey(revKey), revFlow, cap,
+                            revKey, revFlow, cap,
                             Math.abs(revFlow - cap) < 1e-9 ? " [SATURATED]" : ""));
                 }
             }
@@ -561,11 +596,11 @@ public class NetworkFlowAnalyzer {
     // ── Internal helpers ───────────────────────────────────────────
 
     private void buildResidualGraph() {
-        residualCapacity = new HashMap<List<String>, Double>();
-        flow = new HashMap<List<String>, Double>();
+        residualCapacity = new HashMap<ArcKey, Double>();
+        flow = new HashMap<ArcKey, Double>();
         residualAdj = new HashMap<String, Set<String>>();
-        capacity = new HashMap<List<String>, Double>();
-        edgeLookup = new HashMap<List<String>, edge>();
+        capacity = new HashMap<ArcKey, Double>();
+        edgeLookup = new HashMap<ArcKey, edge>();
 
         // Initialise adjacency sets for all vertices
         for (String v : graph.getVertices()) {
@@ -577,8 +612,8 @@ public class NetworkFlowAnalyzer {
             String v2 = e.getVertex2();
             double cap = getEdgeCapacity(e);
 
-            List<String> fwd = directedKey(v1, v2);
-            List<String> rev = directedKey(v2, v1);
+            ArcKey fwd = directedKey(v1, v2);
+            ArcKey rev = directedKey(v2, v1);
 
             // Each undirected edge → two directed arcs
             residualCapacity.put(fwd,
@@ -598,7 +633,7 @@ public class NetworkFlowAnalyzer {
     }
 
     private double bfsAugmentingPath(Map<String, String> parent,
-                                     Map<String, List<String>> parentArcKey) {
+                                     Map<String, ArcKey> parentArcKey) {
         Queue<String> queue = new LinkedList<String>();
         queue.add(source);
         parent.put(source, null);
@@ -609,7 +644,7 @@ public class NetworkFlowAnalyzer {
             if (neighbors == null) continue;
 
             for (String v : neighbors) {
-                List<String> key = directedKey(u, v);
+                ArcKey key = directedKey(u, v);
                 if (!parent.containsKey(v) &&
                         residualCapacity.getOrDefault(key, 0.0) > 1e-9) {
                     parent.put(v, u);
@@ -620,7 +655,7 @@ public class NetworkFlowAnalyzer {
                         String t = sink;
                         while (!t.equals(source)) {
                             String p = parent.get(t);
-                            List<String> k = directedKey(p, t);
+                            ArcKey k = directedKey(p, t);
                             pathFlow = Math.min(pathFlow,
                                     residualCapacity.getOrDefault(k, 0.0));
                             t = p;
@@ -639,18 +674,8 @@ public class NetworkFlowAnalyzer {
         return w > 0 ? w : 1.0;
     }
 
-    private List<String> directedKey(String from, String to) {
-        return Arrays.asList(from, to);
-    }
-
-    /**
-     * Formats a directed key as a human-readable string for display purposes.
-     *
-     * @param key the directed key (two-element list)
-     * @return formatted string "from->to"
-     */
-    private String formatKey(List<String> key) {
-        return key.get(0) + "->" + key.get(1);
+    private ArcKey directedKey(String from, String to) {
+        return new ArcKey(from, to);
     }
 
     private void validateVertex(String vertex, String name) {
