@@ -79,7 +79,7 @@ public class Main extends JFrame {
         renderers.setPathState(pathEdges, pathVertices, pathSource, pathTarget);
         renderers.setMstState(mstOverlayActive, mstEdges);
         renderers.setCommunityState(communityOverlayActive, nodeCommunityMap);
-        renderers.setArticulationState(articulationOverlayActive, articulationPoints, bridgeEdges);
+        renderers.setArticulationState(articulationController != null && articulationController.isOverlayActive(), articulationController != null ? articulationController.getArticulationPoints() : java.util.Collections.emptySet(), articulationController != null ? articulationController.getBridgeEdges() : java.util.Collections.emptySet());
         renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
     }
@@ -151,16 +151,8 @@ public class Main extends JFrame {
     private boolean mstOverlayActive;
     private Set<edge> mstEdges;
 
-    // --- Centrality analysis fields ---
-    private JPanel centralityPanel;
-    private JButton centralityComputeButton;
-    private JButton centralityClearButton;
-    private JComboBox<String> centralityMetricCombo;
-    private JLabel centralityTopologyLabel;
-    private JLabel centralitySummaryLabel;
-    private JLabel centralityRankingLabel;
-    private boolean centralityActive;
-    private Map<String, NodeCentralityAnalyzer.CentralityResult> centralityResults;
+    // --- Centrality analysis (delegated to controller) ---
+    private CentralityPanelController centralityController;
 
     // --- Community detection fields ---
     private JPanel communityPanel;
@@ -172,16 +164,8 @@ public class Main extends JFrame {
     private boolean communityOverlayActive;
     private Map<String, Integer> nodeCommunityMap;
 
-    // --- Articulation point analysis fields ---
-    private JPanel articulationPanel;
-    private JButton articulationComputeButton;
-    private JButton articulationClearButton;
-    private JLabel articulationSummaryLabel;
-    private JLabel articulationResilienceLabel;
-    private JLabel articulationDetailsLabel;
-    private boolean articulationOverlayActive;
-    private Set<String> articulationPoints;
-    private Set<edge> bridgeEdges;
+    // --- Articulation point analysis (delegated to controller) ---
+    private ArticulationPanelController articulationController;
 
     // --- Resilience analysis (delegated to controller) ---
     private ResiliencePanelController resilienceController;
@@ -1269,341 +1253,16 @@ public class Main extends JFrame {
         refreshGraph();
     }
 
-    /**
-     * Initializes the centrality analysis panel with compute/clear buttons,
-     * metric selector, and ranked results display.
-     */
     public final void initializeCentralityPanel() {
-        centralityActive = false;
-        centralityResults = new HashMap<String, NodeCentralityAnalyzer.CentralityResult>();
-
-        centralityPanel = new JPanel();
-        centralityPanel.setLayout(new BoxLayout(centralityPanel, BoxLayout.Y_AXIS));
-        centralityPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Centrality Analysis",
-                TitledBorder.CENTER,
-                TitledBorder.TOP));
-
-        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
-
-        centralityTopologyLabel = new JLabel("Topology: â€”");
-        centralityTopologyLabel.setFont(labelFont);
-        centralityTopologyLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        centralitySummaryLabel = new JLabel("<html>Click 'Compute' to analyze node centrality.</html>");
-        centralitySummaryLabel.setFont(labelFont);
-        centralitySummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        centralityRankingLabel = new JLabel("");
-        centralityRankingLabel.setFont(labelFont);
-        centralityRankingLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        // Metric selector combo box
-        centralityMetricCombo = new JComboBox<String>(
-                new String[] { "Combined", "Degree", "Betweenness", "Closeness" });
-        centralityMetricCombo.setAlignmentX(JComboBox.LEFT_ALIGNMENT);
-        centralityMetricCombo.setMaximumSize(new Dimension(200, 25));
-        centralityMetricCombo.addActionListener(e -> {
-                if (centralityActive) {
-                    updateCentralityRanking();
-                }
-            });
-
-        JPanel metricPanel = new JPanel();
-        metricPanel.setLayout(new BoxLayout(metricPanel, BoxLayout.X_AXIS));
-        metricPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-        JLabel sortLabel = new JLabel("Sort by: ");
-        sortLabel.setFont(labelFont);
-        metricPanel.add(sortLabel);
-        metricPanel.add(centralityMetricCombo);
-
-        // Buttons
-        centralityComputeButton = new JButton("Compute");
-        centralityComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        centralityComputeButton.addActionListener(e -> {
-                runCentralityAnalysis();
-            });
-
-        centralityClearButton = new JButton("Clear");
-        centralityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        centralityClearButton.addActionListener(e -> {
-                clearCentralityAnalysis();
-            });
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(centralityComputeButton);
-        buttonPanel.add(Box.createHorizontalStrut(4));
-        buttonPanel.add(centralityClearButton);
-
-        centralityPanel.add(centralityTopologyLabel);
-        centralityPanel.add(Box.createVerticalStrut(4));
-        centralityPanel.add(metricPanel);
-        centralityPanel.add(Box.createVerticalStrut(4));
-        centralityPanel.add(buttonPanel);
-        centralityPanel.add(Box.createVerticalStrut(4));
-        centralityPanel.add(centralitySummaryLabel);
-        centralityPanel.add(Box.createVerticalStrut(4));
-        centralityPanel.add(centralityRankingLabel);
+        centralityController = new CentralityPanelController(() -> g);
     }
 
-    /**
-     * Runs centrality analysis on the current graph and displays results.
-     */
-    private void runCentralityAnalysis() {
-        if (g == null || g.getVertexCount() == 0) {
-            centralitySummaryLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
 
-        NodeCentralityAnalyzer analyzer = new NodeCentralityAnalyzer(g);
-        analyzer.compute();
-
-        centralityActive = true;
-        centralityResults.clear();
-
-        // Cache results
-        for (NodeCentralityAnalyzer.CentralityResult r : analyzer.getRankedResults()) {
-            centralityResults.put(r.getNodeId(), r);
-        }
-
-        // Topology classification
-        String topology = analyzer.classifyTopology();
-        centralityTopologyLabel.setText("Topology: " + topology);
-
-        // Summary stats
-        Map<String, Object> summary = analyzer.getSummary();
-        StringBuilder sb = new StringBuilder("<html>");
-        sb.append(String.format("<b>Avg Degree C:</b> %.3f<br/>", summary.get("avgDegreeCentrality")));
-        sb.append(String.format("<b>Avg Betweenness C:</b> %.3f<br/>", summary.get("avgBetweennessCentrality")));
-        sb.append(String.format("<b>Avg Closeness C:</b> %.3f<br/>", summary.get("avgClosenessCentrality")));
-        sb.append(String.format("<b>Most Connected:</b> Node %s (%.3f)<br/>",
-                summary.get("maxDegreeCentralityNode"), summary.get("maxDegreeCentrality")));
-        sb.append(String.format("<b>Most Central:</b> Node %s (%.3f)<br/>",
-                summary.get("maxBetweennessCentralityNode"), summary.get("maxBetweennessCentrality")));
-        sb.append(String.format("<b>Most Reachable:</b> Node %s (%.3f)",
-                summary.get("maxClosenessCentralityNode"), summary.get("maxClosenessCentrality")));
-        sb.append("</html>");
-        centralitySummaryLabel.setText(sb.toString());
-
-        updateCentralityRanking();
-
-        centralityPanel.revalidate();
-        centralityPanel.repaint();
-    }
-
-    /**
-     * Updates the centrality ranking display based on the selected metric.
-     */
-    private void updateCentralityRanking() {
-        if (!centralityActive || centralityResults.isEmpty()) return;
-
-        String metric = (String) centralityMetricCombo.getSelectedItem();
-        List<NodeCentralityAnalyzer.CentralityResult> sorted =
-                new ArrayList<NodeCentralityAnalyzer.CentralityResult>(centralityResults.values());
-
-        final String m = metric.toLowerCase();
-        Collections.sort(sorted, (NodeCentralityAnalyzer.CentralityResult a,
-                               NodeCentralityAnalyzer.CentralityResult b) -> {
-                double va, vb;
-                if ("degree".equals(m)) {
-                    va = a.getDegreeCentrality();
-                    vb = b.getDegreeCentrality();
-                } else if ("betweenness".equals(m)) {
-                    va = a.getBetweennessCentrality();
-                    vb = b.getBetweennessCentrality();
-                } else if ("closeness".equals(m)) {
-                    va = a.getClosenessCentrality();
-                    vb = b.getClosenessCentrality();
-                } else {
-                    va = a.getCombinedScore();
-                    vb = b.getCombinedScore();
-                }
-                return Double.compare(vb, va);
-            });
-
-        int shown = Math.min(sorted.size(), 10);
-        StringBuilder sb = new StringBuilder("<html><b>Top " + shown + " by " + metric + ":</b><br/>");
-        for (int i = 0; i < shown; i++) {
-            NodeCentralityAnalyzer.CentralityResult r = sorted.get(i);
-            String medal = i == 0 ? "ðŸ¥‡" : i == 1 ? "ðŸ¥ˆ" : i == 2 ? "ðŸ¥‰" : "&nbsp;&nbsp;";
-            double value;
-            if ("degree".equals(m)) value = r.getDegreeCentrality();
-            else if ("betweenness".equals(m)) value = r.getBetweennessCentrality();
-            else if ("closeness".equals(m)) value = r.getClosenessCentrality();
-            else value = r.getCombinedScore();
-
-            sb.append(String.format("%s #%d Node %s: %.3f (deg=%d)<br/>",
-                    medal, i + 1, r.getNodeId(), value, r.getDegree()));
-        }
-        sb.append("</html>");
-        centralityRankingLabel.setText(sb.toString());
-
-        centralityPanel.revalidate();
-        centralityPanel.repaint();
-    }
-
-    /**
-     * Clears the centrality analysis and resets the panel.
-     */
-    private void clearCentralityAnalysis() {
-        centralityActive = false;
-        centralityResults.clear();
-        centralityTopologyLabel.setText("Topology: â€”");
-        centralitySummaryLabel.setText("<html>Click 'Compute' to analyze node centrality.</html>");
-        centralityRankingLabel.setText("");
-        centralityPanel.revalidate();
-        centralityPanel.repaint();
-    }
-
-    /**
-     * Initializes the articulation point and bridge analysis panel.
-     */
     public final void initializeArticulationPanel() {
-        articulationOverlayActive = false;
-        syncRenderers();
-        articulationPoints = new HashSet<>();
-        bridgeEdges = new HashSet<>();
-
-        articulationPanel = new JPanel();
-        articulationPanel.setLayout(new BoxLayout(articulationPanel, BoxLayout.Y_AXIS));
-        articulationPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Articulation Points & Bridges",
-                TitledBorder.LEFT, TitledBorder.TOP));
-
-        articulationResilienceLabel = new JLabel("Resilience: â€”");
-        articulationResilienceLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-        articulationSummaryLabel = new JLabel("<html>Click 'Analyze' to find critical nodes and edges.</html>");
-        articulationSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-        articulationDetailsLabel = new JLabel("");
-        articulationDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-
-        articulationComputeButton = new JButton("Analyze");
-        articulationComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        articulationComputeButton.addActionListener(e -> {
-                runArticulationAnalysis();
-            });
-
-        articulationClearButton = new JButton("Clear");
-        articulationClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        articulationClearButton.addActionListener(e -> {
-                clearArticulationAnalysis();
-            });
-
-        buttonPanel.add(articulationComputeButton);
-        buttonPanel.add(Box.createHorizontalStrut(5));
-        buttonPanel.add(articulationClearButton);
-
-        articulationPanel.add(articulationResilienceLabel);
-        articulationPanel.add(articulationSummaryLabel);
-        articulationPanel.add(Box.createVerticalStrut(4));
-        articulationPanel.add(buttonPanel);
-        articulationPanel.add(Box.createVerticalStrut(4));
-        articulationPanel.add(articulationDetailsLabel);
+        articulationController = new ArticulationPanelController(
+                () -> g, () -> { syncRenderers(); if (vv != null) vv.repaint(); });
     }
 
-
-    /**
-     * Runs the articulation point and bridge analysis.
-     */
-    private void runArticulationAnalysis() {
-        if (g == null || g.getVertexCount() == 0) {
-            articulationSummaryLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
-
-        ArticulationPointAnalyzer analyzer = new ArticulationPointAnalyzer(g);
-        ArticulationPointAnalyzer.AnalysisResult result = analyzer.analyze();
-
-        articulationOverlayActive = true;
-        syncRenderers();
-        articulationPoints.clear();
-        bridgeEdges.clear();
-        articulationPoints.addAll(result.getArticulationPoints());
-        for (ArticulationPointAnalyzer.Bridge b : result.getBridges()) {
-            bridgeEdges.add(b.getEdge());
-        }
-
-        // Resilience label
-        articulationResilienceLabel.setText(String.format(
-                "Resilience: %.0f/100 (%s)", result.getResilienceScore(),
-                result.getVulnerabilityLevel()));
-
-        // Summary
-        StringBuilder sb = new StringBuilder("<html>");
-        sb.append(String.format("<b>Cut vertices:</b> %d (%.1f%%)<br/>",
-                result.getArticulationPointCount(),
-                result.getArticulationPointPercentage()));
-        sb.append(String.format("<b>Bridges:</b> %d<br/>", result.getBridgeCount()));
-        sb.append(String.format("<b>Components:</b> %d", result.getConnectedComponents()));
-        sb.append("</html>");
-        articulationSummaryLabel.setText(sb.toString());
-
-        // Details: top articulation points and bridges
-        StringBuilder details = new StringBuilder("<html>");
-        List<ArticulationPointAnalyzer.ArticulationPointInfo> apDetails =
-                result.getArticulationPointDetails();
-        if (!apDetails.isEmpty()) {
-            details.append("<b>Critical nodes:</b><br/>");
-            int shown = Math.min(5, apDetails.size());
-            for (int i = 0; i < shown; i++) {
-                ArticulationPointAnalyzer.ArticulationPointInfo info = apDetails.get(i);
-                details.append(String.format("  Node %s (deg=%d, crit=%.1f)<br/>",
-                        info.getVertex(), info.getDegree(), info.getCriticality()));
-            }
-            if (apDetails.size() > 5) {
-                details.append(String.format("  ... and %d more<br/>", apDetails.size() - 5));
-            }
-        }
-        List<ArticulationPointAnalyzer.Bridge> bridges = result.getBridges();
-        if (!bridges.isEmpty()) {
-            details.append("<b>Bridges:</b><br/>");
-            int shown = Math.min(5, bridges.size());
-            for (int i = 0; i < shown; i++) {
-                ArticulationPointAnalyzer.Bridge bridge = bridges.get(i);
-                details.append(String.format("  %sâ€”%s (sev=%.2f, split=%d/%d)<br/>",
-                        bridge.getEndpoint1(), bridge.getEndpoint2(),
-                        bridge.getSeverity(),
-                        bridge.getComponentSizeA(), bridge.getComponentSizeB()));
-            }
-            if (bridges.size() > 5) {
-                details.append(String.format("  ... and %d more<br/>", bridges.size() - 5));
-            }
-        }
-        if (apDetails.isEmpty() && bridges.isEmpty()) {
-            details.append("<i>No critical elements â€” network is robust.</i>");
-        }
-        details.append("</html>");
-        articulationDetailsLabel.setText(details.toString());
-
-        // Refresh visualization to highlight critical elements
-        if (vv != null) { syncRenderers(); vv.repaint(); }
-        articulationPanel.revalidate();
-        articulationPanel.repaint();
-    }
-
-    /**
-     * Clears the articulation point analysis and resets the panel.
-     */
-    private void clearArticulationAnalysis() {
-        articulationOverlayActive = false;
-        syncRenderers();
-        articulationPoints.clear();
-        bridgeEdges.clear();
-        articulationResilienceLabel.setText("Resilience: â€”");
-        articulationSummaryLabel.setText("<html>Click 'Analyze' to find critical nodes and edges.</html>");
-        articulationDetailsLabel.setText("");
-        if (vv != null) { syncRenderers(); vv.repaint(); }
-        articulationPanel.revalidate();
-        articulationPanel.repaint();
-    }
 
     /**
      * Initializes the network statistics panel.
@@ -1650,8 +1309,8 @@ public class Main extends JFrame {
             pathPanel,
             communityPanel,
             mstPanel,
-            centralityPanel,
-            articulationPanel,
+            centralityController.getPanel(),
+            articulationController.getPanel(),
             resilienceController.getPanel(),
             egoController.getPanel(),
             statsPanel,
