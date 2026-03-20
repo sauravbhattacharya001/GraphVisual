@@ -10,13 +10,13 @@ import java.util.*;
 
 /**
  * Tests for CircularLayout — verifies all ordering strategies, dual-ring mode,
- * SVG export, edge crossing counts, and edge cases.
+ * SVG export, Edge crossing counts, and edge cases.
  */
 public class CircularLayoutTest {
 
-    private Graph<String, edge> triangle;
-    private Graph<String, edge> star;
-    private Graph<String, edge> empty;
+    private Graph<String, Edge> triangle;
+    private Graph<String, Edge> star;
+    private Graph<String, Edge> empty;
 
     @Before
     public void setUp() {
@@ -41,8 +41,8 @@ public class CircularLayoutTest {
         empty = new UndirectedSparseGraph<>();
     }
 
-    private edge makeEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge makeEdge(String v1, String v2) {
+        Edge e  new Edge("f", v1, v2);
         e.setWeight(1.0f);
         e.setLabel(v1 + "-" + v2);
         return e;
@@ -104,7 +104,7 @@ public class CircularLayoutTest {
     @Test
     public void testCommunityOrdering() {
         // Two disconnected components
-        Graph<String, edge> disconnected = new UndirectedSparseGraph<>();
+        Graph<String, Edge> disconnected = new UndirectedSparseGraph<>();
         disconnected.addVertex("A1");
         disconnected.addVertex("A2");
         disconnected.addEdge(makeEdge("A1", "A2"), "A1", "A2");
@@ -202,7 +202,7 @@ public class CircularLayoutTest {
     @Test
     public void testSvgHidesLabelsForLargeGraphs() {
         // Create graph with 100 nodes
-        Graph<String, edge> large = new UndirectedSparseGraph<>();
+        Graph<String, Edge> large = new UndirectedSparseGraph<>();
         for (int i = 0; i < 100; i++) {
             large.addVertex("n" + i);
         }
@@ -232,7 +232,7 @@ public class CircularLayoutTest {
 
     @Test
     public void testSingleNode() {
-        Graph<String, edge> single = new UndirectedSparseGraph<>();
+        Graph<String, Edge> single = new UndirectedSparseGraph<>();
         single.addVertex("alone");
         CircularLayout layout = new CircularLayout.Builder(single)
             .ordering(CircularLayout.Ordering.ALPHABETICAL)

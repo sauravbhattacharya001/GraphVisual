@@ -25,30 +25,30 @@ public class GraphRenderers {
 
     // ── overlay state (set externally by Main) ──────────────────────────
 
-    private Set<edge> pathEdges;
+    private Set<Edge> pathEdges;
     private Set<String> pathVertices;
     private String pathSource;
     private String pathTarget;
 
     private boolean mstOverlayActive;
-    private Set<edge> mstEdges;
+    private Set<Edge> mstEdges;
 
     private boolean communityOverlayActive;
     private Map<String, Integer> nodeCommunityMap;
 
     private boolean articulationOverlayActive;
     private Set<String> articulationPoints;
-    private Set<edge> bridgeEdges;
+    private Set<Edge> bridgeEdges;
 
     private boolean egoOverlayActive;
     private String egoCenter;
     private Set<String> egoNeighbors;
-    private Set<edge> egoEdges;
+    private Set<Edge> egoEdges;
 
     private Collection<String> oldVertices;
 
     /** Graph reference for vertex‐paint edge‐type lookup. */
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     // ── constants (mirrored from Main) ──────────────────────────────────
 
@@ -71,7 +71,7 @@ public class GraphRenderers {
 
     // ── setters ─────────────────────────────────────────────────────────
 
-    public void setPathState(Set<edge> pathEdges, Set<String> pathVertices,
+    public void setPathState(Set<Edge> pathEdges, Set<String> pathVertices,
                              String pathSource, String pathTarget) {
         this.pathEdges = pathEdges;
         this.pathVertices = pathVertices;
@@ -79,7 +79,7 @@ public class GraphRenderers {
         this.pathTarget = pathTarget;
     }
 
-    public void setMstState(boolean active, Set<edge> mstEdges) {
+    public void setMstState(boolean active, Set<Edge> mstEdges) {
         this.mstOverlayActive = active;
         this.mstEdges = mstEdges;
     }
@@ -90,13 +90,13 @@ public class GraphRenderers {
     }
 
     public void setArticulationState(boolean active, Set<String> articulationPoints,
-                                     Set<edge> bridgeEdges) {
+                                     Set<Edge> bridgeEdges) {
         this.articulationOverlayActive = active;
         this.articulationPoints = articulationPoints;
         this.bridgeEdges = bridgeEdges;
     }
 
-    public void setEgoState(boolean active, String center, Set<String> neighbors, Set<edge> edges) {
+    public void setEgoState(boolean active, String center, Set<String> neighbors, Set<Edge> edges) {
         this.egoOverlayActive = active;
         this.egoCenter = center;
         this.egoNeighbors = neighbors;
@@ -107,14 +107,14 @@ public class GraphRenderers {
         this.oldVertices = oldVertices;
     }
 
-    public void setGraph(Graph<String, edge> graph) {
+    public void setGraph(Graph<String, Edge> graph) {
         this.graph = graph;
     }
 
     // ── transformers ────────────────────────────────────────────────────
 
     public Transformer<edge, Paint> edgePaintTransformer() {
-        return (edge e) -> {
+        return ((Edge e) -> {
                 if (pathEdges != null && pathEdges.contains(e)) {
                     return Color.YELLOW;
                 }
@@ -179,7 +179,7 @@ public class GraphRenderers {
                 // Determine vertex colour based on connected edge types
                 if (graph != null) {
                     Set<EdgeType> connectedTypes = new HashSet<>();
-                    for (edge x : graph.getOutEdges(vertex)) {
+                    for ((Edge x : graph.getOutEdges(vertex)) {
                         EdgeType et = EdgeType.fromCode(x.getType());
                         if (et != null) {
                             connectedTypes.add(et);
@@ -230,7 +230,7 @@ public class GraphRenderers {
     }
 
     public Transformer<edge, Stroke> edgeStrokeTransformer() {
-        return (edge i) -> {
+        return ((Edge i) -> {
                 if (pathEdges != null && pathEdges.contains(i)) {
                     return new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
                 }

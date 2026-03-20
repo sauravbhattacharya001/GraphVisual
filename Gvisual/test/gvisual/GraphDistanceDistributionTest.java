@@ -16,34 +16,34 @@ public class GraphDistanceDistributionTest {
 
     // --- helpers ---
 
-    private Graph<String, edge> makePath(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makePath(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         for (int i = 0; i < n - 1; i++) {
-            g.addEdge(new edge("e", "v" + i, "v" + (i + 1)), "v" + i, "v" + (i + 1));
+            g.addEdge(new Edge("e", "v" + i, "v" + (i + 1)), "v" + i, "v" + (i + 1));
         }
         return g;
     }
 
-    private Graph<String, edge> makeComplete(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeComplete(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         int id = 0;
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                g.addEdge(new edge("e" + id++, "v" + i, "v" + j), "v" + i, "v" + j);
+                g.addEdge(new Edge("e" + id++, "v" + i, "v" + j), "v" + i, "v" + j);
             }
         }
         return g;
     }
 
-    private Graph<String, edge> makeStar(int leaves) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeStar(int leaves) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("center");
         for (int i = 0; i < leaves; i++) {
             String leaf = "leaf" + i;
             g.addVertex(leaf);
-            g.addEdge(new edge("e" + i, "center", leaf), "center", leaf);
+            g.addEdge(new Edge("e" + i, "center", leaf), "center", leaf);
         }
         return g;
     }
@@ -65,7 +65,7 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
         assertEquals(0.0, dd.getAveragePathLength(), 0.001);
@@ -76,7 +76,7 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testSingleVertex() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
@@ -177,11 +177,11 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testDisconnectedSeparation() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         g.addVertex("b");
         g.addVertex("c");
-        g.addEdge(new edge("e1", "a", "b"), "a", "b");
+        g.addEdge(new Edge("e1", "a", "b"), "a", "b");
         // c is isolated → 2 out of 3 pairs unreachable
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
@@ -201,7 +201,7 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testHarmonicMeanDisconnected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         g.addVertex("b");
         // No edges → infinite harmonic mean
@@ -247,7 +247,7 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testUnreachableDistance() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         g.addVertex("b");
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
@@ -262,11 +262,11 @@ public class GraphDistanceDistributionTest {
         assertEquals(-1, dd.getDistance("nonexistent", "v0"));
     }
 
-    // --- remoteness edge cases ---
+    // --- remoteness Edge cases ---
 
     @Test
     public void testRemotenessIsolated() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
@@ -318,12 +318,12 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testDirectedGraph() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         g.addVertex("a");
         g.addVertex("b");
         g.addVertex("c");
-        g.addEdge(new edge("e1", "a", "b"), "a", "b");
-        g.addEdge(new edge("e2", "b", "c"), "b", "c");
+        g.addEdge(new Edge("e1", "a", "b"), "a", "b");
+        g.addEdge(new Edge("e2", "b", "c"), "b", "c");
         // a→b→c but no reverse
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
@@ -357,13 +357,13 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testTwoComponents() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         g.addVertex("b");
-        g.addEdge(new edge("e1", "a", "b"), "a", "b");
+        g.addEdge(new Edge("e1", "a", "b"), "a", "b");
         g.addVertex("c");
         g.addVertex("d");
-        g.addEdge(new edge("e2", "c", "d"), "c", "d");
+        g.addEdge(new Edge("e2", "c", "d"), "c", "d");
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
         assertEquals(1, dd.getDistance("a", "b"));
@@ -379,7 +379,7 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testPercentileEmpty() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a");
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();
@@ -390,11 +390,11 @@ public class GraphDistanceDistributionTest {
 
     @Test
     public void testCycleGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 6; i++) g.addVertex("v" + i);
         for (int i = 0; i < 6; i++) {
             int j = (i + 1) % 6;
-            g.addEdge(new edge("e" + i, "v" + i, "v" + j), "v" + i, "v" + j);
+            g.addEdge(new Edge("e" + i, "v" + i, "v" + j), "v" + i, "v" + j);
         }
         GraphDistanceDistribution dd = new GraphDistanceDistribution(g);
         dd.compute();

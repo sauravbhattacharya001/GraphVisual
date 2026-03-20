@@ -16,8 +16,8 @@ import static org.junit.Assert.*;
  */
 public class GraphDiffAnalyzerTest {
 
-    private Graph<String, edge> graphA;
-    private Graph<String, edge> graphB;
+    private Graph<String, Edge> graphA;
+    private Graph<String, Edge> graphB;
 
     @Before
     public void setUp() {
@@ -25,10 +25,10 @@ public class GraphDiffAnalyzerTest {
         graphB = new UndirectedSparseGraph<>();
     }
 
-    private void addEdge(Graph<String, edge> g, String v1, String v2) {
+    private void addEdge(Graph<String, Edge> g, String v1, String v2) {
         if (!g.containsVertex(v1)) g.addVertex(v1);
         if (!g.containsVertex(v2)) g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e  new Edge("f", v1, v2);
         g.addEdge(e, v1, v2);
     }
 
@@ -294,7 +294,7 @@ public class GraphDiffAnalyzerTest {
         GraphDiffAnalyzer.DiffResult result =
                 new GraphDiffAnalyzer(graphA, graphB).computeDiff();
 
-        // edge Jaccard = 1/3 ≈ 0.333
+        // Edge Jaccard  1/3 ≈ 0.333
         assertEquals(1.0 / 3.0, result.getEdgeJaccard(), 0.001);
     }
 

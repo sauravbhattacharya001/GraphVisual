@@ -43,10 +43,10 @@ import java.util.*;
  */
 public class VertexConnectivityAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private static final int ALL_CUTS_LIMIT = 20;
 
-    public VertexConnectivityAnalyzer(Graph<String, edge> graph) {
+    public VertexConnectivityAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -60,7 +60,7 @@ public class VertexConnectivityAnalyzer {
         private final int edgeConnectivity;
         private final int minDegree;
         private final Set<String> minimumVertexCut;
-        private final Set<edge> minimumEdgeCut;
+        private final Set<Edge> minimumEdgeCut;
         private final boolean whitneyHolds;
         private final int vertexCount;
         private final int edgeCount;
@@ -68,7 +68,7 @@ public class VertexConnectivityAnalyzer {
 
         public ConnectivityResult(int vertexConnectivity, int edgeConnectivity,
                                    int minDegree, Set<String> minimumVertexCut,
-                                   Set<edge> minimumEdgeCut, boolean whitneyHolds,
+                                   Set<Edge> minimumEdgeCut, boolean whitneyHolds,
                                    int vertexCount, int edgeCount, boolean isConnected) {
             this.vertexConnectivity = vertexConnectivity;
             this.edgeConnectivity = edgeConnectivity;
@@ -85,7 +85,7 @@ public class VertexConnectivityAnalyzer {
         public int getEdgeConnectivity() { return edgeConnectivity; }
         public int getMinDegree() { return minDegree; }
         public Set<String> getMinimumVertexCut() { return minimumVertexCut; }
-        public Set<edge> getMinimumEdgeCut() { return minimumEdgeCut; }
+        public Set<Edge> getMinimumEdgeCut() { return minimumEdgeCut; }
         public boolean isWhitneyHolds() { return whitneyHolds; }
         public int getVertexCount() { return vertexCount; }
         public int getEdgeCount() { return edgeCount; }
@@ -98,13 +98,13 @@ public class VertexConnectivityAnalyzer {
         private final int vertexConnectivity;
         private final int edgeConnectivity;
         private final Set<String> minimumVertexCut;
-        private final Set<edge> minimumEdgeCut;
+        private final Set<Edge> minimumEdgeCut;
         private final List<List<String>> vertexDisjointPaths;
         private final List<List<String>> edgeDisjointPaths;
 
         public PairwiseResult(String source, String target,
                                int vertexConnectivity, int edgeConnectivity,
-                               Set<String> minimumVertexCut, Set<edge> minimumEdgeCut,
+                               Set<String> minimumVertexCut, Set<Edge> minimumEdgeCut,
                                List<List<String>> vertexDisjointPaths,
                                List<List<String>> edgeDisjointPaths) {
             this.source = source;
@@ -122,7 +122,7 @@ public class VertexConnectivityAnalyzer {
         public int getVertexConnectivity() { return vertexConnectivity; }
         public int getEdgeConnectivity() { return edgeConnectivity; }
         public Set<String> getMinimumVertexCut() { return minimumVertexCut; }
-        public Set<edge> getMinimumEdgeCut() { return minimumEdgeCut; }
+        public Set<Edge> getMinimumEdgeCut() { return minimumEdgeCut; }
         public List<List<String>> getVertexDisjointPaths() { return vertexDisjointPaths; }
         public List<List<String>> getEdgeDisjointPaths() { return edgeDisjointPaths; }
     }
@@ -246,7 +246,7 @@ public class VertexConnectivityAnalyzer {
     /**
      * Find a minimum edge cut set.
      */
-    public Set<edge> minimumEdgeCut() {
+    public Set<Edge> minimumEdgeCut() {
         int n = graph.getVertexCount();
         if (n <= 1 || !isConnected()) return Collections.emptySet();
 
@@ -297,7 +297,7 @@ public class VertexConnectivityAnalyzer {
         int vc = maxFlowVertexSplit(s, t);
         Set<String> vCut = extractVertexCut(s, t);
         int ec = maxFlowEdge(s, t);
-        Set<edge> eCut = extractEdgeCut(s, t);
+        Set<Edge> eCut = extractEdgeCut(s, t);
         List<List<String>> vPaths = findVertexDisjointPaths(s, t);
         List<List<String>> ePaths = findEdgeDisjointPaths(s, t);
 
@@ -356,7 +356,7 @@ public class VertexConnectivityAnalyzer {
         Map<String, Integer> criticality = new LinkedHashMap<>();
 
         for (String v : graph.getVertices()) {
-            Graph<String, edge> reduced = removeVertex(v);
+            Graph<String, Edge> reduced = removeVertex(v);
             VertexConnectivityAnalyzer sub = new VertexConnectivityAnalyzer(reduced);
             int subKappa;
             if (reduced.getVertexCount() <= 1) {
@@ -379,7 +379,7 @@ public class VertexConnectivityAnalyzer {
         int lambda = edgeConnectivity();
         int delta = minDegree();
         Set<String> vCut = minimumVertexCut();
-        Set<edge> eCut = minimumEdgeCut();
+        Set<Edge> eCut = minimumEdgeCut();
         boolean whitney = kappa <= lambda && lambda <= delta;
 
         return new ConnectivityResult(kappa, lambda, delta, vCut, eCut,
@@ -438,10 +438,10 @@ public class VertexConnectivityAnalyzer {
             sb.append(String.format("  Size: %d\n\n", vCut.size()));
         }
 
-        Set<edge> eCut = minimumEdgeCut();
+        Set<Edge> eCut = minimumEdgeCut();
         if (!eCut.isEmpty()) {
             sb.append("Minimum edge cut:\n");
-            for (edge e : eCut) {
+            for ((Edge e : eCut) {
                 sb.append(String.format("  %s\n", e));
             }
             sb.append(String.format("  Size: %d\n\n", eCut.size()));
@@ -489,7 +489,7 @@ public class VertexConnectivityAnalyzer {
             }
         }
 
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -507,7 +507,7 @@ public class VertexConnectivityAnalyzer {
             cap.putIfAbsent(v, new HashMap<>());
         }
 
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -635,12 +635,12 @@ public class VertexConnectivityAnalyzer {
         return cut;
     }
 
-    private Set<edge> extractEdgeCut(String s, String t) {
+    private Set<Edge> extractEdgeCut(String s, String t) {
         Map<String, Map<String, Integer>> cap = new HashMap<>();
         for (String v : graph.getVertices()) {
             cap.putIfAbsent(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -694,8 +694,8 @@ public class VertexConnectivityAnalyzer {
             }
         }
 
-        Set<edge> cutEdges = new LinkedHashSet<>();
-        for (edge e : graph.getEdges()) {
+        Set<Edge> cutEdges = new LinkedHashSet<>();
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -779,7 +779,7 @@ public class VertexConnectivityAnalyzer {
         for (String v : graph.getVertices()) {
             cap.putIfAbsent(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -844,12 +844,12 @@ public class VertexConnectivityAnalyzer {
         cap.get(from).merge(to, c, Integer::sum);
     }
 
-    private Graph<String, edge> removeVertex(String toRemove) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> removeVertex(String toRemove) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : graph.getVertices()) {
             if (!v.equals(toRemove)) g.addVertex(v);
         }
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();

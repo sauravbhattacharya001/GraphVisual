@@ -29,7 +29,7 @@ public final class GraphUtils {
      * @return the other endpoint, or {@code null} if {@code current} is not
      *         an endpoint of the edge
      */
-    public static String getOtherEnd(edge e, String current) {
+    public static String getOtherEnd(Edge e, String current) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         if (current.equals(v1)) return v2;
@@ -44,7 +44,7 @@ public final class GraphUtils {
      * @return map from each vertex to its set of neighbor vertex IDs
      */
     public static Map<String, Set<String>> buildAdjacencyMap(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
         for (String v : graph.getVertices()) {
             Set<String> neighbors = new HashSet<String>();
@@ -66,12 +66,12 @@ public final class GraphUtils {
      * @return adjacency map (vertex → set of neighbours within the subset)
      */
     public static Map<String, Set<String>> buildAdjacencyMap(
-            Graph<String, edge> graph, Set<String> vertices) {
+            Graph<String, Edge> graph, Set<String> vertices) {
         Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
         for (String v : vertices) {
             adj.put(v, new HashSet<String>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             if (eps == null || eps.size() != 2) continue;
             Iterator<String> it = eps.iterator();
@@ -94,7 +94,7 @@ public final class GraphUtils {
      * @return map from vertex ID to its BFS distance from source
      */
     public static Map<String, Integer> bfsDistances(
-            Graph<String, edge> graph, String source) {
+            Graph<String, Edge> graph, String source) {
         Map<String, Integer> distances = new HashMap<String, Integer>();
         Queue<String> queue = new LinkedList<String>();
         distances.put(source, 0);
@@ -103,9 +103,9 @@ public final class GraphUtils {
         while (!queue.isEmpty()) {
             String current = queue.poll();
             int currentDist = distances.get(current);
-            Collection<edge> incidentEdges = graph.getIncidentEdges(current);
+            Collection<Edge> incidentEdges = graph.getIncidentEdges(current);
             if (incidentEdges == null) continue;
-            for (edge e : incidentEdges) {
+            for (Edge e : incidentEdges) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !distances.containsKey(neighbor)) {
                     distances.put(neighbor, currentDist + 1);
@@ -124,7 +124,7 @@ public final class GraphUtils {
      * @return set of all vertices reachable from source (including source)
      */
     public static Set<String> bfsComponent(
-            Graph<String, edge> graph, String source) {
+            Graph<String, Edge> graph, String source) {
         Set<String> component = new LinkedHashSet<String>();
         Queue<String> queue = new LinkedList<String>();
         component.add(source);
@@ -132,9 +132,9 @@ public final class GraphUtils {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            Collection<edge> incidentEdges = graph.getIncidentEdges(current);
+            Collection<Edge> incidentEdges = graph.getIncidentEdges(current);
             if (incidentEdges == null) continue;
-            for (edge e : incidentEdges) {
+            for (Edge e : incidentEdges) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !component.contains(neighbor)) {
                     component.add(neighbor);
@@ -152,7 +152,7 @@ public final class GraphUtils {
      * @return list of components, each a set of vertex IDs, sorted largest-first
      */
     public static List<Set<String>> findComponents(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         Set<String> visited = new HashSet<String>();
         List<Set<String>> components = new ArrayList<Set<String>>();
 
@@ -178,7 +178,7 @@ public final class GraphUtils {
      * @return set of vertices in the largest component, or empty set if graph is empty
      */
     public static Set<String> findLargestComponent(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         List<Set<String>> components = findComponents(graph);
         return components.isEmpty() ? Collections.<String>emptySet() : components.get(0);
     }
@@ -213,7 +213,7 @@ public final class GraphUtils {
      * @return true if the induced subgraph contains a cycle
      */
     public static boolean hasCycleInSubgraph(
-            Graph<String, edge> graph, Set<String> vertices, boolean directed) {
+            Graph<String, Edge> graph, Set<String> vertices, boolean directed) {
         if (vertices.size() <= 1) return false;
         Set<String> visited = new HashSet<String>();
         Set<String> inStack = new HashSet<String>();
@@ -230,7 +230,7 @@ public final class GraphUtils {
     }
 
     private static boolean hasCycleDFS_undirected(
-            Graph<String, edge> graph, String v, String parent,
+            Graph<String, Edge> graph, String v, String parent,
             Set<String> vertices, Set<String> visited) {
         visited.add(v);
         for (String n : graph.getNeighbors(v)) {
@@ -245,7 +245,7 @@ public final class GraphUtils {
     }
 
     private static boolean hasCycleDFS_directed(
-            Graph<String, edge> graph, String v, Set<String> vertices,
+            Graph<String, Edge> graph, String v, Set<String> vertices,
             Set<String> visited, Set<String> inStack) {
         visited.add(v);
         inStack.add(v);
@@ -269,11 +269,11 @@ public final class GraphUtils {
      * @return number of edges where both endpoints are in the vertex set
      */
     public static int countEdgesInSubgraph(
-            Graph<String, edge> graph, Set<String> vertices) {
+            Graph<String, Edge> graph, Set<String> vertices) {
         int count = 0;
-        Set<edge> seen = new HashSet<edge>();
+        Set<Edge> seen = new HashSet<Edge>();
         for (String v : vertices) {
-            for (edge e : graph.getIncidentEdges(v)) {
+            for (Edge e : graph.getIncidentEdges(v)) {
                 if (seen.contains(e)) continue;
                 boolean allIn = true;
                 for (String ep : graph.getEndpoints(e)) {
@@ -293,7 +293,7 @@ public final class GraphUtils {
      * @return number of connected components within the subset
      */
     public static int countComponentsInSubgraph(
-            Graph<String, edge> graph, Set<String> vertices) {
+            Graph<String, Edge> graph, Set<String> vertices) {
         Set<String> visited = new HashSet<String>();
         int components = 0;
         for (String v : vertices) {
@@ -325,7 +325,7 @@ public final class GraphUtils {
      * @return the cycle rank of the induced subgraph
      */
     public static int cycleRankOfSubgraph(
-            Graph<String, edge> graph, Set<String> vertices) {
+            Graph<String, Edge> graph, Set<String> vertices) {
         int edges = countEdgesInSubgraph(graph, vertices);
         int comps = countComponentsInSubgraph(graph, vertices);
         return edges - vertices.size() + comps;
@@ -340,17 +340,17 @@ public final class GraphUtils {
      * @param graph the graph to copy
      * @return a new graph with identical structure
      */
-    public static Graph<String, edge> copyGraph(Graph<String, edge> graph) {
-        Graph<String, edge> copy = new UndirectedSparseGraph<String, edge>();
+    public static Graph<String, Edge> copyGraph(Graph<String, Edge> graph) {
+        Graph<String, Edge> copy = new UndirectedSparseGraph<String, Edge>();
         for (String v : graph.getVertices()) {
             copy.addVertex(v);
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String v1 = it.next();
             String v2 = it.next();
-            edge newEdge = new edge(e.getType(), v1, v2);
+            Edge newEdge  new Edge(e.getType(), v1, v2);
             newEdge.setWeight(e.getWeight());
             newEdge.setLabel(e.getLabel());
             copy.addEdge(newEdge, v1, v2);
@@ -372,7 +372,7 @@ public final class GraphUtils {
      * @param graph the graph
      * @return map from vertex ID to betweenness centrality score
      */
-    public static Map<String, Double> computeBetweenness(Graph<String, edge> graph) {
+    public static Map<String, Double> computeBetweenness(Graph<String, Edge> graph) {
         int n = graph.getVertexCount();
         if (n == 0) return Collections.emptyMap();
 
@@ -477,7 +477,7 @@ public final class GraphUtils {
      * @param graph the graph
      * @return global efficiency in [0, 1]
      */
-    public static double globalEfficiency(Graph<String, edge> graph) {
+    public static double globalEfficiency(Graph<String, Edge> graph) {
         int n = graph.getVertexCount();
         if (n <= 1) return 0.0;
 
@@ -568,7 +568,7 @@ public final class GraphUtils {
      * @param source the source vertex
      * @return distances and predecessors for all reachable vertices
      */
-    public static DijkstraResult dijkstra(Graph<String, edge> graph, String source) {
+    public static DijkstraResult dijkstra(Graph<String, Edge> graph, String source) {
         Map<String, Double> dist = new HashMap<String, Double>();
         Map<String, String> prev = new HashMap<String, String>();
         Set<String> visited = new HashSet<String>();
@@ -599,7 +599,7 @@ public final class GraphUtils {
             Double uDist = dist.get(u);
             if (uDist == null || entryDist > uDist) continue;
 
-            for (edge e : graph.getIncidentEdges(u)) {
+            for (Edge e : graph.getIncidentEdges(u)) {
                 String v = getOtherEnd(e, u);
                 if (v == null || visited.contains(v)) continue;
 
@@ -660,7 +660,7 @@ public final class GraphUtils {
      * @return neighbors of v, or an empty collection if null
      */
     public static Collection<String> neighborsOf(
-            Graph<String, edge> graph, String v) {
+            Graph<String, Edge> graph, String v) {
         Collection<String> nbrs = graph.getNeighbors(v);
         return nbrs != null ? nbrs : Collections.<String>emptyList();
     }
@@ -697,7 +697,7 @@ public final class GraphUtils {
      * @return a {@link DirectedAdj} with successor and predecessor maps
      */
     public static DirectedAdj buildDirectedAdjacencyMap(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         Map<String, Set<String>> successors = new HashMap<String, Set<String>>();
         Map<String, Set<String>> predecessors = new HashMap<String, Set<String>>();
         Set<String> allVertices = new HashSet<String>();
@@ -708,7 +708,7 @@ public final class GraphUtils {
             predecessors.put(v, new HashSet<String>());
         }
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String from = e.getVertex1();
             String to = e.getVertex2();
             if (from != null && to != null

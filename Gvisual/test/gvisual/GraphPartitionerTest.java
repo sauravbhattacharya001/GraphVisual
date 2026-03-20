@@ -10,11 +10,11 @@ import java.util.*;
 
 /**
  * Tests for GraphPartitioner — BFS, Kernighan-Lin, and spectral
- * partitioning strategies with balance, edge cut, and conductance metrics.
+ * partitioning strategies with balance, Edge cut, and conductance metrics.
  */
 public class GraphPartitionerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,7 +24,7 @@ public class GraphPartitionerTest {
     // ---- Helpers ----
 
     private void addEdge(String u, String v) {
-        edge e = new edge("f", u, v);
+        Edge e  new Edge("f", u, v);
         graph.addEdge(e, u, v);
     }
 

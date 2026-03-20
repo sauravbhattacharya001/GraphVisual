@@ -15,11 +15,11 @@ import static org.junit.Assert.*;
  */
 public class GraphAlgorithmAnimatorTest {
 
-    private Graph<String, edge> simpleGraph;
-    private Graph<String, edge> weightedGraph;
-    private Graph<String, edge> directedGraph;
-    private Graph<String, edge> singleNode;
-    private Graph<String, edge> disconnected;
+    private Graph<String, Edge> simpleGraph;
+    private Graph<String, Edge> weightedGraph;
+    private Graph<String, Edge> directedGraph;
+    private Graph<String, Edge> singleNode;
+    private Graph<String, Edge> disconnected;
 
     @Before
     public void setUp() {
@@ -29,10 +29,10 @@ public class GraphAlgorithmAnimatorTest {
         simpleGraph.addVertex("B");
         simpleGraph.addVertex("C");
         simpleGraph.addVertex("D");
-        simpleGraph.addEdge(new edge("e", "A", "B"), "A", "B");
-        simpleGraph.addEdge(new edge("e", "B", "C"), "B", "C");
-        simpleGraph.addEdge(new edge("e", "C", "D"), "C", "D");
-        simpleGraph.addEdge(new edge("e", "A", "C"), "A", "C");
+        simpleGraph.addEdge(new Edge("e", "A", "B"), "A", "B");
+        simpleGraph.addEdge(new Edge("e", "B", "C"), "B", "C");
+        simpleGraph.addEdge(new Edge("e", "C", "D"), "C", "D");
+        simpleGraph.addEdge(new Edge("e", "A", "C"), "A", "C");
 
         // Weighted graph for Dijkstra/Kruskal
         weightedGraph = new UndirectedSparseGraph<>();
@@ -40,10 +40,10 @@ public class GraphAlgorithmAnimatorTest {
         weightedGraph.addVertex("B");
         weightedGraph.addVertex("C");
         weightedGraph.addVertex("D");
-        edge e1 = new edge("e", "A", "B"); e1.setWeight(1);
-        edge e2 = new edge("e", "B", "C"); e2.setWeight(3);
-        edge e3 = new edge("e", "A", "C"); e3.setWeight(5);
-        edge e4 = new edge("e", "C", "D"); e4.setWeight(2);
+        Edge e1  new Edge("e", "A", "B"); e1.setWeight(1);
+        Edge e2  new Edge("e", "B", "C"); e2.setWeight(3);
+        Edge e3  new Edge("e", "A", "C"); e3.setWeight(5);
+        Edge e4  new Edge("e", "C", "D"); e4.setWeight(2);
         weightedGraph.addEdge(e1, "A", "B");
         weightedGraph.addEdge(e2, "B", "C");
         weightedGraph.addEdge(e3, "A", "C");
@@ -54,9 +54,9 @@ public class GraphAlgorithmAnimatorTest {
         directedGraph.addVertex("A");
         directedGraph.addVertex("B");
         directedGraph.addVertex("C");
-        directedGraph.addEdge(new edge("e", "A", "B"), "A", "B");
-        directedGraph.addEdge(new edge("e", "B", "C"), "B", "C");
-        directedGraph.addEdge(new edge("e", "C", "A"), "C", "A");
+        directedGraph.addEdge(new Edge("e", "A", "B"), "A", "B");
+        directedGraph.addEdge(new Edge("e", "B", "C"), "B", "C");
+        directedGraph.addEdge(new Edge("e", "C", "A"), "C", "A");
 
         // Single node
         singleNode = new UndirectedSparseGraph<>();
@@ -67,7 +67,7 @@ public class GraphAlgorithmAnimatorTest {
         disconnected.addVertex("A");
         disconnected.addVertex("B");
         disconnected.addVertex("C");
-        disconnected.addEdge(new edge("e", "A", "B"), "A", "B");
+        disconnected.addEdge(new Edge("e", "A", "B"), "A", "B");
         // C is isolated
     }
 

@@ -1,4 +1,4 @@
-﻿package gvisual;
+package gvisual;
 
 import app.Network;
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -101,9 +101,9 @@ public class Main extends JFrame {
     private String month;
     private String date;
     private String timeStamp;
-    private Graph<String, edge> g;
-    private VisualizationViewer<String, edge> vv;
-    private Layout<String, edge> graphLayout;
+    private Graph<String, Edge> g;
+    private VisualizationViewer<String, Edge> vv;
+    private Layout<String, Edge> graphLayout;
     private final GraphRenderers renderers = new GraphRenderers();
 
     /**
@@ -119,11 +119,11 @@ public class Main extends JFrame {
         renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
     }
-    private List<edge> friendEdges = new ArrayList<>();
-    private List<edge> fsEdges = new ArrayList<>();
-    private List<edge> classmateEdges = new ArrayList<>();
-    private List<edge> strangerEdges = new ArrayList<>();
-    private List<edge> studyGEdges = new ArrayList<>();
+    private List<Edge> friendEdges = new ArrayList<>();
+    private List<Edge> fsEdges = new ArrayList<>();
+    private List<Edge> classmateEdges = new ArrayList<>();
+    private List<Edge> strangerEdges = new ArrayList<>();
+    private List<Edge> studyGEdges = new ArrayList<>();
     private String fileName;
     private Box parameterSpace;
     private JPanel notesPanel;
@@ -167,7 +167,7 @@ public class Main extends JFrame {
     private String pathSource;
     private String pathTarget;
     private Set<String> pathVertices;
-    private Set<edge> pathEdges;
+    private Set<Edge> pathEdges;
     private JPanel pathPanel;
     private JLabel pathSourceLabel;
     private JLabel pathTargetLabel;
@@ -185,7 +185,7 @@ public class Main extends JFrame {
     private JLabel mstStatsLabel;
     private JLabel mstComponentsLabel;
     private boolean mstOverlayActive;
-    private Set<edge> mstEdges;
+    private Set<Edge> mstEdges;
 
     // --- Centrality analysis (delegated to controller) ---
     private CentralityPanelController centralityController;
@@ -265,7 +265,7 @@ public class Main extends JFrame {
      * Returns the edge list for the given edge type.
      * Used to replace the cascading if/else chain in addGraph().
      */
-    private List<edge> getEdgeList(EdgeType type) {
+    private List<Edge> getEdgeList(EdgeType type) {
         switch (type) {
             case FRIEND:      return friendEdges;
             case CLASSMATE:   return classmateEdges;
@@ -297,7 +297,7 @@ public class Main extends JFrame {
      * Create the layout for the graph
      */
     public void createLayout() {
-        graphLayout = new StaticLayout<String, edge>(g);
+        graphLayout = new StaticLayout<String, Edge>(g);
         List<List<String>> clusters = new ArrayList<>();
 
         for (int i = 0; i < 9; i++) {
@@ -311,7 +311,7 @@ public class Main extends JFrame {
             boolean isS = false;
             boolean isSg = false;
             int areaId;
-            for (edge y : g.getOutEdges(x)) {
+            for (Edge y : g.getOutEdges(x)) {
                 EdgeType type = EdgeType.fromCode(y.getType());
                 if (type != null) {
                     switch (type) {
@@ -476,7 +476,7 @@ public class Main extends JFrame {
      * @return a fully-initialised {@code CategoryRow}
      */
     private CategoryRow createCategoryRow(final EdgeType type,
-                                          final List<edge> edgeList,
+                                          final List<Edge> edgeList,
                                           String labelText,
                                           int durMax) {
         JButton settingsBtn = new JButton(new ImageIcon("./images/settings.png"));
@@ -486,9 +486,9 @@ public class Main extends JFrame {
         cb.setSelected(true);
         cb.addActionListener(e -> {
             if (cb.isSelected()) {
-                for (edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
+                for (Edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
             } else {
-                for (edge x : edgeList) { g.removeEdge(x); }
+                for (Edge x : edgeList) { g.removeEdge(x); }
             }
             imagePanel.setVisible(false);
             imagePanel.setVisible(true);
@@ -616,7 +616,7 @@ public class Main extends JFrame {
 
         // Populate classified edge lists from parse result
         for (EdgeType type : EdgeType.values()) {
-            List<edge> list = getEdgeList(type);
+            List<Edge> list = getEdgeList(type);
             if (list != null) {
                 list.clear();
                 list.addAll(parseResult.getEdges(type));
@@ -624,7 +624,7 @@ public class Main extends JFrame {
         }
 
         createLayout();
-        vv = new VisualizationViewer<String, edge>(graphLayout);
+        vv = new VisualizationViewer<String, Edge>(graphLayout);
         vv.setSize(new Dimension(100, 0));
 
         DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
@@ -633,7 +633,7 @@ public class Main extends JFrame {
         vv.setGraphMouse(gm);
 
 
-        Transformer<edge, String> edgeLabel = (edge i) -> {
+        Transformer<Edge, String> edgeLabel = (Edge i) -> {
                 return i.getLabel();
             };
 
@@ -742,7 +742,7 @@ public class Main extends JFrame {
         pathSource = null;
         pathTarget = null;
         pathVertices = new HashSet<String>();
-        pathEdges = new HashSet<edge>();
+        pathEdges = new HashSet<Edge>();
 
         pathPanel = new JPanel();
         pathPanel.setLayout(new BoxLayout(pathPanel, BoxLayout.Y_AXIS));
@@ -921,7 +921,7 @@ public class Main extends JFrame {
 
             String mode = pathByWeight.isSelected() ? "weight-optimal" : "hop-optimal";
             StringBuilder edgeTypes = new StringBuilder();
-            for (edge e : result.getEdges()) {
+            for (Edge e : result.getEdges()) {
                 if (edgeTypes.length() > 0) edgeTypes.append("â†’");
                 edgeTypes.append(e.getType());
             }
@@ -1139,7 +1139,7 @@ public class Main extends JFrame {
     public final void initializeMSTPanel() {
         mstOverlayActive = false;
         syncRenderers();
-        mstEdges = new HashSet<edge>();
+        mstEdges = new HashSet<Edge>();
 
         mstPanel = new JPanel();
         mstPanel.setLayout(new BoxLayout(mstPanel, BoxLayout.Y_AXIS));
@@ -1221,12 +1221,12 @@ public class Main extends JFrame {
         stats.append(String.format("<b>Avg Weight:</b> %.1f<br/>", result.getAverageWeight()));
 
         if (result.getHeaviestEdge() != null) {
-            edge heavy = result.getHeaviestEdge();
+            Edge heavy  result.getHeaviestEdge();
             stats.append(String.format("<b>Bottleneck:</b> %sâ†”%s (%.1f)<br/>",
                     heavy.getVertex1(), heavy.getVertex2(), heavy.getWeight()));
         }
         if (result.getLightestEdge() != null) {
-            edge light = result.getLightestEdge();
+            Edge light  result.getLightestEdge();
             stats.append(String.format("<b>Lightest:</b> %sâ†”%s (%.1f)<br/>",
                     light.getVertex1(), light.getVertex2(), light.getWeight()));
         }
@@ -1700,10 +1700,10 @@ public class Main extends JFrame {
      */
     public final void initializeToolBar() {
         ToolbarBuilder.GraphContext ctx = new ToolbarBuilder.GraphContext() {
-            @Override public Graph<String, edge> getGraph() { return g; }
-            @Override public VisualizationViewer<String, edge> getVisualizationViewer() { return vv; }
+            @Override public Graph<String, Edge> getGraph() { return g; }
+            @Override public VisualizationViewer<String, Edge> getVisualizationViewer() { return vv; }
             @Override public String getTimestamp() { return timeStamp; }
-            @Override public List<edge> collectAllEdges() { return Main.this.collectAllEdges(); }
+            @Override public List<Edge> collectAllEdges() { return Main.this.collectAllEdges(); }
         };
         toolPanel = ToolbarBuilder.build(Main.this, ctx, legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
@@ -1713,10 +1713,10 @@ public class Main extends JFrame {
      * Collects all edges from every category into a single list.
      * Replaces the 5-line addAll() pattern duplicated across export handlers.
      */
-    private List<edge> collectAllEdges() {
-        List<edge> allEdges = new ArrayList<>();
+    private List<Edge> collectAllEdges() {
+        List<Edge> allEdges = new ArrayList<>();
         for (EdgeType type : EdgeType.values()) {
-            List<edge> list = getEdgeList(type);
+            List<Edge> list = getEdgeList(type);
             if (list != null) {
                 allEdges.addAll(list);
             }

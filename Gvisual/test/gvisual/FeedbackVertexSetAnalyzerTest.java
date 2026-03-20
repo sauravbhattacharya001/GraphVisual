@@ -14,22 +14,22 @@ import static org.junit.Assert.*;
  */
 public class FeedbackVertexSetAnalyzerTest {
 
-    private Graph<String, edge> emptyGraph;
-    private Graph<String, edge> singleVertex;
-    private Graph<String, edge> singleEdge;
-    private Graph<String, edge> triangle;
-    private Graph<String, edge> path4;
-    private Graph<String, edge> star5;
-    private Graph<String, edge> cycle4;
-    private Graph<String, edge> cycle5;
-    private Graph<String, edge> complete4;
-    private Graph<String, edge> twoCycles;
-    private Graph<String, edge> diamond;
-    private Graph<String, edge> petersen;
+    private Graph<String, Edge> emptyGraph;
+    private Graph<String, Edge> singleVertex;
+    private Graph<String, Edge> singleEdge;
+    private Graph<String, Edge> triangle;
+    private Graph<String, Edge> path4;
+    private Graph<String, Edge> star5;
+    private Graph<String, Edge> cycle4;
+    private Graph<String, Edge> cycle5;
+    private Graph<String, Edge> complete4;
+    private Graph<String, Edge> twoCycles;
+    private Graph<String, Edge> diamond;
+    private Graph<String, Edge> petersen;
     private int edgeId = 0;
 
-    private edge addEdge(Graph<String, edge> g, String u, String v) {
-        edge e = new edge("e", u, v);
+    private Edge addEdge(Graph<String, Edge> g, String u, String v) {
+        Edge e  new Edge("e", u, v);
         e.setLabel("e" + (edgeId++));
         g.addEdge(e, u, v);
         return e;
@@ -412,7 +412,7 @@ public class FeedbackVertexSetAnalyzerTest {
 
     @Test
     public void testExactEqualsOrBetterThanGreedy() {
-        for (Graph<String, edge> g : Arrays.asList(triangle, cycle4, cycle5, complete4, twoCycles, diamond)) {
+        for (Graph<String, Edge> g : Arrays.asList(triangle, cycle4, cycle5, complete4, twoCycles, diamond)) {
             FeedbackVertexSetAnalyzer a = new FeedbackVertexSetAnalyzer(g);
             assertTrue(a.exactMinimumFVS().size() <= a.greedyFVS().size());
         }
@@ -420,7 +420,7 @@ public class FeedbackVertexSetAnalyzerTest {
 
     @Test
     public void testFeedbackEdgeSetSizeEqualsCycleRank() {
-        for (Graph<String, edge> g : Arrays.asList(emptyGraph, singleVertex, singleEdge, path4, triangle, cycle5, complete4, twoCycles)) {
+        for (Graph<String, Edge> g : Arrays.asList(emptyGraph, singleVertex, singleEdge, path4, triangle, cycle5, complete4, twoCycles)) {
             FeedbackVertexSetAnalyzer a = new FeedbackVertexSetAnalyzer(g);
             assertEquals(a.cycleRank(), a.feedbackEdgeSet().size());
         }

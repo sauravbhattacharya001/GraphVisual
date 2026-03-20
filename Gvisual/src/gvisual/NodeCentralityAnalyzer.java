@@ -20,7 +20,7 @@ import java.util.*;
  */
 public class NodeCentralityAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Double> degreeCentrality;
     private Map<String, Double> betweennessCentrality;
     private Map<String, Double> closenessCentrality;
@@ -32,7 +32,7 @@ public class NodeCentralityAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public NodeCentralityAnalyzer(Graph<String, edge> graph) {
+    public NodeCentralityAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -409,7 +409,7 @@ public class NodeCentralityAnalyzer {
             for (int i = 0; i < n; i++) {
                 adjTmp[i] = new ArrayList<Integer>();
             }
-            for (edge e : graph.getEdges()) {
+            for ((Edge e : graph.getEdges()) {
                 Integer ui = idxMap.get(e.getVertex1());
                 Integer vi = idxMap.get(e.getVertex2());
                 if (ui != null && vi != null && !ui.equals(vi)) {
@@ -525,7 +525,7 @@ public class NodeCentralityAnalyzer {
         }
     }
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd((Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 }

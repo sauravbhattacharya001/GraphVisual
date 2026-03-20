@@ -49,7 +49,7 @@ import java.util.*;
  */
 public class GraphCompressor {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a compressor for the given graph.
@@ -57,7 +57,7 @@ public class GraphCompressor {
      * @param graph the graph to compress (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphCompressor(Graph<String, edge> graph) {
+    public GraphCompressor(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -289,7 +289,7 @@ public class GraphCompressor {
     // ── Quotient Graph Builder ──────────────────────────────────────
 
     private CompressionResult buildQuotientGraph(List<List<String>> groups, String strategy) {
-        Graph<String, edge> quotient = new UndirectedSparseGraph<>();
+        Graph<String, Edge> quotient = new UndirectedSparseGraph<>();
         Map<String, List<String>> supernodeMembers = new LinkedHashMap<>();
         Map<String, String> nodeToSupernode = new HashMap<>();
 
@@ -314,7 +314,7 @@ public class GraphCompressor {
         int edgeCounter = 0;
         Map<String, SuperEdgeInfo> superEdgeInfos = new HashMap<>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             String s1 = nodeToSupernode.get(v1);
@@ -328,7 +328,7 @@ public class GraphCompressor {
                 info = new SuperEdgeInfo();
                 superEdgeInfos.put(edgeKey, info);
 
-                edge superEdge = new edge("super", s1, s2);
+                Edge superEdge  new Edge("super", s1, s2);
                 superEdge.setLabel("compressed");
                 quotient.addEdge(superEdge, s1, s2);
                 info.edge = superEdge;
@@ -359,7 +359,7 @@ public class GraphCompressor {
     }
 
     private String formatReportLine(String label, CompressionResult result) {
-        return String.format("  %-30s → %d supernodes, %d edges (%.1f%% node reduction, %.1f%% edge reduction)\n",
+        return String.format("  %-30s → %d supernodes, %d edges (%.1f%% node reduction, %.1f%% Edge reduction \n",
                 label,
                 result.getCompressedNodeCount(),
                 result.getCompressedEdgeCount(),
@@ -368,7 +368,7 @@ public class GraphCompressor {
     }
 
     private static class SuperEdgeInfo {
-        edge edge;
+        Edge edge 
         int count;
         float totalWeight;
     }
@@ -380,14 +380,14 @@ public class GraphCompressor {
      * graph, supernode membership mappings, and compression statistics.
      */
     public static class CompressionResult {
-        private final Graph<String, edge> original;
-        private final Graph<String, edge> compressed;
+        private final Graph<String, Edge> original;
+        private final Graph<String, Edge> compressed;
         private final Map<String, List<String>> supernodeMembers;
         private final Map<String, String> nodeToSupernode;
         private final String strategy;
 
-        CompressionResult(Graph<String, edge> original,
-                          Graph<String, edge> compressed,
+        CompressionResult(Graph<String, Edge> original,
+                          Graph<String, Edge> compressed,
                           Map<String, List<String>> supernodeMembers,
                           Map<String, String> nodeToSupernode,
                           String strategy) {
@@ -399,7 +399,7 @@ public class GraphCompressor {
         }
 
         /** Returns the compressed quotient graph. */
-        public Graph<String, edge> getCompressedGraph() { return compressed; }
+        public Graph<String, Edge> getCompressedGraph() { return compressed; }
 
         /** Returns a map from supernode ID to its member node IDs. */
         public Map<String, List<String>> getSupernodeMembers() { return supernodeMembers; }

@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  *   <li><b>Bridge</b> — high betweenness but moderate/low degree; spans communities</li>
  *   <li><b>Local Hub</b> — high degree + high clustering; leaders of tight clusters</li>
  *   <li><b>Connector</b> — moderate degree + moderate betweenness; links sub-groups</li>
- *   <li><b>Peripheral</b> — low degree + low centrality; edge of the network</li>
+ *   <li><b>Peripheral</b> — low degree + low centrality; Edge of the network</li>
  *   <li><b>Isolate</b> — degree 0; disconnected from the network</li>
  * </ul>
  *
@@ -58,7 +58,7 @@ public class NetworkRoleClassifier {
         BRIDGE("Bridge", "High betweenness but moderate degree; spans communities"),
         LOCAL_HUB("Local Hub", "High degree + high clustering; cluster leader"),
         CONNECTOR("Connector", "Moderate degree + moderate betweenness; links sub-groups"),
-        PERIPHERAL("Peripheral", "Low degree + low centrality; network edge"),
+        PERIPHERAL("Peripheral", "Low degree + low centrality; network Edge"),
         ISOLATE("Isolate", "Degree 0; disconnected from the network");
 
         private final String label;
@@ -145,7 +145,7 @@ public class NetworkRoleClassifier {
 
     // ── Instance fields ─────────────────────────────────────────
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, NodeRole> roles;
     private boolean classified;
 
@@ -161,7 +161,7 @@ public class NetworkRoleClassifier {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public NetworkRoleClassifier(Graph<String, edge> graph) {
+    public NetworkRoleClassifier(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

@@ -43,7 +43,7 @@ import java.util.*;
  */
 public class TournamentAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final List<String> vertices;
     private final Map<String, Set<String>> beats;  // u → set of v where u beats v
 
@@ -53,7 +53,7 @@ public class TournamentAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public TournamentAnalyzer(Graph<String, edge> graph) {
+    public TournamentAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -71,7 +71,7 @@ public class TournamentAnalyzer {
         for (String v : vertices) {
             adj.put(v, new HashSet<String>());
         }
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             String from = e.getVertex1();
             String to = e.getVertex2();
             if (from != null && to != null && adj.containsKey(from)) {

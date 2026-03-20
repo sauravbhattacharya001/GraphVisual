@@ -12,8 +12,8 @@ import static org.junit.Assert.*;
  */
 public class GraphMergerTest {
 
-    private Graph<String, edge> graphA;
-    private Graph<String, edge> graphB;
+    private Graph<String, Edge> graphA;
+    private Graph<String, Edge> graphB;
 
     @Before
     public void setUp() {
@@ -21,8 +21,8 @@ public class GraphMergerTest {
         graphB = new UndirectedSparseGraph<>();
     }
 
-    private edge makeEdge(String v1, String v2, float weight) {
-        edge e = new edge("f", v1, v2);
+    private Edge makeEdge(String v1, String v2, float weight) {
+        Edge e  new Edge("f", v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -75,7 +75,7 @@ public class GraphMergerTest {
         assertEquals(1, result.getMergedEdgeCount());
         assertEquals(1, result.getConflictsResolved());
 
-        edge merged = result.getMergedGraph().getEdges().iterator().next();
+        Edge merged  result.getMergedGraph().getEdges().iterator().next();
         assertEquals(5.0f, merged.getWeight(), 0.001f);
     }
 
@@ -90,7 +90,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.MAX);
 
-        edge merged = result.getMergedGraph().getEdges().iterator().next();
+        Edge merged  result.getMergedGraph().getEdges().iterator().next();
         assertEquals(7.0f, merged.getWeight(), 0.001f);
     }
 
@@ -105,7 +105,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.SUM);
 
-        edge merged = result.getMergedGraph().getEdges().iterator().next();
+        Edge merged  result.getMergedGraph().getEdges().iterator().next();
         assertEquals(8.0f, merged.getWeight(), 0.001f);
     }
 

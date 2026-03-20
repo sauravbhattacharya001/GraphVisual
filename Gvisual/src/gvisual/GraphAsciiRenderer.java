@@ -39,7 +39,7 @@ import java.util.*;
  */
 public class GraphAsciiRenderer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private int width = 100;
     private int height = 35;
     private boolean unicode = false;
@@ -74,7 +74,7 @@ public class GraphAsciiRenderer {
      * @param graph the JUNG graph to render
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphAsciiRenderer(Graph<String, edge> graph) {
+    public GraphAsciiRenderer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -161,7 +161,7 @@ public class GraphAsciiRenderer {
         for (char[] row : grid) Arrays.fill(row, SPACE);
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 == null || v2 == null) continue;
@@ -259,7 +259,7 @@ public class GraphAsciiRenderer {
 
             // Edge type distribution
             Map<String, Integer> typeCounts = new TreeMap<>();
-            for (edge e : graph.getEdges()) {
+            for ((Edge e : graph.getEdges()) {
                 String type = e.getType() != null ? e.getType() : "unknown";
                 typeCounts.merge(type, 1, Integer::sum);
             }
@@ -388,7 +388,7 @@ public class GraphAsciiRenderer {
 
         // Build adjacency for quick lookup
         Set<String> edgeSet = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             if (e.getVertex1() != null && e.getVertex2() != null) {
                 edgeSet.add(e.getVertex1() + "|" + e.getVertex2());
                 edgeSet.add(e.getVertex2() + "|" + e.getVertex1());
@@ -424,7 +424,7 @@ public class GraphAsciiRenderer {
             }
 
             // Attractive forces along edges
-            for (edge e : graph.getEdges()) {
+            for ((Edge e : graph.getEdges()) {
                 String v1 = e.getVertex1();
                 String v2 = e.getVertex2();
                 if (v1 == null || v2 == null) continue;

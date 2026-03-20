@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
  */
 public class StructuralHoleAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> neighborCache;
 
     /**
@@ -59,7 +59,7 @@ public class StructuralHoleAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public StructuralHoleAnalyzer(Graph<String, edge> graph) {
+    public StructuralHoleAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -289,7 +289,7 @@ public class StructuralHoleAnalyzer {
         List<BridgingEdge> bridges = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints == null || endpoints.size() != 2) continue;
 

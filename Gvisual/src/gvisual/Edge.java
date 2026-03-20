@@ -8,7 +8,7 @@ package gvisual;
  *
  * @author user
  */
-public class edge {
+public class Edge {
     private String edgeType;
     private String vertex1;
     private String vertex2;

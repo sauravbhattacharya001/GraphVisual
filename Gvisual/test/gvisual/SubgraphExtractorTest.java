@@ -22,19 +22,19 @@ import static org.junit.Assert.*;
  */
 public class SubgraphExtractorTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> edges;
+    private Graph<String, Edge> graph;
+    private List<Edge> edges;
 
     /** Helper to create an edge with type, vertices, weight, and optional timestamps. */
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e  new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
 
-    private edge makeTimedEdge(String type, String v1, String v2, float weight,
+    private Edge makeTimedEdge(String type, String v1, String v2, float weight,
                                long start, long end) {
-        edge e = makeEdge(type, v1, v2, weight);
+        Edge e  makeEdge(type, v1, v2, weight);
         e.setTimestamp(start);
         e.setEndTimestamp(end);
         return e;
@@ -51,17 +51,17 @@ public class SubgraphExtractorTest {
         graph = new UndirectedSparseGraph<>();
         edges = new ArrayList<>();
 
-        edge e1 = makeEdge("f", "A", "B", 3.0f);
-        edge e2 = makeEdge("c", "B", "C", 1.0f);
-        edge e3 = makeEdge("f", "C", "D", 5.0f);
-        edge e4 = makeEdge("s", "D", "E", 2.0f);
-        edge e5 = makeEdge("c", "A", "C", 4.0f);
-        edge e6 = makeEdge("f", "B", "D", 2.0f);
+        Edge e1  makeEdge("f", "A", "B", 3.0f);
+        Edge e2  makeEdge("c", "B", "C", 1.0f);
+        Edge e3  makeEdge("f", "C", "D", 5.0f);
+        Edge e4  makeEdge("s", "D", "E", 2.0f);
+        Edge e5  makeEdge("c", "A", "C", 4.0f);
+        Edge e6  makeEdge("f", "B", "D", 2.0f);
 
         for (String v : Arrays.asList("A", "B", "C", "D", "E")) {
             graph.addVertex(v);
         }
-        for (edge e : Arrays.asList(e1, e2, e3, e4, e5, e6)) {
+        for (Edge e : Arrays.asList(e1, e2, e3, e4, e5, e6)) {
             graph.addEdge(e, e.getVertex1(), e.getVertex2());
             edges.add(e);
         }
@@ -238,14 +238,14 @@ public class SubgraphExtractorTest {
     @Test
     public void testFilterByTimeWindow() {
         // Replace edges with timed ones
-        List<edge> timedEdges = new ArrayList<>();
+        List<Edge> timedEdges = new ArrayList<>();
         timedEdges.add(makeTimedEdge("f", "A", "B", 3.0f, 100, 200));
         timedEdges.add(makeTimedEdge("c", "B", "C", 1.0f, 300, 400));
         timedEdges.add(makeTimedEdge("f", "C", "D", 5.0f, 150, 250));
 
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D")) g.addVertex(v);
-        for (edge e : timedEdges) g.addEdge(e, e.getVertex1(), e.getVertex2());
+        for (Edge e : timedEdges) g.addEdge(e, e.getVertex1(), e.getVertex2());
 
         SubgraphExtractor.Result result = new SubgraphExtractor(g, timedEdges)
                 .filterByTimeWindow(100, 200)
@@ -303,7 +303,7 @@ public class SubgraphExtractorTest {
 
     @Test
     public void testDensityWithSingleNode() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("X");
         SubgraphExtractor.Result result = new SubgraphExtractor(g, Collections.emptyList())
                 .extract();
@@ -312,7 +312,7 @@ public class SubgraphExtractorTest {
 
     @Test
     public void testRetentionOnEmptySourceGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("X");
         SubgraphExtractor.Result result = new SubgraphExtractor(g, Collections.emptyList())
                 .extract();

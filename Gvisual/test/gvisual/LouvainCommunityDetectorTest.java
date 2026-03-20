@@ -12,17 +12,17 @@ import java.util.*;
  */
 public class LouvainCommunityDetectorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private void addEdge(String type, String v1, String v2, float weight) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge(type, v1, v2);
+        Edge e  new Edge(type, v1, v2);
         e.setWeight(weight);
         graph.addEdge(e, v1, v2);
     }
@@ -317,7 +317,7 @@ public class LouvainCommunityDetectorTest {
     @Test
     public void testZeroWeightEdge() {
         graph.addVertex("A"); graph.addVertex("B");
-        edge e = new edge("f", "A", "B"); e.setWeight(0.0f);
+        Edge e  new Edge("f", "A", "B"); e.setWeight(0.0f);
         graph.addEdge(e, "A", "B");
         LouvainCommunityDetector.LouvainResult r = new LouvainCommunityDetector(graph).detect();
         assertEquals(r.getNodeToCommunity().get("A"), r.getNodeToCommunity().get("B"));

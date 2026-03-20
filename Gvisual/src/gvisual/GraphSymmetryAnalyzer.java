@@ -39,16 +39,16 @@ import java.util.*;
  */
 public class GraphSymmetryAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /** Lazily computed colour-refinement partition (vertex → orbit id). */
     private Map<String, Integer> vertexOrbitMap;
     /** Lazily computed orbit groups. */
     private List<Set<String>> orbits;
     /** Lazily computed edge orbits. */
-    private List<Set<edge>> edgeOrbits;
+    private List<Set<Edge>> edgeOrbits;
 
-    public GraphSymmetryAnalyzer(Graph<String, edge> graph) {
+    public GraphSymmetryAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -151,8 +151,8 @@ public class GraphSymmetryAnalyzer {
 
         // Build edge orbits: two edges are equivalent if their endpoint
         // orbit-pair (sorted) is identical
-        Map<List<Integer>, Set<edge>> edgeGroups = new LinkedHashMap<>();
-        for (edge e : graph.getEdges()) {
+        Map<List<Integer>, Set<Edge>> edgeGroups = new LinkedHashMap<>();
+        for ((Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             int o1 = vertexOrbitMap.getOrDefault(v1, -1);
@@ -216,7 +216,7 @@ public class GraphSymmetryAnalyzer {
      * Returns the list of edge orbits. Edges whose endpoint orbit-pairs
      * match are grouped together.
      */
-    public List<Set<edge>> getEdgeOrbits() {
+    public List<Set<Edge>> getEdgeOrbits() {
         ensureComputed();
         return Collections.unmodifiableList(edgeOrbits);
     }

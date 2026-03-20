@@ -17,13 +17,13 @@ public class PlanarGraphAnalyzerTest {
 
     private int edgeId = 0;
 
-    private Graph<String, edge> newGraph() {
+    private Graph<String, Edge> newGraph() {
         edgeId = 0;
-        return new UndirectedSparseGraph<String, edge>();
+        return new UndirectedSparseGraph<String, Edge>();
     }
 
-    private void addEdge(Graph<String, edge> g, String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private void addEdge(Graph<String, Edge> g, String v1, String v2) {
+        Edge e  new Edge("f", v1, v2);
         e.setLabel("e" + (edgeId++));
         g.addEdge(e, v1, v2);
     }
@@ -32,7 +32,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testEmptyGraphIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         PlanarGraphAnalyzer.PlanarityResult r = PlanarGraphAnalyzer.testPlanarity(g);
         assertTrue(r.isPlanar());
         assertEquals(0, r.getVertices());
@@ -41,7 +41,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSingleVertexIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         g.addVertex("A");
         PlanarGraphAnalyzer.PlanarityResult r = PlanarGraphAnalyzer.testPlanarity(g);
         assertTrue(r.isPlanar());
@@ -50,7 +50,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSingleEdgeIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         PlanarGraphAnalyzer.PlanarityResult r = PlanarGraphAnalyzer.testPlanarity(g);
         assertTrue(r.isPlanar());
@@ -60,7 +60,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testTriangleIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -70,7 +70,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK4IsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -83,7 +83,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK5IsNotPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -96,7 +96,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK33IsNotPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] left = {"L1", "L2", "L3"};
         String[] right = {"R1", "R2", "R3"};
         for (String l : left)
@@ -108,7 +108,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testPathGraphIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         for (int i = 0; i < 10; i++)
             addEdge(g, "V" + i, "V" + (i + 1));
         assertTrue(PlanarGraphAnalyzer.testPlanarity(g).isPlanar());
@@ -116,7 +116,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testCycleGraphIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         int n = 8;
         for (int i = 0; i < n; i++)
             addEdge(g, "V" + i, "V" + ((i + 1) % n));
@@ -126,7 +126,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testWheelGraphIsPlanar() {
         // Wheel W5: center + 5-cycle, always planar
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         g.addVertex("C");
         for (int i = 0; i < 5; i++) {
             addEdge(g, "V" + i, "V" + ((i + 1) % 5));
@@ -137,7 +137,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testDisconnectedPlanarGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "D", "E");
@@ -149,7 +149,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testPetersenGraphIsNotPlanar() {
         // Petersen graph: 10 vertices, 15 edges, non-planar
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         // Outer cycle
         for (int i = 0; i < 5; i++)
             addEdge(g, "O" + i, "O" + ((i + 1) % 5));
@@ -164,7 +164,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testComponentCount() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
@@ -181,7 +181,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testExpectedFacesEulerFormula() {
         // Triangle: V=3, E=3, C=1 → F = 3-3+1+1 = 2
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -193,7 +193,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testTriangleFaces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -204,7 +204,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK4Faces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -217,7 +217,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testFacesOfNonPlanarReturnsNull() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -227,7 +227,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testFaceHasOuterMarker() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -241,7 +241,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testFaceIds() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -253,7 +253,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSquareFaces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -265,7 +265,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSingleEdgeFaces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         List<PlanarGraphAnalyzer.Face> faces = PlanarGraphAnalyzer.enumerateFaces(g);
         assertNotNull(faces);
@@ -277,7 +277,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testTriangleDualGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -288,7 +288,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK4DualGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -300,7 +300,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testNonPlanarDualReturnsNull() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -310,7 +310,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testDualGraphSymmetry() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -326,7 +326,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testDualEdgeCount() {
         // Triangle dual: 2 nodes, should have edges between them
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -338,7 +338,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK5KuratowskiSubgraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -352,7 +352,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testK33KuratowskiSubgraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] left = {"L1", "L2", "L3"};
         String[] right = {"R1", "R2", "R3"};
         for (String l : left)
@@ -368,7 +368,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testPlanarGraphHasNoKuratowski() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -377,7 +377,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testKuratowskiHasPaths() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -392,7 +392,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testPlanarReport() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -406,7 +406,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testNonPlanarReport() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -421,7 +421,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testReportToText() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -433,7 +433,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testNonPlanarReportToText() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -445,7 +445,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testGenusOfK5() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++)
             for (int j = i + 1; j < v.length; j++)
@@ -457,7 +457,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testTreeIsPlanar() {
         // Binary tree
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "1", "2");
         addEdge(g, "1", "3");
         addEdge(g, "2", "4");
@@ -469,7 +469,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testStarGraphIsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         for (int i = 0; i < 10; i++)
             addEdge(g, "C", "V" + i);
         assertTrue(PlanarGraphAnalyzer.testPlanarity(g).isPlanar());
@@ -477,7 +477,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testTreeFaces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "B", "D");
@@ -490,7 +490,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testIsolatedVerticesPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         for (int i = 0; i < 5; i++) g.addVertex("V" + i);
         PlanarGraphAnalyzer.PlanarityResult r = PlanarGraphAnalyzer.testPlanarity(g);
         assertTrue(r.isPlanar());
@@ -499,7 +499,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSquareWithDiagonalPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -511,7 +511,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testSquareWithBothDiagonalsPlanar() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -525,7 +525,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testCubeGraphIsPlanar() {
         // Q3 (3-cube / hypercube) has 8 vertices, 12 edges — planar
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "000", "001"); addEdge(g, "000", "010"); addEdge(g, "000", "100");
         addEdge(g, "001", "011"); addEdge(g, "001", "101");
         addEdge(g, "010", "011"); addEdge(g, "010", "110");
@@ -538,7 +538,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testFaceVerticesNotNull() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -551,7 +551,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testDualFacesMatchEnumeratedFaces() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -562,7 +562,7 @@ public class PlanarGraphAnalyzerTest {
 
     @Test
     public void testPlanarReportHasCorrectVertexCount() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -575,7 +575,7 @@ public class PlanarGraphAnalyzerTest {
     @Test
     public void testOctahedronIsPlanar() {
         // Octahedron: 6 vertices, 12 edges, planar
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         // Top and bottom + mid ring
         String[] mid = {"A", "B", "C", "D"};
         for (int i = 0; i < 4; i++) {

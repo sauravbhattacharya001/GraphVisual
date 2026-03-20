@@ -91,7 +91,7 @@ public class GraphTimelineExporter {
         // Build snapshot data for each time point
         List<Map<String, Object>> snapshots = new ArrayList<>();
         for (Long t : timePoints) {
-            Graph<String, edge> snap = temporalGraph.snapshotAt(t);
+            Graph<String, Edge> snap = temporalGraph.snapshotAt(t);
             Map<String, Object> s = new LinkedHashMap<>();
             s.put("time", t);
 
@@ -105,7 +105,7 @@ public class GraphTimelineExporter {
             s.put("nodes", nodes);
 
             List<Map<String, String>> edges = new ArrayList<>();
-            for (edge e : snap.getEdges()) {
+            for ((Edge e : snap.getEdges()) {
                 Map<String, String> ed = new LinkedHashMap<>();
                 ed.put("source", e.getVertex1());
                 ed.put("target", e.getVertex2());
@@ -124,7 +124,7 @@ public class GraphTimelineExporter {
         for (int i = 0; i < timePoints.size(); i++) {
             long tEnd = timePoints.get(i);
             long tStart = timePoints.get(0);
-            Graph<String, edge> cumSnap = temporalGraph.windowBetween(tStart, tEnd);
+            Graph<String, Edge> cumSnap = temporalGraph.windowBetween(tStart, tEnd);
             Map<String, Object> s = new LinkedHashMap<>();
             s.put("time", tEnd);
 
@@ -138,7 +138,7 @@ public class GraphTimelineExporter {
             s.put("nodes", nodes);
 
             List<Map<String, String>> edges = new ArrayList<>();
-            for (edge e : cumSnap.getEdges()) {
+            for ((Edge e : cumSnap.getEdges()) {
                 Map<String, String> ed = new LinkedHashMap<>();
                 ed.put("source", e.getVertex1());
                 ed.put("target", e.getVertex2());

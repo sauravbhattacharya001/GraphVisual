@@ -47,7 +47,7 @@ import java.util.*;
  */
 public class SmallWorldAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private boolean computed;
 
     // ── Results ─────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ public class SmallWorldAnalyzer {
      * @param graph a JUNG undirected graph
      * @throws IllegalArgumentException if graph is null
      */
-    public SmallWorldAnalyzer(Graph<String, edge> graph) {
+    public SmallWorldAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

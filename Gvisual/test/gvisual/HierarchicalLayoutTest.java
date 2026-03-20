@@ -12,50 +12,50 @@ public class HierarchicalLayoutTest {
 
     // ── Helpers ──────────────────────────────────────────────────────
 
-    private Graph<String, edge> linearDAG(int n) {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> linearDAG(int n) {
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (int i = 0; i < n; i++) g.addVertex("n" + i);
         for (int i = 0; i < n - 1; i++) {
-            edge e = new edge("d", "n" + i, "n" + (i + 1));
+            Edge e  new Edge("d", "n" + i, "n" + (i + 1));
             g.addEdge(e, "n" + i, "n" + (i + 1));
         }
         return g;
     }
 
-    private Graph<String, edge> diamondDAG() {
+    private Graph<String, Edge> diamondDAG() {
         //     A
         //    / \
         //   B   C
         //    \ /
         //     D
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A", "B", "C", "D"}) g.addVertex(v);
-        g.addEdge(new edge("d", "A", "B"), "A", "B");
-        g.addEdge(new edge("d", "A", "C"), "A", "C");
-        g.addEdge(new edge("d", "B", "D"), "B", "D");
-        g.addEdge(new edge("d", "C", "D"), "C", "D");
+        g.addEdge(new Edge("d", "A", "B"), "A", "B");
+        g.addEdge(new Edge("d", "A", "C"), "A", "C");
+        g.addEdge(new Edge("d", "B", "D"), "B", "D");
+        g.addEdge(new Edge("d", "C", "D"), "C", "D");
         return g;
     }
 
-    private Graph<String, edge> wideDAG(int width) {
+    private Graph<String, Edge> wideDAG(int width) {
         // root -> child0, child1, ..., child(width-1)
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("root");
         for (int i = 0; i < width; i++) {
             String child = "c" + i;
             g.addVertex(child);
-            g.addEdge(new edge("d", "root", child), "root", child);
+            g.addEdge(new Edge("d", "root", child), "root", child);
         }
         return g;
     }
 
-    private Graph<String, edge> cycleGraph(int n) {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> cycleGraph(int n) {
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (int i = 0; i < n; i++) g.addVertex("n" + i);
         for (int i = 0; i < n; i++) {
             String from = "n" + i;
             String to = "n" + ((i + 1) % n);
-            g.addEdge(new edge("d", from, to), from, to);
+            g.addEdge(new Edge("d", from, to), from, to);
         }
         return g;
     }
@@ -117,7 +117,7 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void emptyGraph() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         HierarchicalLayout layout = new HierarchicalLayout(g).compute();
 
         assertTrue(layout.getPositions().isEmpty());
@@ -132,7 +132,7 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void singleNode() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("solo");
         HierarchicalLayout layout = new HierarchicalLayout(g).compute();
 
@@ -240,10 +240,10 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void selfLoop_handled() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
-        g.addEdge(new edge("d", "A", "B"), "A", "B");
+        g.addEdge(new Edge("d", "A", "B"), "A", "B");
 
         HierarchicalLayout layout = new HierarchicalLayout(g).compute();
         assertEquals(2, layout.getPositions().size());
@@ -292,7 +292,7 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void toSVG_emptyGraph() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         String svg = new HierarchicalLayout(g).compute().toSVG(800, 600, 15);
 
         assertTrue(svg.contains("<svg"));
@@ -365,13 +365,13 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void disconnectedComponents() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
         g.addVertex("D");
-        g.addEdge(new edge("d", "A", "B"), "A", "B");
-        g.addEdge(new edge("d", "C", "D"), "C", "D");
+        g.addEdge(new Edge("d", "A", "B"), "A", "B");
+        g.addEdge(new Edge("d", "C", "D"), "C", "D");
 
         HierarchicalLayout layout = new HierarchicalLayout(g).compute();
 
@@ -383,7 +383,7 @@ public class HierarchicalLayoutTest {
 
     @Test
     public void isolatedVertices() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
@@ -401,13 +401,13 @@ public class HierarchicalLayoutTest {
     @Test
     public void crossingDetection_knownCase() {
         // Create X-crossing pattern: A->D, B->C where A,B in layer 0 and C,D in layer 1
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
         g.addVertex("D");
-        g.addEdge(new edge("d", "A", "D"), "A", "D");
-        g.addEdge(new edge("d", "B", "C"), "B", "C");
+        g.addEdge(new Edge("d", "A", "D"), "A", "D");
+        g.addEdge(new Edge("d", "B", "C"), "B", "C");
 
         // With enough crossing sweeps, should minimize crossings
         HierarchicalLayout layout = new HierarchicalLayout(
@@ -459,16 +459,16 @@ public class HierarchicalLayoutTest {
         //   E   F
         //    \ /
         //     G
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A","B","C","D","E","F","G"}) g.addVertex(v);
-        g.addEdge(new edge("d","A","B"), "A", "B");
-        g.addEdge(new edge("d","A","C"), "A", "C");
-        g.addEdge(new edge("d","A","D"), "A", "D");
-        g.addEdge(new edge("d","B","E"), "B", "E");
-        g.addEdge(new edge("d","C","E"), "C", "E");
-        g.addEdge(new edge("d","D","F"), "D", "F");
-        g.addEdge(new edge("d","E","G"), "E", "G");
-        g.addEdge(new edge("d","F","G"), "F", "G");
+        g.addEdge(new Edge("d","A","B"), "A", "B");
+        g.addEdge(new Edge("d","A","C"), "A", "C");
+        g.addEdge(new Edge("d","A","D"), "A", "D");
+        g.addEdge(new Edge("d","B","E"), "B", "E");
+        g.addEdge(new Edge("d","C","E"), "C", "E");
+        g.addEdge(new Edge("d","D","F"), "D", "F");
+        g.addEdge(new Edge("d","E","G"), "E", "G");
+        g.addEdge(new Edge("d","F","G"), "F", "G");
 
         HierarchicalLayout layout = new HierarchicalLayout(g).compute();
 
@@ -502,7 +502,7 @@ public class HierarchicalLayoutTest {
     @Test(expected = UnsupportedOperationException.class)
     public void reversedEdges_unmodifiable() {
         HierarchicalLayout layout = new HierarchicalLayout(cycleGraph(3)).compute();
-        layout.getReversedEdges().add(new edge("d", "x", "y"));
+        layout.getReversedEdges().add(new Edge("d", "x", "y"));
     }
 
     // ── Recompute ────────────────────────────────────────────────────
@@ -520,7 +520,7 @@ public class HierarchicalLayoutTest {
     @Test
     public void largeGraph_completes() {
         // Build a moderately large DAG (100 nodes, ~200 edges)
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (int i = 0; i < 100; i++) g.addVertex("v" + i);
 
         Random rng = new Random(42);
@@ -531,7 +531,7 @@ public class HierarchicalLayoutTest {
                 if (j < 100) {
                     String from = "v" + i;
                     String to = "v" + j;
-                    edge e = new edge("d", from, to);
+                    Edge e  new Edge("d", from, to);
                     try {
                         g.addEdge(e, from, to);
                     } catch (Exception ex) {

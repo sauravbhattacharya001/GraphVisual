@@ -16,30 +16,30 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     // ── Helper methods ──────────────────────────────────────────
 
-    private Graph<String, edge> buildDirectedGraph(String[][] edges) {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> buildDirectedGraph(String[][] edges) {
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         int edgeId = 0;
         for (String[] e : edges) {
             String from = e[0];
             String to = e[1];
             if (!g.containsVertex(from)) g.addVertex(from);
             if (!g.containsVertex(to)) g.addVertex(to);
-            edge ed = new edge("link", from, to);
+            Edge ed  new Edge("link", from, to);
             ed.setLabel("e" + edgeId++);
             g.addEdge(ed, from, to);
         }
         return g;
     }
 
-    private Graph<String, edge> buildDirectedGraphWithIsolated(String[][] edges, String[] isolated) {
-        Graph<String, edge> g = buildDirectedGraph(edges);
+    private Graph<String, Edge> buildDirectedGraphWithIsolated(String[][] edges, String[] isolated) {
+        Graph<String, Edge> g = buildDirectedGraph(edges);
         for (String v : isolated) {
             if (!g.containsVertex(v)) g.addVertex(v);
         }
         return g;
     }
 
-    private void assertBothAlgorithmsAgree(Graph<String, edge> g, int expectedComponents) {
+    private void assertBothAlgorithmsAgree(Graph<String, Edge> g, int expectedComponents) {
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult tarjan = analyzer.tarjan();
         StronglyConnectedComponentsAnalyzer.SCCResult kosaraju = analyzer.kosaraju();
@@ -68,7 +68,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult result = analyzer.tarjan();
         assertEquals(0, result.getComponentCount());
@@ -79,7 +79,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testSingleVertex() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         assertBothAlgorithmsAgree(g, 1);
 
@@ -93,7 +93,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testTwoVerticesOneEdge() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{{"A", "B"}});
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{{"A", "B"}});
         assertBothAlgorithmsAgree(g, 2);
 
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
@@ -107,7 +107,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testSimpleCycle() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         assertBothAlgorithmsAgree(g, 1);
@@ -124,7 +124,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testTwoSCCs() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"},   // SCC1: {A,B}
                 {"C", "D"}, {"D", "C"},   // SCC2: {C,D}
                 {"B", "C"}                 // bridge
@@ -143,7 +143,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testDAG() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         assertBothAlgorithmsAgree(g, 4);
@@ -157,7 +157,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testIsolatedVertices() {
-        Graph<String, edge> g = buildDirectedGraphWithIsolated(
+        Graph<String, Edge> g = buildDirectedGraphWithIsolated(
                 new String[][]{{"A", "B"}, {"B", "A"}},
                 new String[]{"X", "Y"}
         );
@@ -169,7 +169,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testComplexGraph() {
         // 3 SCCs: {A,B,C}, {D,E}, {F}
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "A"},  // SCC1
                 {"D", "E"}, {"E", "D"},                // SCC2
                 {"C", "D"}, {"E", "F"}                 // bridges
@@ -188,7 +188,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testClassification() {
         // source -> intermediate -> sink
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"},   // source SCC
                 {"C", "D"}, {"D", "C"},   // intermediate SCC
                 {"E", "F"}, {"F", "E"},   // sink SCC
@@ -214,7 +214,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testCondensationDAG() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"},
                 {"C", "D"}, {"D", "C"},
                 {"B", "C"}
@@ -222,7 +222,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult result = analyzer.tarjan();
 
-        Graph<String, edge> condensation = result.getCondensation();
+        Graph<String, Edge> condensation = result.getCondensation();
         assertEquals(2, condensation.getVertexCount());
         assertEquals(1, condensation.getEdgeCount());
     }
@@ -231,7 +231,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testLargestComponent() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"},  // size 4
                 {"E", "F"}, {"F", "E"}                             // size 2
         });
@@ -245,7 +245,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testVertexLookup() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"}
         });
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
@@ -260,7 +260,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testSelfLoop() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         // Self-loops in JUNG DirectedSparseGraph may not be supported,
         // but the vertex should still be in its own SCC
@@ -274,14 +274,14 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testMinEdgesToConnect() {
         // Already strongly connected
-        Graph<String, edge> g1 = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g1 = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         StronglyConnectedComponentsAnalyzer a1 = new StronglyConnectedComponentsAnalyzer(g1);
         assertEquals(0, a1.minEdgesToStronglyConnect(a1.tarjan()));
 
         // Chain: A->B->C (3 SCCs, 1 source, 1 sink) => need max(1,1) = 1 edge
-        Graph<String, edge> g2 = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g2 = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}
         });
         StronglyConnectedComponentsAnalyzer a2 = new StronglyConnectedComponentsAnalyzer(g2);
@@ -292,7 +292,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testReportGeneration() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"}, {"C", "D"}
         });
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
@@ -318,7 +318,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
                 }
             }
         }
-        Graph<String, edge> g = buildDirectedGraph(edges.toArray(new String[0][]));
+        Graph<String, Edge> g = buildDirectedGraph(edges.toArray(new String[0][]));
         assertBothAlgorithmsAgree(g, 1);
     }
 
@@ -330,7 +330,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
         for (int i = 0; i < 9; i++) {
             edges[i] = new String[]{"N" + i, "N" + (i + 1)};
         }
-        Graph<String, edge> g = buildDirectedGraph(edges);
+        Graph<String, Edge> g = buildDirectedGraph(edges);
         assertBothAlgorithmsAgree(g, 10); // each node is its own SCC
     }
 
@@ -343,7 +343,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
         for (int i = 0; i < n; i++) {
             edges[i] = new String[]{"N" + i, "N" + ((i + 1) % n)};
         }
-        Graph<String, edge> g = buildDirectedGraph(edges);
+        Graph<String, Edge> g = buildDirectedGraph(edges);
         assertBothAlgorithmsAgree(g, 1); // all in one SCC
     }
 
@@ -351,7 +351,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testDiamondPattern() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"},
                 {"D", "A"}  // back edge creates one big SCC
         });
@@ -362,7 +362,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testMultipleSourcesSinks() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "C"}, {"B", "C"}, {"C", "D"}, {"C", "E"}
         });
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
@@ -377,7 +377,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testConnectivityNonExistent() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{{"A", "B"}});
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{{"A", "B"}});
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult result = analyzer.tarjan();
 
@@ -390,7 +390,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testNestedCycles() {
         // Inner cycle A-B-C-A, outer cycle A-D-E-C
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "A"},
                 {"A", "D"}, {"D", "E"}, {"E", "C"}
         });
@@ -406,7 +406,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testParallelBridgeEdges() {
         // Two SCCs with multiple edges between them
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"},
                 {"C", "D"}, {"D", "C"},
                 {"A", "C"}, {"B", "D"}  // two bridge edges
@@ -424,7 +424,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testComponentToString() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{{"A", "B"}, {"B", "A"}});
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{{"A", "B"}, {"B", "A"}});
         StronglyConnectedComponentsAnalyzer analyzer = new StronglyConnectedComponentsAnalyzer(g);
         StronglyConnectedComponentsAnalyzer.SCCResult result = analyzer.tarjan();
 
@@ -437,7 +437,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testStarTopology() {
         // Hub A with outgoing edges to B,C,D,E
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"A", "C"}, {"A", "D"}, {"A", "E"}
         });
         assertBothAlgorithmsAgree(g, 5);
@@ -447,7 +447,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testBidirectionalStar() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "A"},
                 {"A", "C"}, {"C", "A"},
                 {"A", "D"}, {"D", "A"}
@@ -461,7 +461,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
     @Test
     public void testFigureEight() {
         // Two cycles sharing vertex C
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
                 {"A", "B"}, {"B", "C"}, {"C", "A"},
                 {"C", "D"}, {"D", "E"}, {"E", "C"}
         });
@@ -472,7 +472,7 @@ public class StronglyConnectedComponentsAnalyzerTest {
 
     @Test
     public void testMinEdgesMultipleIsolated() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");

@@ -29,9 +29,9 @@ import java.util.*;
  */
 public class GraphMinorAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
-    public GraphMinorAnalyzer(Graph<String, edge> graph) {
+    public GraphMinorAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
     }
@@ -41,14 +41,14 @@ public class GraphMinorAnalyzer {
     /**
      * Creates a deep copy of a graph.
      */
-    public static Graph<String, edge> copyGraph(Graph<String, edge> g) {
-        Graph<String, edge> copy = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> copyGraph(Graph<String, Edge> g) {
+        Graph<String, Edge> copy = new UndirectedSparseGraph<>();
         for (String v : g.getVertices()) copy.addVertex(v);
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             Collection<String> endpoints = g.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String v1 = it.next(), v2 = it.next();
-            copy.addEdge(new edge(e.getType(), v1, v2), v1, v2);
+            copy.addEdge(new Edge(e.getType(), v1, v2), v1, v2);
         }
         return copy;
     }
@@ -58,10 +58,10 @@ public class GraphMinorAnalyzer {
     /**
      * Returns a new graph with the given vertex removed.
      */
-    public Graph<String, edge> deleteVertex(String vertex) {
+    public Graph<String, Edge> deleteVertex(String vertex) {
         if (!graph.containsVertex(vertex))
             throw new IllegalArgumentException("Vertex not found: " + vertex);
-        Graph<String, edge> result = copyGraph(graph);
+        Graph<String, Edge> result = copyGraph(graph);
         result.removeVertex(vertex);
         return result;
     }
@@ -69,8 +69,8 @@ public class GraphMinorAnalyzer {
     /**
      * Returns a new graph with the given vertices removed.
      */
-    public Graph<String, edge> deleteVertices(Collection<String> vertices) {
-        Graph<String, edge> result = copyGraph(graph);
+    public Graph<String, Edge> deleteVertices(Collection<String> vertices) {
+        Graph<String, Edge> result = copyGraph(graph);
         for (String v : vertices) result.removeVertex(v);
         return result;
     }
@@ -80,9 +80,9 @@ public class GraphMinorAnalyzer {
     /**
      * Returns a new graph with the edge between v1 and v2 removed.
      */
-    public Graph<String, edge> deleteEdge(String v1, String v2) {
-        Graph<String, edge> result = copyGraph(graph);
-        edge e = result.findEdge(v1, v2);
+    public Graph<String, Edge> deleteEdge(String v1, String v2) {
+        Graph<String, Edge> result = copyGraph(graph);
+        Edge e  result.findEdge(v1, v2);
         if (e == null) throw new IllegalArgumentException("No edge between " + v1 + " and " + v2);
         result.removeEdge(e);
         return result;
@@ -94,10 +94,10 @@ public class GraphMinorAnalyzer {
      * Contracts the edge between v1 and v2, merging v2 into v1.
      * Returns a new graph. The merged vertex keeps v1's name.
      */
-    public static Graph<String, edge> contractEdge(Graph<String, edge> g, String v1, String v2) {
+    public static Graph<String, Edge> contractEdge(Graph<String, Edge> g, String v1, String v2) {
         if (g.findEdge(v1, v2) == null)
             throw new IllegalArgumentException("No edge between " + v1 + " and " + v2);
-        Graph<String, edge> result = copyGraph(g);
+        Graph<String, Edge> result = copyGraph(g);
         // Get v2's neighbors (excluding v1)
         Collection<String> v2Neighbors = new ArrayList<>(result.getNeighbors(v2));
         v2Neighbors.remove(v1);
@@ -105,7 +105,7 @@ public class GraphMinorAnalyzer {
         int eid = result.getEdgeCount();
         for (String n : v2Neighbors) {
             if (result.findEdge(v1, n) == null) {
-                result.addEdge(new edge("contracted_" + eid++, v1, n), v1, n);
+                result.addEdge(new Edge("contracted_" + eid++, v1, n), v1, n);
             }
         }
         result.removeVertex(v2);
@@ -115,7 +115,7 @@ public class GraphMinorAnalyzer {
     /**
      * Contracts the edge between v1 and v2 on the instance graph.
      */
-    public Graph<String, edge> contractEdge(String v1, String v2) {
+    public Graph<String, Edge> contractEdge(String v1, String v2) {
         return contractEdge(graph, v1, v2);
     }
 
@@ -152,15 +152,15 @@ public class GraphMinorAnalyzer {
     /**
      * Applies a sequence of minor operations starting from the instance graph.
      */
-    public Graph<String, edge> applySequence(List<MinorOp> ops) {
-        Graph<String, edge> g = copyGraph(graph);
+    public Graph<String, Edge> applySequence(List<MinorOp> ops) {
+        Graph<String, Edge> g = copyGraph(graph);
         for (MinorOp op : ops) {
             switch (op.type) {
                 case DELETE_VERTEX:
                     g.removeVertex(op.v1);
                     break;
                 case DELETE_EDGE:
-                    edge de = g.findEdge(op.v1, op.v2);
+                    Edge de  g.findEdge(op.v1, op.v2);
                     if (de != null) g.removeEdge(de);
                     break;
                 case CONTRACT_EDGE:
@@ -185,7 +185,7 @@ public class GraphMinorAnalyzer {
         if (graph.getEdgeCount() == 0) return 1;
 
         // Build adjacency
-        Graph<String, edge> g = copyGraph(graph);
+        Graph<String, Edge> g = copyGraph(graph);
         int best = 1;
 
         // Greedy: find largest complete minor by contracting edges
@@ -203,7 +203,7 @@ public class GraphMinorAnalyzer {
             // Find best edge to contract: endpoints sharing most neighbors
             String bestV1 = null, bestV2 = null;
             int bestScore = -1;
-            for (edge e : g.getEdges()) {
+            for (Edge e : g.getEdges()) {
                 Collection<String> ep = g.getEndpoints(e);
                 Iterator<String> it = ep.iterator();
                 String a = it.next(), b = it.next();
@@ -224,7 +224,7 @@ public class GraphMinorAnalyzer {
         return best;
     }
 
-    private int findLargestClique(Graph<String, edge> g) {
+    private int findLargestClique(Graph<String, Edge> g) {
         // Simple greedy clique finder
         List<String> vertices = new ArrayList<>(g.getVertices());
         vertices.sort((a, b) -> Integer.compare(g.degree(b), g.degree(a)));
@@ -270,7 +270,7 @@ public class GraphMinorAnalyzer {
         if (graph.getEdgeCount() < 9) return false;
 
         // Try contracting graph down and checking for K33
-        Graph<String, edge> g = copyGraph(graph);
+        Graph<String, Edge> g = copyGraph(graph);
 
         // Remove degree-1 vertices iteratively (they can't help with K33)
         boolean changed = true;
@@ -296,7 +296,7 @@ public class GraphMinorAnalyzer {
         return findK33Contraction(g);
     }
 
-    private boolean findK33Brute(Graph<String, edge> g, List<String> verts) {
+    private boolean findK33Brute(Graph<String, Edge> g, List<String> verts) {
         int n = verts.size();
         // Try all combinations of 3+3
         for (int i = 0; i < n - 5; i++)
@@ -312,19 +312,19 @@ public class GraphMinorAnalyzer {
         return false;
     }
 
-    private boolean isCompleteBipartite(Graph<String, edge> g, String[] left, String[] right) {
+    private boolean isCompleteBipartite(Graph<String, Edge> g, String[] left, String[] right) {
         for (String l : left)
             for (String r : right)
                 if (g.findEdge(l, r) == null) return false;
         return true;
     }
 
-    private boolean findK33Contraction(Graph<String, edge> g) {
+    private boolean findK33Contraction(Graph<String, Edge> g) {
         // Contract high-degree edges and check smaller graph
         while (g.getVertexCount() > 15 && g.getEdgeCount() > 0) {
-            edge e = null;
+            Edge e  null;
             int bestDeg = -1;
-            for (edge candidate : g.getEdges()) {
+            for (Edge candidate : g.getEdges()) {
                 Collection<String> ep = g.getEndpoints(candidate);
                 Iterator<String> it = ep.iterator();
                 String a = it.next(), b = it.next();
@@ -412,14 +412,14 @@ public class GraphMinorAnalyzer {
      * Subdivides an edge: replaces edge (v1,v2) with v1-new-v2.
      * Returns a new graph with the subdivision vertex added.
      */
-    public Graph<String, edge> subdivideEdge(String v1, String v2, String newVertex) {
-        Graph<String, edge> result = copyGraph(graph);
-        edge e = result.findEdge(v1, v2);
+    public Graph<String, Edge> subdivideEdge(String v1, String v2, String newVertex) {
+        Graph<String, Edge> result = copyGraph(graph);
+        Edge e  result.findEdge(v1, v2);
         if (e == null) throw new IllegalArgumentException("No edge between " + v1 + " and " + v2);
         result.removeEdge(e);
         result.addVertex(newVertex);
-        result.addEdge(new edge("sub_a", v1, newVertex), v1, newVertex);
-        result.addEdge(new edge("sub_b", newVertex, v2), newVertex, v2);
+        result.addEdge(new Edge("sub_a", v1, newVertex), v1, newVertex);
+        result.addEdge(new Edge("sub_b", newVertex, v2), newVertex, v2);
         return result;
     }
 

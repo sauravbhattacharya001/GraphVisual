@@ -24,7 +24,7 @@ import java.util.*;
  *   <li>Optional gravity force to prevent disconnected components from
  *       drifting apart</li>
  *   <li>Edge-weight awareness — heavier edges pull more strongly</li>
- *   <li>Layout quality metrics: edge crossing count, edge length uniformity,
+ *   <li>Layout quality metrics: edge crossing count, Edge length uniformity,
  *       angular resolution, stress</li>
  *   <li>Bounding box normalization for display in arbitrary viewport sizes</li>
  *   <li>Convergence detection via energy tracking</li>
@@ -45,7 +45,7 @@ public class ForceDirectedLayout {
     /** Barnes-Hut opening angle: lower = more accurate, higher = faster. */
     private static final double BH_THETA = 0.8;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final int maxIterations;
     private final double width;
     private final double height;
@@ -65,7 +65,7 @@ public class ForceDirectedLayout {
      * @param graph the JUNG graph to lay out
      * @throws IllegalArgumentException if graph is null
      */
-    public ForceDirectedLayout(Graph<String, edge> graph) {
+    public ForceDirectedLayout(Graph<String, Edge> graph) {
         this(graph, 300, 800, 600, 0.1, true, 42L);
     }
 
@@ -78,11 +78,11 @@ public class ForceDirectedLayout {
      * @param height        canvas height for the layout area
      * @param gravity       gravity constant pulling nodes toward center
      *                      (0.0 = none, 0.1 = gentle, 1.0 = strong)
-     * @param useEdgeWeights if true, edge weights scale attractive forces
+     * @param useEdgeWeights if true, Edge weights scale attractive forces
      * @param seed          random seed for reproducible initial placement
      * @throws IllegalArgumentException if graph is null or parameters invalid
      */
-    public ForceDirectedLayout(Graph<String, edge> graph, int maxIterations,
+    public ForceDirectedLayout(Graph<String, Edge> graph, int maxIterations,
                                 double width, double height, double gravity,
                                 boolean useEdgeWeights, long seed) {
         if (graph == null) {
@@ -167,7 +167,7 @@ public class ForceDirectedLayout {
         // Build edge list as index pairs with weights
         List<int[]> edgeIndices = new ArrayList<int[]>();
         List<Double> edgeWeights = new ArrayList<Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Integer u = indexMap.get(e.getVertex1());
             Integer v = indexMap.get(e.getVertex2());
             if (u != null && v != null && !u.equals(v)) {
@@ -387,7 +387,7 @@ public class ForceDirectedLayout {
      */
     public int countEdgeCrossings() {
         ensureComputed();
-        List<edge> edges = new ArrayList<edge>(graph.getEdges());
+        List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
         int m = edges.size();
 
         // Pre-compute endpoint positions and vertex names into arrays
@@ -400,7 +400,7 @@ public class ForceDirectedLayout {
         boolean[] valid = new boolean[m];
 
         for (int i = 0; i < m; i++) {
-            edge e = edges.get(i);
+            Edge e  edges.get(i);
             v1[i] = e.getVertex1();
             v2[i] = e.getVertex2();
             ep1[i] = positions.get(v1[i]);
@@ -439,7 +439,7 @@ public class ForceDirectedLayout {
     public double edgeLengthUniformity() {
         ensureComputed();
         List<Double> lengths = new ArrayList<Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = positions.get(e.getVertex1());
             double[] p2 = positions.get(e.getVertex2());
             if (p1 == null || p2 == null) continue;
@@ -622,7 +622,7 @@ public class ForceDirectedLayout {
         sb.append("  </style>\n");
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = norm.get(e.getVertex1());
             double[] p2 = norm.get(e.getVertex2());
             if (p1 == null || p2 == null) continue;

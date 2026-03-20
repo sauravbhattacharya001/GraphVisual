@@ -10,36 +10,36 @@ import static org.junit.Assert.*;
  */
 public class GraphSimilarityAnalyzerTest {
 
-    private Graph<String, edge> createTriangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createTriangle() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
-        g.addEdge(new edge("friend", "A", "B"), "A", "B");
-        g.addEdge(new edge("friend", "B", "C"), "B", "C");
-        g.addEdge(new edge("friend", "A", "C"), "A", "C");
+        g.addEdge(new Edge("friend", "A", "B"), "A", "B");
+        g.addEdge(new Edge("friend", "B", "C"), "B", "C");
+        g.addEdge(new Edge("friend", "A", "C"), "A", "C");
         return g;
     }
 
-    private Graph<String, edge> createPath() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createPath() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
-        g.addEdge(new edge("friend", "A", "B"), "A", "B");
-        g.addEdge(new edge("friend", "B", "C"), "B", "C");
+        g.addEdge(new Edge("friend", "A", "B"), "A", "B");
+        g.addEdge(new Edge("friend", "B", "C"), "B", "C");
         return g;
     }
 
-    private Graph<String, edge> createStar5() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createStar5() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 5; i++) g.addVertex("V" + i);
         for (int i = 1; i < 5; i++) {
-            g.addEdge(new edge("friend", "V0", "V" + i), "V0", "V" + i);
+            g.addEdge(new Edge("friend", "V0", "V" + i), "V0", "V" + i);
         }
         return g;
     }
 
     @Test
     public void testIdenticalGraphs() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createTriangle();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createTriangle();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -52,8 +52,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testDifferentGraphs() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -66,8 +66,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testJSDBounded() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createPath();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createPath();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -78,8 +78,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testVonNeumannNonNegative() {
-        Graph<String, edge> g1 = createPath();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createPath();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -89,8 +89,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testEntropyProfiles() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -104,8 +104,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testEmptyGraphs() {
-        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
-        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g2 = new UndirectedSparseGraph<>();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -116,8 +116,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testReport() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -140,8 +140,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testSymmetry() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim12 = new GraphSimilarityAnalyzer(g1, g2);
         sim12.compute();
@@ -160,9 +160,9 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testSingleVertexGraphs() {
-        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g1 = new UndirectedSparseGraph<>();
         g1.addVertex("A");
-        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g2 = new UndirectedSparseGraph<>();
         g2.addVertex("X");
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
@@ -175,12 +175,12 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testSingleVertexVsEdge() {
-        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g1 = new UndirectedSparseGraph<>();
         g1.addVertex("A");
 
-        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g2 = new UndirectedSparseGraph<>();
         g2.addVertex("A"); g2.addVertex("B");
-        g2.addEdge(new edge("friend", "A", "B"), "A", "B");
+        g2.addEdge(new Edge("friend", "A", "B"), "A", "B");
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -192,18 +192,18 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testDisconnectedGraph() {
         // Two isolated components vs a connected graph
-        Graph<String, edge> disconnected = new UndirectedSparseGraph<>();
+        Graph<String, Edge> disconnected = new UndirectedSparseGraph<>();
         disconnected.addVertex("A"); disconnected.addVertex("B");
         disconnected.addVertex("C"); disconnected.addVertex("D");
-        disconnected.addEdge(new edge("friend", "A", "B"), "A", "B");
-        disconnected.addEdge(new edge("friend", "C", "D"), "C", "D");
+        disconnected.addEdge(new Edge("friend", "A", "B"), "A", "B");
+        disconnected.addEdge(new Edge("friend", "C", "D"), "C", "D");
 
-        Graph<String, edge> connected = new UndirectedSparseGraph<>();
+        Graph<String, Edge> connected = new UndirectedSparseGraph<>();
         connected.addVertex("A"); connected.addVertex("B");
         connected.addVertex("C"); connected.addVertex("D");
-        connected.addEdge(new edge("friend", "A", "B"), "A", "B");
-        connected.addEdge(new edge("friend", "B", "C"), "B", "C");
-        connected.addEdge(new edge("friend", "C", "D"), "C", "D");
+        connected.addEdge(new Edge("friend", "A", "B"), "A", "B");
+        connected.addEdge(new Edge("friend", "B", "C"), "B", "C");
+        connected.addEdge(new Edge("friend", "C", "D"), "C", "D");
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(disconnected, connected);
         sim.compute();
@@ -216,8 +216,8 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testDifferentSizedGraphs() {
         // Tests spectral padding: triangle (3 vertices) vs star5 (5 vertices)
-        Graph<String, edge> small = createTriangle();
-        Graph<String, edge> large = createStar5();
+        Graph<String, Edge> small = createTriangle();
+        Graph<String, Edge> large = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(small, large);
         sim.compute();
@@ -234,8 +234,8 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testLazyCompute() {
         // Calling getters should trigger compute() automatically
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createPath();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createPath();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         // DO NOT call compute() — ensureComputed should handle it
@@ -248,8 +248,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testComputeIdempotency() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -265,8 +265,8 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testProfilesCloned() {
         // getProfile1/getProfile2 should return defensive copies
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -286,7 +286,7 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testSimilarityScoreBounds() {
         // Test across multiple graph pairs that similarity is always in [0, 1]
-        Graph<String, edge>[] graphs = new Graph[]{
+        Graph<String, Edge>[] graphs = new Graph[]{
                 createTriangle(), createPath(), createStar5(),
                 new UndirectedSparseGraph<>()
         };
@@ -309,9 +309,9 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testEntropyProfileDistanceTriangleInequality() {
         // For a metric: d(A,C) <= d(A,B) + d(B,C)
-        Graph<String, edge> a = createTriangle();
-        Graph<String, edge> b = createPath();
-        Graph<String, edge> c = createStar5();
+        Graph<String, Edge> a = createTriangle();
+        Graph<String, Edge> b = createPath();
+        Graph<String, Edge> c = createStar5();
 
         GraphSimilarityAnalyzer ab = new GraphSimilarityAnalyzer(a, b);
         ab.compute();
@@ -327,8 +327,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testReportContainsGraphSizes() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -342,8 +342,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testReportContainsInterpretation() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createTriangle();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createTriangle();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -358,8 +358,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testReportContainsEntropyProfileTable() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createPath();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createPath();
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -376,15 +376,15 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testCompleteGraphVsEmpty() {
         // Complete graph K4 vs graph with only isolated vertices
-        Graph<String, edge> complete = new UndirectedSparseGraph<>();
+        Graph<String, Edge> complete = new UndirectedSparseGraph<>();
         for (int i = 0; i < 4; i++) complete.addVertex("V" + i);
         for (int i = 0; i < 4; i++) {
             for (int j = i + 1; j < 4; j++) {
-                complete.addEdge(new edge("friend", "V" + i, "V" + j), "V" + i, "V" + j);
+                complete.addEdge(new Edge("friend", "V" + i, "V" + j), "V" + i, "V" + j);
             }
         }
 
-        Graph<String, edge> isolated = new UndirectedSparseGraph<>();
+        Graph<String, Edge> isolated = new UndirectedSparseGraph<>();
         for (int i = 0; i < 4; i++) isolated.addVertex("V" + i);
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(complete, isolated);
@@ -400,17 +400,17 @@ public class GraphSimilarityAnalyzerTest {
     @Test
     public void testIsomorphicGraphsDifferentLabels() {
         // Two triangles with different vertex labels should be identical
-        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g1 = new UndirectedSparseGraph<>();
         g1.addVertex("A"); g1.addVertex("B"); g1.addVertex("C");
-        g1.addEdge(new edge("friend", "A", "B"), "A", "B");
-        g1.addEdge(new edge("friend", "B", "C"), "B", "C");
-        g1.addEdge(new edge("friend", "A", "C"), "A", "C");
+        g1.addEdge(new Edge("friend", "A", "B"), "A", "B");
+        g1.addEdge(new Edge("friend", "B", "C"), "B", "C");
+        g1.addEdge(new Edge("friend", "A", "C"), "A", "C");
 
-        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g2 = new UndirectedSparseGraph<>();
         g2.addVertex("X"); g2.addVertex("Y"); g2.addVertex("Z");
-        g2.addEdge(new edge("friend", "X", "Y"), "X", "Y");
-        g2.addEdge(new edge("friend", "Y", "Z"), "Y", "Z");
-        g2.addEdge(new edge("friend", "X", "Z"), "X", "Z");
+        g2.addEdge(new Edge("friend", "X", "Y"), "X", "Y");
+        g2.addEdge(new Edge("friend", "Y", "Z"), "Y", "Z");
+        g2.addEdge(new Edge("friend", "X", "Z"), "X", "Z");
 
         GraphSimilarityAnalyzer sim = new GraphSimilarityAnalyzer(g1, g2);
         sim.compute();
@@ -423,8 +423,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testVonNeumannSymmetry() {
-        Graph<String, edge> g1 = createPath();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createPath();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim12 = new GraphSimilarityAnalyzer(g1, g2);
         sim12.compute();
@@ -438,8 +438,8 @@ public class GraphSimilarityAnalyzerTest {
 
     @Test
     public void testEntropyProfileDistanceSymmetry() {
-        Graph<String, edge> g1 = createTriangle();
-        Graph<String, edge> g2 = createStar5();
+        Graph<String, Edge> g1 = createTriangle();
+        Graph<String, Edge> g2 = createStar5();
 
         GraphSimilarityAnalyzer sim12 = new GraphSimilarityAnalyzer(g1, g2);
         sim12.compute();

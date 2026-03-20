@@ -48,10 +48,10 @@ import java.util.stream.Collectors;
  */
 public class SteinerTreeAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private int syntheticEdgeId = 0;
 
-    public SteinerTreeAnalyzer(Graph<String, edge> graph) {
+    public SteinerTreeAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -415,7 +415,7 @@ public class SteinerTreeAnalyzer {
         for (double[] row : dist) Arrays.fill(row, Double.MAX_VALUE / 2);
         for (int[] row : next) Arrays.fill(row, -1);
         for (int i = 0; i < V; i++) { dist[i][i] = 0; next[i][i] = i; }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> eit = endpoints.iterator();
             String u = eit.next(), v = eit.next();
@@ -737,7 +737,7 @@ public class SteinerTreeAnalyzer {
     }
 
     private double getEdgeWeight(String u, String v) {
-        edge e = graph.findEdge(u, v);
+        Edge e  graph.findEdge(u, v);
         if (e == null) e = graph.findEdge(v, u);
         if (e == null) return 1.0;
         return e.getWeight() > 0 ? e.getWeight() : 1.0;

@@ -16,15 +16,15 @@ import java.util.Set;
  */
 public class ShortestPathFinderTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e  new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -60,7 +60,7 @@ public class ShortestPathFinderTest {
     public void testDirectConnection() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e = makeEdge("f", "A", "B", 5.0f);
+        Edge e  makeEdge("f", "A", "B", 5.0f);
         graph.addEdge(e, "A", "B");
 
         ShortestPathFinder finder = new ShortestPathFinder(graph);
@@ -286,7 +286,7 @@ public class ShortestPathFinderTest {
     public void testPathResultToString() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e = makeEdge("f", "A", "B", 5.0f);
+        Edge e  makeEdge("f", "A", "B", 5.0f);
         graph.addEdge(e, "A", "B");
 
         ShortestPathFinder finder = new ShortestPathFinder(graph);

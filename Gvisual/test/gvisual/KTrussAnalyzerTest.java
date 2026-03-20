@@ -15,15 +15,15 @@ import static org.junit.Assert.*;
  */
 public class KTrussAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e  new Edge("f", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
         return e;
@@ -46,9 +46,9 @@ public class KTrussAnalyzerTest {
 
     @Test
     public void testTriangle() {
-        edge ab = addEdge("A", "B");
-        edge bc = addEdge("B", "C");
-        edge ac = addEdge("A", "C");
+        Edge ab  addEdge("A", "B");
+        Edge bc  addEdge("B", "C");
+        Edge ac  addEdge("A", "C");
 
         KTrussAnalyzer analyzer = new KTrussAnalyzer(graph);
         // A triangle: each edge has 1 triangle support → 3-truss
@@ -81,7 +81,7 @@ public class KTrussAnalyzerTest {
         addEdge("C", "D"); // no triangle
 
         KTrussAnalyzer analyzer = new KTrussAnalyzer(graph);
-        Graph<String, edge> truss3 = analyzer.getKTruss(3);
+        Graph<String, Edge> truss3 = analyzer.getKTruss(3);
 
         // The 3-truss should contain only the triangle edges
         assertTrue(truss3.getEdgeCount() <= 3);
@@ -107,7 +107,7 @@ public class KTrussAnalyzerTest {
         addEdge("C", "D");
 
         KTrussAnalyzer analyzer = new KTrussAnalyzer(graph);
-        Map<Integer, List<edge>> hierarchy = analyzer.getTrussHierarchy();
+        Map<Integer, List<Edge>> hierarchy = analyzer.getTrussHierarchy();
         assertFalse(hierarchy.isEmpty());
     }
 

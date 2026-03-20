@@ -11,16 +11,16 @@ import java.util.*;
 /**
  * Tests for GraphColoringAnalyzer -- greedy coloring with multiple orderings,
  * DSatur, chromatic bounds, k-colorability, coloring verification, color
- * class analysis, edge chromatic bounds, and report generation.
+ * class analysis, Edge chromatic bounds, and report generation.
  */
 public class GraphColoringAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeCounter;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         edgeCounter = 0;
     }
 
@@ -858,7 +858,7 @@ public class GraphColoringAnalyzerTest {
     // ==========================================
 
     private void addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        Edge e  new Edge("f", v1, v2);
         e.setLabel("e" + (edgeCounter++));
         graph.addEdge(e, v1, v2);
     }

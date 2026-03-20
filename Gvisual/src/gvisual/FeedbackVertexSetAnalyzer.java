@@ -36,10 +36,10 @@ import java.util.stream.Collectors;
  */
 public class FeedbackVertexSetAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final boolean directed;
 
-    public FeedbackVertexSetAnalyzer(Graph<String, edge> graph) {
+    public FeedbackVertexSetAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -177,11 +177,11 @@ public class FeedbackVertexSetAnalyzer {
 
     // ── Feedback Edge Set ─────────────────────────────────────────
 
-    public Set<edge> feedbackEdgeSet() {
+    public Set<Edge> feedbackEdgeSet() {
         Set<String> vertices = new HashSet<>(graph.getVertices());
         if (vertices.isEmpty()) return new HashSet<>();
 
-        Set<edge> treeEdges = new HashSet<>();
+        Set<Edge> treeEdges = new HashSet<>();
         Set<String> visited = new HashSet<>();
 
         for (String start : vertices) {
@@ -190,9 +190,9 @@ public class FeedbackVertexSetAnalyzer {
             queue.add(start); visited.add(start);
             while (!queue.isEmpty()) {
                 String v = queue.poll();
-                Collection<edge> incident = graph.getIncidentEdges(v);
+                Collection<Edge> incident = graph.getIncidentEdges(v);
                 if (incident == null) continue;
-                for (edge e : incident) {
+                for ((Edge e : incident) {
                     String other = GraphUtils.getOtherEnd(e, v);
                     if (other != null && !visited.contains(other)) {
                         visited.add(other); treeEdges.add(e); queue.add(other);
@@ -201,7 +201,7 @@ public class FeedbackVertexSetAnalyzer {
             }
         }
 
-        Set<edge> feedback = new HashSet<>(graph.getEdges());
+        Set<Edge> feedback = new HashSet<>(graph.getEdges());
         feedback.removeAll(treeEdges);
         return feedback;
     }
@@ -318,13 +318,13 @@ public class FeedbackVertexSetAnalyzer {
         public final int vertexCount, edgeCount, cycleRank, lowerBound, upperBound;
         public final boolean isAcyclic;
         public final Set<String> greedyFVS, exactFVS;
-        public final Set<edge> feedbackEdgeSet;
+        public final Set<Edge> feedbackEdgeSet;
         public final Map<String, Integer> criticality;
         public final List<List<String>> cyclePacking;
         public final double approximationRatio;
 
         public FVSReport(int vertexCount, int edgeCount, int cycleRank, boolean isAcyclic,
-                         Set<String> greedyFVS, Set<String> exactFVS, Set<edge> feedbackEdgeSet,
+                         Set<String> greedyFVS, Set<String> exactFVS, Set<Edge> feedbackEdgeSet,
                          int lowerBound, int upperBound, Map<String, Integer> criticality,
                          List<List<String>> cyclePacking, double approximationRatio) {
             this.vertexCount = vertexCount; this.edgeCount = edgeCount;

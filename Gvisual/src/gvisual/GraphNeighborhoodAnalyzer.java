@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  */
 public class GraphNeighborhoodAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Constructs an analyser for the given graph.
@@ -43,7 +43,7 @@ public class GraphNeighborhoodAnalyzer {
      * @param graph the graph to analyse (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphNeighborhoodAnalyzer(Graph<String, edge> graph) {
+    public GraphNeighborhoodAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -194,7 +194,7 @@ public class GraphNeighborhoodAnalyzer {
      *
      * @param source starting vertex
      * @param k      hop distance
-     * @return edge density in [0.0, 1.0]
+     * @return Edge density in [0.0, 1.0]
      */
     public double getLocalDensity(String source, int k) {
         Set<String> neighborhood = getKHopNeighborhood(source, k);
@@ -204,7 +204,7 @@ public class GraphNeighborhoodAnalyzer {
         }
 
         int edgeCount = 0;
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             String src = graph.getEndpoints(e).getFirst();
             String dst = graph.getEndpoints(e).getSecond();
             if (neighborhood.contains(src) && neighborhood.contains(dst)) {

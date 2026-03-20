@@ -39,7 +39,7 @@ import java.util.*;
  *
  * <h3>Usage</h3>
  * <pre>{@code
- * Graph<String, edge> g = ...;
+ * Graph<String, Edge> g = ...;
  * Map<String, Integer> clustering = new HashMap<>();
  * clustering.put("A", 0);
  * clustering.put("B", 0);
@@ -55,7 +55,7 @@ import java.util.*;
  */
 public class GraphClusterQualityAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new cluster quality analyzer for the given graph.
@@ -63,7 +63,7 @@ public class GraphClusterQualityAnalyzer {
      * @param graph the JUNG graph whose clustering will be evaluated
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphClusterQualityAnalyzer(Graph<String, edge> graph) {
+    public GraphClusterQualityAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -264,7 +264,7 @@ public class GraphClusterQualityAnalyzer {
         // Count intra-cluster and inter-cluster edges
         int intraEdges = 0;
         int interEdges = 0;
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             Integer c1 = clustering.get(v1);
@@ -307,10 +307,10 @@ public class GraphClusterQualityAnalyzer {
             int totalDegree = 0;
 
             for (String node : members) {
-                Collection<edge> incidents = graph.getIncidentEdges(node);
+                Collection<Edge> incidents = graph.getIncidentEdges(node);
                 if (incidents == null) continue;
                 totalDegree += incidents.size();
-                for (edge e : incidents) {
+                for ((Edge e : incidents) {
                     String neighbor = getOtherEnd(e, node);
                     Integer neighborCluster = clustering.get(neighbor);
                     if (neighborCluster != null && neighborCluster.equals(cid)) {
@@ -540,10 +540,10 @@ public class GraphClusterQualityAnalyzer {
             int clusterDegreeSum = 0;
 
             for (String node : members) {
-                Collection<edge> incidents = graph.getIncidentEdges(node);
+                Collection<Edge> incidents = graph.getIncidentEdges(node);
                 if (incidents == null) continue;
                 clusterDegreeSum += incidents.size();
-                for (edge e : incidents) {
+                for ((Edge e : incidents) {
                     String neighbor = getOtherEnd(e, node);
                     if (members.contains(neighbor)) {
                         clusterIntra++;
@@ -584,7 +584,7 @@ public class GraphClusterQualityAnalyzer {
         return result;
     }
 
-    private String getOtherEnd(edge e, String node) {
+    private String getOtherEnd((Edge e, String node) {
         return e.getVertex1().equals(node) ? e.getVertex2() : e.getVertex1();
     }
 

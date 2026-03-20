@@ -35,7 +35,7 @@ import java.util.*;
  */
 public class DegreeDistributionAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private boolean computed;
 
     // ── Results ─────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ public class DegreeDistributionAnalyzer {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public DegreeDistributionAnalyzer(Graph<String, edge> graph) {
+    public DegreeDistributionAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -511,7 +511,7 @@ public class DegreeDistributionAnalyzer {
      * Pearson correlation coefficient of degree(u), degree(v) over all edges.
      */
     private void computeAssortativity(Map<String, Integer> vertexDegree) {
-        Collection<edge> edges = graph.getEdges();
+        Collection<Edge> edges = graph.getEdges();
         int m = edges.size();
         if (m == 0) {
             assortativity = 0.0;
@@ -522,7 +522,7 @@ public class DegreeDistributionAnalyzer {
         double sumDegree = 0;
         double sumDegreeSq = 0;
 
-        for (edge e : edges) {
+        for ((Edge e : edges) {
             Collection<String> endpoints = graph.getIncidentVertices(e);
             if (endpoints == null || endpoints.size() != 2) continue;
             Iterator<String> it = endpoints.iterator();

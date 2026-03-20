@@ -17,8 +17,8 @@ import static org.junit.Assert.*;
  */
 public class GraphMergerTest {
 
-    private Graph<String, edge> graphA;
-    private Graph<String, edge> graphB;
+    private Graph<String, Edge> graphA;
+    private Graph<String, Edge> graphB;
 
     @Before
     public void setUp() {
@@ -27,9 +27,9 @@ public class GraphMergerTest {
         graphA.addVertex("A");
         graphA.addVertex("B");
         graphA.addVertex("C");
-        edge ab = new edge("undirected", "A", "B");
+        Edge ab  new Edge("undirected", "A", "B");
         ab.setWeight(1.0f);
-        edge bc = new edge("undirected", "B", "C");
+        Edge bc  new Edge("undirected", "B", "C");
         bc.setWeight(1.0f);
         graphA.addEdge(ab, "A", "B");
         graphA.addEdge(bc, "B", "C");
@@ -39,9 +39,9 @@ public class GraphMergerTest {
         graphB.addVertex("B");
         graphB.addVertex("C");
         graphB.addVertex("D");
-        edge bc2 = new edge("undirected", "B", "C");
+        Edge bc2  new Edge("undirected", "B", "C");
         bc2.setWeight(3.0f);
-        edge cd = new edge("undirected", "C", "D");
+        Edge cd  new Edge("undirected", "C", "D");
         cd.setWeight(2.0f);
         graphB.addEdge(bc2, "B", "C");
         graphB.addEdge(cd, "C", "D");
@@ -58,7 +58,7 @@ public class GraphMergerTest {
         assertEquals(3, result.getMergedEdgeCount());   // A-B, B-C, C-D
         assertEquals(1, result.getConflictsResolved()); // B-C conflict
 
-        Graph<String, edge> merged = result.getMergedGraph();
+        Graph<String, Edge> merged = result.getMergedGraph();
         assertTrue(merged.containsVertex("A"));
         assertTrue(merged.containsVertex("D"));
     }
@@ -68,7 +68,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.KEEP_LEFT);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(1.0f, bcEdge.getWeight(), 0.001f); // kept left (1.0)
     }
@@ -78,7 +78,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.KEEP_RIGHT);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(3.0f, bcEdge.getWeight(), 0.001f);
     }
@@ -88,7 +88,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.SUM);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(4.0f, bcEdge.getWeight(), 0.001f); // 1+3
     }
@@ -98,7 +98,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.AVERAGE);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(2.0f, bcEdge.getWeight(), 0.001f); // (1+3)/2
     }
@@ -108,7 +108,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.MAX);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(3.0f, bcEdge.getWeight(), 0.001f);
     }
@@ -118,7 +118,7 @@ public class GraphMergerTest {
         GraphMerger.MergeResult result = GraphMerger.merge(graphA, graphB,
                 GraphMerger.Strategy.UNION, GraphMerger.EdgeConflict.MIN);
 
-        edge bcEdge = result.getMergedGraph().findEdge("B", "C");
+        Edge bcEdge  result.getMergedGraph().findEdge("B", "C");
         assertNotNull(bcEdge);
         assertEquals(1.0f, bcEdge.getWeight(), 0.001f);
     }
@@ -134,7 +134,7 @@ public class GraphMergerTest {
         assertEquals(2, result.getMergedVertexCount());
         assertEquals(1, result.getMergedEdgeCount());
 
-        Graph<String, edge> merged = result.getMergedGraph();
+        Graph<String, Edge> merged = result.getMergedGraph();
         assertTrue(merged.containsVertex("B"));
         assertTrue(merged.containsVertex("C"));
         assertFalse(merged.containsVertex("A"));
@@ -152,7 +152,7 @@ public class GraphMergerTest {
         // B-C is in both → excluded.
         assertEquals(2, result.getMergedEdgeCount()); // A-B, C-D
 
-        Graph<String, edge> merged = result.getMergedGraph();
+        Graph<String, Edge> merged = result.getMergedGraph();
         assertTrue(merged.containsVertex("A"));
         assertTrue(merged.containsVertex("D"));
     }
@@ -230,8 +230,8 @@ public class GraphMergerTest {
 
     @Test
     public void testMergeEmptyGraphs() {
-        Graph<String, edge> empty1 = new UndirectedSparseGraph<>();
-        Graph<String, edge> empty2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty2 = new UndirectedSparseGraph<>();
 
         GraphMerger.MergeResult result = GraphMerger.merge(empty1, empty2);
         assertEquals(0, result.getMergedVertexCount());

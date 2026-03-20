@@ -16,17 +16,17 @@ import static org.junit.Assert.*;
  */
 public class NetworkFlowAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helpers ---
 
-    private edge addEdge(String v1, String v2, float weight) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2, float weight) {
+        Edge e  new Edge("f", v1, v2);
         e.setWeight(weight);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -34,7 +34,7 @@ public class NetworkFlowAnalyzerTest {
         return e;
     }
 
-    private edge addEdge(String v1, String v2) {
+    private Edge addEdge(String v1, String v2) {
         return addEdge(v1, v2, 1.0f);
     }
 
@@ -201,7 +201,7 @@ public class NetworkFlowAnalyzerTest {
     @Test
     public void testDefaultWeight() {
         // Unweighted edges default to capacity 1.0
-        edge e = new edge("f", "A", "B");
+        Edge e  new Edge("f", "A", "B");
         e.setWeight(0);
         if (!graph.containsVertex("A")) graph.addVertex("A");
         if (!graph.containsVertex("B")) graph.addVertex("B");
@@ -285,7 +285,7 @@ public class NetworkFlowAnalyzerTest {
         addEdge("A", "B", 5.0f);
         NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
         nfa.compute("A", "B");
-        List<edge> cut = nfa.getMinCut();
+        List<Edge> cut = nfa.getMinCut();
         assertEquals(1, cut.size());
     }
 
@@ -295,7 +295,7 @@ public class NetworkFlowAnalyzerTest {
         graph.addVertex("B");
         NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
         nfa.compute("A", "B");
-        List<edge> cut = nfa.getMinCut();
+        List<Edge> cut = nfa.getMinCut();
         assertEquals(0, cut.size());
     }
 
@@ -304,9 +304,9 @@ public class NetworkFlowAnalyzerTest {
         addEdge("A", "B", 5.0f);
         NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
         nfa.compute("A", "B");
-        List<edge> cut = nfa.getMinCut();
+        List<Edge> cut = nfa.getMinCut();
         try {
-            cut.add(new edge("f", "X", "Y"));
+            cut.add(new Edge("f", "X", "Y"));
             fail("Should throw on modification");
         } catch (UnsupportedOperationException e) {
             // expected
@@ -363,7 +363,7 @@ public class NetworkFlowAnalyzerTest {
         NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
         nfa.compute("A", "C");
         // A-B is bottleneck (capacity 3, flow 3)
-        List<edge> bottlenecks = nfa.getBottleneckEdges();
+        List<Edge> bottlenecks = nfa.getBottleneckEdges();
         assertTrue(bottlenecks.size() >= 1);
     }
 
@@ -372,9 +372,9 @@ public class NetworkFlowAnalyzerTest {
         addEdge("A", "B", 5.0f);
         NetworkFlowAnalyzer nfa = new NetworkFlowAnalyzer(graph);
         nfa.compute("A", "B");
-        List<edge> bottlenecks = nfa.getBottleneckEdges();
+        List<Edge> bottlenecks = nfa.getBottleneckEdges();
         try {
-            bottlenecks.add(new edge("f", "X", "Y"));
+            bottlenecks.add(new Edge("f", "X", "Y"));
             fail("Should throw on modification");
         } catch (UnsupportedOperationException e) {
             // expected

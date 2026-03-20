@@ -15,7 +15,7 @@ import java.util.*;
  */
 public class GraphUtilsTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -45,7 +45,7 @@ public class GraphUtilsTest {
     private int edgeCounter = 0;
 
     private void addEdge(String v1, String v2, String type, float weight) {
-        edge e = new edge(type, v1, v2);
+        Edge e  new Edge(type, v1, v2);
         e.setWeight(weight);
         e.setLabel(v1 + "-" + v2);
         graph.addEdge(e, v1, v2);
@@ -56,19 +56,19 @@ public class GraphUtilsTest {
 
     @Test
     public void getOtherEnd_fromVertex1_returnsVertex2() {
-        edge e = new edge("f", "X", "Y");
+        Edge e  new Edge("f", "X", "Y");
         assertEquals("Y", GraphUtils.getOtherEnd(e, "X"));
     }
 
     @Test
     public void getOtherEnd_fromVertex2_returnsVertex1() {
-        edge e = new edge("f", "X", "Y");
+        Edge e  new Edge("f", "X", "Y");
         assertEquals("X", GraphUtils.getOtherEnd(e, "Y"));
     }
 
     @Test
     public void getOtherEnd_notEndpoint_returnsNull() {
-        edge e = new edge("f", "X", "Y");
+        Edge e  new Edge("f", "X", "Y");
         assertNull(GraphUtils.getOtherEnd(e, "Z"));
     }
 
@@ -109,7 +109,7 @@ public class GraphUtilsTest {
 
     @Test
     public void buildAdjacencyMap_emptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(empty);
         assertTrue(adj.isEmpty());
     }
@@ -166,7 +166,7 @@ public class GraphUtilsTest {
 
     @Test
     public void findComponents_emptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         List<Set<String>> comps = GraphUtils.findComponents(empty);
         assertTrue(comps.isEmpty());
     }
@@ -182,7 +182,7 @@ public class GraphUtilsTest {
 
     @Test
     public void findLargestComponent_emptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         Set<String> largest = GraphUtils.findLargestComponent(empty);
         assertTrue(largest.isEmpty());
     }
@@ -284,7 +284,7 @@ public class GraphUtilsTest {
 
     @Test
     public void copyGraph_preservesStructure() {
-        Graph<String, edge> copy = GraphUtils.copyGraph(graph);
+        Graph<String, Edge> copy = GraphUtils.copyGraph(graph);
         assertEquals(graph.getVertexCount(), copy.getVertexCount());
         assertEquals(graph.getEdgeCount(), copy.getEdgeCount());
 
@@ -295,7 +295,7 @@ public class GraphUtilsTest {
 
     @Test
     public void copyGraph_independent() {
-        Graph<String, edge> copy = GraphUtils.copyGraph(graph);
+        Graph<String, Edge> copy = GraphUtils.copyGraph(graph);
         copy.removeVertex("A");
         // Original should be unaffected
         assertTrue(graph.containsVertex("A"));
@@ -305,8 +305,8 @@ public class GraphUtilsTest {
 
     @Test
     public void copyGraph_preservesEdgeProperties() {
-        Graph<String, edge> copy = GraphUtils.copyGraph(graph);
-        for (edge e : copy.getEdges()) {
+        Graph<String, Edge> copy = GraphUtils.copyGraph(graph);
+        for (Edge e : copy.getEdges()) {
             assertNotNull(e.getType());
             assertNotNull(e.getVertex1());
             assertNotNull(e.getVertex2());
@@ -333,14 +333,14 @@ public class GraphUtilsTest {
 
     @Test
     public void computeBetweenness_emptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         Map<String, Double> bc = GraphUtils.computeBetweenness(empty);
         assertTrue(bc.isEmpty());
     }
 
     @Test
     public void computeBetweenness_singleNode() {
-        Graph<String, edge> single = new UndirectedSparseGraph<>();
+        Graph<String, Edge> single = new UndirectedSparseGraph<>();
         single.addVertex("X");
         Map<String, Double> bc = GraphUtils.computeBetweenness(single);
         assertEquals(1, bc.size());
@@ -350,12 +350,12 @@ public class GraphUtilsTest {
     @Test
     public void computeBetweenness_lineGraph() {
         // A -- B -- C: B has betweenness = 1 (on path A-C)
-        Graph<String, edge> line = new UndirectedSparseGraph<>();
+        Graph<String, Edge> line = new UndirectedSparseGraph<>();
         line.addVertex("A");
         line.addVertex("B");
         line.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("f", "B", "C");
+        Edge e1  new Edge("f", "A", "B");
+        Edge e2  new Edge("f", "B", "C");
         line.addEdge(e1, "A", "B");
         line.addEdge(e2, "B", "C");
 
@@ -369,13 +369,13 @@ public class GraphUtilsTest {
 
     @Test
     public void globalEfficiency_completeTriangle() {
-        Graph<String, edge> tri = new UndirectedSparseGraph<>();
+        Graph<String, Edge> tri = new UndirectedSparseGraph<>();
         tri.addVertex("A");
         tri.addVertex("B");
         tri.addVertex("C");
-        tri.addEdge(new edge("f", "A", "B"), "A", "B");
-        tri.addEdge(new edge("f", "B", "C"), "B", "C");
-        tri.addEdge(new edge("f", "A", "C"), "A", "C");
+        tri.addEdge(new Edge("f", "A", "B"), "A", "B");
+        tri.addEdge(new Edge("f", "B", "C"), "B", "C");
+        tri.addEdge(new Edge("f", "A", "C"), "A", "C");
 
         double eff = GraphUtils.globalEfficiency(tri);
         // Complete graph: all distances = 1, efficiency = 1.0
@@ -384,7 +384,7 @@ public class GraphUtilsTest {
 
     @Test
     public void globalEfficiency_singleNode() {
-        Graph<String, edge> single = new UndirectedSparseGraph<>();
+        Graph<String, Edge> single = new UndirectedSparseGraph<>();
         single.addVertex("X");
         assertEquals(0.0, GraphUtils.globalEfficiency(single), 0.001);
     }
@@ -392,7 +392,7 @@ public class GraphUtilsTest {
     @Test
     public void globalEfficiency_disconnected() {
         // Two isolated nodes: distance infinite, sum = 0
-        Graph<String, edge> disc = new UndirectedSparseGraph<>();
+        Graph<String, Edge> disc = new UndirectedSparseGraph<>();
         disc.addVertex("A");
         disc.addVertex("B");
         assertEquals(0.0, GraphUtils.globalEfficiency(disc), 0.001);
@@ -402,12 +402,12 @@ public class GraphUtilsTest {
     public void globalEfficiency_lineGraph() {
         // A-B-C: d(A,B)=1, d(A,C)=2, d(B,C)=1
         // sum = 1/1 + 1/2 + 1/1 = 2.5; E = 2*2.5/(3*2) = 5/6 ≈ 0.833
-        Graph<String, edge> line = new UndirectedSparseGraph<>();
+        Graph<String, Edge> line = new UndirectedSparseGraph<>();
         line.addVertex("A");
         line.addVertex("B");
         line.addVertex("C");
-        line.addEdge(new edge("f", "A", "B"), "A", "B");
-        line.addEdge(new edge("f", "B", "C"), "B", "C");
+        line.addEdge(new Edge("f", "A", "B"), "A", "B");
+        line.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         double eff = GraphUtils.globalEfficiency(line);
         assertEquals(5.0 / 6.0, eff, 0.001);

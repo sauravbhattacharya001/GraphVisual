@@ -42,7 +42,7 @@ import java.util.*;
  */
 public class SvgExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private int width = 800;
     private int height = 600;
     private int margin = 60;
@@ -82,7 +82,7 @@ public class SvgExporter {
      * @param graph the JUNG graph to export
      * @throws IllegalArgumentException if graph is null
      */
-    public SvgExporter(Graph<String, edge> graph) {
+    public SvgExporter(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -166,7 +166,7 @@ public class SvgExporter {
             maxDegree = Math.max(maxDegree, graph.degree(v));
         }
         float minWeight = Float.MAX_VALUE, maxWeight = Float.MIN_VALUE;
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             minWeight = Math.min(minWeight, e.getWeight());
             maxWeight = Math.max(maxWeight, e.getWeight());
         }
@@ -175,7 +175,7 @@ public class SvgExporter {
 
         // Collect used edge types
         Set<String> usedTypes = new LinkedHashSet<>();
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             if (e.getType() != null) usedTypes.add(e.getType());
         }
 
@@ -234,7 +234,7 @@ public class SvgExporter {
         // Edges (drawn first, beneath nodes)
         sb.append("  <g id=\"edges\">\n");
         Set<String> emitted = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for ((Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             String key = v1.compareTo(v2) < 0 ? v1 + "|" + v2 : v2 + "|" + v1;
@@ -403,7 +403,7 @@ public class SvgExporter {
             }
 
             // Attractive forces along edges
-            for (edge e : graph.getEdges()) {
+            for ((Edge e : graph.getEdges()) {
                 Integer i = index.get(e.getVertex1());
                 Integer j = index.get(e.getVertex2());
                 if (i == null || j == null || i.equals(j)) continue;
