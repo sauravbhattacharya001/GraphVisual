@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centrality Radar Chart — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">📊 GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>🎯 Centrality Radar Chart</h1>
+        <p class="lead">
+            Compare node centrality profiles with interactive radar/spider charts.
+            Visualize degree, betweenness, and closeness centrality side-by-side
+            for up to 8 nodes.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                The <code>CentralityRadarExporter</code> generates a self-contained HTML page
+                with an interactive radar chart and sortable ranking table. It computes all
+                three centrality metrics using <code>NodeCentralityAnalyzer</code> and presents
+                them in a visual, comparative format.
+            </p>
+        </section>
+
+        <section>
+            <h2>Features</h2>
+            <ul>
+                <li><strong>Radar Chart:</strong> Spider/radar visualization of degree, betweenness, and closeness centrality</li>
+                <li><strong>Multi-Node Comparison:</strong> Select up to 8 nodes with distinct colors</li>
+                <li><strong>Sortable Table:</strong> Click column headers to sort by any metric</li>
+                <li><strong>Top-N Filter:</strong> Focus on top 5, 10, 20, or all nodes</li>
+                <li><strong>Search:</strong> Filter nodes by ID in real-time</li>
+                <li><strong>Dark/Light Theme:</strong> Toggle between themes</li>
+                <li><strong>JSON Export:</strong> Download selected or all centrality data</li>
+                <li><strong>Summary Stats:</strong> At-a-glance most central nodes and averages</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Usage</h2>
+            <h3>Java API</h3>
+            <pre><code>Graph&lt;String, edge&gt; graph = /* your JUNG graph */;
+CentralityRadarExporter exporter = new CentralityRadarExporter(graph);
+exporter.setTitle("Student Network Centrality");
+exporter.export(new File("centrality-radar.html"));
+
+// Or get HTML as string
+String html = exporter.exportToString();</code></pre>
+        </section>
+
+        <section>
+            <h2>How It Works</h2>
+            <ol>
+                <li>Computes degree, betweenness, and closeness centrality for every node</li>
+                <li>Renders a ranking table sorted by combined score (0.3×degree + 0.4×betweenness + 0.3×closeness)</li>
+                <li>Click any row to add that node to the radar chart (up to 8 simultaneous)</li>
+                <li>The radar chart draws each node's three centrality values as a filled polygon</li>
+                <li>Overlapping polygons reveal complementary strengths — e.g., a node with high betweenness but low degree</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Interpreting the Chart</h2>
+            <table>
+                <thead>
+                    <tr><th>Axis</th><th>Metric</th><th>What It Means</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Degree</td>
+                        <td>Normalized degree centrality</td>
+                        <td>How connected a node is (# connections / max possible)</td>
+                    </tr>
+                    <tr>
+                        <td>Betweenness</td>
+                        <td>Betweenness centrality</td>
+                        <td>How often a node sits on shortest paths between others (bridge/broker role)</td>
+                    </tr>
+                    <tr>
+                        <td>Closeness</td>
+                        <td>Closeness centrality</td>
+                        <td>How quickly a node can reach all others (1/avg distance)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                <strong>Balanced profiles</strong> (even triangles) indicate well-rounded central nodes.
+                <strong>Spiky profiles</strong> reveal specialists — e.g., a broker node with high betweenness
+                but low degree.
+            </p>
+        </section>
+
+        <section>
+            <h2>Tips</h2>
+            <ul>
+                <li>Compare the top 3 nodes to see if the "most important" node depends on which metric you prioritize</li>
+                <li>Use the search box to find specific nodes in large graphs</li>
+                <li>Export JSON to feed centrality data into other tools or notebooks</li>
+                <li>The generated HTML is fully self-contained — share it without dependencies</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>GraphVisual Documentation</p>
+    </footer>
+</body>
+</html>
