@@ -393,6 +393,7 @@ public class SubgraphExtractor {
          * @throws IOException if writing fails
          */
         public void exportEdgeList(File file) throws IOException {
+            ExportUtils.validateOutputPath(file);
             try (PrintWriter pw = new PrintWriter(
                     new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                 pw.println("source,target,type,weight,label");

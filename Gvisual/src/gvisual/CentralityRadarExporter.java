@@ -47,6 +47,7 @@ public class CentralityRadarExporter {
      * Exports the centrality radar chart to an HTML file.
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         String html = exportToString();
         try (Writer w = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(file), StandardCharsets.UTF_8))) {

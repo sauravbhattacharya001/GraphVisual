@@ -62,6 +62,7 @@ public class GraphDiffHtmlExporter {
      * Export the diff visualization to a file.
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (Writer w = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(file), StandardCharsets.UTF_8))) {
             w.write(exportToString());

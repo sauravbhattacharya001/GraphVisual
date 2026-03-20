@@ -62,6 +62,7 @@ public class NetworkReportGenerator {
 
     /** Export the report to a file. */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         String html = generate();
         Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
         try {

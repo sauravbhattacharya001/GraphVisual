@@ -70,6 +70,7 @@ public class GraphTimelineExporter {
      * @throws IOException if writing fails
      */
     public void export(File outputFile) throws IOException {
+        ExportUtils.validateOutputPath(outputFile);
         String html = exportToString();
         try (Writer w = new OutputStreamWriter(new FileOutputStream(outputFile), StandardCharsets.UTF_8)) {
             w.write(html);

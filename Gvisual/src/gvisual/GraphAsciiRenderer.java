@@ -285,8 +285,10 @@ public class GraphAsciiRenderer {
      * @throws IOException if writing fails
      */
     public void exportToFile(String filePath) throws IOException {
+        File file = new File(filePath);
+        ExportUtils.validateOutputPath(file);
         String rendered = render();
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             writer.write(rendered);
         }
     }

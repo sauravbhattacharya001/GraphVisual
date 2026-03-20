@@ -524,6 +524,7 @@ public class GraphAnnotationManager {
      */
     public int importFromFile(String filePath) throws IOException {
         java.io.File file = new java.io.File(filePath);
+        ExportUtils.validateOutputPath(file);
         if (!file.exists()) {
             throw new java.io.FileNotFoundException("File not found: " + filePath);
         }

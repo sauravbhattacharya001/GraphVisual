@@ -51,6 +51,7 @@ public class GraphLayoutComparer {
      * Exports the comparison page to the given file.
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         String html = exportToString();
         try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             w.write(html);
