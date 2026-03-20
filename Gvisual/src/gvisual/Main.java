@@ -2307,224 +2307,23 @@ public class Main extends JFrame {
     }
 
     /**
-     * initialize the toolbar
+     * Initialize the toolbar by delegating to {@link ToolbarBuilder}.
+     * <p>
+     * Previously this was a 220-line method that built every button inline.
+     * Now the logic lives in ToolbarBuilder and Main simply wires itself as
+     * the {@link ToolbarBuilder.GraphContext} supplier.
+     * </p>
+     *
+     * @see ToolbarBuilder
      */
     public final void initializeToolBar() {
-        toolPanel = new JPanel();
-        toolPanel.setPreferredSize(new Dimension(150, 610));
-        toolPanel.setBackground(Color.white);
-        toolPanel.setBorder(BorderFactory.createTitledBorder("Tools"));
-
-        JButton pickMode = new JButton("<html><center>Select Node Mode<br/>Use this to<br/> select and<br/> move vertices<br/> at different <br/>position<center></html>");
-        pickMode.addActionListener(e -> {
-                DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
-
-                gm.setMode(ModalGraphMouse.Mode.PICKING);
-                vv.setGraphMouse(gm);
-            });
-        pickMode.setPreferredSize(new Dimension(140, 100));
-        JButton transformMode = new JButton("<html><center>Move/rotate graph<br/>Use this to <br/>move and rotate<br/> entire graph</center></html>");
-        transformMode.addActionListener(e -> {
-                DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
-
-                gm.setMode(ModalGraphMouse.Mode.TRANSFORMING);
-                vv.setGraphMouse(gm);
-            });
-        transformMode.setPreferredSize(new Dimension(140, 100));
-        toolPanel.add(pickMode);
-        toolPanel.add(transformMode);
-
-        JButton snapShotButton = new JButton("<html><center>Take a snapshot<br/>Use this to<br/> take and image<br/> of the current view<br/> of the graph</center></html>");
-        snapShotButton.setPreferredSize(new Dimension(140, 100));
-        snapShotButton.addActionListener(e -> {
-
-
-                JFileChooser fileChooser;
-                int count = 0;
-                do {
-                    if (count != 0) {
-                        JOptionPane.showMessageDialog(null, "File with same name already exists!!!", "Error!!", 1);
-                    }
-                    count++;
-                    fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                    int returnVal = fileChooser.showSaveDialog(null);
-                } while (fileChooser.getSelectedFile().exists());
-                File curFile = new File(fileChooser.getSelectedFile().toString() + ".png");
-                try {
-                    curFile.createNewFile();
-                } catch (IOException ex) {
-                    LOGGER.log(Level.SEVERE, null, ex);
-                }
-                PNGDump dumper = new PNGDump();
-                try {
-                    dumper.dumpComponent(curFile, vv);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-
-
-            });
-        toolPanel.add(snapShotButton);
-
-        JButton exportButton = new JButton("<html><center>Export edgelist<br/>Export the graph<br/> edge list in<br/> CSV format.</center></html>");
-        exportButton.setPreferredSize(new Dimension(140, 100));
-        exportButton.addActionListener(e -> {
-                JFileChooser fileChooser;
-                int count = 0;
-                do {
-                    if (count != 0) {
-                        JOptionPane.showMessageDialog(null, "File with same name already exists!!!", "Error!!", 1);
-                    }
-                    count++;
-                    fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                    int returnVal = fileChooser.showSaveDialog(null);
-                } while (fileChooser.getSelectedFile().exists());
-                try {
-                    fileChooser.getSelectedFile().createNewFile();
-                } catch (IOException ex) {
-                    LOGGER.log(Level.SEVERE, null, ex);
-                }
-                try {
-                    // Use commons-io FileUtils (already a project dependency)
-                    // instead of the hand-rolled byte-copy loop.
-                    FileUtils.copyFile(new File("./graph.txt"), fileChooser.getSelectedFile());
-                } catch (FileNotFoundException ex) {
-                    LOGGER.log(Level.SEVERE, null, ex);
-                } catch (IOException ex) {
-                    LOGGER.log(Level.SEVERE, null, ex);
-                }
-            });
-        toolPanel.add(exportButton);
-
-        ExportActions.addExportButton(toolPanel, this,
-                "<html><center>Export GraphML<br/>Export to GraphML<br/> for Gephi,<br/> Cytoscape, yEd,<br/> NetworkX</center></html>",
-                "Export as GraphML",
-                () -> "graph_" + timeStamp + ".graphml",
-                new String[]{".graphml"},
-                outFile -> {
-                    GraphMLExporter exporter = new GraphMLExporter(g, collectAllEdges());
-                    exporter.setTimestamp(timeStamp);
-                    exporter.setDescription("GraphVisual network \u2014 student community evolution");
-                    exporter.export(outFile);
-                    return "GraphML exported successfully!\n"
-                            + "Nodes: " + exporter.getVertexCount() + "\n"
-                            + "Edges: " + exporter.getEdgeCount() + "\n"
-                            + "File: " + outFile.getName();
-                });
-
-        ExportActions.addExportButton(toolPanel, this,
-                "<html><center>Export DOT<br/>Graphviz DOT<br/>format for dot,<br/>neato, fdp,<br/>viz-js.com</center></html>",
-                "Export as Graphviz DOT",
-                () -> "graph_" + timeStamp + ".dot",
-                new String[]{".dot", ".gv"},
-                outFile -> {
-                    DotExporter dotExporter = new DotExporter(g);
-                    dotExporter.setGraphName("StudentNetwork");
-                    dotExporter.setTimestamp(timeStamp);
-                    dotExporter.setDescription("GraphVisual network \u2014 student community evolution");
-                    dotExporter.export(outFile);
-                    return "DOT file exported successfully!\n"
-                            + "Nodes: " + g.getVertexCount() + "\n"
-                            + "Edges: " + g.getEdgeCount() + "\n"
-                            + "File: " + outFile.getName() + "\n\n"
-                            + "Render with: dot -Tpng " + outFile.getName() + " -o output.png\n"
-                            + "Or paste into https://viz-js.com";
-                });
-
-        ExportActions.addExportButton(toolPanel, this,
-                "<html><center>Export GEXF<br/>Gephi native<br/>format with<br/>dynamic/temporal<br/>support</center></html>",
-                "Export as GEXF (Gephi)",
-                () -> "graph_" + timeStamp + ".gexf",
-                new String[]{".gexf"},
-                outFile -> {
-                    GexfExporter gexfExporter = new GexfExporter(g, collectAllEdges());
-                    gexfExporter.setDescription("GraphVisual network \u2014 student community evolution");
-                    gexfExporter.export(outFile);
-                    return "GEXF exported successfully!\n"
-                            + "Nodes: " + g.getVertexCount() + "\n"
-                            + "Edges: " + g.getEdgeCount() + "\n"
-                            + "File: " + outFile.getName() + "\n\n"
-                            + "Open in Gephi for advanced visualization and analysis.";
-                });
-
-        ExportActions.addExportButton(toolPanel, this,
-                "<html><center>Node Metrics<br/>CSV Report<br/>Degree, centrality,<br/>community, clustering<br/>per node</center></html>",
-                "Export Node Metrics CSV",
-                () -> "node_metrics_" + timeStamp + ".csv",
-                new String[]{".csv"},
-                outFile -> {
-                    CsvReportExporter exporter = new CsvReportExporter(g, collectAllEdges());
-                    exporter.setTimestamp(timeStamp);
-                    exporter.export(outFile);
-                    return "Node metrics CSV exported!\n"
-                            + "Nodes: " + g.getVertexCount() + "\n"
-                            + "Columns: 13 metrics per node\n"
-                            + "File: " + outFile.getName();
-                });
-
-        JButton heatmapButton = new JButton("<html><center>Adjacency Matrix<br/>View graph as a<br/> color-coded<br/> heatmap matrix<br/> with zoom/pan</center></html>");
-        heatmapButton.setPreferredSize(new Dimension(140, 100));
-        heatmapButton.addActionListener(e -> {
-                JDialog heatmapDialog = AdjacencyMatrixHeatmap.createDialog(Main.this, g);
-                heatmapDialog.setVisible(true);
-            });
-        toolPanel.add(heatmapButton);
-
-        // Diff HTML export — compare current graph to a second graph file
-        JButton diffHtmlButton = new JButton("<html><center>Diff HTML<br/>Compare two<br/>graph snapshots<br/>in interactive<br/>HTML diff view</center></html>");
-        diffHtmlButton.setPreferredSize(new Dimension(140, 100));
-        diffHtmlButton.addActionListener(e -> {
-            if (g == null || g.getVertexCount() == 0) {
-                JOptionPane.showMessageDialog(this, "Load a graph first.", "No Graph", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            // Ask user to pick a second graph file to diff against
-            JFileChooser fc = new JFileChooser(System.getProperty("user.dir"));
-            fc.setDialogTitle("Select second graph file to compare");
-            if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-            try {
-                GraphFileParser.ParseResult parseResult = GraphFileParser.parse(fc.getSelectedFile().getAbsolutePath());
-                Graph<String, edge> graphB = parseResult.getGraph();
-                GraphDiffHtmlExporter exporter = new GraphDiffHtmlExporter(g, graphB);
-                exporter.setTitle("Graph Diff: current vs " + fc.getSelectedFile().getName());
-                exporter.setLabelA("Current Graph");
-                exporter.setLabelB(fc.getSelectedFile().getName());
-                exporter.setDarkMode(true);
-                File outFile = ExportActions.showExportSaveDialog(this, "Export Diff HTML",
-                        "graph_diff_" + timeStamp + ".html", ".html");
-                if (outFile != null) {
-                    exporter.export(outFile);
-                    JOptionPane.showMessageDialog(this,
-                            "Diff visualization exported!\nFile: " + outFile.getName(),
-                            "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this,
-                        "Failed to generate diff: " + ex.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        toolPanel.add(diffHtmlButton);
-
-        // Layout Comparison HTML export — same graph with 4 different layouts
-        ExportActions.addExportButton(toolPanel, this,
-                "<html><center>Layout Compare<br/>Compare 4 layout<br/>algorithms for<br/>the same graph<br/>in one HTML page</center></html>",
-                "Export Layout Comparison HTML",
-                () -> "layout_compare_" + timeStamp + ".html",
-                new String[]{".html"},
-                outFile -> {
-                    GraphLayoutComparer comparer = new GraphLayoutComparer(g);
-                    comparer.setTitle("Layout Comparison \u2014 " + timeStamp);
-                    comparer.export(outFile);
-                    return "Layout comparison exported!\n"
-                            + "Nodes: " + g.getVertexCount() + "\n"
-                            + "Edges: " + g.getEdgeCount() + "\n"
-                            + "Layouts: Force-Directed, Circular, Grid, Radial\n"
-                            + "File: " + outFile.getName() + "\n\n"
-                            + "Open in any browser. Hover a node to highlight it across all layouts.";
-                });
-
-        toolPanel.add(legendPanel);
+        ToolbarBuilder.GraphContext ctx = new ToolbarBuilder.GraphContext() {
+            @Override public Graph<String, edge> getGraph() { return g; }
+            @Override public VisualizationViewer<String, edge> getVisualizationViewer() { return vv; }
+            @Override public String getTimestamp() { return timeStamp; }
+            @Override public List<edge> collectAllEdges() { return Main.this.collectAllEdges(); }
+        };
+        toolPanel = ToolbarBuilder.build(Main.this, ctx, legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
     }
 
