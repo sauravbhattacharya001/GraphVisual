@@ -43,7 +43,7 @@ import org.apache.commons.io.LineIterator;
 import org.xml.sax.SAXException;
 
 /**
- * Main application frame for GraphVisual — an interactive social network
+ * Main application frame for GraphVisual - an interactive social network
  * visualisation and analysis tool built on JUNG (Java Universal Network/Graph).
  *
  * <h3>Overview</h3>
@@ -113,8 +113,10 @@ public class Main extends JFrame {
     private void syncRenderers() {
         renderers.setGraph(g);
         renderers.setPathState(pathEdges, pathVertices, pathSource, pathTarget);
-        renderers.setMstState(mstOverlayActive, mstEdges);
-        renderers.setCommunityState(communityOverlayActive, nodeCommunityMap);
+        renderers.setMstState(mstController != null && mstController.isOverlayActive(),
+                mstController != null ? mstController.getMstEdges() : java.util.Collections.emptySet());
+        renderers.setCommunityState(communityController != null && communityController.isOverlayActive(),
+                communityController != null ? communityController.getNodeCommunityMap() : null);
         renderers.setArticulationState(articulationController != null && articulationController.isOverlayActive(), articulationController != null ? articulationController.getArticulationPoints() : java.util.Collections.emptySet(), articulationController != null ? articulationController.getBridgeEdges() : java.util.Collections.emptySet());
         renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
@@ -177,28 +179,15 @@ public class Main extends JFrame {
     private JRadioButton pathByHops;
     private JRadioButton pathByWeight;
 
-    // --- MST fields ---
-    private JPanel mstPanel;
-    private JButton mstComputeButton;
-    private JButton mstClearButton;
-    private JLabel mstSummaryLabel;
-    private JLabel mstStatsLabel;
-    private JLabel mstComponentsLabel;
-    private boolean mstOverlayActive;
-    private Set<edge> mstEdges;
+    // --- MST analysis (delegated to controller) ---
+    private MSTPanelController mstController;
 
     // --- Centrality analysis (delegated to controller) ---
     private CentralityPanelController centralityController;
 
-    // --- Community detection fields ---
-    private JPanel communityPanel;
-    private JButton communityDetectButton;
-    private JButton communityClearButton;
-    private JLabel communityCountLabel;
-    private JLabel communityModularityLabel;
-    private JLabel communityDetailsLabel;
-    private boolean communityOverlayActive;
-    private Map<String, Integer> nodeCommunityMap;
+    // --- Community detection (delegated to controller) ---
+    private CommunityPanelController communityController;
+    // (communityOverlayActive and nodeCommunityMap now live in CommunityPanelController)
 
     // --- Articulation point analysis (delegated to controller) ---
     private ArticulationPanelController articulationController;
@@ -208,21 +197,6 @@ public class Main extends JFrame {
 
     // --- Ego network (delegated to controller) ---
     private EgoPanelController egoController;
-
-    private static final Color[] COMMUNITY_COLORS = {
-        new Color(0, 200, 120),    // Emerald green
-        new Color(65, 135, 255),   // Bright blue
-        new Color(255, 100, 100),  // Coral red
-        new Color(255, 200, 50),   // Golden yellow
-        new Color(200, 100, 255),  // Purple
-        new Color(255, 150, 50),   // Orange
-        new Color(100, 220, 220),  // Teal
-        new Color(255, 100, 200),  // Pink
-        new Color(180, 220, 80),   // Lime
-        new Color(150, 130, 255),  // Lavender
-        new Color(255, 180, 150),  // Salmon
-        new Color(100, 180, 150),  // Sea green
-    };
 
     /**
      * Constructor
@@ -235,8 +209,8 @@ public class Main extends JFrame {
         initializeLegendSpace();
         initializeStatsPanel();
         initializePathPanel();
-        initializeCommunityPanel();
-        initializeMSTPanel();
+        communityController = new CommunityPanelController(() -> g, () -> { syncRenderers(); refreshGraph(); });
+        mstController = new MSTPanelController(() -> g, () -> { syncRenderers(); refreshGraph(); });
         initializeCentralityPanel();
         initializeArticulationPanel();
         resilienceController = new ResiliencePanelController(() -> g, this);
@@ -245,7 +219,7 @@ public class Main extends JFrame {
         initializeToolBar();
         initializeParameterSpace();
         initializeImagePanel();
-        initializeNotesSpace();  
+        initializeNotesSpace();
         setJMenuBar(menubar);
         showRightPane();
 
@@ -395,21 +369,21 @@ public class Main extends JFrame {
      * updates the timestamp of the currently selected graph.
      *
      * The timeline slider value (1..92) maps to calendar dates
-     * March 1 â€“ May 31, 2011.  March has 31 days, April has 30,
+     * March 1 â€" May 31, 2011.  March has 31 days, April has 30,
      * May has 31.
      */
     public void updateTime() {
         int day = timeline.getValue();  // 1..92
 
         if (day <= 31) {
-            // March: days 1â€“31
+            // March: days 1â€"31
             month = "03";
         } else if (day <= 61) {
-            // April: days 32â€“61 â†’ April 1â€“30
+            // April: days 32â€"61 â†' April 1â€"30
             month = "04";
             day = day - 31;
         } else {
-            // May: days 62â€“92 â†’ May 1â€“31
+            // May: days 62â€"92 â†' May 1â€"31
             month = "05";
             day = day - 61;
         }
@@ -533,7 +507,7 @@ public class Main extends JFrame {
     /**
      * Creates the next/prev important graph according to the input direction
      * @param direction next/prev
-     * @throws Exception 
+     * @throws Exception
      */
     public void nextOrPrevGraph(String direction) throws Exception {
         boolean success = false;
@@ -814,7 +788,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * Enables path-finding mode â€” switches to PICKING mode and listens for
+     * Enables path-finding mode â€" switches to PICKING mode and listens for
      * two node clicks (source, then target).
      */
     private void enablePathFindingMode() {
@@ -922,7 +896,7 @@ public class Main extends JFrame {
             String mode = pathByWeight.isSelected() ? "weight-optimal" : "hop-optimal";
             StringBuilder edgeTypes = new StringBuilder();
             for (edge e : result.getEdges()) {
-                if (edgeTypes.length() > 0) edgeTypes.append("â†’");
+                if (edgeTypes.length() > 0) edgeTypes.append("â†'");
                 edgeTypes.append(e.getType());
             }
 
@@ -946,7 +920,7 @@ public class Main extends JFrame {
     private String buildPathString(ShortestPathFinder.PathResult result) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < result.getVertices().size(); i++) {
-            if (i > 0) sb.append("â†’");
+            if (i > 0) sb.append("â†'");
             sb.append(result.getVertices().get(i));
         }
         return sb.toString();
@@ -980,7 +954,7 @@ public class Main extends JFrame {
                 refreshGraph();
             } else if (pathTarget == null) {
                 if (clicked.equals(pathSource)) {
-                    pathResultLabel.setText("<html>Same node â€” pick a different target.</html>");
+                    pathResultLabel.setText("<html>Same node â€" pick a different target.</html>");
                     return;
                 }
                 pathTarget = clicked;
@@ -993,301 +967,6 @@ public class Main extends JFrame {
         public void mouseEntered(MouseEvent e) {}
         public void mouseExited(MouseEvent e) {}
     };
-
-    /**
-     * Initializes the community detection panel with detect/clear buttons
-     * and a results display area.
-     */
-    public final void initializeCommunityPanel() {
-        communityOverlayActive = false;
-        syncRenderers();
-        nodeCommunityMap = null;
-
-        communityPanel = new JPanel();
-        communityPanel.setLayout(new BoxLayout(communityPanel, BoxLayout.Y_AXIS));
-        communityPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Community Detection",
-                TitledBorder.CENTER,
-                TitledBorder.TOP));
-
-        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
-
-        communityCountLabel = new JLabel("Communities: â€”");
-        communityCountLabel.setFont(labelFont);
-        communityCountLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        communityModularityLabel = new JLabel("Modularity: â€”");
-        communityModularityLabel.setFont(labelFont);
-        communityModularityLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        communityDetailsLabel = new JLabel("<html>Click 'Detect' to find communities.</html>");
-        communityDetailsLabel.setFont(labelFont);
-        communityDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        communityDetectButton = new JButton("Detect");
-        communityDetectButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        communityDetectButton.addActionListener(e -> {
-                runCommunityDetection();
-            });
-
-        communityClearButton = new JButton("Clear");
-        communityClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        communityClearButton.addActionListener(e -> {
-                clearCommunityOverlay();
-            });
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(communityDetectButton);
-        buttonPanel.add(Box.createHorizontalStrut(4));
-        buttonPanel.add(communityClearButton);
-
-        communityPanel.add(communityCountLabel);
-        communityPanel.add(communityModularityLabel);
-        communityPanel.add(Box.createVerticalStrut(4));
-        communityPanel.add(buttonPanel);
-        communityPanel.add(Box.createVerticalStrut(4));
-        communityPanel.add(communityDetailsLabel);
-    }
-
-    /**
-     * Runs community detection on the current graph and activates the
-     * community color overlay.
-     */
-    private void runCommunityDetection() {
-        if (g == null || g.getVertexCount() == 0) {
-            communityDetailsLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
-
-        CommunityDetector detector = new CommunityDetector(g);
-        CommunityDetector.DetectionResult result = detector.detect();
-
-        communityOverlayActive = true;
-        syncRenderers();
-        nodeCommunityMap = new HashMap<String, Integer>(result.getNodeToCommunity());
-
-        int total = result.getCommunityCount();
-        List<CommunityDetector.Community> significant = result.getSignificantCommunities(2);
-        double modularity = result.getModularity(g);
-
-        communityCountLabel.setText("Communities: " + total
-                + " (" + significant.size() + " with 2+ members)");
-        communityModularityLabel.setText(String.format("Modularity: %.4f", modularity));
-
-        StringBuilder details = new StringBuilder("<html>");
-        if (significant.isEmpty()) {
-            details.append("No communities with 2+ members found.");
-        } else {
-            int shown = Math.min(significant.size(), 8);
-            for (int i = 0; i < shown; i++) {
-                CommunityDetector.Community c = significant.get(i);
-                Color col = COMMUNITY_COLORS[c.getId() % COMMUNITY_COLORS.length];
-                String hex = String.format("#%02x%02x%02x", col.getRed(), col.getGreen(), col.getBlue());
-                details.append(String.format(
-                        "<b style='color:%s'>â– </b> C%d: %d nodes, %d edges, density=%.3f<br/>"
-                        + "&nbsp;&nbsp;dominant: %s, avg wt: %.1f<br/>",
-                        hex, c.getId(), c.getSize(), c.getInternalEdges(),
-                        c.getDensity(), getDominantLabel(c.getDominantType()),
-                        c.getAverageWeight()));
-            }
-            if (significant.size() > shown) {
-                details.append("...and ").append(significant.size() - shown).append(" more<br/>");
-            }
-        }
-        int isolatedCount = total - significant.size();
-        if (isolatedCount > 0) {
-            details.append("<i>").append(isolatedCount).append(" isolated node(s)</i>");
-        }
-        details.append("</html>");
-        communityDetailsLabel.setText(details.toString());
-
-        communityPanel.revalidate();
-        communityPanel.repaint();
-        refreshGraph();
-    }
-
-    /**
-     * Returns a human-readable label for edge type codes.
-     */
-    private String getDominantLabel(String typeCode) {
-        EdgeType type = EdgeType.fromCode(typeCode);
-        return type != null ? type.getDisplayLabel() : typeCode;
-    }
-
-    /**
-     * Clears the community overlay and resets the panel.
-     */
-    private void clearCommunityOverlay() {
-        communityOverlayActive = false;
-        syncRenderers();
-        nodeCommunityMap = null;
-        communityCountLabel.setText("Communities: â€”");
-        communityModularityLabel.setText("Modularity: â€”");
-        communityDetailsLabel.setText("<html>Click 'Detect' to find communities.</html>");
-        communityPanel.revalidate();
-        communityPanel.repaint();
-        refreshGraph();
-    }
-
-    /**
-     * Initializes the Minimum Spanning Tree panel with compute/clear buttons
-     * and result display.
-     */
-    public final void initializeMSTPanel() {
-        mstOverlayActive = false;
-        syncRenderers();
-        mstEdges = new HashSet<edge>();
-
-        mstPanel = new JPanel();
-        mstPanel.setLayout(new BoxLayout(mstPanel, BoxLayout.Y_AXIS));
-        mstPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Minimum Spanning Tree",
-                TitledBorder.CENTER,
-                TitledBorder.TOP));
-
-        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
-
-        mstSummaryLabel = new JLabel("<html>Click 'Compute' to find the MST.</html>");
-        mstSummaryLabel.setFont(labelFont);
-        mstSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        mstStatsLabel = new JLabel("");
-        mstStatsLabel.setFont(labelFont);
-        mstStatsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        mstComponentsLabel = new JLabel("");
-        mstComponentsLabel.setFont(labelFont);
-        mstComponentsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        // Buttons
-        mstComputeButton = new JButton("Compute");
-        mstComputeButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        mstComputeButton.addActionListener(e -> {
-                runMSTComputation();
-            });
-
-        mstClearButton = new JButton("Clear");
-        mstClearButton.setAlignmentX(JButton.LEFT_ALIGNMENT);
-        mstClearButton.addActionListener(e -> {
-                clearMSTOverlay();
-            });
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-        buttonPanel.add(mstComputeButton);
-        buttonPanel.add(Box.createHorizontalStrut(4));
-        buttonPanel.add(mstClearButton);
-
-        mstPanel.add(mstSummaryLabel);
-        mstPanel.add(Box.createVerticalStrut(4));
-        mstPanel.add(buttonPanel);
-        mstPanel.add(Box.createVerticalStrut(4));
-        mstPanel.add(mstStatsLabel);
-        mstPanel.add(Box.createVerticalStrut(4));
-        mstPanel.add(mstComponentsLabel);
-    }
-
-    /**
-     * Computes the MST and activates the edge highlight overlay.
-     */
-    private void runMSTComputation() {
-        if (g == null || g.getVertexCount() == 0) {
-            mstSummaryLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
-
-        MinimumSpanningTree mstComputer = new MinimumSpanningTree(g);
-        MinimumSpanningTree.MSTResult result = mstComputer.compute();
-
-        mstOverlayActive = true;
-        syncRenderers();
-        mstEdges.clear();
-        mstEdges.addAll(result.getEdges());
-
-        // Summary
-        mstSummaryLabel.setText("<html><b style='color:#00FF00'>"
-                + result.getSummary() + "</b></html>");
-
-        // Stats
-        StringBuilder stats = new StringBuilder("<html>");
-        stats.append(String.format("<b>Vertices:</b> %d<br/>", result.getVertexCount()));
-        stats.append(String.format("<b>MST Edges:</b> %d<br/>", result.getEdgeCount()));
-        stats.append(String.format("<b>Total Weight:</b> %.1f<br/>", result.getTotalWeight()));
-        stats.append(String.format("<b>Avg Weight:</b> %.1f<br/>", result.getAverageWeight()));
-
-        if (result.getHeaviestEdge() != null) {
-            edge heavy = result.getHeaviestEdge();
-            stats.append(String.format("<b>Bottleneck:</b> %sâ†”%s (%.1f)<br/>",
-                    heavy.getVertex1(), heavy.getVertex2(), heavy.getWeight()));
-        }
-        if (result.getLightestEdge() != null) {
-            edge light = result.getLightestEdge();
-            stats.append(String.format("<b>Lightest:</b> %sâ†”%s (%.1f)<br/>",
-                    light.getVertex1(), light.getVertex2(), light.getWeight()));
-        }
-
-        // Edge type distribution
-        Map<String, Integer> dist = result.getEdgeTypeDistribution();
-        if (!dist.isEmpty()) {
-            stats.append("<b>Types:</b> ");
-            boolean first = true;
-            for (Map.Entry<String, Integer> entry : dist.entrySet()) {
-                if (!first) stats.append(", ");
-                stats.append(getDominantLabel(entry.getKey())).append("=").append(entry.getValue());
-                first = false;
-            }
-            stats.append("<br/>");
-        }
-        stats.append("</html>");
-        mstStatsLabel.setText(stats.toString());
-
-        // Component breakdown (for forests)
-        if (result.getComponentCount() > 1) {
-            StringBuilder comps = new StringBuilder("<html><b>Components:</b><br/>");
-            int shown = Math.min(result.getComponents().size(), 6);
-            for (int i = 0; i < shown; i++) {
-                MinimumSpanningTree.MSTComponent comp = result.getComponents().get(i);
-                comps.append(String.format("&nbsp;C%d: %d nodes, %d edges, wt=%.1f",
-                        comp.getId(), comp.getSize(), comp.getEdges().size(), comp.getTotalWeight()));
-                String dominant = comp.getDominantType();
-                if (dominant != null) {
-                    comps.append(" (").append(getDominantLabel(dominant)).append(")");
-                }
-                comps.append("<br/>");
-            }
-            if (result.getComponents().size() > shown) {
-                comps.append("...and ").append(result.getComponents().size() - shown).append(" more<br/>");
-            }
-            comps.append("</html>");
-            mstComponentsLabel.setText(comps.toString());
-        } else {
-            mstComponentsLabel.setText("");
-        }
-
-        mstPanel.revalidate();
-        mstPanel.repaint();
-        refreshGraph();
-    }
-
-    /**
-     * Clears the MST overlay and resets the panel.
-     */
-    private void clearMSTOverlay() {
-        mstOverlayActive = false;
-        syncRenderers();
-        mstEdges.clear();
-        mstSummaryLabel.setText("<html>Click 'Compute' to find the MST.</html>");
-        mstStatsLabel.setText("");
-        mstComponentsLabel.setText("");
-        mstPanel.revalidate();
-        mstPanel.repaint();
-        refreshGraph();
-    }
 
     public final void initializeCentralityPanel() {
         centralityController = new CentralityPanelController(() -> g);
@@ -1319,7 +998,7 @@ public class Main extends JFrame {
         statsPanel.update(stats);
     }
 
-    
+
     /**
      * creates the right pane containing the communities and notes section
      */
@@ -1327,7 +1006,7 @@ public class Main extends JFrame {
      * creates the right pane containing the communities and notes section.
      *
      * <p>Uses {@link #chainSplitPanes} to avoid deeply nested manual
-     * JSplitPane construction â€” adding/removing panels now requires
+     * JSplitPane construction â€" adding/removing panels now requires
      * only editing the array and heights, not restructuring nesting.</p>
      */
     public final void showRightPane() {
@@ -1338,13 +1017,13 @@ public class Main extends JFrame {
                 parameterHeading, parameterSpace);
 
         // Panels in display order, with their preferred divider heights.
-        // To add a new panel, just add an entry here â€” no nesting changes needed.
+        // To add a new panel, just add an entry here â€" no nesting changes needed.
         java.awt.Component[] panels = {
             headerSplit,
             notesPanel,
             pathPanel,
-            communityPanel,
-            mstPanel,
+            communityController.getPanel(),
+            mstController.getPanel(),
             centralityController.getPanel(),
             articulationController.getPanel(),
             resilienceController.getPanel(),
@@ -1638,7 +1317,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * initialize the category panel â€” creates one {@link CategoryRow}
+     * initialize the category panel â€" creates one {@link CategoryRow}
      * per edge type using the shared {@code createCategoryRow()} helper.
      */
     public final void initializeCategoryPanel() {
@@ -1726,7 +1405,7 @@ public class Main extends JFrame {
 
     // showExportSaveDialog() moved to ExportActions.showExportSaveDialog()
 
-    // copyfile() removed â€” replaced with FileUtils.copyFile() from commons-io
+    // copyfile() removed â€" replaced with FileUtils.copyFile() from commons-io
     // (which was already a project dependency). The hand-rolled byte-copy loop
     // duplicated well-tested library code and missed features like atomic
     // writes and proper error cleanup.
