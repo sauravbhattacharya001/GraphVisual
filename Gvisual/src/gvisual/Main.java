@@ -1,4 +1,4 @@
-package gvisual;
+﻿package gvisual;
 
 import app.Network;
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -80,7 +80,7 @@ public class Main extends JFrame {
         renderers.setMstState(mstOverlayActive, mstEdges);
         renderers.setCommunityState(communityOverlayActive, nodeCommunityMap);
         renderers.setArticulationState(articulationOverlayActive, articulationPoints, bridgeEdges);
-        renderers.setEgoState(egoOverlayActive, egoCenter, egoNeighbors, egoEdges);
+        renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
     }
     private List<edge> friendEdges = new ArrayList<>();
@@ -183,24 +183,11 @@ public class Main extends JFrame {
     private Set<String> articulationPoints;
     private Set<edge> bridgeEdges;
 
-    // --- Resilience analysis fields ---
-    private JPanel resiliencePanel;
-    private JButton resilienceAnalyzeButton;
-    private JButton resilienceExportButton;
-    private JLabel resilienceSummaryLabel;
-    private JLabel resilienceDetailsLabel;
+    // --- Resilience analysis (delegated to controller) ---
+    private ResiliencePanelController resilienceController;
 
-    // --- Ego network fields ---
-    private JPanel egoPanel;
-    private JTextField egoSearchField;
-    private JButton egoSearchButton;
-    private JButton egoClearButton;
-    private JLabel egoSummaryLabel;
-    private JLabel egoNeighborListLabel;
-    private boolean egoOverlayActive;
-    private String egoCenter;
-    private Set<String> egoNeighbors;
-    private Set<edge> egoEdges;
+    // --- Ego network (delegated to controller) ---
+    private EgoPanelController egoController;
 
     private static final Color[] COMMUNITY_COLORS = {
         new Color(0, 200, 120),    // Emerald green
@@ -232,8 +219,8 @@ public class Main extends JFrame {
         initializeMSTPanel();
         initializeCentralityPanel();
         initializeArticulationPanel();
-        initializeResiliencePanel();
-        initializeEgoPanel();
+        resilienceController = new ResiliencePanelController(() -> g, this);
+        egoController = new EgoPanelController(() -> g, () -> { syncRenderers(); vv.repaint(); });
         initializeTimeLine();
         initializeToolBar();
         initializeParameterSpace();
@@ -388,21 +375,21 @@ public class Main extends JFrame {
      * updates the timestamp of the currently selected graph.
      *
      * The timeline slider value (1..92) maps to calendar dates
-     * March 1 – May 31, 2011.  March has 31 days, April has 30,
+     * March 1 â€“ May 31, 2011.  March has 31 days, April has 30,
      * May has 31.
      */
     public void updateTime() {
         int day = timeline.getValue();  // 1..92
 
         if (day <= 31) {
-            // March: days 1–31
+            // March: days 1â€“31
             month = "03";
         } else if (day <= 61) {
-            // April: days 32–61 → April 1–30
+            // April: days 32â€“61 â†’ April 1â€“30
             month = "04";
             day = day - 31;
         } else {
-            // May: days 62–92 → May 1–31
+            // May: days 62â€“92 â†’ May 1â€“31
             month = "05";
             day = day - 61;
         }
@@ -807,7 +794,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * Enables path-finding mode — switches to PICKING mode and listens for
+     * Enables path-finding mode â€” switches to PICKING mode and listens for
      * two node clicks (source, then target).
      */
     private void enablePathFindingMode() {
@@ -915,7 +902,7 @@ public class Main extends JFrame {
             String mode = pathByWeight.isSelected() ? "weight-optimal" : "hop-optimal";
             StringBuilder edgeTypes = new StringBuilder();
             for (edge e : result.getEdges()) {
-                if (edgeTypes.length() > 0) edgeTypes.append("→");
+                if (edgeTypes.length() > 0) edgeTypes.append("â†’");
                 edgeTypes.append(e.getType());
             }
 
@@ -939,7 +926,7 @@ public class Main extends JFrame {
     private String buildPathString(ShortestPathFinder.PathResult result) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < result.getVertices().size(); i++) {
-            if (i > 0) sb.append("→");
+            if (i > 0) sb.append("â†’");
             sb.append(result.getVertices().get(i));
         }
         return sb.toString();
@@ -973,7 +960,7 @@ public class Main extends JFrame {
                 refreshGraph();
             } else if (pathTarget == null) {
                 if (clicked.equals(pathSource)) {
-                    pathResultLabel.setText("<html>Same node — pick a different target.</html>");
+                    pathResultLabel.setText("<html>Same node â€” pick a different target.</html>");
                     return;
                 }
                 pathTarget = clicked;
@@ -1006,11 +993,11 @@ public class Main extends JFrame {
 
         Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
 
-        communityCountLabel = new JLabel("Communities: —");
+        communityCountLabel = new JLabel("Communities: â€”");
         communityCountLabel.setFont(labelFont);
         communityCountLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
 
-        communityModularityLabel = new JLabel("Modularity: —");
+        communityModularityLabel = new JLabel("Modularity: â€”");
         communityModularityLabel.setFont(labelFont);
         communityModularityLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
 
@@ -1080,7 +1067,7 @@ public class Main extends JFrame {
                 Color col = COMMUNITY_COLORS[c.getId() % COMMUNITY_COLORS.length];
                 String hex = String.format("#%02x%02x%02x", col.getRed(), col.getGreen(), col.getBlue());
                 details.append(String.format(
-                        "<b style='color:%s'>■</b> C%d: %d nodes, %d edges, density=%.3f<br/>"
+                        "<b style='color:%s'>â– </b> C%d: %d nodes, %d edges, density=%.3f<br/>"
                         + "&nbsp;&nbsp;dominant: %s, avg wt: %.1f<br/>",
                         hex, c.getId(), c.getSize(), c.getInternalEdges(),
                         c.getDensity(), getDominantLabel(c.getDominantType()),
@@ -1117,8 +1104,8 @@ public class Main extends JFrame {
         communityOverlayActive = false;
         syncRenderers();
         nodeCommunityMap = null;
-        communityCountLabel.setText("Communities: —");
-        communityModularityLabel.setText("Modularity: —");
+        communityCountLabel.setText("Communities: â€”");
+        communityModularityLabel.setText("Modularity: â€”");
         communityDetailsLabel.setText("<html>Click 'Detect' to find communities.</html>");
         communityPanel.revalidate();
         communityPanel.repaint();
@@ -1215,12 +1202,12 @@ public class Main extends JFrame {
 
         if (result.getHeaviestEdge() != null) {
             edge heavy = result.getHeaviestEdge();
-            stats.append(String.format("<b>Bottleneck:</b> %s↔%s (%.1f)<br/>",
+            stats.append(String.format("<b>Bottleneck:</b> %sâ†”%s (%.1f)<br/>",
                     heavy.getVertex1(), heavy.getVertex2(), heavy.getWeight()));
         }
         if (result.getLightestEdge() != null) {
             edge light = result.getLightestEdge();
-            stats.append(String.format("<b>Lightest:</b> %s↔%s (%.1f)<br/>",
+            stats.append(String.format("<b>Lightest:</b> %sâ†”%s (%.1f)<br/>",
                     light.getVertex1(), light.getVertex2(), light.getWeight()));
         }
 
@@ -1300,7 +1287,7 @@ public class Main extends JFrame {
 
         Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
 
-        centralityTopologyLabel = new JLabel("Topology: —");
+        centralityTopologyLabel = new JLabel("Topology: â€”");
         centralityTopologyLabel.setFont(labelFont);
         centralityTopologyLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
 
@@ -1441,7 +1428,7 @@ public class Main extends JFrame {
         StringBuilder sb = new StringBuilder("<html><b>Top " + shown + " by " + metric + ":</b><br/>");
         for (int i = 0; i < shown; i++) {
             NodeCentralityAnalyzer.CentralityResult r = sorted.get(i);
-            String medal = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "&nbsp;&nbsp;";
+            String medal = i == 0 ? "ðŸ¥‡" : i == 1 ? "ðŸ¥ˆ" : i == 2 ? "ðŸ¥‰" : "&nbsp;&nbsp;";
             double value;
             if ("degree".equals(m)) value = r.getDegreeCentrality();
             else if ("betweenness".equals(m)) value = r.getBetweennessCentrality();
@@ -1464,7 +1451,7 @@ public class Main extends JFrame {
     private void clearCentralityAnalysis() {
         centralityActive = false;
         centralityResults.clear();
-        centralityTopologyLabel.setText("Topology: —");
+        centralityTopologyLabel.setText("Topology: â€”");
         centralitySummaryLabel.setText("<html>Click 'Compute' to analyze node centrality.</html>");
         centralityRankingLabel.setText("");
         centralityPanel.revalidate();
@@ -1487,7 +1474,7 @@ public class Main extends JFrame {
                 "Articulation Points & Bridges",
                 TitledBorder.LEFT, TitledBorder.TOP));
 
-        articulationResilienceLabel = new JLabel("Resilience: —");
+        articulationResilienceLabel = new JLabel("Resilience: â€”");
         articulationResilienceLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
         articulationSummaryLabel = new JLabel("<html>Click 'Analyze' to find critical nodes and edges.</html>");
         articulationSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
@@ -1522,306 +1509,6 @@ public class Main extends JFrame {
         articulationPanel.add(articulationDetailsLabel);
     }
 
-    /**
-     * Initializes the network resilience analysis panel.
-     */
-    public final void initializeResiliencePanel() {
-        resiliencePanel = new JPanel();
-        resiliencePanel.setLayout(new BoxLayout(resiliencePanel, BoxLayout.Y_AXIS));
-        resiliencePanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Network Resilience",
-                TitledBorder.LEFT, TitledBorder.TOP));
-
-        resilienceSummaryLabel = new JLabel("<html>Click 'Analyze' to simulate attack scenarios.</html>");
-        resilienceSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-        resilienceDetailsLabel = new JLabel("");
-        resilienceDetailsLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-
-        resilienceAnalyzeButton = new JButton("Analyze");
-        resilienceAnalyzeButton.addActionListener(e -> { runResilienceAnalysis(); });
-
-        resilienceExportButton = new JButton("Export CSV");
-        resilienceExportButton.setEnabled(false);
-        resilienceExportButton.addActionListener(e -> { exportResilienceCSV(); });
-
-        buttonPanel.add(resilienceAnalyzeButton);
-        buttonPanel.add(Box.createHorizontalStrut(5));
-        buttonPanel.add(resilienceExportButton);
-
-        resiliencePanel.add(resilienceSummaryLabel);
-        resiliencePanel.add(Box.createVerticalStrut(4));
-        resiliencePanel.add(buttonPanel);
-        resiliencePanel.add(Box.createVerticalStrut(4));
-        resiliencePanel.add(resilienceDetailsLabel);
-    }
-
-    private GraphResilienceAnalyzer lastResilienceAnalyzer;
-
-    private void runResilienceAnalysis() {
-        if (g == null || g.getVertexCount() == 0) {
-            resilienceSummaryLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
-        resilienceSummaryLabel.setText("<html><i>Analyzing resilience...</i></html>");
-        resiliencePanel.repaint();
-
-        SwingWorker<GraphResilienceAnalyzer, Void> worker =
-                new SwingWorker<GraphResilienceAnalyzer, Void>() {
-            @Override
-            protected GraphResilienceAnalyzer doInBackground() {
-                GraphResilienceAnalyzer analyzer = new GraphResilienceAnalyzer(g);
-                analyzer.analyze();
-                return analyzer;
-            }
-            @Override
-            protected void done() {
-                try {
-                    GraphResilienceAnalyzer analyzer = get();
-                    lastResilienceAnalyzer = analyzer;
-                    displayResilienceResults(analyzer);
-                    resilienceExportButton.setEnabled(true);
-                } catch (Exception ex) {
-                    resilienceSummaryLabel.setText("<html><b>Error:</b> " + ex.getMessage() + "</html>");
-                }
-            }
-        };
-        worker.execute();
-    }
-
-    private void displayResilienceResults(GraphResilienceAnalyzer analyzer) {
-        double rRandom = analyzer.computeRobustnessIndex(analyzer.getRandomAttackCurve());
-        double rDegree = analyzer.computeRobustnessIndex(analyzer.getDegreeAttackCurve());
-        double rBetweenness = analyzer.computeRobustnessIndex(analyzer.getBetweennessAttackCurve());
-
-        StringBuilder summary = new StringBuilder("<html>");
-        summary.append("<b>Robustness Index</b> (higher = more resilient):<br/>");
-        summary.append(String.format("&nbsp;&nbsp;Random: <b>%.4f</b><br/>", rRandom));
-        summary.append(String.format("&nbsp;&nbsp;Degree: <b>%.4f</b><br/>", rDegree));
-        summary.append(String.format("&nbsp;&nbsp;Betweenness: <b>%.4f</b>", rBetweenness));
-        summary.append("</html>");
-        resilienceSummaryLabel.setText(summary.toString());
-
-        StringBuilder details = new StringBuilder("<html>");
-        if (rRandom > rDegree * 1.5) {
-            details.append("<b>Scale-free topology:</b> Vulnerable to<br/>targeted attacks on hubs.<br/>");
-        } else if (rRandom < rDegree * 1.1) {
-            details.append("<b>Homogeneous topology:</b> No dominant<br/>hub structure.<br/>");
-        } else {
-            details.append("<b>Moderate hub dependency.</b><br/>");
-        }
-
-        List<GraphResilienceAnalyzer.ResilienceStep> degreeCurve = analyzer.getDegreeAttackCurve();
-        if (degreeCurve.size() > 1) {
-            details.append("<br/><b>Most impactful removals:</b><br/>");
-            int shown = Math.min(5, degreeCurve.size() - 1);
-            for (int i = 1; i <= shown; i++) {
-                GraphResilienceAnalyzer.ResilienceStep step = degreeCurve.get(i);
-                if (step.getRemovedNode() != null) {
-                    int lccDrop = degreeCurve.get(i - 1).getLargestComponentSize()
-                            - step.getLargestComponentSize();
-                    details.append(String.format("&nbsp;&nbsp;%s (LCC -%d)<br/>",
-                            step.getRemovedNode(), lccDrop));
-                }
-            }
-        }
-        details.append("</html>");
-        resilienceDetailsLabel.setText(details.toString());
-    }
-
-    private void exportResilienceCSV() {
-        if (lastResilienceAnalyzer == null) return;
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new java.io.File("resilience_analysis.csv"));
-        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                java.io.FileWriter writer = new java.io.FileWriter(chooser.getSelectedFile());
-                writer.write(lastResilienceAnalyzer.exportCSV());
-                writer.close();
-                JOptionPane.showMessageDialog(this, "Resilience data exported.",
-                        "Export Complete", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    /**
-     * Initializes the ego network search panel with search field,
-     * search/clear buttons, and labels for summary and neighbor list.
-     */
-    public final void initializeEgoPanel() {
-        egoPanel = new JPanel();
-        egoPanel.setLayout(new BoxLayout(egoPanel, BoxLayout.Y_AXIS));
-        egoPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Ego Network",
-                TitledBorder.LEFT, TitledBorder.TOP));
-
-        egoOverlayActive = false;
-        egoCenter = null;
-        egoNeighbors = new HashSet<>();
-        egoEdges = new HashSet<>();
-
-        JPanel searchRow = new JPanel();
-        searchRow.setLayout(new BoxLayout(searchRow, BoxLayout.X_AXIS));
-        searchRow.setAlignmentX(JPanel.LEFT_ALIGNMENT);
-
-        egoSearchField = new JTextField(10);
-        egoSearchField.setMaximumSize(new Dimension(150, 25));
-        egoSearchField.setToolTipText("Enter node ID to explore its ego network");
-
-        egoSearchButton = new JButton("Search");
-        egoSearchButton.addActionListener(e -> { runEgoSearch(); });
-
-        egoClearButton = new JButton("Clear");
-        egoClearButton.setEnabled(false);
-        egoClearButton.addActionListener(e -> { clearEgoOverlay(); });
-
-        egoSearchField.addActionListener(e -> { runEgoSearch(); });
-
-        searchRow.add(new JLabel("Node: "));
-        searchRow.add(egoSearchField);
-        searchRow.add(Box.createHorizontalStrut(5));
-        searchRow.add(egoSearchButton);
-        searchRow.add(Box.createHorizontalStrut(5));
-        searchRow.add(egoClearButton);
-
-        egoSummaryLabel = new JLabel("<html>Search for a node to see its ego network.</html>");
-        egoSummaryLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-        egoNeighborListLabel = new JLabel("");
-        egoNeighborListLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
-
-        egoPanel.add(searchRow);
-        egoPanel.add(Box.createVerticalStrut(4));
-        egoPanel.add(egoSummaryLabel);
-        egoPanel.add(Box.createVerticalStrut(4));
-        egoPanel.add(egoNeighborListLabel);
-    }
-
-    private void runEgoSearch() {
-        String query = egoSearchField.getText().trim();
-        if (query.isEmpty()) {
-            egoSummaryLabel.setText("<html>Enter a node ID.</html>");
-            return;
-        }
-        if (g == null || g.getVertexCount() == 0) {
-            egoSummaryLabel.setText("<html>No graph loaded.</html>");
-            return;
-        }
-
-        // Find the node (exact match first, then case-insensitive, then partial)
-        String foundNode = null;
-        if (g.containsVertex(query)) {
-            foundNode = query;
-        } else {
-            for (String v : g.getVertices()) {
-                if (v.equalsIgnoreCase(query)) {
-                    foundNode = v;
-                    break;
-                }
-            }
-            if (foundNode == null) {
-                for (String v : g.getVertices()) {
-                    if (v.toLowerCase().contains(query.toLowerCase())) {
-                        foundNode = v;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (foundNode == null) {
-            egoSummaryLabel.setText("<html><b>Node not found:</b> " + query + "</html>");
-            egoNeighborListLabel.setText("");
-            return;
-        }
-
-        // Build ego network
-        egoCenter = foundNode;
-        egoNeighbors.clear();
-        egoEdges.clear();
-
-        Collection<String> neighbors = g.getNeighbors(foundNode);
-        if (neighbors != null) {
-            egoNeighbors.addAll(neighbors);
-        }
-
-        // Collect edges: center-to-neighbor and neighbor-to-neighbor
-        for (edge e : g.getEdges()) {
-            String v1 = e.getVertex1();
-            String v2 = e.getVertex2();
-            boolean v1InEgo = v1.equals(egoCenter) || egoNeighbors.contains(v1);
-            boolean v2InEgo = v2.equals(egoCenter) || egoNeighbors.contains(v2);
-            if (v1InEgo && v2InEgo) {
-                egoEdges.add(e);
-            }
-        }
-
-        egoOverlayActive = true;
-        egoClearButton.setEnabled(true);
-        syncRenderers();
-        vv.repaint();
-
-        // Count edge types
-        Map<String, Integer> typeCounts = new HashMap<>();
-        for (edge e : g.getEdges()) {
-            if (e.getVertex1().equals(egoCenter) || e.getVertex2().equals(egoCenter)) {
-                String typeLabel = e.getType();
-                EdgeType et = EdgeType.fromCode(e.getType());
-                if (et != null) typeLabel = et.getDisplayLabel();
-                typeCounts.put(typeLabel, typeCounts.getOrDefault(typeLabel, 0) + 1);
-            }
-        }
-
-        StringBuilder summary = new StringBuilder("<html>");
-        summary.append(String.format("<b>Node:</b> %s<br/>", egoCenter));
-        summary.append(String.format("<b>Degree:</b> %d<br/>", egoNeighbors.size()));
-        summary.append(String.format("<b>Ego edges:</b> %d (incl. inter-neighbor)<br/>", egoEdges.size()));
-        if (!typeCounts.isEmpty()) {
-            summary.append("<b>By type:</b> ");
-            List<String> parts = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : typeCounts.entrySet()) {
-                parts.add(entry.getKey() + "=" + entry.getValue());
-            }
-            Collections.sort(parts);
-            summary.append(String.join(", ", parts));
-        }
-        summary.append("</html>");
-        egoSummaryLabel.setText(summary.toString());
-
-        // Neighbor list (limited to 20)
-        List<String> sortedNeighbors = new ArrayList<>(egoNeighbors);
-        Collections.sort(sortedNeighbors);
-        StringBuilder neighborHtml = new StringBuilder("<html><b>Neighbors:</b> ");
-        int shown = Math.min(sortedNeighbors.size(), 20);
-        for (int i = 0; i < shown; i++) {
-            if (i > 0) neighborHtml.append(", ");
-            neighborHtml.append(sortedNeighbors.get(i));
-        }
-        if (sortedNeighbors.size() > 20) {
-            neighborHtml.append(String.format(" ... (+%d more)", sortedNeighbors.size() - 20));
-        }
-        neighborHtml.append("</html>");
-        egoNeighborListLabel.setText(neighborHtml.toString());
-    }
-
-    private void clearEgoOverlay() {
-        egoOverlayActive = false;
-        egoCenter = null;
-        egoNeighbors.clear();
-        egoEdges.clear();
-        egoClearButton.setEnabled(false);
-        egoSummaryLabel.setText("<html>Search for a node to see its ego network.</html>");
-        egoNeighborListLabel.setText("");
-        syncRenderers();
-        vv.repaint();
-    }
 
     /**
      * Runs the articulation point and bridge analysis.
@@ -1881,7 +1568,7 @@ public class Main extends JFrame {
             int shown = Math.min(5, bridges.size());
             for (int i = 0; i < shown; i++) {
                 ArticulationPointAnalyzer.Bridge bridge = bridges.get(i);
-                details.append(String.format("  %s—%s (sev=%.2f, split=%d/%d)<br/>",
+                details.append(String.format("  %sâ€”%s (sev=%.2f, split=%d/%d)<br/>",
                         bridge.getEndpoint1(), bridge.getEndpoint2(),
                         bridge.getSeverity(),
                         bridge.getComponentSizeA(), bridge.getComponentSizeB()));
@@ -1891,7 +1578,7 @@ public class Main extends JFrame {
             }
         }
         if (apDetails.isEmpty() && bridges.isEmpty()) {
-            details.append("<i>No critical elements — network is robust.</i>");
+            details.append("<i>No critical elements â€” network is robust.</i>");
         }
         details.append("</html>");
         articulationDetailsLabel.setText(details.toString());
@@ -1910,7 +1597,7 @@ public class Main extends JFrame {
         syncRenderers();
         articulationPoints.clear();
         bridgeEdges.clear();
-        articulationResilienceLabel.setText("Resilience: —");
+        articulationResilienceLabel.setText("Resilience: â€”");
         articulationSummaryLabel.setText("<html>Click 'Analyze' to find critical nodes and edges.</html>");
         articulationDetailsLabel.setText("");
         if (vv != null) { syncRenderers(); vv.repaint(); }
@@ -1945,7 +1632,7 @@ public class Main extends JFrame {
      * creates the right pane containing the communities and notes section.
      *
      * <p>Uses {@link #chainSplitPanes} to avoid deeply nested manual
-     * JSplitPane construction — adding/removing panels now requires
+     * JSplitPane construction â€” adding/removing panels now requires
      * only editing the array and heights, not restructuring nesting.</p>
      */
     public final void showRightPane() {
@@ -1956,7 +1643,7 @@ public class Main extends JFrame {
                 parameterHeading, parameterSpace);
 
         // Panels in display order, with their preferred divider heights.
-        // To add a new panel, just add an entry here — no nesting changes needed.
+        // To add a new panel, just add an entry here â€” no nesting changes needed.
         java.awt.Component[] panels = {
             headerSplit,
             notesPanel,
@@ -1965,8 +1652,8 @@ public class Main extends JFrame {
             mstPanel,
             centralityPanel,
             articulationPanel,
-            resiliencePanel,
-            egoPanel,
+            resilienceController.getPanel(),
+            egoController.getPanel(),
             statsPanel,
         };
         int[] dividerLocations = { 400, 510, 640, 760, 920, 1070, 1250, 1420, 1580 };
@@ -2256,7 +1943,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * initialize the category panel — creates one {@link CategoryRow}
+     * initialize the category panel â€” creates one {@link CategoryRow}
      * per edge type using the shared {@code createCategoryRow()} helper.
      */
     public final void initializeCategoryPanel() {
@@ -2344,7 +2031,7 @@ public class Main extends JFrame {
 
     // showExportSaveDialog() moved to ExportActions.showExportSaveDialog()
 
-    // copyfile() removed — replaced with FileUtils.copyFile() from commons-io
+    // copyfile() removed â€” replaced with FileUtils.copyFile() from commons-io
     // (which was already a project dependency). The hand-rolled byte-copy loop
     // duplicated well-tested library code and missed features like atomic
     // writes and proper error cleanup.
