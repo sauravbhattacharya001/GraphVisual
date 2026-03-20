@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import java.util.EnumMap;
 
 /**
  * Computes network analysis metrics for a JUNG graph.
@@ -13,6 +14,9 @@ import java.util.*;
 public class GraphStats {
 
     private final Graph<String, edge> graph;
+    private final Map<EdgeType, List<edge>> edgesByType;
+
+    // Legacy accessors kept for backward compat
     private final List<edge> friendEdges;
     private final List<edge> fsEdges;
     private final List<edge> classmateEdges;
@@ -20,25 +24,73 @@ public class GraphStats {
     private final List<edge> studyGEdges;
 
     /**
+     * Creates a GraphStats from a typed edge map.
+     * This is the preferred constructor — avoids long positional parameter
+     * lists and scales cleanly when new edge types are added.
+     *
+     * @param graph      the current JUNG graph
+     * @param edgesByType map from EdgeType to the edges of that type
+     */
+    public GraphStats(Graph<String, edge> graph,
+                      Map<EdgeType, List<edge>> edgesByType) {
+        this.graph = graph;
+        this.edgesByType = new EnumMap<EdgeType, List<edge>>(EdgeType.class);
+        for (EdgeType t : EdgeType.values()) {
+            this.edgesByType.put(t, edgesByType.containsKey(t)
+                    ? edgesByType.get(t) : Collections.<edge>emptyList());
+        }
+        // Populate legacy fields from the map
+        this.friendEdges = this.edgesByType.get(EdgeType.FRIEND);
+        this.fsEdges = this.edgesByType.get(EdgeType.FAMILIAR_STRANGER);
+        this.classmateEdges = this.edgesByType.get(EdgeType.CLASSMATE);
+        this.strangerEdges = this.edgesByType.get(EdgeType.STRANGER);
+        this.studyGEdges = this.edgesByType.get(EdgeType.STUDY_GROUP);
+    }
+
+    /**
+     * Legacy constructor — delegates to the map-based constructor.
+     *
      * @param graph         the current JUNG graph
      * @param friendEdges   friend edges (may include filtered-out edges)
      * @param fsEdges       familiar stranger edges
      * @param classmateEdges classmate edges
      * @param strangerEdges stranger edges
      * @param studyGEdges   study group edges
+     * @deprecated Use {@link #GraphStats(Graph, Map)} instead.
      */
+    @Deprecated
     public GraphStats(Graph<String, edge> graph,
                       List<edge> friendEdges,
                       List<edge> fsEdges,
                       List<edge> classmateEdges,
                       List<edge> strangerEdges,
                       List<edge> studyGEdges) {
-        this.graph = graph;
-        this.friendEdges = friendEdges;
-        this.fsEdges = fsEdges;
-        this.classmateEdges = classmateEdges;
-        this.strangerEdges = strangerEdges;
-        this.studyGEdges = studyGEdges;
+        this(graph, buildEdgeMap(friendEdges, fsEdges, classmateEdges,
+                strangerEdges, studyGEdges));
+    }
+
+    private static Map<EdgeType, List<edge>> buildEdgeMap(
+            List<edge> friend, List<edge> fs, List<edge> classmate,
+            List<edge> stranger, List<edge> studyG) {
+        Map<EdgeType, List<edge>> map = new EnumMap<EdgeType, List<edge>>(EdgeType.class);
+        map.put(EdgeType.FRIEND, friend);
+        map.put(EdgeType.FAMILIAR_STRANGER, fs);
+        map.put(EdgeType.CLASSMATE, classmate);
+        map.put(EdgeType.STRANGER, stranger);
+        map.put(EdgeType.STUDY_GROUP, studyG);
+        return map;
+    }
+
+    /**
+     * Returns the edge list for a given type.
+     *
+     * @param type the edge type to query
+     * @return unmodifiable list of edges (never null)
+     */
+    public List<edge> getEdges(EdgeType type) {
+        List<edge> list = edgesByType.get(type);
+        return list != null ? Collections.unmodifiableList(list)
+                : Collections.<edge>emptyList();
     }
 
     /** Total number of nodes in the visible graph. */
