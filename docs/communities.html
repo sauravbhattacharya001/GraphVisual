@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Detection - GraphVisual</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#334155);padding:20px 30px;border-bottom:1px solid #475569;display:flex;align-items:center;gap:16px}
+.header h1{font-size:1.4rem;font-weight:600}
+.header .badge{background:#8b5cf6;padding:3px 10px;border-radius:12px;font-size:.75rem}
+.container{display:grid;grid-template-columns:300px 1fr 280px;height:calc(100vh - 70px)}
+.sidebar{background:#1e293b;padding:16px;overflow-y:auto;border-right:1px solid #334155}
+.sidebar h3{font-size:.85rem;text-transform:uppercase;color:#94a3b8;margin:12px 0 8px;letter-spacing:.05em}
+.sidebar h3:first-child{margin-top:0}
+.btn{display:block;width:100%;padding:8px 12px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;border-radius:6px;cursor:pointer;font-size:.85rem;margin-bottom:6px;text-align:left;transition:.15s}
+.btn:hover{border-color:#8b5cf6;background:#1a1a2e}
+.btn.active{border-color:#8b5cf6;background:#2d1b69}
+select,input[type=range],input[type=number],textarea{width:100%;padding:6px 10px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;border-radius:6px;font-size:.85rem;margin-bottom:8px}
+textarea{height:120px;font-family:monospace;font-size:.8rem;resize:vertical}
+label{font-size:.8rem;color:#94a3b8;display:block;margin-bottom:4px}
+canvas{display:block;background:#0f172a}
+.panel{background:#1e293b;padding:16px;overflow-y:auto;border-left:1px solid #334155}
+.panel h3{font-size:.85rem;text-transform:uppercase;color:#94a3b8;margin:12px 0 8px;letter-spacing:.05em}
+.panel h3:first-child{margin-top:0}
+.stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b;font-size:.85rem}
+.stat .val{color:#8b5cf6;font-weight:600}
+.community-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;margin:2px;color:#fff}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.82rem;padding:3px 0}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.export-btn{background:#8b5cf6;border:none;color:#fff;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.85rem;width:100%;margin-top:8px}
+.export-btn:hover{background:#7c3aed}
+.info{font-size:.8rem;color:#64748b;margin-bottom:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>🔍 Community Detection</h1>
+<span class="badge">GraphVisual</span>
+</div>
+<div class="container">
+<div class="sidebar">
+<h3>Graph Input</h3>
+<label>Preset Graphs</label>
+<select id="preset">
+<option value="karate">Zachary's Karate Club (34)</option>
+<option value="barbell">Barbell Graph (20)</option>
+<option value="caveman">Connected Caveman (30)</option>
+<option value="stochastic">Stochastic Block Model (40)</option>
+<option value="ring">Ring of Cliques (24)</option>
+<option value="custom">Custom (edit below)</option>
+</select>
+<label>Edge List (one per line: src dst)</label>
+<textarea id="edges" placeholder="0 1&#10;1 2&#10;2 0"></textarea>
+<button class="btn" id="loadBtn">Load Graph</button>
+
+<h3>Algorithm</h3>
+<button class="btn active" data-algo="louvain">Louvain (Modularity)</button>
+<button class="btn" data-algo="label">Label Propagation</button>
+<button class="btn" data-algo="girvan">Girvan-Newman (Edge Betweenness)</button>
+<button class="btn" data-algo="spectral">Spectral Bisection</button>
+
+<h3>Layout</h3>
+<label>Repulsion <span id="repVal">120</span></label>
+<input type="range" id="repulsion" min="20" max="400" value="120">
+<label>Attraction <span id="attVal">0.01</span></label>
+<input type="range" id="attraction" min="1" max="100" value="10">
+<label>Iterations <span id="iterVal">200</span></label>
+<input type="range" id="iterations" min="50" max="500" value="200">
+<button class="btn" id="relayoutBtn">Re-layout</button>
+</div>
+
+<canvas id="cv"></canvas>
+
+<div class="panel">
+<h3>Results</h3>
+<div id="results">
+<p class="info">Load a graph and run detection.</p>
+</div>
+<h3>Community Legend</h3>
+<div id="legend"></div>
+<h3>Stats</h3>
+<div id="stats"></div>
+<h3>Export</h3>
+<button class="export-btn" id="exportJSON">Export JSON</button>
+<button class="export-btn" id="exportSVG" style="margin-top:6px">Export SVG</button>
+</div>
+</div>
+
+<script>
+const COLORS = ['#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899','#f97316','#14b8a6','#a855f7','#64748b','#e11d48','#84cc16','#6366f1','#0ea5e9','#d946ef','#facc15'];
+
+class Graph {
+  constructor(){this.adj=new Map();this.nodes=new Set()}
+  addEdge(u,v){
+    this.nodes.add(u);this.nodes.add(v);
+    if(!this.adj.has(u))this.adj.set(u,[]);
+    if(!this.adj.has(v))this.adj.set(v,[]);
+    if(!this.adj.get(u).includes(v)){this.adj.get(u).push(v);this.adj.get(v).push(u)}
+  }
+  neighbors(u){return this.adj.get(u)||[]}
+  get edges(){
+    const e=[];const seen=new Set();
+    for(const[u,ns]of this.adj)for(const v of ns){const k=Math.min(u,v)+','+Math.max(u,v);if(!seen.has(k)){seen.add(k);e.push([u,v])}}
+    return e;
+  }
+  get nodeList(){return[...this.nodes].sort((a,b)=>a-b)}
+  get edgeCount(){return this.edges.length}
+  degree(u){return(this.adj.get(u)||[]).length}
+}
+
+// Presets
+function karateClub(){
+  const g=new Graph();
+  const e=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];
+  e.forEach(([u,v])=>g.addEdge(u,v));return g;
+}
+function barbellGraph(){
+  const g=new Graph();
+  for(let i=0;i<8;i++)for(let j=i+1;j<8;j++)g.addEdge(i,j);
+  for(let i=12;i<20;i++)for(let j=i+1;j<20;j++)g.addEdge(i,j);
+  g.addEdge(7,8);g.addEdge(8,9);g.addEdge(9,10);g.addEdge(10,11);g.addEdge(11,12);
+  return g;
+}
+function cavemanGraph(){
+  const g=new Graph();const cs=5,s=6;
+  for(let c=0;c<cs;c++){const off=c*s;for(let i=0;i<s;i++)for(let j=i+1;j<s;j++)g.addEdge(off+i,off+j);if(c<cs-1)g.addEdge(off+s-1,(c+1)*s)}
+  return g;
+}
+function sbmGraph(){
+  const g=new Graph();const sizes=[10,10,10,10];let off=0;
+  sizes.forEach((s,ci)=>{
+    for(let i=off;i<off+s;i++)for(let j=i+1;j<off+s;j++)if(Math.random()<0.6)g.addEdge(i,j);
+    off+=s;
+  });
+  off=0;sizes.forEach((s,ci)=>{
+    let o2=0;sizes.forEach((s2,cj)=>{
+      if(cj>ci)for(let i=off;i<off+s;i++)for(let j=o2;j<o2+s2;j++)if(Math.random()<0.05)g.addEdge(i,j);
+      o2+=s2;
+    });off+=s;
+  });
+  return g;
+}
+function ringCliques(){
+  const g=new Graph();const nc=6,cs=4;
+  for(let c=0;c<nc;c++){const off=c*cs;for(let i=0;i<cs;i++)for(let j=i+1;j<cs;j++)g.addEdge(off+i,off+j);g.addEdge(off+cs-1,((c+1)%nc)*cs)}
+  return g;
+}
+
+// Community Detection Algorithms
+function louvain(g){
+  const nodes=g.nodeList;const m=g.edgeCount;if(m===0){const c={};nodes.forEach(n=>c[n]=n);return c}
+  const comm={};nodes.forEach(n=>comm[n]=n);
+  const deg={};nodes.forEach(n=>deg[n]=g.degree(n));
+  function modularity(){
+    let q=0;const m2=2*m;
+    for(const[u,v]of g.edges)if(comm[u]===comm[v])q+=1-deg[u]*deg[v]/m2;
+    return q/m2;
+  }
+  for(let iter=0;iter<20;iter++){
+    let moved=false;
+    for(const n of nodes){
+      const nComms={};
+      for(const nb of g.neighbors(n)){const c=comm[nb];nComms[c]=(nComms[c]||0)+1}
+      let bestC=comm[n],bestGain=0;
+      for(const[c,links]of Object.entries(nComms)){
+        const gain=links;
+        if(gain>bestGain){bestGain=gain;bestC=parseInt(c)}
+      }
+      if(bestC!==comm[n]){comm[n]=bestC;moved=true}
+    }
+    if(!moved)break;
+  }
+  // Renumber
+  const uq=[...new Set(Object.values(comm))];const map={};uq.forEach((c,i)=>map[c]=i);
+  const res={};for(const n of nodes)res[n]=map[comm[n]];
+  return res;
+}
+
+function labelPropagation(g){
+  const nodes=g.nodeList;const comm={};nodes.forEach(n=>comm[n]=n);
+  for(let iter=0;iter<50;iter++){
+    let changed=false;
+    const shuffled=[...nodes].sort(()=>Math.random()-.5);
+    for(const n of shuffled){
+      const nbs=g.neighbors(n);if(!nbs.length)continue;
+      const freq={};for(const nb of nbs)freq[comm[nb]]=(freq[comm[nb]]||0)+1;
+      let maxF=0,best=comm[n];
+      for(const[c,f]of Object.entries(freq))if(f>maxF||(f===maxF&&Math.random()>.5)){maxF=f;best=parseInt(c)}
+      if(best!==comm[n]){comm[n]=best;changed=true}
+    }
+    if(!changed)break;
+  }
+  const uq=[...new Set(Object.values(comm))];const map={};uq.forEach((c,i)=>map[c]=i);
+  const res={};for(const n of nodes)res[n]=map[comm[n]];
+  return res;
+}
+
+function girvanNewman(g){
+  // Simplified: remove highest betweenness edges until components increase
+  const nodes=g.nodeList;
+  const removedEdges=new Set();
+  function components(){
+    const visited=new Set();const comps=[];
+    for(const n of nodes){
+      if(visited.has(n))continue;
+      const comp=[n];visited.add(n);const q=[n];
+      while(q.length){const u=q.shift();for(const v of g.neighbors(u)){
+        const k=Math.min(u,v)+','+Math.max(u,v);
+        if(!visited.has(v)&&!removedEdges.has(k)){visited.add(v);q.push(v);comp.push(v)}
+      }}
+      comps.push(comp);
+    }
+    return comps;
+  }
+  function edgeBetweenness(){
+    const bet={};
+    for(const s of nodes){
+      const dist={},sigma={},pred={};
+      nodes.forEach(n=>{dist[n]=-1;sigma[n]=0;pred[n]=[]});
+      dist[s]=0;sigma[s]=1;const q=[s],stack=[];
+      while(q.length){const u=q.shift();stack.push(u);
+        for(const v of g.neighbors(u)){
+          const k=Math.min(u,v)+','+Math.max(u,v);if(removedEdges.has(k))continue;
+          if(dist[v]<0){dist[v]=dist[u]+1;q.push(v)}
+          if(dist[v]===dist[u]+1){sigma[v]+=sigma[u];pred[v].push(u)}
+        }
+      }
+      const delta={};nodes.forEach(n=>delta[n]=0);
+      while(stack.length){const v=stack.pop();for(const u of pred[v]){
+        const d=sigma[u]/sigma[v]*(1+delta[v]);delta[u]+=d;
+        const k=Math.min(u,v)+','+Math.max(u,v);bet[k]=(bet[k]||0)+d;
+      }}
+    }
+    return bet;
+  }
+  const targetComps=Math.min(Math.max(Math.floor(nodes.length/6),2),8);
+  for(let i=0;i<g.edgeCount&&components().length<targetComps;i++){
+    const bet=edgeBetweenness();let maxE='',maxB=0;
+    for(const[e,b]of Object.entries(bet))if(b>maxB){maxB=b;maxE=e}
+    if(!maxE)break;
+    removedEdges.add(maxE);
+  }
+  const comps=components();const comm={};
+  comps.forEach((comp,i)=>comp.forEach(n=>comm[n]=i));
+  return comm;
+}
+
+function spectralBisection(g){
+  // Simple spectral-like bisection using power iteration on modularity matrix
+  const nodes=g.nodeList;const n=nodes.length;if(n<4){const c={};nodes.forEach((nd,i)=>c[nd]=i<n/2?0:1);return c}
+  const idx={};nodes.forEach((nd,i)=>idx[nd]=i);
+  const m2=2*g.edgeCount||1;
+  // Build modularity matrix row operation
+  const deg=nodes.map(nd=>g.degree(nd));
+  // Power iteration for leading eigenvector of B = A - ki*kj/2m
+  let v=nodes.map(()=>Math.random()-.5);
+  for(let iter=0;iter<100;iter++){
+    const nv=new Array(n).fill(0);
+    for(const nd of nodes){const i=idx[nd];for(const nb of g.neighbors(nd)){nv[i]+=v[idx[nb]]}}
+    for(let i=0;i<n;i++)nv[i]-=deg[i]*nodes.reduce((s,nd,j)=>s+deg[j]*v[j],0)/m2;
+    const norm=Math.sqrt(nv.reduce((s,x)=>s+x*x,0))||1;
+    v=nv.map(x=>x/norm);
+  }
+  const comm={};nodes.forEach((nd,i)=>comm[nd]=v[i]>=0?0:1);
+  return comm;
+}
+
+// Layout
+function forceLayout(g,pos,rep,att,iters){
+  const nodes=g.nodeList;
+  for(let iter=0;iter<iters;iter++){
+    const t=1-iter/iters;const disp={};nodes.forEach(n=>disp[n]={x:0,y:0});
+    // Repulsion
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      let dx=pos[a].x-pos[b].x,dy=pos[a].y-pos[b].y;
+      const d=Math.sqrt(dx*dx+dy*dy)||0.1;
+      const f=rep*rep/d;
+      dx=dx/d*f;dy=dy/d*f;
+      disp[a].x+=dx;disp[a].y+=dy;disp[b].x-=dx;disp[b].y-=dy;
+    }
+    // Attraction
+    for(const[u,v]of g.edges){
+      let dx=pos[u].x-pos[v].x,dy=pos[u].y-pos[v].y;
+      const d=Math.sqrt(dx*dx+dy*dy)||0.1;
+      const f=d*d*att;
+      dx=dx/d*f;dy=dy/d*f;
+      disp[u].x-=dx;disp[u].y-=dy;
+      disp[v].x+=dx;disp[v].y+=dy;
+    }
+    nodes.forEach(n=>{
+      const d=Math.sqrt(disp[n].x**2+disp[n].y**2)||0.1;
+      const maxD=50*t+1;
+      pos[n].x+=disp[n].x/d*Math.min(d,maxD);
+      pos[n].y+=disp[n].y/d*Math.min(d,maxD);
+    });
+  }
+  return pos;
+}
+
+// State
+let graph=null,communities={},positions={};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let hoverNode=null,dragNode=null,panX=0,panY=0,zoom=1,dragStartX,dragStartY;
+
+function resize(){cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight}
+window.addEventListener('resize',()=>{resize();draw()});
+
+function loadPreset(name){
+  const builders={karate:karateClub,barbell:barbellGraph,caveman:cavemanGraph,stochastic:sbmGraph,ring:ringCliques};
+  if(builders[name]){
+    graph=builders[name]();
+    document.getElementById('edges').value=graph.edges.map(([u,v])=>u+' '+v).join('\n');
+  }
+}
+
+function loadGraph(){
+  const sel=document.getElementById('preset').value;
+  if(sel!=='custom'){loadPreset(sel)}
+  else{
+    graph=new Graph();
+    document.getElementById('edges').value.trim().split('\n').forEach(l=>{
+      const p=l.trim().split(/\s+/);if(p.length>=2)graph.addEdge(parseInt(p[0]),parseInt(p[1]));
+    });
+  }
+  initPositions();runDetection();
+}
+
+function initPositions(){
+  const nodes=graph.nodeList;positions={};
+  nodes.forEach((n,i)=>{const a=2*Math.PI*i/nodes.length;positions[n]={x:Math.cos(a)*200,y:Math.sin(a)*200}});
+  const rep=parseInt(document.getElementById('repulsion').value);
+  const att=parseInt(document.getElementById('attraction').value)/1000;
+  const iters=parseInt(document.getElementById('iterations').value);
+  positions=forceLayout(graph,positions,rep,att,iters);
+}
+
+function runDetection(){
+  const algo=document.querySelector('[data-algo].active').dataset.algo;
+  const fns={louvain,label:labelPropagation,girvan:girvanNewman,spectral:spectralBisection};
+  communities=fns[algo](graph);
+  updatePanel();draw();
+}
+
+function updatePanel(){
+  const comms={};for(const[n,c]of Object.entries(communities)){if(!comms[c])comms[c]=[];comms[c].push(parseInt(n))}
+  const numC=Object.keys(comms).length;
+  // Modularity
+  const m=graph.edgeCount;let q=0;
+  if(m>0){const m2=2*m;for(const[u,v]of graph.edges)if(communities[u]===communities[v])q+=1-graph.degree(u)*graph.degree(v)/m2;q/=m2}
+
+  let html=`<div class="stat"><span>Communities</span><span class="val">${numC}</span></div>`;
+  html+=`<div class="stat"><span>Modularity</span><span class="val">${q.toFixed(4)}</span></div>`;
+  html+=`<div class="stat"><span>Nodes</span><span class="val">${graph.nodeList.length}</span></div>`;
+  html+=`<div class="stat"><span>Edges</span><span class="val">${m}</span></div>`;
+  document.getElementById('results').innerHTML=html;
+
+  let leg='';
+  Object.keys(comms).sort((a,b)=>a-b).forEach(c=>{
+    const col=COLORS[c%COLORS.length];
+    leg+=`<div class="legend-item"><div class="legend-dot" style="background:${col}"></div>Community ${c} (${comms[c].length} nodes)</div>`;
+  });
+  document.getElementById('legend').innerHTML=leg;
+
+  // Per-community stats
+  let st='';
+  Object.keys(comms).sort((a,b)=>a-b).forEach(c=>{
+    const ns=comms[c];
+    let intEdges=0;
+    for(const n of ns)for(const nb of graph.neighbors(n))if(communities[nb]==c)intEdges++;
+    intEdges/=2;
+    const density=ns.length>1?(2*intEdges/(ns.length*(ns.length-1))):0;
+    st+=`<div class="stat"><span>C${c} density</span><span class="val">${density.toFixed(3)}</span></div>`;
+  });
+  document.getElementById('stats').innerHTML=st;
+}
+
+function draw(){
+  resize();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save();
+  ctx.translate(cv.width/2+panX,cv.height/2+panY);
+  ctx.scale(zoom,zoom);
+  // Edges
+  ctx.strokeStyle='rgba(100,116,139,0.3)';ctx.lineWidth=1;
+  for(const[u,v]of graph.edges){
+    const same=communities[u]===communities[v];
+    ctx.strokeStyle=same?COLORS[communities[u]%COLORS.length]+'60':'rgba(100,116,139,0.15)';
+    ctx.lineWidth=same?1.5:0.5;
+    ctx.beginPath();ctx.moveTo(positions[u].x,positions[u].y);ctx.lineTo(positions[v].x,positions[v].y);ctx.stroke();
+  }
+  // Nodes
+  for(const n of graph.nodeList){
+    const c=communities[n]??0;const col=COLORS[c%COLORS.length];
+    const r=hoverNode===n?10:6+Math.min(graph.degree(n),10)*0.5;
+    ctx.beginPath();ctx.arc(positions[n].x,positions[n].y,r,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle='#0f172a';ctx.lineWidth=1.5;ctx.stroke();
+    // Label
+    ctx.fillStyle='#e2e8f0';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(n,positions[n].x,positions[n].y);
+  }
+  ctx.restore();
+}
+
+// Interaction
+cv.addEventListener('mousemove',e=>{
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left-cv.width/2-panX)/zoom;
+  const my=(e.clientY-rect.top-cv.height/2-panY)/zoom;
+  if(dragNode!==null){positions[dragNode]={x:mx,y:my};draw();return}
+  hoverNode=null;
+  for(const n of graph.nodeList){
+    const dx=positions[n].x-mx,dy=positions[n].y-my;
+    if(dx*dx+dy*dy<100){hoverNode=n;break}
+  }
+  draw();
+});
+cv.addEventListener('mousedown',e=>{
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left-cv.width/2-panX)/zoom;
+  const my=(e.clientY-rect.top-cv.height/2-panY)/zoom;
+  for(const n of graph.nodeList){
+    const dx=positions[n].x-mx,dy=positions[n].y-my;
+    if(dx*dx+dy*dy<100){dragNode=n;return}
+  }
+  dragStartX=e.clientX-panX;dragStartY=e.clientY-panY;
+});
+cv.addEventListener('mouseup',()=>{dragNode=null});
+cv.addEventListener('mouseleave',()=>{dragNode=null});
+window.addEventListener('mousemove',e=>{
+  if(dragNode===null&&dragStartX!==undefined){panX=e.clientX-dragStartX;panY=e.clientY-dragStartY;draw()}
+});
+window.addEventListener('mouseup',()=>{dragStartX=undefined});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=e.deltaY>0?0.9:1.1;zoom=Math.max(0.1,Math.min(10,zoom));draw()});
+
+// Controls
+document.querySelectorAll('[data-algo]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-algo]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');runDetection();
+}));
+document.getElementById('repulsion').addEventListener('input',e=>document.getElementById('repVal').textContent=e.target.value);
+document.getElementById('attraction').addEventListener('input',e=>document.getElementById('attVal').textContent=(e.target.value/1000).toFixed(3));
+document.getElementById('iterations').addEventListener('input',e=>document.getElementById('iterVal').textContent=e.target.value);
+document.getElementById('loadBtn').addEventListener('click',loadGraph);
+document.getElementById('relayoutBtn').addEventListener('click',()=>{initPositions();draw()});
+document.getElementById('preset').addEventListener('change',e=>{if(e.target.value!=='custom')loadPreset(e.target.value)});
+
+// Export
+document.getElementById('exportJSON').addEventListener('click',()=>{
+  const data={nodes:graph.nodeList.map(n=>({id:n,community:communities[n]})),edges:graph.edges.map(([u,v])=>({source:u,target:v})),modularity:0};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='communities.json';a.click();
+});
+document.getElementById('exportSVG').addEventListener('click',()=>{
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" style="background:#0f172a">`;
+  const ox=400,oy=300;
+  for(const[u,v]of graph.edges){
+    const col=communities[u]===communities[v]?COLORS[communities[u]%COLORS.length]+'99':'#47556944';
+    svg+=`<line x1="${ox+positions[u].x}" y1="${oy+positions[u].y}" x2="${ox+positions[v].x}" y2="${oy+positions[v].y}" stroke="${col}" stroke-width="1"/>`;
+  }
+  for(const n of graph.nodeList){
+    const col=COLORS[(communities[n]??0)%COLORS.length];
+    svg+=`<circle cx="${ox+positions[n].x}" cy="${oy+positions[n].y}" r="6" fill="${col}" stroke="#0f172a" stroke-width="1.5"/>`;
+    svg+=`<text x="${ox+positions[n].x}" y="${oy+positions[n].y+3}" text-anchor="middle" fill="#e2e8f0" font-size="8" font-weight="bold">${n}</text>`;
+  }
+  svg+=`</svg>`;
+  const blob=new Blob([svg],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='communities.svg';a.click();
+});
+
+// Init
+loadGraph();
+</script>
+</body>
+</html>
