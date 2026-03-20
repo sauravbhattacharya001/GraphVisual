@@ -60,25 +60,9 @@ public class TournamentAnalyzer {
         this.graph = graph;
         this.vertices = new ArrayList<String>(graph.getVertices());
         Collections.sort(this.vertices);
-        this.beats = buildAdjacency();
-    }
-
-    /**
-     * Builds the adjacency map from edge directions.
-     */
-    private Map<String, Set<String>> buildAdjacency() {
-        Map<String, Set<String>> adj = new HashMap<String, Set<String>>();
-        for (String v : vertices) {
-            adj.put(v, new HashSet<String>());
-        }
-        for (edge e : graph.getEdges()) {
-            String from = e.getVertex1();
-            String to = e.getVertex2();
-            if (from != null && to != null && adj.containsKey(from)) {
-                adj.get(from).add(to);
-            }
-        }
-        return adj;
+        // Delegate directed adjacency construction to GraphUtils to avoid
+        // duplicating the vertex1→vertex2 edge-walking logic.
+        this.beats = GraphUtils.buildDirectedAdjacencyMap(graph).successors;
     }
 
     // ── Validation ──────────────────────────────────────────────
