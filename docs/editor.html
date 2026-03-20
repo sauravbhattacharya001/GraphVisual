@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Editor — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .editor-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 200px);
+            min-height: 500px;
+        }
+        .canvas-panel {
+            flex: 1;
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .canvas-panel canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        .side-panel {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .panel-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .panel-card h3 {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            padding: 8px 14px;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .toolbar button:hover { background: var(--surface-hover); border-color: var(--accent); }
+        .toolbar button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .node-list, .edge-list {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .node-list div, .edge-list div {
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .node-list div:hover, .edge-list div:hover { background: var(--surface-hover); }
+        .del-btn {
+            background: none;
+            border: none;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+        .import-export { display: flex; gap: 8px; }
+        .import-export button, .import-export label {
+            flex: 1;
+            padding: 8px;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .import-export button:hover, .import-export label:hover { border-color: var(--accent); }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .stats-grid .stat-item {
+            background: var(--bg);
+            padding: 6px 8px;
+            border-radius: 4px;
+        }
+        .stats-grid .stat-val { color: var(--accent); font-weight: 600; }
+        .stats-grid .stat-label { color: var(--text-muted); font-size: 11px; }
+        .mode-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .edge-weight-input {
+            width: 40px;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-size: 11px;
+            text-align: center;
+        }
+        .node-color-picker {
+            width: 24px;
+            height: 24px;
+            border: none;
+            cursor: pointer;
+            background: none;
+        }
+        #importFile { display: none; }
+        .preset-btn {
+            padding: 4px 10px;
+            background: var(--bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .directed-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .directed-toggle input { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">🎯</span>Centrality Radar</a>
+        <a href="editor.html" class="sidebar-link active"><span class="icon">✏️</span>Graph Editor</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="content-header">
+        <h1>✏️ Interactive Graph Editor</h1>
+        <p>Visually create and edit graphs — add nodes by clicking, draw edges by dragging, import/export in multiple formats.</p>
+    </div>
+
+    <div class="toolbar">
+        <button id="modeAdd" class="active" onclick="setMode('add')">➕ Add Node</button>
+        <button id="modeEdge" onclick="setMode('edge')">🔗 Draw Edge</button>
+        <button id="modeMove" onclick="setMode('move')">✋ Move</button>
+        <button id="modeDelete" onclick="setMode('delete')">🗑️ Delete</button>
+        <button onclick="clearAll()">💥 Clear All</button>
+        <button onclick="autoLayout()">🔄 Auto Layout</button>
+        <div class="directed-toggle">
+            <input type="checkbox" id="directedCheck" onchange="render()">
+            <label for="directedCheck">Directed</label>
+        </div>
+        <div class="directed-toggle">
+            <input type="checkbox" id="weightedCheck" onchange="render()">
+            <label for="weightedCheck">Weighted</label>
+        </div>
+    </div>
+
+    <div id="modeHint" class="mode-hint">💡 Click on the canvas to add a new node</div>
+
+    <div class="editor-container">
+        <div class="canvas-panel">
+            <canvas id="graphCanvas"></canvas>
+        </div>
+        <div class="side-panel">
+            <div class="panel-card">
+                <h3>📊 Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-item"><div class="stat-val" id="statNodes">0</div><div class="stat-label">Nodes</div></div>
+                    <div class="stat-item"><div class="stat-val" id="statEdges">0</div><div class="stat-label">Edges</div></div>
+                    <div class="stat-item"><div class="stat-val" id="statDensity">0</div><div class="stat-label">Density</div></div>
+                    <div class="stat-item"><div class="stat-val" id="statComponents">0</div><div class="stat-label">Components</div></div>
+                </div>
+            </div>
+            <div class="panel-card">
+                <h3>🎨 Presets</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <button class="preset-btn" onclick="loadPreset('triangle')">Triangle</button>
+                    <button class="preset-btn" onclick="loadPreset('square')">Square</button>
+                    <button class="preset-btn" onclick="loadPreset('petersen')">Petersen</button>
+                    <button class="preset-btn" onclick="loadPreset('star')">Star K₅</button>
+                    <button class="preset-btn" onclick="loadPreset('bipartite')">Bipartite</button>
+                    <button class="preset-btn" onclick="loadPreset('tree')">Binary Tree</button>
+                </div>
+            </div>
+            <div class="panel-card">
+                <h3>📋 Nodes</h3>
+                <div id="nodeList" class="node-list"></div>
+            </div>
+            <div class="panel-card">
+                <h3>🔗 Edges</h3>
+                <div id="edgeList" class="edge-list"></div>
+            </div>
+            <div class="panel-card">
+                <h3>💾 Import / Export</h3>
+                <div class="import-export">
+                    <button onclick="exportJSON()">JSON</button>
+                    <button onclick="exportCSV()">CSV</button>
+                    <button onclick="exportDOT()">DOT</button>
+                    <button onclick="exportPNG()">PNG</button>
+                </div>
+                <div class="import-export" style="margin-top:8px">
+                    <label for="importFile">📂 Import JSON</label>
+                    <input type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+                    <button onclick="exportAdjList()">Adj. List</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+
+let nodes = [];
+let edges = [];
+let nextId = 1;
+let mode = 'add';
+let dragNode = null;
+let edgeStart = null;
+let hoveredNode = null;
+let tempEdgeEnd = null;
+
+const COLORS = ['#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#f0883e','#39d353','#db61a2'];
+const NODE_RADIUS = 20;
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    render();
+}
+window.addEventListener('resize', resize);
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (btn) btn.classList.add('active');
+    edgeStart = null;
+    const hints = {
+        add: '💡 Click on the canvas to add a new node',
+        edge: '💡 Click a node then click another to draw an edge',
+        move: '💡 Drag nodes to reposition them',
+        delete: '💡 Click a node or edge to delete it'
+    };
+    document.getElementById('modeHint').textContent = hints[m] || '';
+    canvas.style.cursor = m === 'move' ? 'grab' : m === 'delete' ? 'pointer' : 'crosshair';
+}
+
+function getNodeAt(x, y) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const dx = nodes[i].x - x, dy = nodes[i].y - y;
+        if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return nodes[i];
+    }
+    return null;
+}
+
+function getEdgeAt(x, y) {
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len === 0) continue;
+        const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (len * len)));
+        const px = a.x + t * dx, py = a.y + t * dy;
+        const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+        if (dist < 8) return e;
+    }
+    return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const node = getNodeAt(x, y);
+
+    if (mode === 'add') {
+        if (!node) {
+            const id = nextId++;
+            const label = String.fromCharCode(64 + (id > 26 ? ((id - 1) % 26) + 1 : id));
+            nodes.push({ id, label, x, y, color: COLORS[(id - 1) % COLORS.length] });
+            updateLists(); render();
+        }
+    } else if (mode === 'edge') {
+        if (node) {
+            if (!edgeStart) {
+                edgeStart = node;
+                node._highlight = true;
+                render();
+            } else {
+                if (edgeStart.id !== node.id) {
+                    const exists = edges.some(e =>
+                        (e.from === edgeStart.id && e.to === node.id) ||
+                        (!document.getElementById('directedCheck').checked && e.from === node.id && e.to === edgeStart.id)
+                    );
+                    if (!exists) {
+                        edges.push({ from: edgeStart.id, to: node.id, weight: 1 });
+                    }
+                }
+                edgeStart._highlight = false;
+                edgeStart = null;
+                updateLists(); render();
+            }
+        }
+    } else if (mode === 'move') {
+        if (node) {
+            dragNode = node;
+            canvas.style.cursor = 'grabbing';
+        }
+    } else if (mode === 'delete') {
+        if (node) {
+            edges = edges.filter(e => e.from !== node.id && e.to !== node.id);
+            nodes = nodes.filter(n => n.id !== node.id);
+            updateLists(); render();
+        } else {
+            const edge = getEdgeAt(x, y);
+            if (edge) {
+                edges = edges.filter(e => e !== edge);
+                updateLists(); render();
+            }
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    hoveredNode = getNodeAt(x, y);
+
+    if (dragNode) {
+        dragNode.x = x;
+        dragNode.y = y;
+        render();
+    }
+    if (mode === 'edge' && edgeStart) {
+        tempEdgeEnd = { x, y };
+        render();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (dragNode) {
+        canvas.style.cursor = 'grab';
+        dragNode = null;
+        updateLists();
+    }
+});
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Grid
+    ctx.strokeStyle = '#1c2129';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+    for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+    const directed = document.getElementById('directedCheck').checked;
+    const weighted = document.getElementById('weightedCheck').checked;
+
+    // Edges
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        ctx.strokeStyle = '#58a6ff44';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+
+        if (directed) {
+            const angle = Math.atan2(b.y - a.y, b.x - a.x);
+            const tipX = b.x - NODE_RADIUS * Math.cos(angle);
+            const tipY = b.y - NODE_RADIUS * Math.sin(angle);
+            ctx.fillStyle = '#58a6ff88';
+            ctx.beginPath();
+            ctx.moveTo(tipX, tipY);
+            ctx.lineTo(tipX - 12 * Math.cos(angle - 0.4), tipY - 12 * Math.sin(angle - 0.4));
+            ctx.lineTo(tipX - 12 * Math.cos(angle + 0.4), tipY - 12 * Math.sin(angle + 0.4));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        if (weighted) {
+            const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+            ctx.fillStyle = '#d29922';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(e.weight, mx, my - 6);
+        }
+    }
+
+    // Temp edge while drawing
+    if (mode === 'edge' && edgeStart && tempEdgeEnd) {
+        ctx.strokeStyle = '#58a6ff66';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(edgeStart.x, edgeStart.y);
+        ctx.lineTo(tempEdgeEnd.x, tempEdgeEnd.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Nodes
+    for (const n of nodes) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = n._highlight ? '#fff' : (n === hoveredNode ? n.color + 'cc' : n.color + '88');
+        ctx.fill();
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+    }
+
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('statNodes').textContent = nodes.length;
+    document.getElementById('statEdges').textContent = edges.length;
+    const n = nodes.length;
+    const maxEdges = document.getElementById('directedCheck').checked ? n * (n - 1) : n * (n - 1) / 2;
+    document.getElementById('statDensity').textContent = n < 2 ? '0' : (edges.length / maxEdges).toFixed(3);
+    document.getElementById('statComponents').textContent = countComponents();
+}
+
+function countComponents() {
+    if (nodes.length === 0) return 0;
+    const visited = new Set();
+    let count = 0;
+    for (const n of nodes) {
+        if (visited.has(n.id)) continue;
+        count++;
+        const queue = [n.id];
+        while (queue.length) {
+            const cur = queue.shift();
+            if (visited.has(cur)) continue;
+            visited.add(cur);
+            for (const e of edges) {
+                if (e.from === cur && !visited.has(e.to)) queue.push(e.to);
+                if (e.to === cur && !visited.has(e.from)) queue.push(e.from);
+            }
+        }
+    }
+    return count;
+}
+
+function updateLists() {
+    const nl = document.getElementById('nodeList');
+    nl.innerHTML = nodes.map(n =>
+        `<div><span style="color:${n.color}">● ${n.label}</span> (${Math.round(n.x)}, ${Math.round(n.y)})<button class="del-btn" onclick="deleteNode(${n.id})">×</button></div>`
+    ).join('');
+    const el = document.getElementById('edgeList');
+    el.innerHTML = edges.map((e, i) => {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        const wInput = document.getElementById('weightedCheck').checked
+            ? `<input class="edge-weight-input" type="number" value="${e.weight}" min="1" onchange="edges[${i}].weight=+this.value;render()">`
+            : '';
+        return `<div><span>${a?.label || '?'} → ${b?.label || '?'}</span>${wInput}<button class="del-btn" onclick="deleteEdge(${i})">×</button></div>`;
+    }).join('');
+}
+
+function deleteNode(id) {
+    nodes = nodes.filter(n => n.id !== id);
+    edges = edges.filter(e => e.from !== id && e.to !== id);
+    updateLists(); render();
+}
+
+function deleteEdge(i) {
+    edges.splice(i, 1);
+    updateLists(); render();
+}
+
+function clearAll() {
+    nodes = []; edges = []; nextId = 1;
+    updateLists(); render();
+}
+
+function autoLayout() {
+    if (nodes.length === 0) return;
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const r = Math.min(cx, cy) * 0.7;
+    nodes.forEach((n, i) => {
+        const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
+        n.x = cx + r * Math.cos(angle);
+        n.y = cy + r * Math.sin(angle);
+    });
+    // Simple force-directed adjustment (few iterations)
+    for (let iter = 0; iter < 50; iter++) {
+        for (const n of nodes) { n.fx = 0; n.fy = 0; }
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+                let d = Math.sqrt(dx * dx + dy * dy) || 1;
+                let f = 5000 / (d * d);
+                nodes[i].fx -= f * dx / d; nodes[i].fy -= f * dy / d;
+                nodes[j].fx += f * dx / d; nodes[j].fy += f * dy / d;
+            }
+        }
+        // Attraction
+        for (const e of edges) {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d = Math.sqrt(dx * dx + dy * dy) || 1;
+            let f = (d - 100) * 0.01;
+            a.fx += f * dx / d; a.fy += f * dy / d;
+            b.fx -= f * dx / d; b.fy -= f * dy / d;
+        }
+        // Center gravity
+        for (const n of nodes) {
+            n.fx += (cx - n.x) * 0.001;
+            n.fy += (cy - n.y) * 0.001;
+            n.x += n.fx; n.y += n.fy;
+            n.x = Math.max(NODE_RADIUS, Math.min(canvas.width - NODE_RADIUS, n.x));
+            n.y = Math.max(NODE_RADIUS, Math.min(canvas.height - NODE_RADIUS, n.y));
+        }
+    }
+    updateLists(); render();
+}
+
+// Presets
+function loadPreset(name) {
+    clearAll();
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const presets = {
+        triangle: { n: 3, e: [[1,2],[2,3],[3,1]] },
+        square: { n: 4, e: [[1,2],[2,3],[3,4],[4,1]] },
+        petersen: { n: 10, e: [[1,2],[2,3],[3,4],[4,5],[5,1],[6,8],[8,10],[10,7],[7,9],[9,6],[1,6],[2,7],[3,8],[4,9],[5,10]] },
+        star: { n: 5, e: [[1,2],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5],[3,4],[3,5],[4,5]] },
+        bipartite: { n: 6, e: [[1,4],[1,5],[1,6],[2,4],[2,5],[2,6],[3,4],[3,5],[3,6]] },
+        tree: { n: 7, e: [[1,2],[1,3],[2,4],[2,5],[3,6],[3,7]] }
+    };
+    const p = presets[name];
+    if (!p) return;
+    for (let i = 1; i <= p.n; i++) {
+        const label = String.fromCharCode(64 + i);
+        nodes.push({ id: i, label, x: cx, y: cy, color: COLORS[(i - 1) % COLORS.length] });
+    }
+    nextId = p.n + 1;
+    for (const [f, t] of p.e) edges.push({ from: f, to: t, weight: 1 });
+    autoLayout();
+}
+
+// Export
+function exportJSON() {
+    const data = { nodes: nodes.map(n => ({ id: n.id, label: n.label, x: n.x, y: n.y, color: n.color })), edges: edges.map(e => ({ from: e.from, to: e.to, weight: e.weight })), directed: document.getElementById('directedCheck').checked };
+    download('graph.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+function exportCSV() {
+    let csv = 'from,to,weight\n';
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        csv += `${a?.label},${b?.label},${e.weight}\n`;
+    }
+    download('graph.csv', csv, 'text/csv');
+}
+
+function exportDOT() {
+    const dir = document.getElementById('directedCheck').checked;
+    const arrow = dir ? '->' : '--';
+    const type = dir ? 'digraph' : 'graph';
+    let dot = `${type} G {\n`;
+    for (const n of nodes) dot += `  ${n.label} [color="${n.color}"];\n`;
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        dot += `  ${a?.label} ${arrow} ${b?.label};\n`;
+    }
+    dot += '}\n';
+    download('graph.dot', dot, 'text/plain');
+}
+
+function exportAdjList() {
+    let txt = '';
+    for (const n of nodes) {
+        const neighbors = edges
+            .filter(e => e.from === n.id || e.to === n.id)
+            .map(e => { const other = e.from === n.id ? e.to : e.from; return nodes.find(nn => nn.id === other)?.label || '?'; });
+        txt += `${n.label}: ${neighbors.join(', ')}\n`;
+    }
+    download('graph-adj.txt', txt, 'text/plain');
+}
+
+function exportPNG() {
+    const link = document.createElement('a');
+    link.download = 'graph.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+function importJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            nodes = data.nodes || [];
+            edges = data.edges || [];
+            nextId = Math.max(...nodes.map(n => n.id), 0) + 1;
+            if (data.directed) document.getElementById('directedCheck').checked = true;
+            updateLists(); render();
+        } catch (err) { alert('Invalid JSON: ' + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+}
+
+function download(name, content, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'a') setMode('add');
+    else if (e.key === 'e') setMode('edge');
+    else if (e.key === 'm') setMode('move');
+    else if (e.key === 'd') setMode('delete');
+    else if (e.key === 'Escape') { edgeStart = null; render(); }
+    else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { /* undo placeholder */ }
+});
+
+// Init
+setTimeout(() => { resize(); updateLists(); }, 50);
+</script>
+
+</body>
+</html>
