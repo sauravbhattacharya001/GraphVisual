@@ -3,6 +3,7 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 
 import java.util.*;
+import java.util.AbstractMap;
 
 /**
  * GraphAlgorithmAnimator — generates step-by-step SVG animation frames
@@ -156,6 +157,35 @@ public class GraphAlgorithmAnimator {
         this.nodeRadius = radius;
     }
 
+    // ── Common animation state ───────────────────────────────────
+
+    /**
+     * Holds the mutable state maps shared by all animation methods.
+     * Eliminates the duplicated initialization code that was previously
+     * copy-pasted across every animate* method.
+     */
+    private static class AnimationState {
+        final Map<String, String> nodeColors = new LinkedHashMap<>();
+        final Map<String, String> edgeColors = new LinkedHashMap<>();
+        final Map<String, String> nodeLabels = new LinkedHashMap<>();
+    }
+
+    /**
+     * Creates a fresh AnimationState with all nodes and edges set to
+     * their unvisited defaults.
+     */
+    private AnimationState initState() {
+        AnimationState s = new AnimationState();
+        for (String v : graph.getVertices()) {
+            s.nodeColors.put(v, COLOR_UNVISITED);
+            s.nodeLabels.put(v, v);
+        }
+        for (edge e : graph.getEdges()) {
+            s.edgeColors.put(edgeKey(e), COLOR_UNVISITED);
+        }
+        return s;
+    }
+
     // ── BFS animation ──────────────────────────────────────────────
 
     /**
@@ -167,27 +197,16 @@ public class GraphAlgorithmAnimator {
     public List<AnimationFrame> animateBFS(String source) {
         validateVertex(source);
         List<AnimationFrame> frames = new ArrayList<>();
-
-        Map<String, String> nodeState = new LinkedHashMap<>();
-        Map<String, String> edgeState = new LinkedHashMap<>();
-        Map<String, String> nodeLabels = new LinkedHashMap<>();
+        AnimationState s = initState();
         Map<String, Integer> distances = new LinkedHashMap<>();
 
-        for (String v : graph.getVertices()) {
-            nodeState.put(v, COLOR_UNVISITED);
-            nodeLabels.put(v, v);
-        }
-        for (edge e : graph.getEdges()) {
-            edgeState.put(edgeKey(e), COLOR_UNVISITED);
-        }
-
         // Initial frame
-        nodeState.put(source, COLOR_CURRENT);
+        s.nodeColors.put(source, COLOR_CURRENT);
         distances.put(source, 0);
-        nodeLabels.put(source, source + " (d=0)");
+        s.nodeLabels.put(source, source + " (d=0)");
         frames.add(new AnimationFrame(0, "BFS",
                 "Start BFS from " + source,
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         Queue<String> queue = new LinkedList<>();
         Set<String> visited = new LinkedHashSet<>();
@@ -197,7 +216,7 @@ public class GraphAlgorithmAnimator {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            nodeState.put(current, COLOR_CURRENT);
+            s.nodeColors.put(current, COLOR_CURRENT);
 
             List<String> neighbors = new ArrayList<>(graph.getNeighbors(current));
             Collections.sort(neighbors);
@@ -205,7 +224,7 @@ public class GraphAlgorithmAnimator {
             for (String neighbor : neighbors) {
                 edge e = findEdge(current, neighbor);
                 if (e != null) {
-                    edgeState.put(edgeKey(e), COLOR_ACTIVE_EDGE);
+                    s.edgeColors.put(edgeKey(e), COLOR_ACTIVE_EDGE);
                 }
 
                 if (!visited.contains(neighbor)) {
@@ -213,20 +232,20 @@ public class GraphAlgorithmAnimator {
                     queue.add(neighbor);
                     int dist = distances.getOrDefault(current, 0) + 1;
                     distances.put(neighbor, dist);
-                    nodeState.put(neighbor, COLOR_FRONTIER);
-                    nodeLabels.put(neighbor, neighbor + " (d=" + dist + ")");
+                    s.nodeColors.put(neighbor, COLOR_FRONTIER);
+                    s.nodeLabels.put(neighbor, neighbor + " (d=" + dist + ")");
                     if (e != null) {
-                        edgeState.put(edgeKey(e), COLOR_TREE_EDGE);
+                        s.edgeColors.put(edgeKey(e), COLOR_TREE_EDGE);
                     }
                 }
             }
 
             frames.add(new AnimationFrame(step, "BFS",
                     "Process " + current + " — discovered " +
-                            countColor(nodeState, COLOR_FRONTIER) + " frontier nodes",
-                    nodeState, edgeState, nodeLabels, null));
+                            countColor(s.nodeColors, COLOR_FRONTIER) + " frontier nodes",
+                    s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
-            nodeState.put(current, COLOR_VISITED);
+            s.nodeColors.put(current, COLOR_VISITED);
             step++;
         }
 
@@ -234,7 +253,7 @@ public class GraphAlgorithmAnimator {
         frames.add(new AnimationFrame(step, "BFS",
                 "BFS complete — visited " + visited.size() + " / " +
                         graph.getVertexCount() + " vertices",
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         return frames;
     }
@@ -250,18 +269,7 @@ public class GraphAlgorithmAnimator {
     public List<AnimationFrame> animateDFS(String source) {
         validateVertex(source);
         List<AnimationFrame> frames = new ArrayList<>();
-
-        Map<String, String> nodeState = new LinkedHashMap<>();
-        Map<String, String> edgeState = new LinkedHashMap<>();
-        Map<String, String> nodeLabels = new LinkedHashMap<>();
-
-        for (String v : graph.getVertices()) {
-            nodeState.put(v, COLOR_UNVISITED);
-            nodeLabels.put(v, v);
-        }
-        for (edge e : graph.getEdges()) {
-            edgeState.put(edgeKey(e), COLOR_UNVISITED);
-        }
+        AnimationState s = initState();
 
         Set<String> visited = new LinkedHashSet<>();
         int[] step = {0};
@@ -269,33 +277,30 @@ public class GraphAlgorithmAnimator {
         // Initial frame
         frames.add(new AnimationFrame(0, "DFS",
                 "Start DFS from " + source,
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
-        dfsRecurse(source, visited, nodeState, edgeState, nodeLabels,
-                frames, step);
+        dfsRecurse(source, visited, s, frames, step);
 
         // Final frame
         frames.add(new AnimationFrame(step[0] + 1, "DFS",
                 "DFS complete — visited " + visited.size() + " / " +
                         graph.getVertexCount() + " vertices",
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         return frames;
     }
 
     private void dfsRecurse(String current, Set<String> visited,
-                            Map<String, String> nodeState,
-                            Map<String, String> edgeState,
-                            Map<String, String> nodeLabels,
+                            AnimationState s,
                             List<AnimationFrame> frames, int[] step) {
         visited.add(current);
         step[0]++;
-        nodeState.put(current, COLOR_CURRENT);
-        nodeLabels.put(current, current + " [" + step[0] + "]");
+        s.nodeColors.put(current, COLOR_CURRENT);
+        s.nodeLabels.put(current, current + " [" + step[0] + "]");
 
         frames.add(new AnimationFrame(step[0], "DFS",
                 "Enter " + current + " (discovery #" + step[0] + ")",
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         List<String> neighbors = new ArrayList<>(graph.getNeighbors(current));
         Collections.sort(neighbors);
@@ -304,18 +309,17 @@ public class GraphAlgorithmAnimator {
             if (!visited.contains(neighbor)) {
                 edge e = findEdge(current, neighbor);
                 if (e != null) {
-                    edgeState.put(edgeKey(e), COLOR_TREE_EDGE);
+                    s.edgeColors.put(edgeKey(e), COLOR_TREE_EDGE);
                 }
-                dfsRecurse(neighbor, visited, nodeState, edgeState,
-                        nodeLabels, frames, step);
+                dfsRecurse(neighbor, visited, s, frames, step);
             }
         }
 
-        nodeState.put(current, COLOR_VISITED);
+        s.nodeColors.put(current, COLOR_VISITED);
         step[0]++;
         frames.add(new AnimationFrame(step[0], "DFS",
                 "Backtrack from " + current,
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
     }
 
     // ── Dijkstra animation ─────────────────────────────────────────
@@ -329,53 +333,43 @@ public class GraphAlgorithmAnimator {
     public List<AnimationFrame> animateDijkstra(String source) {
         validateVertex(source);
         List<AnimationFrame> frames = new ArrayList<>();
-
-        Map<String, String> nodeState = new LinkedHashMap<>();
-        Map<String, String> edgeState = new LinkedHashMap<>();
-        Map<String, String> nodeLabels = new LinkedHashMap<>();
+        AnimationState s = initState();
         Map<String, Double> dist = new LinkedHashMap<>();
         Map<String, String> prev = new LinkedHashMap<>();
 
         for (String v : graph.getVertices()) {
-            nodeState.put(v, COLOR_UNVISITED);
             dist.put(v, Double.MAX_VALUE);
-            nodeLabels.put(v, v + " (\u221e)");
-        }
-        for (edge e : graph.getEdges()) {
-            edgeState.put(edgeKey(e), COLOR_UNVISITED);
+            s.nodeLabels.put(v, v + " (\u221e)");
         }
 
         dist.put(source, 0.0);
-        nodeState.put(source, COLOR_FRONTIER);
-        nodeLabels.put(source, source + " (0)");
+        s.nodeColors.put(source, COLOR_FRONTIER);
+        s.nodeLabels.put(source, source + " (0)");
 
         frames.add(new AnimationFrame(0, "Dijkstra",
                 "Initialize — source = " + source,
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
+        // Use a PriorityQueue instead of O(V) linear scan per iteration
+        PriorityQueue<Map.Entry<String, Double>> pq = new PriorityQueue<>(
+                Comparator.comparingDouble(Map.Entry::getValue));
+        pq.add(new AbstractMap.SimpleEntry<>(source, 0.0));
         Set<String> finalized = new LinkedHashSet<>();
         int step = 1;
 
-        while (finalized.size() < graph.getVertexCount()) {
-            // Pick unfinalized vertex with smallest distance
-            String u = null;
-            double minDist = Double.MAX_VALUE;
-            for (Map.Entry<String, Double> entry : dist.entrySet()) {
-                if (!finalized.contains(entry.getKey()) &&
-                        entry.getValue() < minDist) {
-                    minDist = entry.getValue();
-                    u = entry.getKey();
-                }
-            }
-            if (u == null) break;
+        while (!pq.isEmpty()) {
+            Map.Entry<String, Double> entry = pq.poll();
+            String u = entry.getKey();
+            if (finalized.contains(u)) continue;
+            double minDist = entry.getValue();
 
             finalized.add(u);
-            nodeState.put(u, COLOR_CURRENT);
+            s.nodeColors.put(u, COLOR_CURRENT);
 
             // Highlight the tree edge to this node
             if (prev.containsKey(u)) {
                 edge pe = findEdge(prev.get(u), u);
-                if (pe != null) edgeState.put(edgeKey(pe), COLOR_TREE_EDGE);
+                if (pe != null) s.edgeColors.put(edgeKey(pe), COLOR_TREE_EDGE);
             }
 
             // Relax neighbors
@@ -391,14 +385,15 @@ public class GraphAlgorithmAnimator {
                 double alt = dist.get(u) + weight;
 
                 if (e != null) {
-                    edgeState.put(edgeKey(e), COLOR_ACTIVE_EDGE);
+                    s.edgeColors.put(edgeKey(e), COLOR_ACTIVE_EDGE);
                 }
 
                 if (alt < dist.get(v)) {
                     dist.put(v, alt);
                     prev.put(v, u);
-                    nodeState.put(v, COLOR_FRONTIER);
-                    nodeLabels.put(v, v + " (" + String.format("%.1f", alt) + ")");
+                    s.nodeColors.put(v, COLOR_FRONTIER);
+                    s.nodeLabels.put(v, v + " (" + String.format("%.1f", alt) + ")");
+                    pq.add(new AbstractMap.SimpleEntry<>(v, alt));
                     relaxed++;
                 }
             }
@@ -406,15 +401,15 @@ public class GraphAlgorithmAnimator {
             frames.add(new AnimationFrame(step, "Dijkstra",
                     "Finalize " + u + " (d=" + String.format("%.1f", minDist) +
                             "), relaxed " + relaxed + " edges",
-                    nodeState, edgeState, nodeLabels, null));
+                    s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
-            nodeState.put(u, COLOR_VISITED);
+            s.nodeColors.put(u, COLOR_VISITED);
             step++;
         }
 
         frames.add(new AnimationFrame(step, "Dijkstra",
                 "Dijkstra complete — " + finalized.size() + " vertices reached",
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         return frames;
     }
@@ -428,19 +423,8 @@ public class GraphAlgorithmAnimator {
      */
     public List<AnimationFrame> animateKruskal() {
         List<AnimationFrame> frames = new ArrayList<>();
-
-        Map<String, String> nodeState = new LinkedHashMap<>();
-        Map<String, String> edgeState = new LinkedHashMap<>();
-        Map<String, String> nodeLabels = new LinkedHashMap<>();
+        AnimationState s = initState();
         Map<String, String> edgeLabelOverrides = new LinkedHashMap<>();
-
-        for (String v : graph.getVertices()) {
-            nodeState.put(v, COLOR_UNVISITED);
-            nodeLabels.put(v, v);
-        }
-        for (edge e : graph.getEdges()) {
-            edgeState.put(edgeKey(e), COLOR_UNVISITED);
-        }
 
         // Sort edges by weight
         List<edge> sortedEdges = new ArrayList<>(graph.getEdges());
@@ -457,7 +441,7 @@ public class GraphAlgorithmAnimator {
         frames.add(new AnimationFrame(0, "Kruskal",
                 "Start Kruskal MST — " + sortedEdges.size() +
                         " edges sorted by weight",
-                nodeState, edgeState, nodeLabels, edgeLabelOverrides));
+                s.nodeColors, s.edgeColors, s.nodeLabels, edgeLabelOverrides));
 
         int step = 1;
         int treeEdges = 0;
@@ -468,7 +452,7 @@ public class GraphAlgorithmAnimator {
             String v = e.getVertex2();
             String ek = edgeKey(e);
 
-            edgeState.put(ek, COLOR_ACTIVE_EDGE);
+            s.edgeColors.put(ek, COLOR_ACTIVE_EDGE);
             edgeLabelOverrides.put(ek,
                     String.format("%.1f", e.getWeight()));
 
@@ -477,9 +461,9 @@ public class GraphAlgorithmAnimator {
 
             if (!ru.equals(rv)) {
                 union(parent, rank, ru, rv);
-                edgeState.put(ek, COLOR_TREE_EDGE);
-                nodeState.put(u, COLOR_VISITED);
-                nodeState.put(v, COLOR_VISITED);
+                s.edgeColors.put(ek, COLOR_TREE_EDGE);
+                s.nodeColors.put(u, COLOR_VISITED);
+                s.nodeColors.put(v, COLOR_VISITED);
                 treeEdges++;
                 totalWeight += e.getWeight();
 
@@ -487,13 +471,13 @@ public class GraphAlgorithmAnimator {
                         "Add edge " + u + "—" + v +
                                 " (w=" + String.format("%.1f", e.getWeight()) +
                                 ") — " + treeEdges + " tree edges",
-                        nodeState, edgeState, nodeLabels, edgeLabelOverrides));
+                        s.nodeColors, s.edgeColors, s.nodeLabels, edgeLabelOverrides));
             } else {
                 frames.add(new AnimationFrame(step, "Kruskal",
                         "Skip edge " + u + "—" + v +
                                 " (would create cycle)",
-                        nodeState, edgeState, nodeLabels, edgeLabelOverrides));
-                edgeState.put(ek, COLOR_UNVISITED);
+                        s.nodeColors, s.edgeColors, s.nodeLabels, edgeLabelOverrides));
+                s.edgeColors.put(ek, COLOR_UNVISITED);
             }
 
             step++;
@@ -503,7 +487,7 @@ public class GraphAlgorithmAnimator {
         frames.add(new AnimationFrame(step, "Kruskal",
                 "MST complete — " + treeEdges + " edges, total weight " +
                         String.format("%.1f", totalWeight),
-                nodeState, edgeState, nodeLabels, edgeLabelOverrides));
+                s.nodeColors, s.edgeColors, s.nodeLabels, edgeLabelOverrides));
 
         return frames;
     }
@@ -529,19 +513,13 @@ public class GraphAlgorithmAnimator {
             ranks.put(v, initial);
         }
 
-        Map<String, String> nodeState = new LinkedHashMap<>();
-        Map<String, String> edgeState = new LinkedHashMap<>();
-        Map<String, String> nodeLabels = new LinkedHashMap<>();
+        AnimationState s = initState();
 
-        for (edge e : graph.getEdges()) {
-            edgeState.put(edgeKey(e), COLOR_UNVISITED);
-        }
-
-        updatePageRankColors(ranks, nodeState, nodeLabels, n);
+        updatePageRankColors(ranks, s.nodeColors, s.nodeLabels, n);
         frames.add(new AnimationFrame(0, "PageRank",
                 "Initialize — all nodes rank = " +
                         String.format("%.3f", initial),
-                nodeState, edgeState, nodeLabels, null));
+                s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
         for (int iter = 1; iter <= maxIterations; iter++) {
             Map<String, Double> newRanks = new LinkedHashMap<>();
@@ -575,12 +553,12 @@ public class GraphAlgorithmAnimator {
             }
 
             ranks = newRanks;
-            updatePageRankColors(ranks, nodeState, nodeLabels, n);
+            updatePageRankColors(ranks, s.nodeColors, s.nodeLabels, n);
 
             frames.add(new AnimationFrame(iter, "PageRank",
                     "Iteration " + iter + " — max \u0394 = " +
                             String.format("%.6f", maxDiff),
-                    nodeState, edgeState, nodeLabels, null));
+                    s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
             if (maxDiff < 1e-6) break;
         }
