@@ -43,8 +43,44 @@ import org.apache.commons.io.LineIterator;
 import org.xml.sax.SAXException;
 
 /**
+ * Main application frame for GraphVisual — an interactive social network
+ * visualisation and analysis tool built on JUNG (Java Universal Network/Graph).
  *
- * @author user
+ * <h3>Overview</h3>
+ * <p>Loads edge-list data (from flat files or a database via {@link app.Network}),
+ * builds an {@link edu.uci.ics.jung.graph.UndirectedSparseGraph}, and renders it
+ * in a Swing {@link edu.uci.ics.jung.visualization.VisualizationViewer} with
+ * interactive controls for filtering, layout, analysis, and export.</p>
+ *
+ * <h3>Key Features</h3>
+ * <ul>
+ *   <li><b>Edge-type filtering:</b> toggle visibility of friend, classmate,
+ *       familiar-stranger, stranger, and study-group edges via checkboxes
+ *       and duration/frequency threshold sliders.</li>
+ *   <li><b>Timeline playback:</b> animate the graph through temporal snapshots
+ *       with play/pause/step controls and adjustable speed.</li>
+ *   <li><b>Layout engines:</b> force-directed (default), circular
+ *       ({@link CircularLayout}), and hierarchical ({@link HierarchicalLayout}).</li>
+ *   <li><b>Graph algorithms:</b> shortest path (hop/weight), minimum spanning tree,
+ *       community detection (Louvain), articulation points/bridges, ego-network
+ *       extraction, PageRank, centrality, and many more via the analysis menu.</li>
+ *   <li><b>Export:</b> GraphML, DOT, GEXF, SVG, PNG, CSV edge-list, interactive HTML,
+ *       and network reports through {@link ExportActions} and {@link ToolbarBuilder}.</li>
+ * </ul>
+ *
+ * <h3>Architecture</h3>
+ * <p>Rendering logic is delegated to {@link GraphRenderers}, statistics to
+ * {@link StatsPanel}, toolbar construction to {@link ToolbarBuilder}, and
+ * export actions to {@link ExportActions}. Overlay controllers
+ * ({@link ArticulationPanelController}, {@link CentralityPanelController},
+ * {@link EgoPanelController}, {@link ResiliencePanelController}) manage
+ * their respective analysis panels and state.</p>
+ *
+ * @author Saurav Bhattacharya
+ * @see GraphRenderers
+ * @see ToolbarBuilder
+ * @see ExportActions
+ * @see StatsPanel
  */
 public class Main extends JFrame {
 
@@ -1696,7 +1732,10 @@ public class Main extends JFrame {
     // writes and proper error cleanup.
 
     /**
-     *main function
+     * Application entry point. Launches the Swing UI on the Event Dispatch
+     * Thread and displays the main frame.
+     *
+     * @param args command-line arguments (currently unused)
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
