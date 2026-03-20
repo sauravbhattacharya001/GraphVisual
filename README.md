@@ -18,6 +18,9 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Maven](https://img.shields.io/badge/Build-Maven-C71A36?logo=apachemaven)](https://maven.apache.org/)
 [![GitHub stars](https://img.shields.io/github/stars/sauravbhattacharya001/GraphVisual?style=flat&logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/commits/master)
+[![Release](https://img.shields.io/github/v/release/sauravbhattacharya001/GraphVisual?logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/releases/latest)
+[![Open Issues](https://img.shields.io/github/issues/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/issues)
+[![Contributors](https://img.shields.io/github/contributors/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/graphs/contributors)
 [![43 Analyzers](https://img.shields.io/badge/Analyzers-43-blueviolet)](ALGORITHMS.md)
 [![2500+ Tests](https://img.shields.io/badge/Tests-2500%2B-brightgreen)](Gvisual/test/)
 
