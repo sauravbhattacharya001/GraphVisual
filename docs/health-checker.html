@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Health Checker — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">📊 GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>🩺 Graph Health Checker</h1>
+        <p class="lead">
+            Diagnose graph quality issues with a single call. Get a scored health
+            report covering isolated nodes, self-loops, parallel edges, disconnected
+            components, bridge edges, and degree anomalies.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                The <code>GraphHealthChecker</code> runs six structural quality checks
+                on any JUNG graph and produces a <strong>0–100 health score</strong>
+                with detailed findings. Export results as plain text or a styled HTML report.
+            </p>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+            <pre><code>GraphHealthChecker checker = new GraphHealthChecker(graph);
+GraphHealthChecker.HealthReport report = checker.analyze();
+
+// Print text summary
+System.out.println(report.toText());
+
+// Generate HTML report
+String html = GraphHealthChecker.toHtml(report);
+Files.write(Paths.get("health.html"), html.getBytes());</code></pre>
+        </section>
+
+        <section>
+            <h2>Checks Performed</h2>
+            <table>
+                <thead><tr><th>Check</th><th>What it detects</th><th>Score penalty</th></tr></thead>
+                <tbody>
+                    <tr><td>Isolated Nodes</td><td>Vertices with degree 0</td><td>Up to −30</td></tr>
+                    <tr><td>Self-Loops</td><td>Edges connecting a node to itself</td><td>Up to −15</td></tr>
+                    <tr><td>Parallel Edges</td><td>Multiple edges between the same pair</td><td>Up to −10</td></tr>
+                    <tr><td>Components</td><td>Disconnected subgraphs</td><td>Up to −20</td></tr>
+                    <tr><td>Bridge Edges</td><td>Edges whose removal disconnects the graph</td><td>Up to −25</td></tr>
+                    <tr><td>Degree Outliers</td><td>Nodes &gt;2σ above mean degree</td><td>Reported (no penalty)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Health Score</h2>
+            <p>
+                The score starts at 100 and deductions are applied proportionally:
+            </p>
+            <ul>
+                <li><strong>80–100:</strong> Healthy graph with minor or no issues</li>
+                <li><strong>50–79:</strong> Some structural concerns worth investigating</li>
+                <li><strong>0–49:</strong> Significant quality issues detected</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>HTML Report</h2>
+            <p>
+                The generated HTML report is fully self-contained (no external dependencies)
+                and includes a color-coded score badge, summary metrics table, and
+                detailed findings with pass/warn indicators.
+            </p>
+        </section>
+
+        <section>
+            <h2>API Reference</h2>
+            <h3><code>GraphHealthChecker(Graph&lt;String, edge&gt; graph)</code></h3>
+            <p>Create a health checker for the given graph.</p>
+
+            <h3><code>HealthReport analyze()</code></h3>
+            <p>Run all checks and return a report object.</p>
+
+            <h3><code>static String toHtml(HealthReport report)</code></h3>
+            <p>Generate a standalone HTML report string.</p>
+
+            <h3><code>HealthReport.toText()</code></h3>
+            <p>Get a plain-text summary of the report.</p>
+        </section>
+    </main>
+</body>
+</html>
