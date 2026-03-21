@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public class TreewidthAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * A bag in a tree decomposition.
@@ -114,7 +114,7 @@ public class TreewidthAnalyzer {
         }
     }
 
-    public TreewidthAnalyzer(Graph<String, edge> graph) {
+    public TreewidthAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph cannot be null");
         this.graph = graph;
     }
@@ -301,7 +301,7 @@ public class TreewidthAnalyzer {
 
     /**
      * Computes MMD (minimum maximum degree) lower bound.
-     * Iteratively contracts the edge with minimum degree endpoint.
+     * Iteratively contracts the Edge with minimum degree endpoint.
      */
     public int computeMMDLowerBound() {
         if (graph.getVertexCount() == 0) return 0;
@@ -670,7 +670,7 @@ public class TreewidthAnalyzer {
 
     /**
      * Validates a tree decomposition.
-     * Checks: (1) every vertex in some bag, (2) every edge covered,
+     * Checks: (1) every vertex in some bag, (2) every Edge covered,
      * (3) bags containing each vertex form a connected subtree.
      */
     public boolean validateDecomposition(TreeDecomposition td) {
@@ -685,8 +685,8 @@ public class TreewidthAnalyzer {
             if (!coveredVertices.contains(v)) return false;
         }
 
-        // Check every edge is covered by some bag
-        for (edge e : graph.getEdges()) {
+        // Check every Edge is covered by some bag
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             List<String> epList = new ArrayList<>(endpoints);
             if (epList.size() != 2) continue;

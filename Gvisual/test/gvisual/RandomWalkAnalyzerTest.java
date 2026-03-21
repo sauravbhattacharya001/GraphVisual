@@ -14,15 +14,15 @@ import static org.junit.Assert.*;
  */
 public class RandomWalkAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
         graph.addEdge(e, v1, v2);

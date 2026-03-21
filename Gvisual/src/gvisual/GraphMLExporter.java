@@ -15,7 +15,7 @@ import java.util.*;
  * <ul>
  *   <li>All vertices with their node IDs</li>
  *   <li>All edges with type, weight, label, and endpoint metadata</li>
- *   <li>Graph metadata (timestamp, node count, edge count)</li>
+ *   <li>Graph metadata (timestamp, node count, Edge count)</li>
  *   <li>GraphML key definitions for custom attributes</li>
  * </ul>
  *
@@ -32,8 +32,8 @@ import java.util.*;
  */
 public class GraphMLExporter {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String timestamp;
     private String description;
 
@@ -43,12 +43,12 @@ public class GraphMLExporter {
      * @param graph    the JUNG graph to export
      * @param allEdges all edges (including those not currently visible in graph)
      */
-    public GraphMLExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public GraphMLExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
         this.timestamp = "";
         this.description = "";
     }
@@ -109,9 +109,9 @@ public class GraphMLExporter {
      * @return the complete GraphML XML as a string
      */
     public String exportToString() {
-        List<edge> edgesToExport = !allEdges.isEmpty()
+        List<Edge> edgesToExport = !allEdges.isEmpty()
                 ? allEdges
-                : new ArrayList<edge>(graph.getEdges());
+                : new ArrayList<Edge>(graph.getEdges());
         return exportToString(edgesToExport);
     }
 
@@ -121,16 +121,16 @@ public class GraphMLExporter {
      * @return GraphML XML string with only visible edges
      */
     public String exportVisibleToString() {
-        return exportToString(new ArrayList<edge>(graph.getEdges()));
+        return exportToString(new ArrayList<Edge>(graph.getEdges()));
     }
 
     /**
-     * Internal: exports the graph to a GraphML XML string using the given edge list.
+     * Internal: exports the graph to a GraphML XML string using the given Edge list.
      *
      * @param edgesToExport the edges to include in the export
      * @return the complete GraphML XML as a string
      */
-    private String exportToString(List<edge> edgesToExport) {
+    private String exportToString(List<Edge> edgesToExport) {
         StringBuilder sb = new StringBuilder();
 
         // XML header
@@ -140,15 +140,15 @@ public class GraphMLExporter {
         sb.append("    xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns\n");
         sb.append("        http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n");
 
-        // Key definitions for node and edge attributes
+        // Key definitions for node and Edge attributes
         sb.append("  <!-- Node attribute keys -->\n");
         sb.append("  <key id=\"d0\" for=\"node\" attr.name=\"label\" attr.type=\"string\"/>\n");
 
         sb.append("  <!-- Edge attribute keys -->\n");
-        sb.append("  <key id=\"d1\" for=\"edge\" attr.name=\"type\" attr.type=\"string\"/>\n");
-        sb.append("  <key id=\"d2\" for=\"edge\" attr.name=\"type_label\" attr.type=\"string\"/>\n");
-        sb.append("  <key id=\"d3\" for=\"edge\" attr.name=\"weight\" attr.type=\"double\"/>\n");
-        sb.append("  <key id=\"d4\" for=\"edge\" attr.name=\"label\" attr.type=\"string\"/>\n");
+        sb.append("  <key id=\"d1\" for=\"Edge\" attr.name=\"type\" attr.type=\"string\"/>\n");
+        sb.append("  <key id=\"d2\" for=\"Edge\" attr.name=\"type_label\" attr.type=\"string\"/>\n");
+        sb.append("  <key id=\"d3\" for=\"Edge\" attr.name=\"weight\" attr.type=\"double\"/>\n");
+        sb.append("  <key id=\"d4\" for=\"Edge\" attr.name=\"label\" attr.type=\"string\"/>\n");
 
         // Graph element
         sb.append("  <graph id=\"G\" edgedefault=\"undirected\">\n");
@@ -179,9 +179,9 @@ public class GraphMLExporter {
         // Edges — use the provided edgesToExport list
 
         int edgeIndex = 0;
-        for (edge e : edgesToExport) {
+        for (Edge e : edgesToExport) {
             String edgeId = "e" + edgeIndex++;
-            sb.append("    <edge id=\"").append(edgeId).append("\"");
+            sb.append("    <Edge id=\"").append(edgeId).append("\"");
             sb.append(" source=\"").append(escapeXml(e.getVertex1())).append("\"");
             sb.append(" target=\"").append(escapeXml(e.getVertex2())).append("\">\n");
 
@@ -199,7 +199,7 @@ public class GraphMLExporter {
                 sb.append("      <data key=\"d4\">").append(escapeXml(e.getLabel())).append("</data>\n");
             }
 
-            sb.append("    </edge>\n");
+            sb.append("    </Edge>\n");
         }
 
         sb.append("  </graph>\n");
@@ -209,9 +209,9 @@ public class GraphMLExporter {
     }
 
     /**
-     * Returns a human-readable label for an edge type code.
+     * Returns a human-readable label for an Edge type code.
      *
-     * @param typeCode the edge type code (f, fs, c, s, sg)
+     * @param typeCode the Edge type code (f, fs, c, s, sg)
      * @return human-readable label
      */
     static String getTypeLabel(String typeCode) {
@@ -275,7 +275,7 @@ public class GraphMLExporter {
      * Returns the number of edges that will be exported.
      * If allEdges is non-empty, returns allEdges count; otherwise graph edges.
      *
-     * @return edge count
+     * @return Edge count
      */
     public int getEdgeCount() {
         if (!allEdges.isEmpty()) {

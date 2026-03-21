@@ -35,7 +35,7 @@ import java.util.*;
  */
 public class IndependentSetAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Constructs an analyzer for the given undirected graph.
@@ -43,7 +43,7 @@ public class IndependentSetAnalyzer {
      * @param graph the graph to analyze (should be undirected)
      * @throws IllegalArgumentException if graph is null
      */
-    public IndependentSetAnalyzer(Graph<String, edge> graph) {
+    public IndependentSetAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -536,15 +536,15 @@ public class IndependentSetAnalyzer {
         Map<String, Integer> impact = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
             // Build subgraph without v
-            Graph<String, edge> sub = new UndirectedSparseGraph<>();
+            Graph<String, Edge> sub = new UndirectedSparseGraph<>();
             for (String u : graph.getVertices()) {
                 if (!u.equals(v)) sub.addVertex(u);
             }
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 String v1 = graph.getEndpoints(e).getFirst();
                 String v2 = graph.getEndpoints(e).getSecond();
                 if (!v1.equals(v) && !v2.equals(v)) {
-                    sub.addEdge(new edge(e.getType(), v1, v2), v1, v2);
+                    sub.addEdge(new Edge(e.getType(), v1, v2), v1, v2);
                 }
             }
             IndependentSetAnalyzer subAnalyzer = new IndependentSetAnalyzer(sub);
@@ -610,13 +610,13 @@ public class IndependentSetAnalyzer {
      * @return the maximum clique (independent set of complement)
      */
     public Set<String> maximumCliqueViaComplement() {
-        Graph<String, edge> complement = buildComplement();
+        Graph<String, Edge> complement = buildComplement();
         IndependentSetAnalyzer compAnalyzer = new IndependentSetAnalyzer(complement);
         return compAnalyzer.exactMaximumIndependentSet();
     }
 
-    private Graph<String, edge> buildComplement() {
-        Graph<String, edge> comp = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> buildComplement() {
+        Graph<String, Edge> comp = new UndirectedSparseGraph<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         for (String v : vertices) comp.addVertex(v);
         int edgeId = 0;
@@ -624,7 +624,7 @@ public class IndependentSetAnalyzer {
             for (int j = i + 1; j < vertices.size(); j++) {
                 String u = vertices.get(i), w = vertices.get(j);
                 if (graph.findEdge(u, w) == null) {
-                    comp.addEdge(new edge("comp_" + (edgeId++), u, w), u, w);
+                    comp.addEdge(new Edge("comp_" + (edgeId++), u, w), u, w);
                 }
             }
         }

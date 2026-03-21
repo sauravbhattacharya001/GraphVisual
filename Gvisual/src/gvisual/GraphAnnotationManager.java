@@ -17,7 +17,7 @@ import java.util.*;
 public class GraphAnnotationManager {
 
     /**
-     * Represents an annotation on a graph element (node or edge).
+     * Represents an annotation on a graph element (node or Edge).
      */
     public static class Annotation {
         private final String elementId;
@@ -142,7 +142,7 @@ public class GraphAnnotationManager {
     // --- Edge annotations ---
 
     /**
-     * Build a canonical edge ID from two vertices.
+     * Build a canonical Edge ID from two vertices.
      */
     public static String edgeKey(String v1, String v2) {
         if (v1.compareTo(v2) <= 0) return v1 + "--" + v2;
@@ -150,7 +150,7 @@ public class GraphAnnotationManager {
     }
 
     /**
-     * Annotate an edge by its endpoint vertices.
+     * Annotate an Edge by its endpoint vertices.
      */
     public Annotation annotateEdge(String v1, String v2) {
         String key = edgeKey(v1, v2);
@@ -159,14 +159,14 @@ public class GraphAnnotationManager {
     }
 
     /**
-     * Get annotation for an edge, or null if none exists.
+     * Get annotation for an Edge, or null if none exists.
      */
     public Annotation getEdgeAnnotation(String v1, String v2) {
         return edgeAnnotations.get(edgeKey(v1, v2));
     }
 
     /**
-     * Remove annotation from an edge.
+     * Remove annotation from an Edge.
      */
     public boolean removeEdgeAnnotation(String v1, String v2) {
         return edgeAnnotations.remove(edgeKey(v1, v2)) != null;
@@ -201,7 +201,7 @@ public class GraphAnnotationManager {
     // --- Search & filtering ---
 
     /**
-     * Find all annotations (node + edge) that have a specific tag.
+     * Find all annotations (node + Edge) that have a specific tag.
      */
     public List<Annotation> findByTag(String tag) {
         String normalizedTag = tag.trim().toLowerCase();
@@ -437,7 +437,7 @@ public class GraphAnnotationManager {
             String line = rawLine.trim();
 
             if (line.contains("\"nodeAnnotations\"")) { currentSection = "node"; continue; }
-            if (line.contains("\"edgeAnnotations\"")) { currentSection = "edge"; continue; }
+            if (line.contains("\"edgeAnnotations\"")) { currentSection = "Edge"; continue; }
 
             if (line.equals("{") && currentSection != null) { inObject = true; continue; }
 
@@ -448,7 +448,7 @@ public class GraphAnnotationManager {
                     if ("NODE".equals(elementType)) {
                         a = annotateNode(elementId);
                     } else {
-                        // Parse edge key "v1--v2"
+                        // Parse Edge key "v1--v2"
                         String[] parts = elementId.split("--", 2);
                         if (parts.length == 2) {
                             a = annotateEdge(parts[0], parts[1]);

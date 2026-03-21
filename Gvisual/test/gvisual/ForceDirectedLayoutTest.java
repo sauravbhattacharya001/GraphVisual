@@ -14,19 +14,19 @@ import java.util.*;
  */
 public class ForceDirectedLayoutTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeCounter;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         edgeCounter = 0;
     }
 
-    private edge addEdge(String v1, String v2) {
+    private Edge addEdge(String v1, String v2) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge("test", v1, v2);
+        Edge e = new Edge("test", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
         edgeCounter++;
@@ -241,8 +241,8 @@ public class ForceDirectedLayoutTest {
         double distAC = Math.sqrt(Math.pow(pA[0] - pC[0], 2) +
                                    Math.pow(pA[1] - pC[1], 2));
 
-        // With weights, heavy edge A-B should pull tighter than weak A-C
-        assertTrue("Heavy edge should produce closer nodes: AB=" +
+        // With weights, heavy Edge A-B should pull tighter than weak A-C
+        assertTrue("Heavy Edge should produce closer nodes: AB=" +
                 distAB + " AC=" + distAC, distAB < distAC);
     }
 
@@ -292,8 +292,8 @@ public class ForceDirectedLayoutTest {
         ForceDirectedLayout layout = new ForceDirectedLayout(graph);
         layout.compute();
         double cv = layout.edgeLengthUniformity();
-        // Triangle should have fairly uniform edge lengths
-        assertTrue("Triangle edge lengths should be fairly uniform: " + cv,
+        // Triangle should have fairly uniform Edge lengths
+        assertTrue("Triangle Edge lengths should be fairly uniform: " + cv,
                 cv < 0.5);
     }
 
@@ -520,7 +520,7 @@ public class ForceDirectedLayoutTest {
         // Connected nodes should still be closer than random pairs on average
         double connectedDist = 0;
         int connectedCount = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double[] p1 = layout.getPosition(e.getVertex1());
             double[] p2 = layout.getPosition(e.getVertex2());
             if (p1 != null && p2 != null) {

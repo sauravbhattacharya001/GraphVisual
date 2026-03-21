@@ -14,15 +14,15 @@ import java.util.*;
  */
 public class ArticulationPointAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
-    private edge addEdge(String v1, String v2, String type) {
-        edge e = new edge(type, v1, v2);
+    private Edge addEdge(String v1, String v2, String type) {
+        Edge e = new Edge(type, v1, v2);
         e.setLabel(v1 + "-" + v2);
         graph.addEdge(e, v1, v2);
         return e;
@@ -66,8 +66,8 @@ public class ArticulationPointAnalyzerTest {
         ArticulationPointAnalyzer.AnalysisResult result = analyzer.analyze();
         assertEquals(2, result.getTotalVertices());
         assertEquals(1, result.getTotalEdges());
-        // Two vertices connected by one edge: no articulation points (removing either
-        // just leaves one isolated vertex), but the edge is a bridge
+        // Two vertices connected by one Edge: no articulation points (removing either
+        // just leaves one isolated vertex), but the Edge is a bridge
         assertEquals(1, result.getBridgeCount());
         assertTrue(result.hasCriticalElements());
     }

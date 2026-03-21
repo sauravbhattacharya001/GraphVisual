@@ -8,7 +8,7 @@ import java.util.*;
  * Tournament graph analyzer for directed complete graphs.
  *
  * <p>A <b>tournament</b> is a directed graph obtained by assigning a direction
- * to every edge in a complete graph. Equivalently, for every pair of distinct
+ * to every Edge in a complete graph. Equivalently, for every pair of distinct
  * vertices u and v, exactly one of (u→v) or (v→u) exists. Tournaments model
  * round-robin competitions, paired comparisons, and social choice.</p>
  *
@@ -43,7 +43,7 @@ import java.util.*;
  */
 public class TournamentAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final List<String> vertices;
     private final Map<String, Set<String>> beats;  // u → set of v where u beats v
 
@@ -53,7 +53,7 @@ public class TournamentAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public TournamentAnalyzer(Graph<String, edge> graph) {
+    public TournamentAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -61,7 +61,7 @@ public class TournamentAnalyzer {
         this.vertices = new ArrayList<String>(graph.getVertices());
         Collections.sort(this.vertices);
         // Delegate directed adjacency construction to GraphUtils to avoid
-        // duplicating the vertex1→vertex2 edge-walking logic.
+        // duplicating the vertex1→vertex2 Edge-walking logic.
         this.beats = GraphUtils.buildDirectedAdjacencyMap(graph).successors;
     }
 
@@ -116,9 +116,9 @@ public class TournamentAnalyzer {
                 boolean uv = beats.get(u).contains(v);
                 boolean vu = beats.get(v).contains(u);
                 if (!uv && !vu) {
-                    errors.add("Missing edge between " + u + " and " + v);
+                    errors.add("Missing Edge between " + u + " and " + v);
                 } else if (uv && vu) {
-                    errors.add("Duplicate edge between " + u + " and " + v);
+                    errors.add("Duplicate Edge between " + u + " and " + v);
                 }
             }
         }
@@ -626,7 +626,7 @@ public class TournamentAnalyzer {
     // ── Upset Detection ─────────────────────────────────────────
 
     /**
-     * Represents an upset: an edge from a lower-ranked to a higher-ranked vertex
+     * Represents an upset: an Edge from a lower-ranked to a higher-ranked vertex
      * (based on Copeland ranking).
      */
     public static class Upset {

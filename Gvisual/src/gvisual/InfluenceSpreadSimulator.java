@@ -45,7 +45,7 @@ public class InfluenceSpreadSimulator {
         RECOVERED
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Random random;
 
     /**
@@ -56,8 +56,8 @@ public class InfluenceSpreadSimulator {
     private final Map<String, List<String>> neighborCache;
 
     /**
-     * Pre-cached edge weights: "from\0to" → weight.
-     * Only entries with edge weight in (0, 1] are stored; missing keys
+     * Pre-cached Edge weights: "from\0to" → weight.
+     * Only entries with Edge weight in (0, 1] are stored; missing keys
      * mean "use default probability". Avoids O(degree) findEdge() lookups
      * that dominated Monte Carlo hot loops.
      */
@@ -71,7 +71,7 @@ public class InfluenceSpreadSimulator {
      */
     private final Map<String, List<String>> predecessorCache;
 
-    public InfluenceSpreadSimulator(Graph<String, edge> graph) {
+    public InfluenceSpreadSimulator(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -82,7 +82,7 @@ public class InfluenceSpreadSimulator {
         this.predecessorCache = buildPredecessorCache();
     }
 
-    public InfluenceSpreadSimulator(Graph<String, edge> graph, long seed) {
+    public InfluenceSpreadSimulator(Graph<String, Edge> graph, long seed) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -112,14 +112,14 @@ public class InfluenceSpreadSimulator {
     }
 
     /**
-     * Pre-caches edge weights that override the default probability.
+     * Pre-caches Edge weights that override the default probability.
      * Only stores edges where weight is in (0, 1] — the range that
      * getEdgeProbability would use instead of the default. Key format:
      * "from\0to" (null-char separator — never appears in vertex IDs).
      */
     private Map<String, Double> buildEdgeWeightCache() {
         Map<String, Double> cache = new HashMap<String, Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             double w = e.getWeight();
             if (w > 0 && w <= 1.0) {
                 Collection<String> endpoints = graph.getEndpoints(e);
@@ -153,7 +153,7 @@ public class InfluenceSpreadSimulator {
             // Undirected: predecessors == neighbors
             return neighborCache;
         }
-        DirectedGraph<String, edge> dg = (DirectedGraph<String, edge>) graph;
+        DirectedGraph<String, Edge> dg = (DirectedGraph<String, Edge>) graph;
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
         for (String node : graph.getVertices()) {
             Collection<String> preds = dg.getPredecessors(node);
@@ -482,11 +482,11 @@ public class InfluenceSpreadSimulator {
             targetSet.add(degrees.get(i).getKey());
         }
 
-        // Count distinct edges blocked: an edge is blocked if at least one
+        // Count distinct edges blocked: an Edge is blocked if at least one
         // of its endpoints is a vaccination target. Counting by degree
         // double-counts edges where both endpoints are vaccinated.
         int totalEdgesBlocked = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             boolean blocked = false;
             for (String ep : endpoints) {

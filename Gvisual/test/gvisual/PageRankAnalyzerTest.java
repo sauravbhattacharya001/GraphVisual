@@ -15,17 +15,17 @@ import static org.junit.Assert.*;
  */
 public class PageRankAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helper methods ---
 
-    private edge addEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge addEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -33,7 +33,7 @@ public class PageRankAnalyzerTest {
         return e;
     }
 
-    private edge addEdge(String v1, String v2) {
+    private Edge addEdge(String v1, String v2) {
         return addEdge("f", v1, v2, 1.0f);
     }
 

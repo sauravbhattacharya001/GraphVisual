@@ -21,14 +21,14 @@ import java.util.*;
  *   <li><b>Text report</b> — human-readable distance distribution summary</li>
  * </ul>
  *
- * <p>All computations use unweighted BFS. For directed graphs the out-edge
+ * <p>All computations use unweighted BFS. For directed graphs the out-Edge
  * direction is followed. Distance to self is 0, unreachable pairs use -1.</p>
  *
  * @author zalenix
  */
 public class GraphDistanceDistribution {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Map<String, Integer>> distanceMatrix;
     private boolean computed;
 
@@ -38,7 +38,7 @@ public class GraphDistanceDistribution {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphDistanceDistribution(Graph<String, edge> graph) {
+    public GraphDistanceDistribution(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

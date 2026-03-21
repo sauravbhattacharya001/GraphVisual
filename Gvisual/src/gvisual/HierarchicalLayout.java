@@ -16,9 +16,9 @@ import java.util.*;
  *   <li><b>Layer assignment</b> — places each node in a layer based on its
  *       longest-path depth from source nodes.</li>
  *   <li><b>Crossing reduction</b> — reorders nodes within each layer to
- *       minimize edge crossings (barycenter heuristic, multi-pass).</li>
+ *       minimize Edge crossings (barycenter heuristic, multi-pass).</li>
  *   <li><b>X-coordinate assignment</b> — positions nodes within layers
- *       to minimize edge bends and balance spacing.</li>
+ *       to minimize Edge bends and balance spacing.</li>
  * </ol>
  *
  * <h3>Features</h3>
@@ -55,7 +55,7 @@ public class HierarchicalLayout {
 
     // ── Configuration ────────────────────────────────────────────────
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final double layerSpacing;
     private final double nodeSpacing;
     private final int crossingSweeps;
@@ -70,7 +70,7 @@ public class HierarchicalLayout {
     private List<List<String>> layers;
     private List<String> criticalPath;
     private int crossingCount;
-    private Set<edge> reversedEdges;
+    private Set<Edge> reversedEdges;
     private boolean computed;
 
     // ── Constructors ─────────────────────────────────────────────────
@@ -81,7 +81,7 @@ public class HierarchicalLayout {
      * @param graph the JUNG graph to lay out
      * @throws IllegalArgumentException if graph is null
      */
-    public HierarchicalLayout(Graph<String, edge> graph) {
+    public HierarchicalLayout(Graph<String, Edge> graph) {
         this(graph, 120, 80, 24, Orientation.TOP_TO_BOTTOM, 1200, 800);
     }
 
@@ -97,7 +97,7 @@ public class HierarchicalLayout {
      * @param height         canvas height
      * @throws IllegalArgumentException if parameters are invalid
      */
-    public HierarchicalLayout(Graph<String, edge> graph, double layerSpacing,
+    public HierarchicalLayout(Graph<String, Edge> graph, double layerSpacing,
                                double nodeSpacing, int crossingSweeps,
                                Orientation orientation,
                                double width, double height) {
@@ -147,7 +147,7 @@ public class HierarchicalLayout {
             layers = new ArrayList<List<String>>();
             criticalPath = new ArrayList<String>();
             crossingCount = 0;
-            reversedEdges = new HashSet<edge>();
+            reversedEdges = new HashSet<Edge>();
             computed = true;
             return this;
         }
@@ -159,7 +159,7 @@ public class HierarchicalLayout {
             successors.put(v, new HashSet<String>());
             predecessors.put(v, new HashSet<String>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String u = e.getVertex1();
             String v = e.getVertex2();
             if (u != null && v != null && !u.equals(v)
@@ -170,7 +170,7 @@ public class HierarchicalLayout {
         }
 
         // Step 1: Cycle removal (greedy DFS-based)
-        reversedEdges = new HashSet<edge>();
+        reversedEdges = new HashSet<Edge>();
         Map<String, Set<String>> dagSuccessors = removeCycles(
                 vertices, successors, predecessors);
         Map<String, Set<String>> dagPredecessors = invertAdjacency(
@@ -238,8 +238,8 @@ public class HierarchicalLayout {
             dag.get(be[0]).remove(be[1]);
             dag.get(be[1]).add(be[0]);
 
-            // Track the original edge objects
-            for (edge e : graph.getEdges()) {
+            // Track the original Edge objects
+            for (Edge e : graph.getEdges()) {
                 if (be[0].equals(e.getVertex1()) && be[1].equals(e.getVertex2())) {
                     reversedEdges.add(e);
                 }
@@ -507,7 +507,7 @@ public class HierarchicalLayout {
                 }
             }
 
-            // Count crossings: edge (u1,v1) crosses (u2,v2) if
+            // Count crossings: Edge (u1,v1) crosses (u2,v2) if
             // (u1 < u2 && v1 > v2) or (u1 > u2 && v1 < v2)
             for (int a = 0; a < edges.size(); a++) {
                 for (int b = a + 1; b < edges.size(); b++) {
@@ -630,7 +630,7 @@ public class HierarchicalLayout {
     }
 
     /**
-     * Gets the number of edge crossings in the layout.
+     * Gets the number of Edge crossings in the layout.
      *
      * @throws IllegalStateException if compute() has not been called
      */
@@ -642,10 +642,10 @@ public class HierarchicalLayout {
     /**
      * Gets edges that were reversed to break cycles.
      *
-     * @return set of edge objects that were reversed
+     * @return set of Edge objects that were reversed
      * @throws IllegalStateException if compute() has not been called
      */
-    public Set<edge> getReversedEdges() {
+    public Set<Edge> getReversedEdges() {
         ensureComputed();
         return Collections.unmodifiableSet(reversedEdges);
     }
@@ -761,7 +761,7 @@ public class HierarchicalLayout {
         sb.append("  </defs>\n");
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String u = e.getVertex1();
             String v = e.getVertex2();
             if (u == null || v == null) continue;

@@ -8,8 +8,8 @@ import java.util.*;
  * vertex using the <b>Edmonds–Karp</b> algorithm (BFS-based Ford–Fulkerson).
  *
  * <h3>Algorithm</h3>
- * <p>Treats every undirected edge as two directed arcs with capacity equal to
- * the edge weight (default 1.0 for unweighted edges). Repeatedly finds the
+ * <p>Treats every undirected Edge as two directed arcs with capacity equal to
+ * the Edge weight (default 1.0 for unweighted edges). Repeatedly finds the
  * shortest augmenting path via BFS and pushes as much flow as possible along
  * it, until no more augmenting paths exist.</p>
  *
@@ -22,7 +22,7 @@ import java.util.*;
  * <h3>Analytics</h3>
  * <ul>
  *   <li><b>Max flow value</b> — the maximum amount of flow from source to sink.</li>
- *   <li><b>Flow assignment</b> — per-edge flow values.</li>
+ *   <li><b>Flow assignment</b> — per-Edge flow values.</li>
  *   <li><b>Min cut</b> — the set of edges forming the minimum cut (max-flow
  *       min-cut theorem).</li>
  *   <li><b>Bottleneck edges</b> — fully saturated edges on augmenting paths.</li>
@@ -38,7 +38,7 @@ import java.util.*;
  */
 public class NetworkFlowAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     // Residual capacities: directedKey -> remaining capacity
     private Map<List<String>, Double> residualCapacity;
@@ -48,8 +48,8 @@ public class NetworkFlowAnalyzer {
     private Map<String, Set<String>> residualAdj;
     // Original capacities
     private Map<List<String>, Double> capacity;
-    // Edge lookup: directedKey -> original edge (null for reverse arcs)
-    private Map<List<String>, edge> edgeLookup;
+    // Edge lookup: directedKey -> original Edge (null for reverse arcs)
+    private Map<List<String>, Edge> edgeLookup;
 
     private String source;
     private String sink;
@@ -59,11 +59,11 @@ public class NetworkFlowAnalyzer {
     /**
      * Creates a new NetworkFlowAnalyzer for the given graph.
      *
-     * @param graph the JUNG graph (treated as undirected; each edge becomes
+     * @param graph the JUNG graph (treated as undirected; each Edge becomes
      *              two directed arcs)
      * @throws IllegalArgumentException if graph is null
      */
-    public NetworkFlowAnalyzer(Graph<String, edge> graph) {
+    public NetworkFlowAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -163,16 +163,16 @@ public class NetworkFlowAnalyzer {
     }
 
     /**
-     * Returns the flow on each original edge.
-     * The map key format is "v1->v2" for each edge direction.
+     * Returns the flow on each original Edge.
+     * The map key format is "v1->v2" for each Edge direction.
      * Only edges with positive flow are included.
      *
-     * @return unmodifiable map of edge direction to flow value
+     * @return unmodifiable map of Edge direction to flow value
      */
     public Map<String, Double> getEdgeFlows() {
         ensureComputed();
         Map<String, Double> result = new LinkedHashMap<String, Double>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             List<String> fwd = directedKey(e.getVertex1(), e.getVertex2());
             List<String> rev = directedKey(e.getVertex2(), e.getVertex1());
 
@@ -190,7 +190,7 @@ public class NetworkFlowAnalyzer {
     }
 
     /**
-     * Returns the flow value on a specific edge (by its endpoints).
+     * Returns the flow value on a specific Edge (by its endpoints).
      * Returns the net flow in the v1→v2 direction (negative if reverse).
      *
      * @param v1 first endpoint
@@ -240,14 +240,14 @@ public class NetworkFlowAnalyzer {
      *
      * @return list of edges in the minimum cut
      */
-    public List<edge> getMinCut() {
+    public List<Edge> getMinCut() {
         ensureComputed();
 
         Set<String> reachable = findReachableFromSource();
 
         // Min cut edges: original edges with one end in reachable, other not
-        List<edge> cut = new ArrayList<edge>();
-        for (edge e : graph.getEdges()) {
+        List<Edge> cut = new ArrayList<Edge>();
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if ((reachable.contains(v1) && !reachable.contains(v2)) ||
@@ -275,10 +275,10 @@ public class NetworkFlowAnalyzer {
      *
      * @return list of bottleneck edges
      */
-    public List<edge> getBottleneckEdges() {
+    public List<Edge> getBottleneckEdges() {
         ensureComputed();
-        List<edge> bottlenecks = new ArrayList<edge>();
-        for (edge e : graph.getEdges()) {
+        List<Edge> bottlenecks = new ArrayList<Edge>();
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             double cap = getEdgeCapacity(e);
@@ -295,14 +295,14 @@ public class NetworkFlowAnalyzer {
     }
 
     /**
-     * Returns the total capacity of the network (sum of all edge capacities).
+     * Returns the total capacity of the network (sum of all Edge capacities).
      *
      * @return total network capacity
      */
     public double getTotalCapacity() {
         ensureComputed();
         double total = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             total += getEdgeCapacity(e);
         }
         return total;
@@ -317,7 +317,7 @@ public class NetworkFlowAnalyzer {
     public double getUtilisation() {
         ensureComputed();
         double sourceCapacity = 0;
-        for (edge e : graph.getIncidentEdges(source)) {
+        for (Edge e : graph.getIncidentEdges(source)) {
             sourceCapacity += getEdgeCapacity(e);
         }
         if (sourceCapacity <= 0) return 0;
@@ -486,8 +486,8 @@ public class NetworkFlowAnalyzer {
     public FlowResult getResult() {
         ensureComputed();
         List<FlowPath> paths = decomposeFlowPaths();
-        List<edge> minCut = getMinCut();
-        List<edge> bottlenecks = getBottleneckEdges();
+        List<Edge> minCut = getMinCut();
+        List<Edge> bottlenecks = getBottleneckEdges();
         return new FlowResult(
                 source, sink, maxFlowValue,
                 getTotalCapacity(), getUtilisation(),
@@ -508,8 +508,8 @@ public class NetworkFlowAnalyzer {
 
         // Compute expensive results once
         List<FlowPath> paths = decomposeFlowPaths();
-        List<edge> minCut = getMinCut();
-        List<edge> bottlenecks = getBottleneckEdges();
+        List<Edge> minCut = getMinCut();
+        List<Edge> bottlenecks = getBottleneckEdges();
 
         StringBuilder sb = new StringBuilder();
         sb.append("=== Network Flow Analysis ===\n");
@@ -533,7 +533,7 @@ public class NetworkFlowAnalyzer {
         Map<String, Double> edgeFlows = getEdgeFlows();
         if (!edgeFlows.isEmpty()) {
             sb.append("\n--- Edge flows ---\n");
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 String v1 = e.getVertex1();
                 String v2 = e.getVertex2();
                 List<String> fwdKey = directedKey(v1, v2);
@@ -565,14 +565,14 @@ public class NetworkFlowAnalyzer {
         flow = new HashMap<List<String>, Double>();
         residualAdj = new HashMap<String, Set<String>>();
         capacity = new HashMap<List<String>, Double>();
-        edgeLookup = new HashMap<List<String>, edge>();
+        edgeLookup = new HashMap<List<String>, Edge>();
 
         // Initialise adjacency sets for all vertices
         for (String v : graph.getVertices()) {
             residualAdj.put(v, new LinkedHashSet<String>());
         }
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             double cap = getEdgeCapacity(e);
@@ -580,7 +580,7 @@ public class NetworkFlowAnalyzer {
             List<String> fwd = directedKey(v1, v2);
             List<String> rev = directedKey(v2, v1);
 
-            // Each undirected edge → two directed arcs
+            // Each undirected Edge → two directed arcs
             residualCapacity.put(fwd,
                     residualCapacity.getOrDefault(fwd, 0.0) + cap);
             residualCapacity.put(rev,
@@ -634,7 +634,7 @@ public class NetworkFlowAnalyzer {
         return 0; // no augmenting path
     }
 
-    private double getEdgeCapacity(edge e) {
+    private double getEdgeCapacity(Edge e) {
         float w = e.getWeight();
         return w > 0 ? w : 1.0;
     }

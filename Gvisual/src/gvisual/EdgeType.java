@@ -3,7 +3,7 @@ package gvisual;
 import java.awt.Color;
 
 /**
- * Enumeration of edge relationship categories in the graph.
+ * Enumeration of Edge relationship categories in the graph.
  *
  * <p>Centralises the code string, display label, colour, and default
  * threshold values that were previously scattered across Main.java as
@@ -49,7 +49,7 @@ public enum EdgeType {
         return displayLabel;
     }
 
-    /** Returns the default edge colour for rendering. */
+    /** Returns the default Edge colour for rendering. */
     public Color getColor() {
         return color;
     }
@@ -67,7 +67,7 @@ public enum EdgeType {
     /**
      * Looks up an {@code EdgeType} by its file code string.
      *
-     * @param code the edge type code ("f", "fs", "c", "s", "sg")
+     * @param code the Edge type code ("f", "fs", "c", "s", "sg")
      * @return the matching {@code EdgeType}, or {@code null} if unknown
      */
     public static EdgeType fromCode(String code) {
@@ -84,10 +84,10 @@ public enum EdgeType {
     }
 
     /**
-     * Returns the colour for a given edge type code.
+     * Returns the colour for a given Edge type code.
      * Falls back to {@link Color#RED} (stranger) for unknown codes.
      *
-     * @param typeCode the edge type code
+     * @param typeCode the Edge type code
      * @return the associated colour
      */
     public static Color colorForCode(String typeCode) {

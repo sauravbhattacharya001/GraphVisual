@@ -15,17 +15,17 @@ import static org.junit.Assert.*;
  */
 public class SpectralAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helpers ---
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -33,13 +33,13 @@ public class SpectralAnalyzerTest {
         return e;
     }
 
-    private Graph<String, edge> completeGraph(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> completeGraph(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (int i = 1; i <= n; i++) g.addVertex("N" + i);
         int edgeId = 0;
         for (int i = 1; i <= n; i++) {
             for (int j = i + 1; j <= n; j++) {
-                edge e = new edge("f", "N" + i, "N" + j);
+                Edge e = new Edge("f", "N" + i, "N" + j);
                 e.setWeight(1.0f);
                 g.addEdge(e, "N" + i, "N" + j);
                 edgeId++;
@@ -48,20 +48,20 @@ public class SpectralAnalyzerTest {
         return g;
     }
 
-    private Graph<String, edge> pathGraph(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> pathGraph(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (int i = 1; i <= n; i++) g.addVertex("N" + i);
         for (int i = 1; i < n; i++) {
-            edge e = new edge("f", "N" + i, "N" + (i + 1));
+            Edge e = new Edge("f", "N" + i, "N" + (i + 1));
             e.setWeight(1.0f);
             g.addEdge(e, "N" + i, "N" + (i + 1));
         }
         return g;
     }
 
-    private Graph<String, edge> cycleGraph(int n) {
-        Graph<String, edge> g = pathGraph(n);
-        edge e = new edge("f", "N" + n, "N1");
+    private Graph<String, Edge> cycleGraph(int n) {
+        Graph<String, Edge> g = pathGraph(n);
+        Edge e = new Edge("f", "N" + n, "N1");
         e.setWeight(1.0f);
         g.addEdge(e, "N" + n, "N1");
         return g;
@@ -122,7 +122,7 @@ public class SpectralAnalyzerTest {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  Single edge (K2)
+    //  Single Edge (K2)
     // ═══════════════════════════════════════════════════════════════
 
     @Test

@@ -20,7 +20,7 @@ public class CommunityPanelController {
 
     /** Callback for obtaining the graph and requesting repaints. */
     public interface GraphHost {
-        Graph<String, edge> getGraph();
+        Graph<String, Edge> getGraph();
         void onOverlayChanged();
     }
 
@@ -107,7 +107,7 @@ public class CommunityPanelController {
     }
 
     private void runDetection() {
-        Graph<String, edge> g = host.getGraph();
+        Graph<String, Edge> g = host.getGraph();
         if (g == null || g.getVertexCount() == 0) {
             detailsLabel.setText("<html>No graph loaded.</html>");
             return;

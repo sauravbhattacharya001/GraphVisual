@@ -28,8 +28,8 @@ import java.util.*;
  */
 public class GraphDiffAnalyzer {
 
-    private final Graph<String, edge> graphA;
-    private final Graph<String, edge> graphB;
+    private final Graph<String, Edge> graphA;
+    private final Graph<String, Edge> graphB;
 
     /**
      * Create a diff analyzer comparing graphA (baseline) to graphB (target).
@@ -38,7 +38,7 @@ public class GraphDiffAnalyzer {
      * @param graphB the target graph to compare against
      * @throws IllegalArgumentException if either graph is null
      */
-    public GraphDiffAnalyzer(Graph<String, edge> graphA, Graph<String, edge> graphB) {
+    public GraphDiffAnalyzer(Graph<String, Edge> graphA, Graph<String, Edge> graphB) {
         if (graphA == null || graphB == null) {
             throw new IllegalArgumentException("Both graphs must not be null");
         }
@@ -51,7 +51,7 @@ public class GraphDiffAnalyzer {
     /**
      * Holds the complete diff result between two graphs.
      * <p>
-     * Includes node/edge differences, similarity metrics, edit distance,
+     * Includes node/Edge differences, similarity metrics, edit distance,
      * and degree changes — all computed in a single pass by
      * {@link GraphDiffAnalyzer#computeDiff()}.
      */
@@ -105,7 +105,7 @@ public class GraphDiffAnalyzer {
         /** Jaccard similarity of node sets: |A∩B| / |A∪B|. */
         public double getNodeJaccard() { return nodeJaccard; }
 
-        /** Jaccard similarity of edge sets: |A∩B| / |A∪B|. */
+        /** Jaccard similarity of Edge sets: |A∩B| / |A∪B|. */
         public double getEdgeJaccard() { return edgeJaccard; }
 
         /**
@@ -149,7 +149,7 @@ public class GraphDiffAnalyzer {
     }
 
     /**
-     * Represents an edge for diff purposes (endpoint pair, normalized order
+     * Represents an Edge for diff purposes (endpoint pair, normalized order
      * for undirected comparison).
      */
     public static class EdgeDiff {
@@ -196,7 +196,7 @@ public class GraphDiffAnalyzer {
     /**
      * Compute the full diff between graphA and graphB.
      * <p>
-     * This single call computes all node/edge differences, Jaccard
+     * This single call computes all node/Edge differences, Jaccard
      * similarity, edit distance, and degree changes. Use the returned
      * {@link DiffResult} to access everything — there is no need to call
      * {@link #findDegreeChanges()} or {@link #computeEditDistance()}
@@ -270,7 +270,7 @@ public class GraphDiffAnalyzer {
     }
 
     /**
-     * Compute the edit distance: total node/edge additions + removals
+     * Compute the edit distance: total node/Edge additions + removals
      * needed to transform A into B.
      * <p>
      * Convenience method — delegates to {@link #computeDiff()} internally.
@@ -285,9 +285,9 @@ public class GraphDiffAnalyzer {
 
     // ── Helpers ─────────────────────────────────────────────────
 
-    private Set<EdgeDiff> extractEdges(Graph<String, edge> g) {
+    private Set<EdgeDiff> extractEdges(Graph<String, Edge> g) {
         Set<EdgeDiff> edges = new HashSet<>();
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             Collection<String> endpoints = g.getEndpoints(e);
             if (endpoints != null && endpoints.size() == 2) {
                 Iterator<String> it = endpoints.iterator();

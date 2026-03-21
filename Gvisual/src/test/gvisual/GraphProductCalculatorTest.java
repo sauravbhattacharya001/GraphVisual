@@ -15,41 +15,41 @@ import java.util.List;
  */
 public class GraphProductCalculatorTest {
 
-    private Graph<String, edge> triangle;   // K3: 3 vertices, 3 edges
-    private Graph<String, edge> path2;      // P2: 2 vertices, 1 edge
-    private Graph<String, edge> single;     // K1: 1 vertex, 0 edges
-    private Graph<String, edge> k2;         // K2: 2 vertices, 1 edge
-    private Graph<String, edge> empty3;     // 3 isolated vertices
+    private Graph<String, Edge> triangle;   // K3: 3 vertices, 3 edges
+    private Graph<String, Edge> path2;      // P2: 2 vertices, 1 Edge
+    private Graph<String, Edge> single;     // K1: 1 vertex, 0 edges
+    private Graph<String, Edge> k2;         // K2: 2 vertices, 1 Edge
+    private Graph<String, Edge> empty3;     // 3 isolated vertices
 
     @Before
     public void setUp() {
         // Triangle K3: a-b, b-c, a-c
-        triangle = new UndirectedSparseGraph<String, edge>();
+        triangle = new UndirectedSparseGraph<String, Edge>();
         triangle.addVertex("a");
         triangle.addVertex("b");
         triangle.addVertex("c");
-        triangle.addEdge(new edge("e", "a", "b"), "a", "b");
-        triangle.addEdge(new edge("e", "b", "c"), "b", "c");
-        triangle.addEdge(new edge("e", "a", "c"), "a", "c");
+        triangle.addEdge(new Edge("e", "a", "b"), "a", "b");
+        triangle.addEdge(new Edge("e", "b", "c"), "b", "c");
+        triangle.addEdge(new Edge("e", "a", "c"), "a", "c");
 
         // Path P2: x-y
-        path2 = new UndirectedSparseGraph<String, edge>();
+        path2 = new UndirectedSparseGraph<String, Edge>();
         path2.addVertex("x");
         path2.addVertex("y");
-        path2.addEdge(new edge("e", "x", "y"), "x", "y");
+        path2.addEdge(new Edge("e", "x", "y"), "x", "y");
 
         // Single vertex
-        single = new UndirectedSparseGraph<String, edge>();
+        single = new UndirectedSparseGraph<String, Edge>();
         single.addVertex("s");
 
         // K2: p-q
-        k2 = new UndirectedSparseGraph<String, edge>();
+        k2 = new UndirectedSparseGraph<String, Edge>();
         k2.addVertex("p");
         k2.addVertex("q");
-        k2.addEdge(new edge("e", "p", "q"), "p", "q");
+        k2.addEdge(new Edge("e", "p", "q"), "p", "q");
 
         // Empty graph with 3 vertices
-        empty3 = new UndirectedSparseGraph<String, edge>();
+        empty3 = new UndirectedSparseGraph<String, Edge>();
         empty3.addVertex("1");
         empty3.addVertex("2");
         empty3.addVertex("3");
@@ -70,7 +70,7 @@ public class GraphProductCalculatorTest {
     @Test
     public void testCartesianVertexCount() {
         GraphProductCalculator calc = new GraphProductCalculator(triangle, path2);
-        Graph<String, edge> result = calc.cartesianProduct();
+        Graph<String, Edge> result = calc.cartesianProduct();
         assertEquals(6, result.getVertexCount()); // 3 * 2
     }
 
@@ -92,7 +92,7 @@ public class GraphProductCalculatorTest {
         assertEquals(6, calc.lexicographicProduct().getVertexCount());
     }
 
-    // --- Cartesian product edge counts ---
+    // --- Cartesian product Edge counts ---
 
     @Test
     public void testCartesianK3xP2Edges() {
@@ -116,7 +116,7 @@ public class GraphProductCalculatorTest {
         assertEquals(3, calc.cartesianProduct().getVertexCount());
     }
 
-    // --- Tensor product edge counts ---
+    // --- Tensor product Edge counts ---
 
     @Test
     public void testTensorK3xP2Edges() {
@@ -140,7 +140,7 @@ public class GraphProductCalculatorTest {
         assertEquals(9, calc.tensorProduct().getVertexCount());
     }
 
-    // --- Strong product edge counts ---
+    // --- Strong product Edge counts ---
 
     @Test
     public void testStrongK3xP2Edges() {
@@ -156,7 +156,7 @@ public class GraphProductCalculatorTest {
         assertEquals(6, calc.strongProduct().getEdgeCount());
     }
 
-    // --- Lexicographic product edge counts ---
+    // --- Lexicographic product Edge counts ---
 
     @Test
     public void testLexicographicK3xP2Edges() {
@@ -236,8 +236,8 @@ public class GraphProductCalculatorTest {
     @Test
     public void testCachingReturnsSameInstance() {
         GraphProductCalculator calc = new GraphProductCalculator(triangle, path2);
-        Graph<String, edge> first = calc.cartesianProduct();
-        Graph<String, edge> second = calc.cartesianProduct();
+        Graph<String, Edge> first = calc.cartesianProduct();
+        Graph<String, Edge> second = calc.cartesianProduct();
         assertSame(first, second);
     }
 
@@ -246,7 +246,7 @@ public class GraphProductCalculatorTest {
     @Test
     public void testVertexNaming() {
         GraphProductCalculator calc = new GraphProductCalculator(k2, k2);
-        Graph<String, edge> product = calc.cartesianProduct();
+        Graph<String, Edge> product = calc.cartesianProduct();
         assertTrue(product.containsVertex("(p,p)"));
         assertTrue(product.containsVertex("(p,q)"));
         assertTrue(product.containsVertex("(q,p)"));
@@ -258,7 +258,7 @@ public class GraphProductCalculatorTest {
     @Test
     public void testCartesianWithEmptyGraph() {
         GraphProductCalculator calc = new GraphProductCalculator(triangle, empty3);
-        Graph<String, edge> result = calc.cartesianProduct();
+        Graph<String, Edge> result = calc.cartesianProduct();
         assertEquals(9, result.getVertexCount());
         // |E_G|*|V_H| + |V_G|*|E_H| = 3*3 + 3*0 = 9
         assertEquals(9, result.getEdgeCount());

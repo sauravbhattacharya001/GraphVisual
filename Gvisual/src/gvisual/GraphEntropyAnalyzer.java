@@ -18,14 +18,14 @@ import java.util.*;
  *       set of neighbour degree values.  Captures local structural
  *       diversity around each node.</li>
  *   <li><b>Edge type entropy</b> — Shannon entropy over the distribution of
- *       edge categories (friend, classmate, etc.).  Measures diversity
+ *       Edge categories (friend, classmate, etc.).  Measures diversity
  *       of relationship types in the network.</li>
  *   <li><b>Topological information content</b> — based on degree-sequence
  *       equivalence classes (orbits under automorphism approximation).
  *       Measures how much information is needed to distinguish nodes.</li>
  *   <li><b>Random walk entropy rate</b> — the asymptotic entropy per step
  *       of a random walker on the graph, H = log2(2m) - (1/2m) Σ d(v) log2 d(v),
- *       where d(v) is the degree of vertex v and m is the edge count.</li>
+ *       where d(v) is the degree of vertex v and m is the Edge count.</li>
  *   <li><b>Chromatic entropy</b> — entropy based on vertex coloring using
  *       greedy coloring (largest-first), measuring color distribution
  *       uniformity.</li>
@@ -53,7 +53,7 @@ public class GraphEntropyAnalyzer {
     private static final double EPSILON = 1e-12;
     private static final int JACOBI_MAX_SWEEPS = 100;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private boolean computed;
 
     // ── Results ─────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ public class GraphEntropyAnalyzer {
     private double avgNeighbourhoodEntropy;
     private String complexityClass;
 
-    public GraphEntropyAnalyzer(Graph<String, edge> graph) {
+    public GraphEntropyAnalyzer(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
         this.computed = false;
         this.neighbourhoodEntropy = new LinkedHashMap<>();
@@ -244,14 +244,14 @@ public class GraphEntropyAnalyzer {
     }
 
     /**
-     * Shannon entropy over edge type distribution.
+     * Shannon entropy over Edge type distribution.
      */
     private void computeEdgeTypeEntropy() {
         int m = graph.getEdgeCount();
         if (m == 0) { edgeTypeEntropy = 0; return; }
 
         Map<String, Integer> freq = new HashMap<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String type = e.getType();
             if (type == null) type = "unknown";
             Integer old = freq.get(type);
@@ -479,7 +479,7 @@ public class GraphEntropyAnalyzer {
         for (int i = 0; i < n; i++) idx.put(vList.get(i), i);
 
         double[][] L = new double[n][n];
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             int i = idx.get(v1);
@@ -615,7 +615,7 @@ public class GraphEntropyAnalyzer {
             sb.append("  * High Von Neumann entropy suggests complex, well-connected structure.\n");
         }
         if (edgeTypeEntropy > 1.0) {
-            sb.append("  * High edge type entropy indicates diverse relationship types.\n");
+            sb.append("  * High Edge type entropy indicates diverse relationship types.\n");
         }
         if (degreeCCMutualInfo > 0.5) {
             sb.append("  * Significant degree-CC mutual information: degree strongly predicts clustering.\n");

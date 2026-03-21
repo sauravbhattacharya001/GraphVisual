@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class CommunityDetector {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new CommunityDetector for the given graph.
@@ -24,7 +24,7 @@ public class CommunityDetector {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public CommunityDetector(Graph<String, edge> graph) {
+    public CommunityDetector(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -74,7 +74,7 @@ public class CommunityDetector {
         /** Total weight of internal edges. */
         public double getTotalWeight() { return totalWeight; }
 
-        /** Counts of each edge type within this community. */
+        /** Counts of each Edge type within this community. */
         public Map<String, Integer> getEdgeTypeCounts() {
             return Collections.unmodifiableMap(edgeTypeCounts);
         }
@@ -91,7 +91,7 @@ public class CommunityDetector {
         }
 
         /**
-         * Average edge weight within this community.
+         * Average Edge weight within this community.
          */
         public double getAverageWeight() {
             if (internalEdges == 0) return 0.0;
@@ -99,7 +99,7 @@ public class CommunityDetector {
         }
 
         /**
-         * Returns the dominant (most common) edge type in this community.
+         * Returns the dominant (most common) Edge type in this community.
          */
         public String getDominantType() {
             String dominant = "none";
@@ -175,7 +175,7 @@ public class CommunityDetector {
          * Q = sum_c [ (e_c / m) - (d_c / 2m)^2 ]
          * where e_c = internal edges, m = total edges, d_c = sum of degrees.
          */
-        public double getModularity(Graph<String, edge> graph) {
+        public double getModularity(Graph<String, Edge> graph) {
             int m = graph.getEdgeCount();
             if (m == 0) return 0.0;
 
@@ -196,9 +196,9 @@ public class CommunityDetector {
     /**
      * Detects communities using connected component analysis (BFS-based).
      * Each connected component is treated as a community. Communities are
-     * ranked by size (largest first) and enriched with edge-type breakdowns.
+     * ranked by size (largest first) and enriched with Edge-type breakdowns.
      *
-     * <p>Edge metrics are computed during the BFS traversal itself: each edge
+     * <p>Edge metrics are computed during the BFS traversal itself: each Edge
      * is counted when the second endpoint is discovered (or when revisiting
      * an already-visited member). This avoids a separate O(V*E) post-pass
      * and eliminates the per-community HashSet of counted edges.</p>
@@ -212,9 +212,9 @@ public class CommunityDetector {
         int communityId = 0;
 
         // Track which edges have been counted globally to avoid double-counting
-        Set<edge> countedEdges = new HashSet<edge>();
+        Set<Edge> countedEdges = new HashSet<Edge>();
 
-        // Find connected components via BFS, computing edge metrics inline
+        // Find connected components via BFS, computing Edge metrics inline
         for (String vertex : graph.getVertices()) {
             if (visited.contains(vertex)) continue;
 
@@ -228,11 +228,11 @@ public class CommunityDetector {
                 community.members.add(current);
                 nodeToCommunity.put(current, communityId);
 
-                for (edge e : graph.getIncidentEdges(current)) {
+                for (Edge e : graph.getIncidentEdges(current)) {
                     String neighbor = getOtherEnd(e, current);
                     if (neighbor == null) continue;
 
-                    // Count this edge if both endpoints are in this component
+                    // Count this Edge if both endpoints are in this component
                     // and we haven't counted it yet
                     if (visited.contains(neighbor) && !countedEdges.contains(e)) {
                         countedEdges.add(e);
@@ -267,7 +267,7 @@ public class CommunityDetector {
         return new DetectionResult(communities, updatedMapping);
     }
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd(Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 }

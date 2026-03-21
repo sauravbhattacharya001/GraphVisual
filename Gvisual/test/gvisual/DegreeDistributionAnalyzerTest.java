@@ -15,17 +15,17 @@ import static org.junit.Assert.*;
  */
 public class DegreeDistributionAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helpers ---
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -98,7 +98,7 @@ public class DegreeDistributionAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Two vertices, one edge
+    // Two vertices, one Edge
     // ═══════════════════════════════════════
 
     @Test
@@ -646,7 +646,7 @@ public class DegreeDistributionAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Coefficient of variation edge cases
+    // Coefficient of variation Edge cases
     // ═══════════════════════════════════════
 
     @Test

@@ -28,9 +28,9 @@ public class PathPanelController {
 
     /** Callback interface for requesting graph refreshes from the host frame. */
     public interface GraphHost {
-        Graph<String, edge> getGraph();
-        Layout<String, edge> getLayout();
-        VisualizationViewer<String, edge> getViewer();
+        Graph<String, Edge> getGraph();
+        Layout<String, Edge> getLayout();
+        VisualizationViewer<String, Edge> getViewer();
         void refreshGraph();
     }
 
@@ -42,7 +42,7 @@ public class PathPanelController {
     private String pathSource;
     private String pathTarget;
     private final Set<String> pathVertices = new HashSet<>();
-    private final Set<edge> pathEdges = new HashSet<>();
+    private final Set<Edge> pathEdges = new HashSet<>();
 
     // UI components
     private final JLabel sourceLabel;
@@ -120,7 +120,7 @@ public class PathPanelController {
 
     public JPanel getPanel() { return panel; }
     public Set<String> getPathVertices() { return pathVertices; }
-    public Set<edge> getPathEdges() { return pathEdges; }
+    public Set<Edge> getPathEdges() { return pathEdges; }
     public String getPathSource() { return pathSource; }
     public String getPathTarget() { return pathTarget; }
 
@@ -168,9 +168,9 @@ public class PathPanelController {
     private String findClosestVertex(int screenX, int screenY) {
         String closest = null;
         double minDist = Double.MAX_VALUE;
-        Graph<String, edge> g = host.getGraph();
-        Layout<String, edge> layout = host.getLayout();
-        VisualizationViewer<String, edge> vv = host.getViewer();
+        Graph<String, Edge> g = host.getGraph();
+        Layout<String, Edge> layout = host.getLayout();
+        VisualizationViewer<String, Edge> vv = host.getViewer();
 
         for (String vertex : g.getVertices()) {
             java.awt.geom.Point2D layoutPoint = layout.transform(vertex);
@@ -190,7 +190,7 @@ public class PathPanelController {
     private void computeAndHighlightPath() {
         if (pathSource == null || pathTarget == null) return;
 
-        Graph<String, edge> g = host.getGraph();
+        Graph<String, Edge> g = host.getGraph();
         ShortestPathFinder finder = new ShortestPathFinder(g);
         ShortestPathFinder.PathResult result;
 
@@ -212,7 +212,7 @@ public class PathPanelController {
 
             String mode = byWeight.isSelected() ? "weight-optimal" : "hop-optimal";
             StringBuilder edgeTypes = new StringBuilder();
-            for (edge e : result.getEdges()) {
+            for (Edge e : result.getEdges()) {
                 if (edgeTypes.length() > 0) edgeTypes.append("\u2192");
                 edgeTypes.append(e.getType());
             }

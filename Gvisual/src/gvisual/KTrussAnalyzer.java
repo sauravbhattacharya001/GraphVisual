@@ -7,11 +7,11 @@ import java.util.stream.Collectors;
 
 /**
  * K-Truss Decomposition — identifies cohesive subgraphs based on triangle
- * support. Each edge receives a <em>truss number</em> equal to the highest
+ * support. Each Edge receives a <em>truss number</em> equal to the highest
  * k-truss it belongs to:
  *
  * <blockquote>
- * A <b>k-truss</b> is a maximal subgraph where every edge participates in
+ * A <b>k-truss</b> is a maximal subgraph where every Edge participates in
  * at least (k − 2) triangles within that subgraph.
  * </blockquote>
  *
@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
  *
  * <h3>Algorithm (peeling, O(m · t_max))</h3>
  * <ol>
- *   <li>Count triangle support for every edge.</li>
+ *   <li>Count triangle support for every Edge.</li>
  *   <li>Starting from k = 2, iteratively remove edges with support &lt; k − 2.</li>
- *   <li>When an edge is removed, update triangle counts for affected edges.</li>
- *   <li>An edge's truss number is the k at which it was removed.</li>
+ *   <li>When an Edge is removed, update triangle counts for affected edges.</li>
+ *   <li>An Edge's truss number is the k at which it was removed.</li>
  * </ol>
  *
  * <p>References:</p>
@@ -37,9 +37,9 @@ import java.util.stream.Collectors;
  */
 public class KTrussAnalyzer {
 
-    private final Graph<String, edge> graph;
-    private Map<edge, Integer> trussNumbers;
-    private Map<edge, Integer> triangleSupport;
+    private final Graph<String, Edge> graph;
+    private Map<Edge, Integer> trussNumbers;
+    private Map<Edge, Integer> triangleSupport;
     private int maxTrussNumber;
     private boolean computed;
 
@@ -48,7 +48,7 @@ public class KTrussAnalyzer {
      *
      * @param graph the graph to analyze (treated as undirected)
      */
-    public KTrussAnalyzer(Graph<String, edge> graph) {
+    public KTrussAnalyzer(Graph<String, Edge> graph) {
         this.graph = graph;
         this.trussNumbers = new LinkedHashMap<>();
         this.triangleSupport = new LinkedHashMap<>();
@@ -70,18 +70,18 @@ public class KTrussAnalyzer {
      */
     private void compute() {
         // Build adjacency structures for efficient triangle enumeration
-        Set<edge> remainingEdges = new LinkedHashSet<>(graph.getEdges());
+        Set<Edge> remainingEdges = new LinkedHashSet<>(graph.getEdges());
         Map<String, Set<String>> adjacency = buildAdjacency(remainingEdges);
-        Map<edge, Set<edge>> edgeTrianglePartners = new LinkedHashMap<>();
+        Map<Edge, Set<Edge>> edgeTrianglePartners = new LinkedHashMap<>();
 
-        // Step 1: compute initial triangle support for each edge
-        for (edge e : remainingEdges) {
+        // Step 1: compute initial triangle support for each Edge
+        for (Edge e : remainingEdges) {
             triangleSupport.put(e, 0);
             edgeTrianglePartners.put(e, new LinkedHashSet<>());
         }
 
         // Find all triangles
-        for (edge e : remainingEdges) {
+        for (Edge e : remainingEdges) {
             String u = getEndpoint1(e);
             String v = getEndpoint2(e);
             if (u == null || v == null) continue;
@@ -93,8 +93,8 @@ public class KTrussAnalyzer {
                 if (neighborsV.contains(w)) {
                     // Triangle u-v-w found
                     triangleSupport.merge(e, 1, Integer::sum);
-                    edge uw = findEdge(remainingEdges, u, w);
-                    edge vw = findEdge(remainingEdges, v, w);
+                    Edge uw = findEdge(remainingEdges, u, w);
+                    Edge vw = findEdge(remainingEdges, v, w);
                     if (uw != null) {
                         triangleSupport.merge(uw, 1, Integer::sum);
                         edgeTrianglePartners.get(e).add(uw);
@@ -109,16 +109,16 @@ public class KTrussAnalyzer {
             }
         }
 
-        // Correct for double-counting: each triangle is found 3 times (once per edge)
-        // but each edge in a triangle gets counted twice for neighbors
+        // Correct for double-counting: each triangle is found 3 times (once per Edge)
+        // but each Edge in a triangle gets counted twice for neighbors
         // Actually, let me recalculate properly using a direct approach
         triangleSupport.clear();
-        for (edge e : remainingEdges) {
+        for (Edge e : remainingEdges) {
             triangleSupport.put(e, 0);
         }
 
-        // Enumerate triangles properly: for each edge (u,v), count common neighbors
-        for (edge e : remainingEdges) {
+        // Enumerate triangles properly: for each Edge (u,v), count common neighbors
+        for (Edge e : remainingEdges) {
             String u = getEndpoint1(e);
             String v = getEndpoint2(e);
             if (u == null || v == null) continue;
@@ -136,25 +136,25 @@ public class KTrussAnalyzer {
         }
 
         // Step 2: Peeling — iteratively remove edges with lowest support
-        Set<edge> active = new LinkedHashSet<>(remainingEdges);
-        Map<edge, Integer> support = new LinkedHashMap<>(triangleSupport);
+        Set<Edge> active = new LinkedHashSet<>(remainingEdges);
+        Map<Edge, Integer> support = new LinkedHashMap<>(triangleSupport);
 
         int k = 2;
         while (!active.isEmpty()) {
             boolean changed = true;
             while (changed) {
                 changed = false;
-                Iterator<edge> it = active.iterator();
-                List<edge> toRemove = new ArrayList<>();
+                Iterator<Edge> it = active.iterator();
+                List<Edge> toRemove = new ArrayList<>();
 
                 while (it.hasNext()) {
-                    edge e = it.next();
+                    Edge e = it.next();
                     if (support.getOrDefault(e, 0) < k - 2) {
                         toRemove.add(e);
                     }
                 }
 
-                for (edge e : toRemove) {
+                for (Edge e : toRemove) {
                     active.remove(e);
                     trussNumbers.put(e, k);
                     changed = true;
@@ -164,7 +164,7 @@ public class KTrussAnalyzer {
                     String v = getEndpoint2(e);
                     if (u == null || v == null) continue;
 
-                    for (edge other : active) {
+                    for (Edge other : active) {
                         String ou = getEndpoint1(other);
                         String ov = getEndpoint2(other);
                         if (ou == null || ov == null) continue;
@@ -186,7 +186,7 @@ public class KTrussAnalyzer {
                             String otherEnd = ou.equals(shared) ? ov : ou;
                             String eOtherEnd = getEndpoint1(e).equals(shared) ? getEndpoint2(e) : getEndpoint1(e);
 
-                            // Check if there's an active edge between otherEnd and eOtherEnd
+                            // Check if there's an active Edge between otherEnd and eOtherEnd
                             if (hasActiveEdge(active, otherEnd, eOtherEnd)) {
                                 support.merge(other, -1, Integer::sum);
                             }
@@ -196,7 +196,7 @@ public class KTrussAnalyzer {
             }
 
             // All remaining edges have support >= k-2, increase k
-            for (edge e : active) {
+            for (Edge e : active) {
                 trussNumbers.put(e, k + 1); // tentative — will be overwritten if removed later
             }
             k++;
@@ -212,12 +212,12 @@ public class KTrussAnalyzer {
     }
 
     /**
-     * Gets the truss number of a specific edge.
+     * Gets the truss number of a specific Edge.
      *
-     * @param e the edge
-     * @return the truss number, or 0 if edge not in graph
+     * @param e the Edge
+     * @return the truss number, or 0 if Edge not in graph
      */
-    public int getTrussNumber(edge e) {
+    public int getTrussNumber(Edge e) {
         ensureComputed();
         return trussNumbers.getOrDefault(e, 0);
     }
@@ -239,13 +239,13 @@ public class KTrussAnalyzer {
      * @param k the truss parameter (k ≥ 2)
      * @return a new graph containing only edges in the k-truss
      */
-    public Graph<String, edge> getKTruss(int k) {
+    public Graph<String, Edge> getKTruss(int k) {
         ensureComputed();
-        Graph<String, edge> subgraph = new UndirectedSparseGraph<>();
+        Graph<String, Edge> subgraph = new UndirectedSparseGraph<>();
 
-        for (Map.Entry<edge, Integer> entry : trussNumbers.entrySet()) {
+        for (Map.Entry<Edge, Integer> entry : trussNumbers.entrySet()) {
             if (entry.getValue() >= k) {
-                edge e = entry.getKey();
+                Edge e = entry.getKey();
                 String u = getEndpoint1(e);
                 String v = getEndpoint2(e);
                 if (u != null && v != null) {
@@ -260,7 +260,7 @@ public class KTrussAnalyzer {
     }
 
     /**
-     * Returns the distribution of edge truss numbers as a histogram.
+     * Returns the distribution of Edge truss numbers as a histogram.
      *
      * @return map from truss number to count of edges with that truss number
      */
@@ -274,13 +274,13 @@ public class KTrussAnalyzer {
     }
 
     /**
-     * Gets the triangle support count for an edge (number of triangles
-     * containing that edge in the original graph).
+     * Gets the triangle support count for an Edge (number of triangles
+     * containing that Edge in the original graph).
      *
-     * @param e the edge
-     * @return number of triangles containing this edge
+     * @param e the Edge
+     * @return number of triangles containing this Edge
      */
-    public int getTriangleSupport(edge e) {
+    public int getTriangleSupport(Edge e) {
         ensureComputed();
         return triangleSupport.getOrDefault(e, 0);
     }
@@ -291,10 +291,10 @@ public class KTrussAnalyzer {
      *
      * @return map from k to the set of edges in the k-truss but not in the (k+1)-truss
      */
-    public Map<Integer, List<edge>> getTrussHierarchy() {
+    public Map<Integer, List<Edge>> getTrussHierarchy() {
         ensureComputed();
-        Map<Integer, List<edge>> hierarchy = new TreeMap<>();
-        for (Map.Entry<edge, Integer> entry : trussNumbers.entrySet()) {
+        Map<Integer, List<Edge>> hierarchy = new TreeMap<>();
+        for (Map.Entry<Edge, Integer> entry : trussNumbers.entrySet()) {
             hierarchy.computeIfAbsent(entry.getValue(), k -> new ArrayList<>())
                     .add(entry.getKey());
         }
@@ -319,11 +319,11 @@ public class KTrussAnalyzer {
         report.add(String.format("Graph degeneracy (max core): %d", kcore.getDegeneracy()));
         report.add("");
 
-        // For each vertex, compute its "truss participation" — max truss of any incident edge
+        // For each vertex, compute its "truss participation" — max truss of any incident Edge
         Map<String, Integer> vertexTruss = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
             int maxT = 0;
-            for (edge e : graph.getIncidentEdges(v)) {
+            for (Edge e : graph.getIncidentEdges(v)) {
                 maxT = Math.max(maxT, trussNumbers.getOrDefault(e, 0));
             }
             vertexTruss.put(v, maxT);
@@ -397,9 +397,9 @@ public class KTrussAnalyzer {
 
     // --- Helper methods ---
 
-    private Map<String, Set<String>> buildAdjacency(Set<edge> edges) {
+    private Map<String, Set<String>> buildAdjacency(Set<Edge> edges) {
         Map<String, Set<String>> adj = new LinkedHashMap<>();
-        for (edge e : edges) {
+        for (Edge e : edges) {
             String u = getEndpoint1(e);
             String v = getEndpoint2(e);
             if (u != null && v != null) {
@@ -410,14 +410,14 @@ public class KTrussAnalyzer {
         return adj;
     }
 
-    private String getEndpoint1(edge e) {
+    private String getEndpoint1(Edge e) {
         Collection<String> endpoints = graph.getEndpoints(e);
         if (endpoints == null || endpoints.isEmpty()) return null;
         Iterator<String> it = endpoints.iterator();
         return it.next();
     }
 
-    private String getEndpoint2(edge e) {
+    private String getEndpoint2(Edge e) {
         Collection<String> endpoints = graph.getEndpoints(e);
         if (endpoints == null || endpoints.size() < 2) return null;
         Iterator<String> it = endpoints.iterator();
@@ -425,8 +425,8 @@ public class KTrussAnalyzer {
         return it.next();
     }
 
-    private edge findEdge(Set<edge> edges, String u, String v) {
-        for (edge e : edges) {
+    private Edge findEdge(Set<Edge> edges, String u, String v) {
+        for (Edge e : edges) {
             String eu = getEndpoint1(e);
             String ev = getEndpoint2(e);
             if ((u.equals(eu) && v.equals(ev)) || (u.equals(ev) && v.equals(eu))) {
@@ -436,8 +436,8 @@ public class KTrussAnalyzer {
         return null;
     }
 
-    private boolean hasActiveEdge(Set<edge> active, String u, String v) {
-        for (edge e : active) {
+    private boolean hasActiveEdge(Set<Edge> active, String u, String v) {
+        for (Edge e : active) {
             String eu = getEndpoint1(e);
             String ev = getEndpoint2(e);
             if ((u.equals(eu) && v.equals(ev)) || (u.equals(ev) && v.equals(eu))) {

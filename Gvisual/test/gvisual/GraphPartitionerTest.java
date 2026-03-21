@@ -10,11 +10,11 @@ import java.util.*;
 
 /**
  * Tests for GraphPartitioner — BFS, Kernighan-Lin, and spectral
- * partitioning strategies with balance, edge cut, and conductance metrics.
+ * partitioning strategies with balance, Edge cut, and conductance metrics.
  */
 public class GraphPartitionerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,7 +24,7 @@ public class GraphPartitionerTest {
     // ---- Helpers ----
 
     private void addEdge(String u, String v) {
-        edge e = new edge("f", u, v);
+        Edge e = new Edge("f", u, v);
         graph.addEdge(e, u, v);
     }
 
@@ -154,7 +154,7 @@ public class GraphPartitionerTest {
         GraphPartitioner.PartitionResult result =
             new GraphPartitioner(graph).partition(2, GraphPartitioner.Strategy.BFS);
         assertValidPartition(result, 2);
-        // At least 1 edge must be cut (triangle can't be split without cutting)
+        // At least 1 Edge must be cut (triangle can't be split without cutting)
         assertTrue(result.getEdgeCuts() >= 1);
     }
 
@@ -208,7 +208,7 @@ public class GraphPartitionerTest {
         GraphPartitioner p = new GraphPartitioner(graph);
         GraphPartitioner.PartitionResult bfs = p.partition(2, GraphPartitioner.Strategy.BFS);
         GraphPartitioner.PartitionResult kl = p.partition(2, GraphPartitioner.Strategy.KERNIGHAN_LIN);
-        // KL should have same or fewer edge cuts than BFS
+        // KL should have same or fewer Edge cuts than BFS
         assertTrue("KL cuts " + kl.getEdgeCuts() + " >= BFS cuts " + bfs.getEdgeCuts(),
             kl.getEdgeCuts() <= bfs.getEdgeCuts());
     }
@@ -404,7 +404,7 @@ public class GraphPartitionerTest {
         GraphPartitioner p = new GraphPartitioner(graph);
         GraphPartitioner.PartitionResult r1 = p.partition(2);
         GraphPartitioner.PartitionResult r2 = p.partition(2, GraphPartitioner.Strategy.BFS);
-        // Same edge cuts (deterministic)
+        // Same Edge cuts (deterministic)
         assertEquals(r1.getEdgeCuts(), r2.getEdgeCuts());
     }
 

@@ -14,17 +14,17 @@ import static org.junit.Assert.*;
  */
 public class CliqueAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helpers ---
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -106,7 +106,7 @@ public class CliqueAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // 4. Single edge
+    // 4. Single Edge
     // ═══════════════════════════════════════
 
     @Test
@@ -321,7 +321,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testOverlappingCliquesMultiple() {
-        // Two K3 sharing an edge: A-B-C and A-B-D
+        // Two K3 sharing an Edge: A-B-C and A-B-D
         makeComplete("A", "B", "C");
         addEdge("A", "D");
         addEdge("B", "D");
@@ -421,7 +421,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testGetCliquesOfSizeMultiple() {
-        // Two K3 sharing edge A-B
+        // Two K3 sharing Edge A-B
         makeComplete("A", "B", "C");
         addEdge("A", "D");
         addEdge("B", "D");
@@ -521,7 +521,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testOverlapsFindsSharedVertices() {
-        // Two K3 sharing edge A-B: {A,B,C} and {A,B,D}
+        // Two K3 sharing Edge A-B: {A,B,C} and {A,B,D}
         makeComplete("A", "B", "C");
         addEdge("A", "D");
         addEdge("B", "D");
@@ -588,7 +588,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testCliqueGraphBasic() {
-        // Two K3 sharing edge A-B → overlap=2
+        // Two K3 sharing Edge A-B → overlap=2
         makeComplete("A", "B", "C");
         addEdge("A", "D");
         addEdge("B", "D");
@@ -601,7 +601,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testCliqueGraphHighThreshold() {
-        // Two K3 sharing edge → overlap=2, threshold=3 → no connection
+        // Two K3 sharing Edge → overlap=2, threshold=3 → no connection
         makeComplete("A", "B", "C");
         addEdge("A", "D");
         addEdge("B", "D");
@@ -679,7 +679,7 @@ public class CliqueAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Additional edge cases & coverage
+    // Additional Edge cases & coverage
     // ═══════════════════════════════════════
 
     @Test
@@ -702,7 +702,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testCliquesSortedBySizeDescending() {
-        // K3 and a separate edge → cliques: {A,B,C} (size 3), {D,E} (size 2)
+        // K3 and a separate Edge → cliques: {A,B,C} (size 3), {D,E} (size 2)
         makeComplete("A", "B", "C");
         addEdge("D", "E");
         CliqueAnalyzer ca = new CliqueAnalyzer(graph).compute();
@@ -712,7 +712,7 @@ public class CliqueAnalyzerTest {
 
     @Test
     public void testAverageCliqueSize() {
-        // K3 + separate edge: avg = (3+2)/2 = 2.5
+        // K3 + separate Edge: avg = (3+2)/2 = 2.5
         makeComplete("A", "B", "C");
         addEdge("D", "E");
         CliqueAnalyzer ca = new CliqueAnalyzer(graph).compute();

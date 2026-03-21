@@ -17,18 +17,18 @@ public class TopologicalSortAnalyzerTest {
     // ── Helper methods ──────────────────────────────────────────
 
     /**
-     * Build a directed graph from vertex-edge definitions.
-     * Each edge is from→to with a label.
+     * Build a directed graph from vertex-Edge definitions.
+     * Each Edge is from→to with a label.
      */
-    private Graph<String, edge> buildDirectedGraph(String[][] edges) {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> buildDirectedGraph(String[][] edges) {
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         int edgeId = 0;
         for (String[] e : edges) {
             String from = e[0];
             String to = e[1];
             if (!g.containsVertex(from)) g.addVertex(from);
             if (!g.containsVertex(to)) g.addVertex(to);
-            edge ed = new edge("dep", from, to);
+            Edge ed = new Edge("dep", from, to);
             ed.setLabel("e" + edgeId++);
             g.addEdge(ed, from, to);
         }
@@ -38,7 +38,7 @@ public class TopologicalSortAnalyzerTest {
     /**
      * Add isolated vertices to a graph.
      */
-    private void addVertices(Graph<String, edge> g, String... vertices) {
+    private void addVertices(Graph<String, Edge> g, String... vertices) {
         for (String v : vertices) {
             if (!g.containsVertex(v)) g.addVertex(v);
         }
@@ -55,7 +55,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_emptyGraph_isDAG() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
         TopologicalSortAnalyzer.TopologicalSortResult result = analyzer.analyze();
 
@@ -71,7 +71,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_singleVertex_isDAG() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
         TopologicalSortAnalyzer.TopologicalSortResult result = analyzer.analyze();
@@ -89,7 +89,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_linearChain_correctOrder() {
         // A → B → C → D
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -104,7 +104,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_linearChain_criticalPath() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -122,7 +122,7 @@ public class TopologicalSortAnalyzerTest {
         // B   C
         //  \ /
         //   D
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -141,7 +141,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_diamondDAG_roots_and_leaves() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -153,7 +153,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_diamondDAG_depths() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -170,7 +170,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_multipleRootsAndLeaves() {
         // A → C, B → C, C → D, C → E
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "C"}, {"B", "C"}, {"C", "D"}, {"C", "E"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -186,7 +186,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_disconnectedDAG() {
         // A → B, C → D (two separate chains)
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -200,7 +200,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_disconnectedDAG_withIsolated() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}
         });
         g.addVertex("X");
@@ -218,7 +218,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_simpleCycle_notDAG() {
         // A → B → C → A
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -239,7 +239,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_selfLoop_notDAG() {
         // A → A
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "A"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -251,7 +251,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_twoCycle_notDAG() {
         // A → B → A
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "A"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -266,7 +266,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_dependencyCounts_correct() {
         // A → C, B → C, C → D
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "C"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -282,7 +282,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_dependentCounts_correct() {
         // A → C, B → C, C → D
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "C"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -299,7 +299,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_nullVertex_returnsNull() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
         assertNull(analyzer.analyzeDependencies(null));
@@ -307,7 +307,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_missingVertex_returnsNull() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
         assertNull(analyzer.analyzeDependencies("Z"));
@@ -316,7 +316,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyzeDependencies_transitiveForward() {
         // A → B → C → D
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -336,7 +336,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_rootVertex() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -350,7 +350,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_leafVertex() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -364,7 +364,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_isolatedVertex() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("X");
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
         TopologicalSortAnalyzer.VertexDependencyInfo info = analyzer.analyzeDependencies("X");
@@ -381,7 +381,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void countChoicePoints_linearChain_zero() {
         // A → B → C (no choice — exactly one ready at each step)
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -391,7 +391,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void countChoicePoints_parallelRoots_one() {
         // A → C, B → C (A and B both ready at start)
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "C"}, {"B", "C"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -400,7 +400,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void countChoicePoints_cycleGraph_negative() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "A"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -411,7 +411,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void generateSummary_DAG_containsKeyInfo() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -429,7 +429,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void generateSummary_cycle_showsCycleInfo() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "A"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -448,7 +448,7 @@ public class TopologicalSortAnalyzerTest {
         // Math101 → CS101 → CS201
         // CS101 → CS202
         // Math201 → CS202
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"Math101", "Math201"}, {"Math201", "Math301"},
             {"Math101", "CS101"}, {"CS101", "CS201"},
             {"CS101", "CS202"}, {"Math201", "CS202"}
@@ -477,7 +477,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_coursePrerequisites_criticalPath() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"Math101", "Math201"}, {"Math201", "Math301"},
             {"Math101", "CS101"}, {"CS101", "CS201"},
             {"CS101", "CS202"}, {"Math201", "CS202"}
@@ -499,7 +499,7 @@ public class TopologicalSortAnalyzerTest {
         // libutil → libcore → app
         // libutil → libnet → app
         // libnet → libsecurity → app
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"libutil", "libcore"}, {"libcore", "app"},
             {"libutil", "libnet"}, {"libnet", "app"},
             {"libnet", "libsecurity"}, {"libsecurity", "app"}
@@ -523,7 +523,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_cycleWithTail() {
         // A → B → C → D → B (cycle B-C-D, tail A)
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "B"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -539,7 +539,7 @@ public class TopologicalSortAnalyzerTest {
     public void cycleInfo_size() {
         List<String> verts = Arrays.asList("A", "B", "C");
         TopologicalSortAnalyzer.CycleInfo info =
-            new TopologicalSortAnalyzer.CycleInfo(verts, new ArrayList<edge>());
+            new TopologicalSortAnalyzer.CycleInfo(verts, new ArrayList<Edge>());
         assertEquals(3, info.size());
     }
 
@@ -547,7 +547,7 @@ public class TopologicalSortAnalyzerTest {
     public void cycleInfo_immutable() {
         List<String> verts = new ArrayList<String>(Arrays.asList("A", "B"));
         TopologicalSortAnalyzer.CycleInfo info =
-            new TopologicalSortAnalyzer.CycleInfo(verts, new ArrayList<edge>());
+            new TopologicalSortAnalyzer.CycleInfo(verts, new ArrayList<Edge>());
 
         // Original list mutation shouldn't affect CycleInfo
         verts.add("C");
@@ -558,7 +558,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void result_sortedOrder_immutable() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -568,7 +568,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void result_depthMap_immutable() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -581,7 +581,7 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_deterministic_sameOrderEveryTime() {
         // Multiple possible orderings — should be deterministic
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "D"}, {"B", "D"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -602,12 +602,12 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_wideGraph_manyRoots() {
         // 10 independent roots all pointing to a single sink
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("sink");
         for (int i = 0; i < 10; i++) {
             String v = "root" + i;
             g.addVertex(v);
-            edge e = new edge("dep", v, "sink");
+            Edge e = new Edge("dep", v, "sink");
             e.setLabel("e" + i);
             g.addEdge(e, v, "sink");
         }
@@ -626,14 +626,14 @@ public class TopologicalSortAnalyzerTest {
     @Test
     public void analyze_deepChain_longestPath() {
         // v0 → v1 → v2 → ... → v19 (chain of 20)
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         for (int i = 0; i < 20; i++) {
             g.addVertex("v" + i);
         }
         for (int i = 0; i < 19; i++) {
             String from = "v" + i;
             String to = "v" + (i + 1);
-            edge e = new edge("dep", from, to);
+            Edge e = new Edge("dep", from, to);
             e.setLabel("e" + i);
             g.addEdge(e, from, to);
         }
@@ -651,7 +651,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyzeDependencies_depth_correct() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}
         });
         TopologicalSortAnalyzer analyzer = new TopologicalSortAnalyzer(g);
@@ -666,7 +666,7 @@ public class TopologicalSortAnalyzerTest {
 
     @Test
     public void analyze_dagWithIsolated_allIncluded() {
-        Graph<String, edge> g = buildDirectedGraph(new String[][]{
+        Graph<String, Edge> g = buildDirectedGraph(new String[][]{
             {"A", "B"}
         });
         g.addVertex("X");
@@ -683,19 +683,19 @@ public class TopologicalSortAnalyzerTest {
         assertTrue(result.getLeaves().contains("Y"));
     }
 
-    // ── Undirected graph edge handling ──────────────────────────
+    // ── Undirected graph Edge handling ──────────────────────────
 
     @Test
     public void analyze_handlesEdgesWithNullVertices() {
-        Graph<String, edge> g = new DirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new DirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
-        // Add normal edge
-        edge e1 = new edge("dep", "A", "B");
+        // Add normal Edge
+        Edge e1 = new Edge("dep", "A", "B");
         e1.setLabel("e1");
         g.addEdge(e1, "A", "B");
-        // Add edge with null vertex1 (shouldn't crash)
-        edge e2 = new edge("dep", null, "B");
+        // Add Edge with null vertex1 (shouldn't crash)
+        Edge e2 = new Edge("dep", null, "B");
         e2.setLabel("e2");
         // Can't add to directed graph with null — just test with valid edges
 

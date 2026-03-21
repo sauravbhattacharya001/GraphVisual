@@ -7,7 +7,7 @@ import java.util.*;
 
 /**
  * Merges two graphs using configurable strategies for combining vertices
- * and edges, with conflict resolution for overlapping edge attributes.
+ * and edges, with conflict resolution for overlapping Edge attributes.
  *
  * <h3>Merge Strategies</h3>
  * <ul>
@@ -19,7 +19,7 @@ import java.util.*;
  * </ul>
  *
  * <h3>Edge Conflict Resolution</h3>
- * When the same edge pair exists in both graphs with different weights:
+ * When the same Edge pair exists in both graphs with different weights:
  * <ul>
  *   <li><b>KEEP_LEFT</b> — use weight from graph A</li>
  *   <li><b>KEEP_RIGHT</b> — use weight from graph B</li>
@@ -33,7 +33,7 @@ import java.util.*;
  * <pre>
  * MergeResult result = GraphMerger.merge(graphA, graphB, Strategy.UNION,
  *     EdgeConflict.AVERAGE);
- * Graph&lt;String, edge&gt; merged = result.getMergedGraph();
+ * Graph&lt;String, Edge&gt; merged = result.getMergedGraph();
  * </pre>
  *
  * @author zalenix
@@ -56,7 +56,7 @@ public final class GraphMerger {
         RIGHT_JOIN
     }
 
-    /** Edge conflict resolution when the same edge pair exists in both graphs. */
+    /** Edge conflict resolution when the same Edge pair exists in both graphs. */
     public enum EdgeConflict {
         /** Keep weight from graph A. */
         KEEP_LEFT,
@@ -76,7 +76,7 @@ public final class GraphMerger {
      * Result of a merge operation, including the merged graph and statistics.
      */
     public static final class MergeResult {
-        private final Graph<String, edge> mergedGraph;
+        private final Graph<String, Edge> mergedGraph;
         private final Strategy strategy;
         private final EdgeConflict edgeConflict;
         private final int vertexCountA;
@@ -90,7 +90,7 @@ public final class GraphMerger {
         private final Set<String> onlyInA;
         private final Set<String> onlyInB;
 
-        MergeResult(Graph<String, edge> mergedGraph, Strategy strategy,
+        MergeResult(Graph<String, Edge> mergedGraph, Strategy strategy,
                     EdgeConflict edgeConflict,
                     int vertexCountA, int vertexCountB,
                     int edgeCountA, int edgeCountB,
@@ -112,7 +112,7 @@ public final class GraphMerger {
             this.onlyInB = Collections.unmodifiableSet(onlyInB);
         }
 
-        public Graph<String, edge> getMergedGraph() { return mergedGraph; }
+        public Graph<String, Edge> getMergedGraph() { return mergedGraph; }
         public Strategy getStrategy() { return strategy; }
         public EdgeConflict getEdgeConflict() { return edgeConflict; }
         public int getVertexCountA() { return vertexCountA; }
@@ -155,21 +155,21 @@ public final class GraphMerger {
     /**
      * Merge two graphs with default settings (UNION + KEEP_LEFT).
      */
-    public static MergeResult merge(Graph<String, edge> a, Graph<String, edge> b) {
+    public static MergeResult merge(Graph<String, Edge> a, Graph<String, Edge> b) {
         return merge(a, b, Strategy.UNION, EdgeConflict.KEEP_LEFT);
     }
 
     /**
-     * Merge two graphs with the given strategy and edge conflict resolution.
+     * Merge two graphs with the given strategy and Edge conflict resolution.
      *
      * @param a            first graph
      * @param b            second graph
      * @param strategy     merge strategy
-     * @param edgeConflict how to resolve conflicting edge weights
+     * @param edgeConflict how to resolve conflicting Edge weights
      * @return merge result with the combined graph and statistics
      * @throws IllegalArgumentException if any argument is null
      */
-    public static MergeResult merge(Graph<String, edge> a, Graph<String, edge> b,
+    public static MergeResult merge(Graph<String, Edge> a, Graph<String, Edge> b,
                                     Strategy strategy, EdgeConflict edgeConflict) {
         if (a == null || b == null) throw new IllegalArgumentException("Graphs must not be null");
         if (strategy == null) throw new IllegalArgumentException("Strategy must not be null");
@@ -187,7 +187,7 @@ public final class GraphMerger {
         Set<String> onlyB = new HashSet<>(vertsB);
         onlyB.removeAll(vertsA);
 
-        Graph<String, edge> merged = new UndirectedSparseGraph<>();
+        Graph<String, Edge> merged = new UndirectedSparseGraph<>();
         int[] conflicts = {0};
 
         switch (strategy) {
@@ -216,14 +216,14 @@ public final class GraphMerger {
 
     // ── Strategy Implementations ───────────────────────────────────
 
-    private static void mergeUnion(Graph<String, edge> a, Graph<String, edge> b,
-                                   Graph<String, edge> result,
+    private static void mergeUnion(Graph<String, Edge> a, Graph<String, Edge> b,
+                                   Graph<String, Edge> result,
                                    EdgeConflict conflict, int[] conflicts) {
-        Map<String, edge> edgeIndex = new HashMap<>();
+        Map<String, Edge> edgeIndex = new HashMap<>();
 
         // Add all from A
         for (String v : a.getVertices()) result.addVertex(v);
-        for (edge e : a.getEdges()) {
+        for (Edge e : a.getEdges()) {
             String key = edgeKey(e);
             result.addEdge(cloneEdge(e), e.getVertex1(), e.getVertex2());
             edgeIndex.put(key, findEdge(result, e.getVertex1(), e.getVertex2()));
@@ -235,11 +235,11 @@ public final class GraphMerger {
         }
 
         // Add/merge edges from B
-        for (edge e : b.getEdges()) {
+        for (Edge e : b.getEdges()) {
             String key = edgeKey(e);
             if (edgeIndex.containsKey(key)) {
                 // Conflict — resolve weight
-                edge existing = edgeIndex.get(key);
+                Edge existing = edgeIndex.get(key);
                 existing.setWeight(resolveWeight(existing.getWeight(), e.getWeight(), conflict));
                 conflicts[0]++;
             } else {
@@ -248,27 +248,27 @@ public final class GraphMerger {
         }
     }
 
-    private static void mergeIntersection(Graph<String, edge> a, Graph<String, edge> b,
-                                          Graph<String, edge> result,
+    private static void mergeIntersection(Graph<String, Edge> a, Graph<String, Edge> b,
+                                          Graph<String, Edge> result,
                                           Set<String> shared,
                                           EdgeConflict conflict, int[] conflicts) {
         // Add only shared vertices
         for (String v : shared) result.addVertex(v);
 
-        // Build edge index for B
-        Map<String, edge> bEdges = new HashMap<>();
-        for (edge e : b.getEdges()) {
+        // Build Edge index for B
+        Map<String, Edge> bEdges = new HashMap<>();
+        for (Edge e : b.getEdges()) {
             bEdges.put(edgeKey(e), e);
         }
 
         // Add edges present in both graphs (between shared vertices)
-        for (edge e : a.getEdges()) {
+        for (Edge e : a.getEdges()) {
             if (!shared.contains(e.getVertex1()) || !shared.contains(e.getVertex2())) continue;
 
             String key = edgeKey(e);
-            edge bEdge = bEdges.get(key);
+            Edge bEdge = bEdges.get(key);
             if (bEdge != null) {
-                edge merged = cloneEdge(e);
+                Edge merged = cloneEdge(e);
                 merged.setWeight(resolveWeight(e.getWeight(), bEdge.getWeight(), conflict));
                 result.addEdge(merged, e.getVertex1(), e.getVertex2());
                 if (e.getWeight() != bEdge.getWeight()) conflicts[0]++;
@@ -276,21 +276,21 @@ public final class GraphMerger {
         }
     }
 
-    private static void mergeSymmetricDifference(Graph<String, edge> a, Graph<String, edge> b,
-                                                  Graph<String, edge> result,
+    private static void mergeSymmetricDifference(Graph<String, Edge> a, Graph<String, Edge> b,
+                                                  Graph<String, Edge> result,
                                                   Set<String> shared) {
-        // Build edge sets
+        // Build Edge sets
         Set<String> aEdgeKeys = new HashSet<>();
-        for (edge e : a.getEdges()) aEdgeKeys.add(edgeKey(e));
+        for (Edge e : a.getEdges()) aEdgeKeys.add(edgeKey(e));
 
         Set<String> bEdgeKeys = new HashSet<>();
-        for (edge e : b.getEdges()) bEdgeKeys.add(edgeKey(e));
+        for (Edge e : b.getEdges()) bEdgeKeys.add(edgeKey(e));
 
         // Add vertices that appear in edges unique to one graph
         Set<String> addedVerts = new HashSet<>();
 
         // Edges only in A
-        for (edge e : a.getEdges()) {
+        for (Edge e : a.getEdges()) {
             if (!bEdgeKeys.contains(edgeKey(e))) {
                 ensureVertex(result, e.getVertex1(), addedVerts);
                 ensureVertex(result, e.getVertex2(), addedVerts);
@@ -299,7 +299,7 @@ public final class GraphMerger {
         }
 
         // Edges only in B
-        for (edge e : b.getEdges()) {
+        for (Edge e : b.getEdges()) {
             if (!aEdgeKeys.contains(edgeKey(e))) {
                 ensureVertex(result, e.getVertex1(), addedVerts);
                 ensureVertex(result, e.getVertex2(), addedVerts);
@@ -317,26 +317,26 @@ public final class GraphMerger {
         for (String v : vertsB) ensureVertex(result, v, addedVerts);
     }
 
-    private static void mergeLeftJoin(Graph<String, edge> primary, Graph<String, edge> secondary,
-                                      Graph<String, edge> result,
+    private static void mergeLeftJoin(Graph<String, Edge> primary, Graph<String, Edge> secondary,
+                                      Graph<String, Edge> result,
                                       EdgeConflict conflict, int[] conflicts) {
         // Add all vertices and edges from primary
         for (String v : primary.getVertices()) result.addVertex(v);
-        Map<String, edge> edgeIndex = new HashMap<>();
-        for (edge e : primary.getEdges()) {
+        Map<String, Edge> edgeIndex = new HashMap<>();
+        for (Edge e : primary.getEdges()) {
             result.addEdge(cloneEdge(e), e.getVertex1(), e.getVertex2());
             edgeIndex.put(edgeKey(e), findEdge(result, e.getVertex1(), e.getVertex2()));
         }
 
         // Add edges from secondary that connect primary's vertices
         Set<String> primaryVerts = new HashSet<>(primary.getVertices());
-        for (edge e : secondary.getEdges()) {
+        for (Edge e : secondary.getEdges()) {
             if (!primaryVerts.contains(e.getVertex1()) || !primaryVerts.contains(e.getVertex2())) {
                 continue;
             }
             String key = edgeKey(e);
             if (edgeIndex.containsKey(key)) {
-                edge existing = edgeIndex.get(key);
+                Edge existing = edgeIndex.get(key);
                 existing.setWeight(resolveWeight(existing.getWeight(), e.getWeight(), conflict));
                 conflicts[0]++;
             } else {
@@ -347,22 +347,22 @@ public final class GraphMerger {
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    /** Canonical key for an edge (alphabetically sorted endpoints). */
-    private static String edgeKey(edge e) {
+    /** Canonical key for an Edge (alphabetically sorted endpoints). */
+    private static String edgeKey(Edge e) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         return v1.compareTo(v2) <= 0 ? v1 + "|" + v2 : v2 + "|" + v1;
     }
 
-    /** Find an edge between two vertices in a graph. */
-    private static edge findEdge(Graph<String, edge> g, String v1, String v2) {
-        edge e = g.findEdge(v1, v2);
+    /** Find an Edge between two vertices in a graph. */
+    private static Edge findEdge(Graph<String, Edge> g, String v1, String v2) {
+        Edge e = g.findEdge(v1, v2);
         return e != null ? e : g.findEdge(v2, v1);
     }
 
-    /** Clone an edge (deep copy). */
-    private static edge cloneEdge(edge e) {
-        edge clone = new edge(e.getType(), e.getVertex1(), e.getVertex2());
+    /** Clone an Edge (deep copy). */
+    private static Edge cloneEdge(Edge e) {
+        Edge clone = new Edge(e.getType(), e.getVertex1(), e.getVertex2());
         clone.setWeight(e.getWeight());
         clone.setLabel(e.getLabel());
         clone.setTimestamp(e.getTimestamp());
@@ -371,14 +371,14 @@ public final class GraphMerger {
     }
 
     /** Add vertex to graph if not already present. */
-    private static void ensureVertex(Graph<String, edge> g, String v, Set<String> tracker) {
+    private static void ensureVertex(Graph<String, Edge> g, String v, Set<String> tracker) {
         if (!tracker.contains(v)) {
             if (!g.containsVertex(v)) g.addVertex(v);
             tracker.add(v);
         }
     }
 
-    /** Resolve edge weight conflict according to the chosen strategy. */
+    /** Resolve Edge weight conflict according to the chosen strategy. */
     static float resolveWeight(float left, float right, EdgeConflict conflict) {
         switch (conflict) {
             case KEEP_LEFT:  return left;

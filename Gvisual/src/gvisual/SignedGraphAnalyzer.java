@@ -13,7 +13,7 @@ import java.util.*;
  *
  * <h3>Features</h3>
  * <ul>
- *   <li><b>Sign assignment:</b> Uses edge weight sign (positive/negative) or label (+/-)</li>
+ *   <li><b>Sign assignment:</b> Uses Edge weight sign (positive/negative) or label (+/-)</li>
  *   <li><b>Triangle census:</b> Counts balanced (+++, +−−) and unbalanced (++-,−−−) triangles</li>
  *   <li><b>Structural balance check:</b> Tests if graph is perfectly balanced (Harary's theorem)</li>
  *   <li><b>Weak balance check:</b> Davis's generalization allowing k &gt; 2 coalitions</li>
@@ -22,7 +22,7 @@ import java.util.*;
  *   <li><b>Balance degree:</b> Fraction of balanced triangles (0.0 to 1.0)</li>
  *   <li><b>Edge sign statistics:</b> Counts and ratios of positive/negative edges</li>
  *   <li><b>Vertex polarization:</b> Per-vertex ratio of negative to total edges</li>
- *   <li><b>Sign prediction:</b> Predict missing edge sign based on mutual neighbors</li>
+ *   <li><b>Sign prediction:</b> Predict missing Edge sign based on mutual neighbors</li>
  * </ul>
  *
  * <h3>Theory</h3>
@@ -38,7 +38,7 @@ import java.util.*;
  */
 public class SignedGraphAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Constructs an analyzer for the given graph.
@@ -48,7 +48,7 @@ public class SignedGraphAnalyzer {
      * @param graph the graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public SignedGraphAnalyzer(Graph<String, edge> graph) {
+    public SignedGraphAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -56,24 +56,24 @@ public class SignedGraphAnalyzer {
     }
 
     /**
-     * Determines if an edge is negative.
+     * Determines if an Edge is negative.
      *
-     * @param e the edge
-     * @return true if edge is negative (weight &lt; 0 or label is "-"/"negative")
+     * @param e the Edge
+     * @return true if Edge is negative (weight &lt; 0 or label is "-"/"negative")
      */
-    public boolean isNegative(edge e) {
+    public boolean isNegative(Edge e) {
         if (e.getWeight() < 0) return true;
         String label = e.getLabel();
         return label != null && (label.equals("-") || label.equalsIgnoreCase("negative"));
     }
 
     /**
-     * Determines if an edge is positive.
+     * Determines if an Edge is positive.
      *
-     * @param e the edge
-     * @return true if edge is positive
+     * @param e the Edge
+     * @return true if Edge is positive
      */
-    public boolean isPositive(edge e) {
+    public boolean isPositive(Edge e) {
         return !isNegative(e);
     }
 
@@ -85,7 +85,7 @@ public class SignedGraphAnalyzer {
      */
     public int countPositiveEdges() {
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) count++;
         }
         return count;
@@ -97,7 +97,7 @@ public class SignedGraphAnalyzer {
      */
     public int countNegativeEdges() {
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isNegative(e)) count++;
         }
         return count;
@@ -123,13 +123,13 @@ public class SignedGraphAnalyzer {
     public Map<String, Double> vertexPolarization() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
-            Collection<edge> incident = graph.getIncidentEdges(v);
+            Collection<Edge> incident = graph.getIncidentEdges(v);
             if (incident == null || incident.isEmpty()) {
                 result.put(v, 0.0);
                 continue;
             }
             long negCount = 0;
-            for (edge e : incident) {
+            for (Edge e : incident) {
                 if (isNegative(e)) negCount++;
             }
             result.put(v, (double) negCount / incident.size());
@@ -224,12 +224,12 @@ public class SignedGraphAnalyzer {
 
         // Build adjacency for fast lookup
         Map<String, Set<String>> adj = new HashMap<>();
-        Map<String, Map<String, edge>> edgeMap = new HashMap<>();
+        Map<String, Map<String, Edge>> edgeMap = new HashMap<>();
         for (String v : vertices) {
             adj.put(v, new HashSet<>());
             edgeMap.put(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -285,7 +285,7 @@ public class SignedGraphAnalyzer {
 
         // Build adjacency
         Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
         for (String start : vertices) {
             if (color.containsKey(start)) continue;
@@ -297,7 +297,7 @@ public class SignedGraphAnalyzer {
                 String u = queue.poll();
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     int expectedColor = isNegative(e) ? (1 - cu) : cu;
                     if (color.containsKey(v)) {
                         if (color.get(v) != expectedColor) return false;
@@ -313,7 +313,7 @@ public class SignedGraphAnalyzer {
 
     /**
      * Tests if the graph is weakly balanced (Davis's criterion).
-     * Weakly balanced iff no cycle has exactly one negative edge.
+     * Weakly balanced iff no cycle has exactly one negative Edge.
      * Equivalent to: no ++-triangle exists.
      *
      * <p>For efficiency, checks triangle census for ppn = 0 (necessary condition)
@@ -325,16 +325,16 @@ public class SignedGraphAnalyzer {
         if (graph.getVertexCount() == 0) return true;
         // Weak balance: vertices can be partitioned into k≥2 groups,
         // positive within, negative between.
-        // Check: the positive-edge subgraph's connected components must have
+        // Check: the positive-Edge subgraph's connected components must have
         // only negative edges between them.
         Map<String, Integer> component = new HashMap<>();
         Map<String, List<String>> posAdj = new HashMap<>();
         for (String v : graph.getVertices()) {
             posAdj.put(v, new ArrayList<>());
         }
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -365,7 +365,7 @@ public class SignedGraphAnalyzer {
         }
 
         // Check that all negative edges go between different components
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isNegative(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -382,7 +382,7 @@ public class SignedGraphAnalyzer {
     /**
      * Finds coalitions (groups) in a balanced or near-balanced graph.
      * Uses the 2-coloring from strong balance check if balanced,
-     * otherwise uses positive-edge connected components.
+     * otherwise uses positive-Edge connected components.
      *
      * @return list of coalitions (each is a set of vertex names)
      */
@@ -399,7 +399,7 @@ public class SignedGraphAnalyzer {
     private List<Set<String>> findStrongCoalitions() {
         Map<String, Integer> color = new HashMap<>();
         Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
         for (String start : graph.getVertices()) {
             if (color.containsKey(start)) continue;
@@ -411,7 +411,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -426,13 +426,13 @@ public class SignedGraphAnalyzer {
     }
 
     private List<Set<String>> findWeakCoalitions() {
-        // Use positive-edge connected components
+        // Use positive-Edge connected components
         Map<String, Integer> component = new HashMap<>();
         Map<String, List<String>> posAdj = new HashMap<>();
         for (String v : graph.getVertices()) {
             posAdj.put(v, new ArrayList<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -495,7 +495,7 @@ public class SignedGraphAnalyzer {
         Map<String, Integer> idx = new HashMap<>();
         for (int i = 0; i < n; i++) idx.put(vertices.get(i), i);
 
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
         Map<String, List<String>> adj = buildAdjacency();
 
         int bestFrustration = graph.getEdgeCount(); // worst case
@@ -504,7 +504,7 @@ public class SignedGraphAnalyzer {
         int limit = 1 << (n - 1);
         for (int mask = 0; mask < limit; mask++) {
             int frustration = 0;
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
                 String u = it.next();
@@ -513,7 +513,7 @@ public class SignedGraphAnalyzer {
                 int iv = idx.get(v);
                 boolean sameGroup = getBit(mask, iu) == getBit(mask, iv);
                 boolean pos = isPositive(e);
-                // Frustrated if: positive edge between groups, or negative edge within group
+                // Frustrated if: positive Edge between groups, or negative Edge within group
                 if ((pos && !sameGroup) || (!pos && sameGroup)) {
                     frustration++;
                 }
@@ -533,7 +533,7 @@ public class SignedGraphAnalyzer {
         // Greedy: start with BFS coloring, count frustrated edges
         Map<String, Integer> color = new HashMap<>();
         Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
         for (String start : vertices) {
             if (color.containsKey(start)) continue;
@@ -545,7 +545,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -553,7 +553,7 @@ public class SignedGraphAnalyzer {
         }
 
         int frustration = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -573,13 +573,13 @@ public class SignedGraphAnalyzer {
      *
      * @return list of frustrated edges
      */
-    public List<edge> findFrustratedEdges() {
+    public List<Edge> findFrustratedEdges() {
         if (graph.getEdgeCount() == 0) return Collections.emptyList();
 
         Map<String, Integer> color = computePartition();
-        List<edge> frustrated = new ArrayList<>();
+        List<Edge> frustrated = new ArrayList<>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -596,7 +596,7 @@ public class SignedGraphAnalyzer {
     private Map<String, Integer> computePartition() {
         Map<String, Integer> color = new HashMap<>();
         Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
         for (String start : graph.getVertices()) {
             if (color.containsKey(start)) continue;
@@ -608,7 +608,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -620,11 +620,11 @@ public class SignedGraphAnalyzer {
     // ---- Sign Prediction ----
 
     /**
-     * Predicts the sign of a potential edge between two vertices based on
+     * Predicts the sign of a potential Edge between two vertices based on
      * mutual neighbor signs (triadic closure principle).
      *
      * <p>For each mutual neighbor w: if sign(u,w) * sign(w,v) is positive,
-     * it votes for a positive edge; otherwise negative. Majority wins.</p>
+     * it votes for a positive Edge; otherwise negative. Majority wins.</p>
      *
      * @param u first vertex
      * @param v second vertex
@@ -639,7 +639,7 @@ public class SignedGraphAnalyzer {
             throw new IllegalArgumentException("Vertex not found: " + v);
         }
 
-        Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
         Set<String> neighborsU = new HashSet<>(edgeMap.getOrDefault(u, Collections.emptyMap()).keySet());
         Set<String> neighborsV = new HashSet<>(edgeMap.getOrDefault(v, Collections.emptyMap()).keySet());
 
@@ -771,7 +771,7 @@ public class SignedGraphAnalyzer {
         for (String v : graph.getVertices()) {
             adj.put(v, new ArrayList<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -782,12 +782,12 @@ public class SignedGraphAnalyzer {
         return adj;
     }
 
-    private Map<String, Map<String, edge>> buildEdgeMap() {
-        Map<String, Map<String, edge>> edgeMap = new HashMap<>();
+    private Map<String, Map<String, Edge>> buildEdgeMap() {
+        Map<String, Map<String, Edge>> edgeMap = new HashMap<>();
         for (String v : graph.getVertices()) {
             edgeMap.put(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();

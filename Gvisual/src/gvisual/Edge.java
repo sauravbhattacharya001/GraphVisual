@@ -8,17 +8,17 @@ package gvisual;
  *
  * @author user
  */
-public class edge {
+public class Edge {
     private String edgeType;
     private String vertex1;
     private String vertex2;
     private float weight;
     private String label;
-    private Long timestamp;       // epoch millis (null = static/untimed edge)
+    private Long timestamp;       // epoch millis (null = static/untimed Edge)
     private Long endTimestamp;     // optional: for interval-based edges
     /**
-     * returns the type of the edge
-     * @return returns the type of the edge. Values in (f,fs,c,s,sg)
+     * returns the type of the Edge
+     * @return returns the type of the Edge. Values in (f,fs,c,s,sg)
      */
     public String getType()
     {
@@ -26,8 +26,8 @@ public class edge {
     }
 
     /**
-     * returns first vertex of the edge
-     * @return returns first vertex of the edge
+     * returns first vertex of the Edge
+     * @return returns first vertex of the Edge
      */
     public String getVertex1()
     {
@@ -35,8 +35,8 @@ public class edge {
     }
 
     /**
-     * returns second vertex of the edge
-     * @return returns second vertex of the edge
+     * returns second vertex of the Edge
+     * @return returns second vertex of the Edge
      */
     public String getVertex2()
     {
@@ -46,17 +46,17 @@ public class edge {
     /**
      * Constructor
      */
-    public edge()
+    public Edge()
     {
     }
 
     /**
      * Constructor
-     * @param edgeType Type of the edge
+     * @param edgeType Type of the Edge
      * @param vertex1 vertex id
      * @param vertex2 vertex id
      */
-    public edge(String edgeType,String vertex1,String vertex2)
+    public Edge(String edgeType,String vertex1,String vertex2)
     {
         this.edgeType = edgeType;
         this.vertex1 = vertex1;
@@ -84,7 +84,7 @@ public class edge {
     }
 
     /**
-     * Sets the timestamp (epoch millis) when this edge was first active.
+     * Sets the timestamp (epoch millis) when this Edge was first active.
      * @param timestamp epoch millis, or null for untimed edges
      */
     public void setTimestamp(Long timestamp)
@@ -93,8 +93,8 @@ public class edge {
     }
 
     /**
-     * Gets the timestamp (epoch millis) when this edge was first active.
-     * @return epoch millis, or null if this is an untimed/static edge
+     * Gets the timestamp (epoch millis) when this Edge was first active.
+     * @return epoch millis, or null if this is an untimed/static Edge
      */
     public Long getTimestamp()
     {
@@ -112,7 +112,7 @@ public class edge {
 
     /**
      * Gets the end timestamp (epoch millis) for interval-based edges.
-     * @return epoch millis, or null if this is a point-in-time or open-ended edge
+     * @return epoch millis, or null if this is a point-in-time or open-ended Edge
      */
     public Long getEndTimestamp()
     {
@@ -120,13 +120,13 @@ public class edge {
     }
 
     /**
-     * Checks whether this edge is active at a specific point in time.
+     * Checks whether this Edge is active at a specific point in time.
      * Untimed edges (null timestamp) are always considered active.
      * Point-in-time edges (no endTimestamp) are active only at their exact timestamp.
      * Interval edges are active within [timestamp, endTimestamp].
      *
      * @param time the time to check (epoch millis)
-     * @return true if the edge is active at the given time
+     * @return true if the Edge is active at the given time
      */
     public boolean isActiveAt(long time)
     {
@@ -136,12 +136,12 @@ public class edge {
     }
 
     /**
-     * Checks whether this edge is active during any part of the given time range.
+     * Checks whether this Edge is active during any part of the given time range.
      * Untimed edges are always considered active.
      *
      * @param start range start (epoch millis, inclusive)
      * @param end range end (epoch millis, inclusive)
-     * @return true if the edge overlaps with [start, end]
+     * @return true if the Edge overlaps with [start, end]
      */
     public boolean isActiveDuring(long start, long end)
     {

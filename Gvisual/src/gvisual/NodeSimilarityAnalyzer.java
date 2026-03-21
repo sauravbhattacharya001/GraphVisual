@@ -66,7 +66,7 @@ public class NodeSimilarityAnalyzer {
         }
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     // Cached neighbor sets for performance
     private final Map<String, Set<String>> neighborCache;
 
@@ -76,7 +76,7 @@ public class NodeSimilarityAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public NodeSimilarityAnalyzer(Graph<String, edge> graph) {
+    public NodeSimilarityAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

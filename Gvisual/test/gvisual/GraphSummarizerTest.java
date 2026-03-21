@@ -13,27 +13,27 @@ import java.util.*;
  */
 public class GraphSummarizerTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> friends, fs, classmates, strangers, studyG;
+    private Graph<String, Edge> graph;
+    private List<Edge> friends, fs, classmates, strangers, studyG;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
-        friends = new ArrayList<edge>();
-        fs = new ArrayList<edge>();
-        classmates = new ArrayList<edge>();
-        strangers = new ArrayList<edge>();
-        studyG = new ArrayList<edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
+        friends = new ArrayList<Edge>();
+        fs = new ArrayList<Edge>();
+        classmates = new ArrayList<Edge>();
+        strangers = new ArrayList<Edge>();
+        studyG = new ArrayList<Edge>();
     }
 
     private GraphSummarizer makeSummarizer() {
         return new GraphSummarizer(graph, friends, fs, classmates, strangers, studyG);
     }
 
-    private edge addEdge(String v1, String v2, String typeCode) {
+    private Edge addEdge(String v1, String v2, String typeCode) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge(typeCode, v1, v2);
+        Edge e = new Edge(typeCode, v1, v2);
         e.setWeight(50.0f);
         graph.addEdge(e, v1, v2);
         return e;
@@ -63,7 +63,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testSmallNetwork() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String overview = s.getOverviewSection();
@@ -78,7 +78,7 @@ public class GraphSummarizerTest {
             graph.addVertex("N" + i);
         }
         for (int i = 0; i < 19; i++) {
-            edge e = addEdge("N" + i, "N" + (i + 1), "c");
+            Edge e = addEdge("N" + i, "N" + (i + 1), "c");
             classmates.add(e);
         }
         GraphSummarizer s = makeSummarizer();
@@ -87,9 +87,9 @@ public class GraphSummarizerTest {
 
     @Test
     public void testDensitySection() {
-        edge e1 = addEdge("A", "B", "f");
-        edge e2 = addEdge("B", "C", "f");
-        edge e3 = addEdge("A", "C", "f");
+        Edge e1 = addEdge("A", "B", "f");
+        Edge e2 = addEdge("B", "C", "f");
+        Edge e3 = addEdge("A", "C", "f");
         friends.add(e1);
         friends.add(e2);
         friends.add(e3);
@@ -102,7 +102,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testConnectivitySingleComponent() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String conn = s.getConnectivitySection();
@@ -111,7 +111,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testConnectivityMultipleComponents() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         graph.addVertex("C"); // isolated
         GraphSummarizer s = makeSummarizer();
@@ -122,7 +122,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testCompositionAllFriends() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String comp = s.getCompositionSection();
@@ -132,9 +132,9 @@ public class GraphSummarizerTest {
 
     @Test
     public void testCompositionMixed() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
-        edge e2 = addEdge("B", "C", "s");
+        Edge e2 = addEdge("B", "C", "s");
         strangers.add(e2);
         GraphSummarizer s = makeSummarizer();
         String comp = s.getCompositionSection();
@@ -152,9 +152,9 @@ public class GraphSummarizerTest {
 
     @Test
     public void testHubSection() {
-        edge e1 = addEdge("Hub", "A", "f");
-        edge e2 = addEdge("Hub", "B", "f");
-        edge e3 = addEdge("Hub", "C", "f");
+        Edge e1 = addEdge("Hub", "A", "f");
+        Edge e2 = addEdge("Hub", "B", "f");
+        Edge e3 = addEdge("Hub", "C", "f");
         friends.add(e1);
         friends.add(e2);
         friends.add(e3);
@@ -174,9 +174,9 @@ public class GraphSummarizerTest {
     @Test
     public void testStructuralObservationsTree() {
         // 4-node tree: A-B, B-C, C-D (3 edges, 4 nodes, connected)
-        edge e1 = addEdge("A", "B", "f");
-        edge e2 = addEdge("B", "C", "f");
-        edge e3 = addEdge("C", "D", "f");
+        Edge e1 = addEdge("A", "B", "f");
+        Edge e2 = addEdge("B", "C", "f");
+        Edge e3 = addEdge("C", "D", "f");
         friends.add(e1);
         friends.add(e2);
         friends.add(e3);
@@ -188,11 +188,11 @@ public class GraphSummarizerTest {
     @Test
     public void testStructuralObservationsNearComplete() {
         // 4-node near-complete: 5 out of 6 edges → density 0.833
-        edge e1 = addEdge("A", "B", "f");
-        edge e2 = addEdge("A", "C", "f");
-        edge e3 = addEdge("A", "D", "f");
-        edge e4 = addEdge("B", "C", "f");
-        edge e5 = addEdge("B", "D", "f");
+        Edge e1 = addEdge("A", "B", "f");
+        Edge e2 = addEdge("A", "C", "f");
+        Edge e3 = addEdge("A", "D", "f");
+        Edge e4 = addEdge("B", "C", "f");
+        Edge e5 = addEdge("B", "D", "f");
         friends.add(e1); friends.add(e2); friends.add(e3);
         friends.add(e4); friends.add(e5);
         GraphSummarizer s = makeSummarizer();
@@ -202,7 +202,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testFullSummaryContainsAllSections() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String full = s.generateSummary();
@@ -222,7 +222,7 @@ public class GraphSummarizerTest {
 
     @Test
     public void testOneLinerFormat() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String line = s.getOneLiner();
@@ -234,10 +234,10 @@ public class GraphSummarizerTest {
 
     @Test
     public void testAverageWeightObservation() {
-        edge e1 = addEdge("A", "B", "f");
+        Edge e1 = addEdge("A", "B", "f");
         friends.add(e1);
         GraphSummarizer s = makeSummarizer();
         String obs = s.getStructuralObservations();
-        assertTrue(obs.contains("Average edge weight"));
+        assertTrue(obs.contains("Average Edge weight"));
     }
 }

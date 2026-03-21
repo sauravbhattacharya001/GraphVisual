@@ -14,15 +14,15 @@ import static org.junit.Assert.*;
  */
 public class VertexCoverAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -325,7 +325,7 @@ public class VertexCoverAnalyzerTest {
         VertexCoverAnalyzer a = new VertexCoverAnalyzer(graph);
         Set<String> cover = new HashSet<String>(Arrays.asList("A"));
         List<String[]> uncovered = a.uncoveredEdges(cover);
-        // B-C is the only uncovered edge
+        // B-C is the only uncovered Edge
         assertEquals(1, uncovered.size());
     }
 
