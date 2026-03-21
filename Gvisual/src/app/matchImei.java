@@ -2,6 +2,8 @@
 package app;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Maps Bluetooth node identifiers to IMEI device identifiers in trace data.
@@ -11,6 +13,11 @@ import java.sql.*;
  * matching by {@code sndrnode}, then by {@code srcnode} for records where
  * the sender node is empty. Only considers records with RSSI above a
  * configurable threshold to filter out noise from distant devices.</p>
+ *
+ * <p><b>Performance:</b> Device lookups use an in-memory {@link HashMap}
+ * (O(1) per lookup) instead of the previous nested ResultSet scan
+ * (O(devices) per event row), reducing overall complexity from
+ * O(events × devices) to O(events + devices).</p>
  *
  * @author zalenix
  */
@@ -33,92 +40,118 @@ public class matchImei {
             "SELECT DISTINCT srcnode FROM event_3 WHERE sndrnode = '' AND rssi >= ?";
 
     /**
+     * Loads the device_1 table into a HashMap for O(1) node→IMEI lookups.
+     *
+     * @param conn database connection
+     * @return map from node identifier to IMEI string
+     */
+    private static Map<String, String> loadDeviceMap(Connection conn) throws SQLException {
+        Map<String, String> deviceMap = new HashMap<>();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT DISTINCT * FROM device_1")) {
+            while (rs.next()) {
+                String node = rs.getString(1);
+                String imei = rs.getString(2);
+                if (node != null && imei != null) {
+                    deviceMap.put(node, imei);
+                }
+            }
+        }
+        System.out.println("device map loaded: " + deviceMap.size() + " entries");
+        return deviceMap;
+    }
+
+    /**
+     * Matches event nodes to IMEIs and batch-updates the database.
+     *
+     * @param deviceMap  node→IMEI lookup map
+     * @param selectStmt prepared statement to fetch distinct nodes
+     * @param updateStmt prepared statement to update sndrimei
+     * @param nodeType   label for logging ("sndrnode" or "srcnode")
+     * @param batchSize  number of updates to accumulate before flushing
+     */
+    private static void matchAndUpdate(Map<String, String> deviceMap,
+                                       PreparedStatement selectStmt,
+                                       PreparedStatement updateStmt,
+                                       String nodeType,
+                                       int batchSize) throws SQLException {
+        try (ResultSet rs = selectStmt.executeQuery()) {
+            int matched = 0;
+            int unmatched = 0;
+            int batchCount = 0;
+
+            while (rs.next()) {
+                String node = rs.getString(1);
+                String imei = deviceMap.get(node);
+
+                if (imei != null) {
+                    matched++;
+                    updateStmt.setString(1, imei);
+                    updateStmt.setString(2, node);
+                    updateStmt.addBatch();
+                    batchCount++;
+
+                    if (batchCount >= batchSize) {
+                        updateStmt.executeBatch();
+                        System.out.println("  flushed batch (" + matched + " matched so far)");
+                        batchCount = 0;
+                    }
+                } else {
+                    unmatched++;
+                }
+            }
+
+            // Flush remaining
+            if (batchCount > 0) {
+                updateStmt.executeBatch();
+            }
+
+            System.out.println("all " + nodeType + " matched: "
+                    + matched + " resolved, " + unmatched + " unmatched");
+        }
+    }
+
+    /**
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
         int Thres = -900;
+        int BATCH_SIZE = 500;
 
         System.out.println("connecting...");
 
-        try (Connection conn = Util.getAppConnection();
-             Statement stmt1 = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-             PreparedStatement updateBySndrnode = conn.prepareStatement(UPDATE_BY_SNDRNODE_SQL);
-             PreparedStatement updateBySrcnode = conn.prepareStatement(UPDATE_BY_SRCNODE_SQL);
-             PreparedStatement selectSndrnode = conn.prepareStatement(SELECT_SNDRNODE_SQL,
-                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-             PreparedStatement selectSrcnode = conn.prepareStatement(SELECT_SRCNODE_SQL,
-                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        try (Connection conn = Util.getAppConnection()) {
+            // Disable auto-commit for batch performance
+            boolean origAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
 
-            System.out.println("fetching device...");
-            try (ResultSet rs_device = stmt1.executeQuery("SELECT DISTINCT * FROM device_1")) {
-                System.out.println("device fetched...");
+            try {
+                // Load device table into memory once — O(devices)
+                Map<String, String> deviceMap = loadDeviceMap(conn);
 
-                // --- Match by sndrnode ---
-                int numEventsDone;
-                System.out.println("fetching event(sndrnode)...");
+                try (PreparedStatement updateBySndrnode = conn.prepareStatement(UPDATE_BY_SNDRNODE_SQL);
+                     PreparedStatement updateBySrcnode = conn.prepareStatement(UPDATE_BY_SRCNODE_SQL);
+                     PreparedStatement selectSndrnode = conn.prepareStatement(SELECT_SNDRNODE_SQL);
+                     PreparedStatement selectSrcnode = conn.prepareStatement(SELECT_SRCNODE_SQL)) {
 
-                selectSndrnode.setInt(1, Thres);
-                try (ResultSet rs_event = selectSndrnode.executeQuery()) {
-                    rs_event.last();
-                    System.out.println("event(sndrnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
+                    // --- Match by sndrnode ---
+                    System.out.println("matching by sndrnode...");
+                    selectSndrnode.setInt(1, Thres);
+                    matchAndUpdate(deviceMap, selectSndrnode, updateBySndrnode, "sndrnode", BATCH_SIZE);
 
-                    numEventsDone = 0;
-                    while (rs_event.next()) {
-                        numEventsDone++;
-                        System.out.println("Done = " + numEventsDone);
-                        System.out.println("trying match imei with sndrnode " + rs_event.getString(1));
-
-                        rs_device.first();
-                        while (rs_device.next()) {
-                            if (rs_device.getString(1).equals(rs_event.getString(1))) {
-                                String imei = rs_device.getString(2);
-                                String sndrnode = rs_event.getString(1);
-                                System.out.println(imei);
-                                System.out.println("matched sndrnode " + sndrnode + "\n");
-
-                                updateBySndrnode.setString(1, imei);
-                                updateBySndrnode.setString(2, sndrnode);
-                                updateBySndrnode.executeUpdate();
-                                break;
-                            }
-                        }
-                    }
+                    // --- Match by srcnode ---
+                    System.out.println("matching by srcnode...");
+                    selectSrcnode.setInt(1, Thres);
+                    matchAndUpdate(deviceMap, selectSrcnode, updateBySrcnode, "srcnode", BATCH_SIZE);
                 }
-                System.out.println("all sndrnodes matched\n");
 
-                // --- Match by srcnode ---
-                System.out.println("fetching event(srcnode)...");
-
-                selectSrcnode.setInt(1, Thres);
-                try (ResultSet rs_event = selectSrcnode.executeQuery()) {
-                    rs_event.last();
-                    System.out.println("event(srcnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
-
-                    numEventsDone = 0;
-                    while (rs_event.next()) {
-                        numEventsDone++;
-                        System.out.println("Done = " + numEventsDone);
-                        System.out.println("trying match imei with srcnode " + rs_event.getString(1));
-
-                        rs_device.first();
-                        while (rs_device.next()) {
-                            if (rs_device.getString(1).equals(rs_event.getString(1))) {
-                                String imei = rs_device.getString(2);
-                                String srcnode = rs_event.getString(1);
-                                System.out.println(imei);
-                                System.out.println("matched srcnode " + srcnode + "\n");
-
-                                updateBySrcnode.setString(1, imei);
-                                updateBySrcnode.setString(2, srcnode);
-                                updateBySrcnode.executeUpdate();
-                                break;
-                            }
-                        }
-                    }
-                }
-                System.out.println("all srcnodes matched\n");
+                conn.commit();
+                System.out.println("all updates committed successfully");
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(origAutoCommit);
             }
         }
     }
