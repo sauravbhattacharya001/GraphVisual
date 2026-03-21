@@ -17,20 +17,20 @@ public class GraphNetworkProfilerTest {
 
     // ── Helpers ─────────────────────────────────────────────────
 
-    private static Graph<String, edge> emptyGraph() {
+    private static Graph<String, Edge> emptyGraph() {
         return new UndirectedSparseGraph<>();
     }
 
     private static int edgeCounter = 0;
 
-    private static void addEdge(Graph<String, edge> g, String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private static void addEdge(Graph<String, Edge> g, String v1, String v2) {
+        edge e = new Edge("f", v1, v2);
         e.setLabel("e" + (edgeCounter++));
         g.addEdge(e, v1, v2);
     }
 
-    private static Graph<String, edge> completeGraph(int n) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> completeGraph(int n) {
+        Graph<String, Edge> g = emptyGraph();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         for (int i = 0; i < n; i++)
             for (int j = i + 1; j < n; j++)
@@ -38,8 +38,8 @@ public class GraphNetworkProfilerTest {
         return g;
     }
 
-    private static Graph<String, edge> starGraph(int spokes) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> starGraph(int spokes) {
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("hub");
         for (int i = 0; i < spokes; i++) {
             String s = "s" + i;
@@ -48,21 +48,21 @@ public class GraphNetworkProfilerTest {
         return g;
     }
 
-    private static Graph<String, edge> pathGraph(int n) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> pathGraph(int n) {
+        Graph<String, Edge> g = emptyGraph();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         for (int i = 0; i < n - 1; i++) addEdge(g, "v" + i, "v" + (i + 1));
         return g;
     }
 
-    private static Graph<String, edge> ringGraph(int n) {
-        Graph<String, edge> g = pathGraph(n);
+    private static Graph<String, Edge> ringGraph(int n) {
+        Graph<String, Edge> g = pathGraph(n);
         addEdge(g, "v0", "v" + (n - 1));
         return g;
     }
 
-    private static Graph<String, edge> gridGraph(int rows, int cols) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> gridGraph(int rows, int cols) {
+        Graph<String, Edge> g = emptyGraph();
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
                 g.addVertex(r + "," + c);
@@ -87,7 +87,7 @@ public class GraphNetworkProfilerTest {
 
     @Test
     public void testSingleVertex() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("a");
         GraphNetworkProfiler p = new GraphNetworkProfiler(g);
         p.analyze();
@@ -98,7 +98,7 @@ public class GraphNetworkProfilerTest {
 
     @Test
     public void testTwoConnectedVertices() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "a", "b");
         GraphNetworkProfiler p = new GraphNetworkProfiler(g);
         p.analyze();
@@ -182,7 +182,7 @@ public class GraphNetworkProfilerTest {
 
     @Test
     public void testDisconnectedGraph() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "a", "b");
         addEdge(g, "c", "d");
         g.addVertex("e"); // isolate
@@ -369,7 +369,7 @@ public class GraphNetworkProfilerTest {
     @Test
     public void testLargeGraph() {
         // BA-style: start with K3, attach new nodes
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "v0", "v1");
         addEdge(g, "v1", "v2");
         addEdge(g, "v0", "v2");
@@ -396,7 +396,7 @@ public class GraphNetworkProfilerTest {
 
     @Test
     public void testDeterministicWithSeed() {
-        Graph<String, edge> g = gridGraph(5, 5);
+        Graph<String, Edge> g = gridGraph(5, 5);
         GraphNetworkProfiler p1 = new GraphNetworkProfiler(g, new Random(42));
         GraphNetworkProfiler p2 = new GraphNetworkProfiler(g, new Random(42));
         p1.analyze();
@@ -428,7 +428,7 @@ public class GraphNetworkProfilerTest {
 
     @Test
     public void testCorePeripheryShape() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         // Dense core of 5 nodes
         for (int i = 0; i < 5; i++)
             for (int j = i + 1; j < 5; j++)

@@ -24,12 +24,12 @@ public class CentralityPanelController {
     private final JButton computeButton;
     private final JButton clearButton;
 
-    private final Supplier<Graph<String, edge>> graphSupplier;
+    private final Supplier<Graph<String, Edge>> graphSupplier;
 
     private boolean active;
     private final Map<String, NodeCentralityAnalyzer.CentralityResult> results = new HashMap<>();
 
-    public CentralityPanelController(Supplier<Graph<String, edge>> graphSupplier) {
+    public CentralityPanelController(Supplier<Graph<String, Edge>> graphSupplier) {
         this.graphSupplier = graphSupplier;
 
         Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
@@ -106,7 +106,7 @@ public class CentralityPanelController {
     }
 
     private void runAnalysis() {
-        Graph<String, edge> g = graphSupplier.get();
+        Graph<String, Edge> g = graphSupplier.get();
         if (g == null || g.getVertexCount() == 0) {
             summaryLabel.setText("<html>No graph loaded.</html>");
             return;

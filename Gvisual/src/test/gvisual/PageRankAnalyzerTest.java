@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 public class PageRankAnalyzerTest {
 
     private static final double EPSILON = 1e-4;
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -77,7 +77,7 @@ public class PageRankAnalyzerTest {
         // In a complete graph, all nodes should have equal PageRank
         GraphGenerator gen = new GraphGenerator(42);
         GraphGenerator.GeneratedGraph gg = gen.complete(5);
-        Graph<String, edge> g = gg.getGraph();
+        Graph<String, Edge> g = gg.getGraph();
 
         PageRankAnalyzer pr = new PageRankAnalyzer(g);
         pr.compute();
@@ -94,7 +94,7 @@ public class PageRankAnalyzerTest {
     public void testRingGraphUniformRanks() {
         GraphGenerator gen = new GraphGenerator(42);
         GraphGenerator.GeneratedGraph gg = gen.ring(6);
-        Graph<String, edge> g = gg.getGraph();
+        Graph<String, Edge> g = gg.getGraph();
 
         PageRankAnalyzer pr = new PageRankAnalyzer(g);
         pr.compute();
@@ -111,7 +111,7 @@ public class PageRankAnalyzerTest {
     public void testStarGraphHubHighestRank() {
         GraphGenerator gen = new GraphGenerator(42);
         GraphGenerator.GeneratedGraph gg = gen.star(6);
-        Graph<String, edge> g = gg.getGraph();
+        Graph<String, Edge> g = gg.getGraph();
 
         PageRankAnalyzer pr = new PageRankAnalyzer(g);
         pr.compute();
@@ -130,7 +130,7 @@ public class PageRankAnalyzerTest {
     public void testRanksSumToOne() {
         GraphGenerator gen = new GraphGenerator(42);
         GraphGenerator.GeneratedGraph gg = gen.scaleFreeBa(20, 2);
-        Graph<String, edge> g = gg.getGraph();
+        Graph<String, Edge> g = gg.getGraph();
 
         PageRankAnalyzer pr = new PageRankAnalyzer(g);
         pr.compute();
@@ -228,7 +228,7 @@ public class PageRankAnalyzerTest {
     public void testGetTopK() {
         GraphGenerator gen = new GraphGenerator(42);
         GraphGenerator.GeneratedGraph gg = gen.scaleFreeBa(20, 2);
-        Graph<String, edge> g = gg.getGraph();
+        Graph<String, Edge> g = gg.getGraph();
 
         PageRankAnalyzer pr = new PageRankAnalyzer(g);
         pr.compute();
@@ -323,7 +323,7 @@ public class PageRankAnalyzerTest {
     private void addEdge(String v1, String v2) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setLabel("e" + (edgeId++));
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);

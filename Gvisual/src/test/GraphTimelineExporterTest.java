@@ -18,20 +18,20 @@ public class GraphTimelineExporterTest {
 
     @Before
     public void setUp() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
 
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(1000L);
         g.addEdge(e1, "A", "B");
 
-        edge e2 = new edge("c", "B", "C");
+        edge e2 = new Edge("c", "B", "C");
         e2.setTimestamp(2000L);
         g.addEdge(e2, "B", "C");
 
-        edge e3 = new edge("s", "A", "C");
+        edge e3 = new Edge("s", "A", "C");
         e3.setTimestamp(3000L);
         g.addEdge(e3, "A", "C");
 

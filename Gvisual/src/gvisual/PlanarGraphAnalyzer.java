@@ -184,7 +184,7 @@ public final class PlanarGraphAnalyzer {
      * Uses Euler's formula bound (E ≤ 3V - 6) as a quick reject,
      * then attempts to build a planar embedding via ordered DFS.
      */
-    public static PlanarityResult testPlanarity(Graph<String, edge> graph) {
+    public static PlanarityResult testPlanarity(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("graph is null");
 
         int V = graph.getVertexCount();
@@ -221,7 +221,7 @@ public final class PlanarGraphAnalyzer {
      * Enumerates all faces of a planar graph by building a combinatorial
      * embedding and tracing face-walks. Returns null if non-planar.
      */
-    public static List<Face> enumerateFaces(Graph<String, edge> graph) {
+    public static List<Face> enumerateFaces(Graph<String, Edge> graph) {
         PlanarityResult pr = testPlanarity(graph);
         if (!pr.isPlanar()) return null;
 
@@ -294,7 +294,7 @@ public final class PlanarGraphAnalyzer {
      * Each face becomes a node; two nodes are adjacent if their faces
      * share an edge.
      */
-    public static DualGraph buildDualGraph(Graph<String, edge> graph) {
+    public static DualGraph buildDualGraph(Graph<String, Edge> graph) {
         List<Face> faces = enumerateFaces(graph);
         if (faces == null) return null;
 
@@ -339,7 +339,7 @@ public final class PlanarGraphAnalyzer {
      * Returns null if the graph is planar.
      */
     public static KuratowskiSubgraph findKuratowskiSubgraph(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         PlanarityResult pr = testPlanarity(graph);
         if (pr.isPlanar()) return null;
 
@@ -361,7 +361,7 @@ public final class PlanarGraphAnalyzer {
     /**
      * Generates a comprehensive planarity report.
      */
-    public static PlanarityReport analyze(Graph<String, edge> graph) {
+    public static PlanarityReport analyze(Graph<String, Edge> graph) {
         PlanarityResult result = testPlanarity(graph);
         List<Face> faces = null;
         DualGraph dual = null;
@@ -449,7 +449,7 @@ public final class PlanarGraphAnalyzer {
     }
 
     /** Count connected components via BFS. */
-    static int countComponents(Graph<String, edge> graph) {
+    static int countComponents(Graph<String, Edge> graph) {
         Set<String> visited = new HashSet<String>();
         int count = 0;
         for (String v : graph.getVertices()) {
@@ -479,7 +479,7 @@ public final class PlanarGraphAnalyzer {
      * Uses a proper graph minor / subdivision check approach.
      */
     private static boolean attemptPlanarEmbedding(
-            Map<String, Set<String>> adj, Graph<String, edge> graph) {
+            Map<String, Set<String>> adj, Graph<String, Edge> graph) {
         // Decompose into biconnected components and test each
         List<Set<String>> bicomponents = findBiconnectedComponents(adj);
 
@@ -841,7 +841,7 @@ public final class PlanarGraphAnalyzer {
      * neighbors by angle.
      */
     private static Map<String, List<String>> buildPlanarEmbedding(
-            Graph<String, edge> graph) {
+            Graph<String, Edge> graph) {
         Map<String, List<String>> embedding = new LinkedHashMap<String, List<String>>();
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
         List<String> vertices = new ArrayList<String>(graph.getVertices());
@@ -926,7 +926,7 @@ public final class PlanarGraphAnalyzer {
 
     /** Try to find a K₅ subdivision by looking for 5 high-degree vertices. */
     private static KuratowskiSubgraph findK5Subdivision(
-            Map<String, Set<String>> adj, Graph<String, edge> graph) {
+            Map<String, Set<String>> adj, Graph<String, Edge> graph) {
         // Find vertices with degree >= 4 as candidates
         List<String> candidates = new ArrayList<String>();
         for (Map.Entry<String, Set<String>> entry : adj.entrySet()) {
@@ -964,7 +964,7 @@ public final class PlanarGraphAnalyzer {
 
     /** Try to find a K₃,₃ subdivision. */
     private static KuratowskiSubgraph findK33Subdivision(
-            Map<String, Set<String>> adj, Graph<String, edge> graph) {
+            Map<String, Set<String>> adj, Graph<String, Edge> graph) {
         List<String> candidates = new ArrayList<String>();
         for (Map.Entry<String, Set<String>> entry : adj.entrySet()) {
             if (entry.getValue().size() >= 3) {

@@ -19,18 +19,18 @@ public class CycleAnalyzerTest {
 
     private static int edgeCounter = 0;
 
-    private static edge addEdge(Graph<String, edge> g, String v1, String v2) {
+    private static edge addEdge(Graph<String, Edge> g, String v1, String v2) {
         g.addVertex(v1);
         g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         g.addEdge(e, v1, v2);
         return e;
     }
 
-    private static edge addWeightedEdge(Graph<String, edge> g, String v1, String v2, float w) {
+    private static edge addWeightedEdge(Graph<String, Edge> g, String v1, String v2, float w) {
         g.addVertex(v1);
         g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setWeight(w);
         g.addEdge(e, v1, v2);
         return e;
@@ -47,14 +47,14 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testEmptyGraphHasNoCycles() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         CycleAnalyzer ca = new CycleAnalyzer(g);
         assertFalse(ca.hasCycles());
     }
 
     @Test
     public void testSingleVertexNoCycle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         assertFalse(new CycleAnalyzer(g).hasCycles());
     }
@@ -62,7 +62,7 @@ public class CycleAnalyzerTest {
     @Test
     public void testTreeNoCycleUndirected() {
         // A-B-C (path, no cycle)
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         assertFalse(new CycleAnalyzer(g).hasCycles());
@@ -70,7 +70,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testTriangleCycleUndirected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -79,7 +79,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testSquareCycleUndirected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -91,7 +91,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testDAGNoCycle() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "A", "C");
@@ -100,7 +100,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testDirectedTriangleCycle() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -109,7 +109,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testSelfLoopDirected() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "A");
         assertTrue(new CycleAnalyzer(g).hasCycles());
@@ -119,13 +119,13 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testGirthEmptyGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         assertEquals(-1, new CycleAnalyzer(g).girth());
     }
 
     @Test
     public void testGirthAcyclic() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         assertEquals(-1, new CycleAnalyzer(g).girth());
@@ -133,7 +133,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testGirthTriangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -143,7 +143,7 @@ public class CycleAnalyzerTest {
     @Test
     public void testGirthSquareWithDiagonal() {
         // Square A-B-C-D-A plus diagonal A-C → shortest cycle is triangle
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -154,7 +154,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testGirthDirectedCycle() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -165,14 +165,14 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testFundamentalBasisEmpty() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         List<CycleAnalyzer.Cycle> basis = new CycleAnalyzer(g).fundamentalCycleBasis();
         assertTrue(basis.isEmpty());
     }
 
     @Test
     public void testFundamentalBasisTree() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -183,7 +183,7 @@ public class CycleAnalyzerTest {
     @Test
     public void testFundamentalBasisSingleCycle() {
         // Triangle: 1 non-tree edge → 1 fundamental cycle
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -195,7 +195,7 @@ public class CycleAnalyzerTest {
     @Test
     public void testFundamentalBasisK4() {
         // K4: 4 vertices, 6 edges → cyclomatic number = 6 - 4 + 1 = 3
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[] verts = {"A", "B", "C", "D"};
         for (int i = 0; i < verts.length; i++) {
             for (int j = i + 1; j < verts.length; j++) {
@@ -210,7 +210,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testEnumerateNoCycles() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         CycleAnalyzer.CycleEnumerationResult r = new CycleAnalyzer(g).findAllSimpleCycles();
         assertEquals(0, r.count());
@@ -219,7 +219,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testEnumerateTriangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -231,7 +231,7 @@ public class CycleAnalyzerTest {
     @Test
     public void testEnumerateWithLimit() {
         // K4 has 7 cycles — set limit to 2
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[] verts = {"A", "B", "C", "D"};
         for (int i = 0; i < verts.length; i++) {
             for (int j = i + 1; j < verts.length; j++) {
@@ -245,14 +245,14 @@ public class CycleAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testEnumerateNegativeLimit() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         new CycleAnalyzer(g).findAllSimpleCycles(-1);
     }
 
     @Test
     public void testEnumerateDirectedCycles() {
         // A→B→C→A and A→B→D→A
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -289,7 +289,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testCycleWeight() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", 1.5f);
         addWeightedEdge(g, "B", "C", 2.5f);
         addWeightedEdge(g, "C", "A", 3.0f);
@@ -307,7 +307,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testAnalyzeAcyclicGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
@@ -323,7 +323,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testAnalyzeTriangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -343,7 +343,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testAnalyzeK4() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[] verts = {"A", "B", "C", "D"};
         for (int i = 0; i < verts.length; i++) {
             for (int j = i + 1; j < verts.length; j++) {
@@ -364,7 +364,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testAnalyzeReportSummaryAcyclic() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         CycleAnalyzer.CycleReport report = new CycleAnalyzer(g).analyze();
         assertTrue(report.getSummary().contains("No cycles found"));
@@ -374,7 +374,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testDisconnectedGraphWithOneCyclicComponent() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // Component 1: triangle
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
@@ -388,7 +388,7 @@ public class CycleAnalyzerTest {
 
     @Test
     public void testDisconnectedAcyclic() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "X", "Y");
         assertFalse(new CycleAnalyzer(g).hasCycles());

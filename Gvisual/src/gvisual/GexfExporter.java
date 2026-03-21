@@ -43,8 +43,8 @@ public class GexfExporter {
     private static final String GEXF_NS = "http://gexf.net/1.3";
     private static final String VIZ_NS = "http://gexf.net/1.3/viz";
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String creator = "GraphVisual";
     private String description = "";
     private boolean includeVizData = true;
@@ -66,12 +66,12 @@ public class GexfExporter {
      * @param allEdges all edges, including those filtered from the current view
      * @throws IllegalArgumentException if graph is null
      */
-    public GexfExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public GexfExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
     }
 
     /** Sets the creator metadata field. */
@@ -182,9 +182,9 @@ public class GexfExporter {
 
         // Edges — use visible edges from the graph
         sb.append("    <edges>\n");
-        Collection<edge> edges = graph.getEdges();
+        Collection<Edge> edges = graph.getEdges();
         int edgeId = 0;
-        for (edge e : edges) {
+        for (Edge e : edges) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             // Only include edges whose vertices are in the graph
@@ -239,7 +239,7 @@ public class GexfExporter {
      * Checks whether any edge in the graph carries temporal data.
      */
     private boolean hasTemporalEdges() {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (e.getTimestamp() != null) return true;
         }
         return false;

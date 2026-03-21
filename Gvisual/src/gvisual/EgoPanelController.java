@@ -32,21 +32,21 @@ public class EgoPanelController {
     private final JLabel summaryLabel;
     private final JLabel neighborListLabel;
 
-    private final Supplier<Graph<String, edge>> graphSupplier;
+    private final Supplier<Graph<String, Edge>> graphSupplier;
     private final OverlayCallback callback;
 
     // Overlay state — read by GraphRenderers via getters
     private boolean overlayActive;
     private String center;
     private final Set<String> neighbors = new HashSet<>();
-    private final Set<edge> edges = new HashSet<>();
+    private final Set<Edge> edges = new HashSet<>();
 
     /**
      * @param graphSupplier supplies the current graph
      * @param callback      invoked after overlay state changes so the host can
      *                      call {@code syncRenderers(); vv.repaint();}
      */
-    public EgoPanelController(Supplier<Graph<String, edge>> graphSupplier,
+    public EgoPanelController(Supplier<Graph<String, Edge>> graphSupplier,
                               OverlayCallback callback) {
         this.graphSupplier = graphSupplier;
         this.callback = callback;
@@ -100,7 +100,7 @@ public class EgoPanelController {
     public boolean isOverlayActive() { return overlayActive; }
     public String getCenter() { return center; }
     public Set<String> getNeighbors() { return Collections.unmodifiableSet(neighbors); }
-    public Set<edge> getEdges() { return Collections.unmodifiableSet(edges); }
+    public Set<Edge> getEdges() { return Collections.unmodifiableSet(edges); }
 
     // ---- Search logic ----
 
@@ -110,7 +110,7 @@ public class EgoPanelController {
             summaryLabel.setText("<html>Enter a node ID.</html>");
             return;
         }
-        Graph<String, edge> g = graphSupplier.get();
+        Graph<String, Edge> g = graphSupplier.get();
         if (g == null || g.getVertexCount() == 0) {
             summaryLabel.setText("<html>No graph loaded.</html>");
             return;
@@ -153,7 +153,7 @@ public class EgoPanelController {
             neighbors.addAll(nbrs);
         }
 
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             boolean v1InEgo = v1.equals(center) || neighbors.contains(v1);
@@ -169,7 +169,7 @@ public class EgoPanelController {
 
         // Count edge types
         Map<String, Integer> typeCounts = new HashMap<>();
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             if (e.getVertex1().equals(center) || e.getVertex2().equals(center)) {
                 String typeLabel = e.getType();
                 EdgeType et = EdgeType.fromCode(e.getType());

@@ -31,7 +31,7 @@ import java.util.*;
  */
 public class TopologicalSortAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new analyzer for the given graph.
@@ -39,7 +39,7 @@ public class TopologicalSortAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public TopologicalSortAnalyzer(Graph<String, edge> graph) {
+    public TopologicalSortAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -117,18 +117,18 @@ public class TopologicalSortAnalyzer {
      */
     public static class CycleInfo {
         private final List<String> vertices;
-        private final List<edge> edges;
+        private final List<Edge> edges;
 
-        public CycleInfo(List<String> vertices, List<edge> edges) {
+        public CycleInfo(List<String> vertices, List<Edge> edges) {
             this.vertices = Collections.unmodifiableList(new ArrayList<String>(vertices));
-            this.edges = Collections.unmodifiableList(new ArrayList<edge>(edges));
+            this.edges = Collections.unmodifiableList(new ArrayList<Edge>(edges));
         }
 
         /** Vertices forming the cycle, in traversal order. */
         public List<String> getVertices() { return vertices; }
 
         /** Edges forming the cycle. */
-        public List<edge> getEdges() { return edges; }
+        public List<Edge> getEdges() { return edges; }
 
         /** Number of vertices in the cycle. */
         public int size() { return vertices.size(); }
@@ -521,7 +521,7 @@ public class TopologicalSortAnalyzer {
             if (color.get(w) == 1) {
                 // Back edge found → extract cycle
                 List<String> cycleVertices = new ArrayList<String>();
-                List<edge> cycleEdges = new ArrayList<edge>();
+                List<Edge> cycleEdges = new ArrayList<Edge>();
 
                 // Find w in the path and extract from there
                 boolean found = false;
@@ -569,7 +569,7 @@ public class TopologicalSortAnalyzer {
      * Find an edge from vertex1 to vertex2 in the graph.
      */
     private edge findEdge(String from, String to) {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (from.equals(e.getVertex1()) && to.equals(e.getVertex2())) {
                 return e;
             }

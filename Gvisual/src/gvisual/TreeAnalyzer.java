@@ -35,7 +35,7 @@ import java.util.*;
  */
 public class TreeAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new tree analyzer for the given graph.
@@ -43,7 +43,7 @@ public class TreeAnalyzer {
      * @param graph the JUNG graph to analyze (should be undirected)
      * @throws IllegalArgumentException if graph is null
      */
-    public TreeAnalyzer(Graph<String, edge> graph) {
+    public TreeAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

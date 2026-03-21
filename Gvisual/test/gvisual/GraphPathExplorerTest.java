@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class GraphPathExplorerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,7 +24,7 @@ public class GraphPathExplorerTest {
     }
 
     private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }

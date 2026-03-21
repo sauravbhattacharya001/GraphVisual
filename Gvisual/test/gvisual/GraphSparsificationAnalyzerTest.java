@@ -9,55 +9,55 @@ import java.util.*;
 
 public class GraphSparsificationAnalyzerTest {
 
-    private Graph<String, edge> triangle, path, star, complete5, disconnected, single, empty, weighted;
+    private Graph<String, Edge> triangle, path, star, complete5, disconnected, single, empty, weighted;
 
     @Before
     public void setUp() {
-        triangle = new UndirectedSparseGraph<String, edge>();
+        triangle = new UndirectedSparseGraph<String, Edge>();
         triangle.addVertex("A"); triangle.addVertex("B"); triangle.addVertex("C");
-        triangle.addEdge(new edge("f", "A", "B"), "A", "B");
-        triangle.addEdge(new edge("f", "B", "C"), "B", "C");
-        triangle.addEdge(new edge("f", "A", "C"), "A", "C");
+        triangle.addEdge(new Edge("f", "A", "B"), "A", "B");
+        triangle.addEdge(new Edge("f", "B", "C"), "B", "C");
+        triangle.addEdge(new Edge("f", "A", "C"), "A", "C");
 
-        path = new UndirectedSparseGraph<String, edge>();
+        path = new UndirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A","B","C","D"}) path.addVertex(v);
-        path.addEdge(new edge("f","A","B"),"A","B");
-        path.addEdge(new edge("f","B","C"),"B","C");
-        path.addEdge(new edge("f","C","D"),"C","D");
+        path.addEdge(new Edge("f","A","B"),"A","B");
+        path.addEdge(new Edge("f","B","C"),"B","C");
+        path.addEdge(new Edge("f","C","D"),"C","D");
 
-        star = new UndirectedSparseGraph<String, edge>();
+        star = new UndirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A","B","C","D","E"}) star.addVertex(v);
-        star.addEdge(new edge("f","A","B"),"A","B");
-        star.addEdge(new edge("f","A","C"),"A","C");
-        star.addEdge(new edge("f","A","D"),"A","D");
-        star.addEdge(new edge("f","A","E"),"A","E");
+        star.addEdge(new Edge("f","A","B"),"A","B");
+        star.addEdge(new Edge("f","A","C"),"A","C");
+        star.addEdge(new Edge("f","A","D"),"A","D");
+        star.addEdge(new Edge("f","A","E"),"A","E");
 
-        complete5 = new UndirectedSparseGraph<String, edge>();
+        complete5 = new UndirectedSparseGraph<String, Edge>();
         String[] k5 = {"A","B","C","D","E"};
         for (String v : k5) complete5.addVertex(v);
         for (int i = 0; i < k5.length; i++)
             for (int j = i+1; j < k5.length; j++) {
-                edge e = new edge("f", k5[i], k5[j]); e.setWeight((float)(i+j));
+                Edge e = new Edge("f", k5[i], k5[j]); e.setWeight((float)(i+j));
                 complete5.addEdge(e, k5[i], k5[j]);
             }
 
-        disconnected = new UndirectedSparseGraph<String, edge>();
+        disconnected = new UndirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A","B","C","D"}) disconnected.addVertex(v);
-        disconnected.addEdge(new edge("f","A","B"),"A","B");
-        disconnected.addEdge(new edge("f","C","D"),"C","D");
+        disconnected.addEdge(new Edge("f","A","B"),"A","B");
+        disconnected.addEdge(new Edge("f","C","D"),"C","D");
 
-        single = new UndirectedSparseGraph<String, edge>();
+        single = new UndirectedSparseGraph<String, Edge>();
         single.addVertex("A");
 
-        empty = new UndirectedSparseGraph<String, edge>();
+        empty = new UndirectedSparseGraph<String, Edge>();
 
-        weighted = new UndirectedSparseGraph<String, edge>();
+        weighted = new UndirectedSparseGraph<String, Edge>();
         for (String v : new String[]{"A","B","C","D"}) weighted.addVertex(v);
-        edge e1=new edge("f","A","B"); e1.setWeight(1f);
-        edge e2=new edge("f","B","C"); e2.setWeight(5f);
-        edge e3=new edge("f","C","D"); e3.setWeight(3f);
-        edge e4=new edge("f","A","D"); e4.setWeight(2f);
-        edge e5=new edge("f","A","C"); e5.setWeight(4f);
+        edge e1=new Edge("f","A","B"); e1.setWeight(1f);
+        edge e2=new Edge("f","B","C"); e2.setWeight(5f);
+        edge e3=new Edge("f","C","D"); e3.setWeight(3f);
+        edge e4=new Edge("f","A","D"); e4.setWeight(2f);
+        edge e5=new Edge("f","A","C"); e5.setWeight(4f);
         weighted.addEdge(e1,"A","B"); weighted.addEdge(e2,"B","C");
         weighted.addEdge(e3,"C","D"); weighted.addEdge(e4,"A","D");
         weighted.addEdge(e5,"A","C");
@@ -87,14 +87,14 @@ public class GraphSparsificationAnalyzerTest {
     @Test public void testImportanceK5() { assertEquals(10, new GraphSparsificationAnalyzer(complete5).scoreEdgeImportance().size()); }
 
     // Spanning Tree
-    @Test public void testSTTriangle() { Graph<String,edge> st = new GraphSparsificationAnalyzer(triangle).spanningTreeSparsify(); assertEquals(3, st.getVertexCount()); assertEquals(2, st.getEdgeCount()); }
+    @Test public void testSTTriangle() { Graph<String, Edge> st = new GraphSparsificationAnalyzer(triangle).spanningTreeSparsify(); assertEquals(3, st.getVertexCount()); assertEquals(2, st.getEdgeCount()); }
     @Test public void testSTK5() { assertEquals(4, new GraphSparsificationAnalyzer(complete5).spanningTreeSparsify().getEdgeCount()); }
     @Test public void testSTDisconnected() { assertEquals(2, new GraphSparsificationAnalyzer(disconnected).spanningTreeSparsify().getEdgeCount()); }
     @Test public void testSTSingle() { assertEquals(0, new GraphSparsificationAnalyzer(single).spanningTreeSparsify().getEdgeCount()); }
 
     // Random
     @Test public void testRandAll() { assertEquals(10, new GraphSparsificationAnalyzer(complete5).randomSparsify(1.0, 42).getEdgeCount()); }
-    @Test public void testRandNone() { Graph<String,edge> s = new GraphSparsificationAnalyzer(complete5).randomSparsify(0.0, 42); assertEquals(0, s.getEdgeCount()); assertEquals(5, s.getVertexCount()); }
+    @Test public void testRandNone() { Graph<String, Edge> s = new GraphSparsificationAnalyzer(complete5).randomSparsify(0.0, 42); assertEquals(0, s.getEdgeCount()); assertEquals(5, s.getVertexCount()); }
     @Test public void testRandDeterministic() { GraphSparsificationAnalyzer a = new GraphSparsificationAnalyzer(complete5); assertEquals(a.randomSparsify(0.5,42).getEdgeCount(), a.randomSparsify(0.5,42).getEdgeCount()); }
     @Test(expected = IllegalArgumentException.class) public void testRandInvalid() { new GraphSparsificationAnalyzer(complete5).randomSparsify(1.5, 42); }
 
@@ -104,7 +104,7 @@ public class GraphSparsificationAnalyzerTest {
     @Test public void testThresholdZero() { assertEquals(5, new GraphSparsificationAnalyzer(weighted).thresholdSparsify(0f).getEdgeCount()); }
 
     // Local
-    @Test public void testLocalK1() { Graph<String,edge> s = new GraphSparsificationAnalyzer(weighted).localSparsify(1); assertTrue(s.getEdgeCount() >= 1 && s.getEdgeCount() <= 4); }
+    @Test public void testLocalK1() { Graph<String, Edge> s = new GraphSparsificationAnalyzer(weighted).localSparsify(1); assertTrue(s.getEdgeCount() >= 1 && s.getEdgeCount() <= 4); }
     @Test public void testLocalHighK() { assertEquals(5, new GraphSparsificationAnalyzer(weighted).localSparsify(100).getEdgeCount()); }
     @Test(expected = IllegalArgumentException.class) public void testLocalInvalid() { new GraphSparsificationAnalyzer(weighted).localSparsify(0); }
 
@@ -122,9 +122,9 @@ public class GraphSparsificationAnalyzerTest {
     }
     @Test public void testQualityBroken() {
         GraphSparsificationAnalyzer a = new GraphSparsificationAnalyzer(path);
-        Graph<String,edge> b = new UndirectedSparseGraph<String,edge>();
+        Graph<String, Edge> b = new UndirectedSparseGraph<String, Edge>();
         for (String v : path.getVertices()) b.addVertex(v);
-        b.addEdge(new edge("f","A","B"),"A","B"); b.addEdge(new edge("f","C","D"),"C","D");
+        b.addEdge(new Edge("f","A","B"),"A","B"); b.addEdge(new Edge("f","C","D"),"C","D");
         assertFalse(a.evaluateQuality(b).connectivityPreserved);
     }
     @Test(expected = IllegalArgumentException.class) public void testQualityNull() { new GraphSparsificationAnalyzer(triangle).evaluateQuality(null); }
@@ -149,8 +149,8 @@ public class GraphSparsificationAnalyzerTest {
     @Test public void testReportBridges() { assertTrue(new GraphSparsificationAnalyzer(path).generateReport().contains("Bridge Edges")); }
 
     // Edge cases
-    @Test public void testSingleEdge() { Graph<String,edge> g = new UndirectedSparseGraph<String,edge>(); g.addVertex("A"); g.addVertex("B"); g.addEdge(new edge("f","A","B"),"A","B"); GraphSparsificationAnalyzer a = new GraphSparsificationAnalyzer(g); assertEquals(1, a.findBridges().size()); assertEquals(1, a.spanningTreeSparsify().getEdgeCount()); }
-    @Test public void testWeightedST() { Graph<String,edge> st = new GraphSparsificationAnalyzer(weighted).spanningTreeSparsify(); assertEquals(3, st.getEdgeCount()); assertEquals(4, st.getVertexCount()); }
+    @Test public void testSingleEdge() { Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>(); g.addVertex("A"); g.addVertex("B"); g.addEdge(new Edge("f","A","B"),"A","B"); GraphSparsificationAnalyzer a = new GraphSparsificationAnalyzer(g); assertEquals(1, a.findBridges().size()); assertEquals(1, a.spanningTreeSparsify().getEdgeCount()); }
+    @Test public void testWeightedST() { Graph<String, Edge> st = new GraphSparsificationAnalyzer(weighted).spanningTreeSparsify(); assertEquals(3, st.getEdgeCount()); assertEquals(4, st.getVertexCount()); }
     @Test public void testLocalPreservesV() { assertEquals(5, new GraphSparsificationAnalyzer(complete5).localSparsify(2).getVertexCount()); }
     @Test public void testRandPreservesV() { assertEquals(5, new GraphSparsificationAnalyzer(complete5).randomSparsify(0.3, 123).getVertexCount()); }
     @Test public void testQualityDensity() { GraphSparsificationAnalyzer a = new GraphSparsificationAnalyzer(complete5); GraphSparsificationAnalyzer.SparsificationQuality q = a.evaluateQuality(a.spanningTreeSparsify()); assertEquals(1.0, q.originalDensity, 0.001); assertTrue(q.sparseDensity < q.originalDensity); }

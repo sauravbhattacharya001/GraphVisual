@@ -23,7 +23,7 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testNullEdgeListAccepted() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         JsonGraphExporter exporter = new JsonGraphExporter(g, null);
         String json = exporter.exportToString();
         assertNotNull(json);
@@ -33,8 +33,8 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testEmptyGraphJson() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<edge>());
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<Edge>());
         exporter.setTimestamp("2011-03-15");
         String json = exporter.exportToString();
 
@@ -47,15 +47,15 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testSingleEdgeGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
-        edge e = new edge("f", "A", "B");
+        edge e = new Edge("f", "A", "B");
         e.setWeight(2.5f);
         e.setLabel("friends");
         g.addEdge(e, "A", "B");
 
-        List<edge> edges = new ArrayList<>();
+        List<Edge> edges = new ArrayList<>();
         edges.add(e);
 
         JsonGraphExporter exporter = new JsonGraphExporter(g, edges);
@@ -74,12 +74,12 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testStatsIncluded() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("c", "B", "C");
+        edge e1 = new Edge("f", "A", "B");
+        edge e2 = new Edge("c", "B", "C");
         g.addEdge(e1, "A", "B");
         g.addEdge(e2, "B", "C");
 
@@ -94,11 +94,11 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testStatsDisabled() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("X");
-        edge e = new edge("s", "X", "X");
+        edge e = new Edge("s", "X", "X");
         // self-loop won't work in undirected sparse, just test empty stats
-        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<edge>());
+        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<Edge>());
         exporter.setIncludeStats(false);
         String json = exporter.exportToString();
 
@@ -108,9 +108,9 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testCompactOutput() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
-        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<edge>());
+        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<Edge>());
         exporter.setPrettyPrint(false);
         String json = exporter.exportToString();
 
@@ -120,10 +120,10 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testTimestampOnEdge() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
-        edge e = new edge("f", "A", "B");
+        edge e = new Edge("f", "A", "B");
         e.setTimestamp(1300000000000L);
         e.setEndTimestamp(1300100000000L);
         g.addEdge(e, "A", "B");
@@ -137,9 +137,9 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testSpecialCharactersEscaped() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("node\"1");
-        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<edge>());
+        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<Edge>());
         String json = exporter.exportToString();
 
         assertTrue(json.contains("node\\\"1"));
@@ -147,10 +147,10 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testFileExport() throws IOException {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
-        edge e = new edge("f", "A", "B");
+        edge e = new Edge("f", "A", "B");
         g.addEdge(e, "A", "B");
 
         JsonGraphExporter exporter = new JsonGraphExporter(g, Arrays.asList(e));
@@ -166,12 +166,12 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testEdgeTypesPerNode() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("c", "A", "C");
+        edge e1 = new Edge("f", "A", "B");
+        edge e2 = new Edge("c", "A", "C");
         g.addEdge(e1, "A", "B");
         g.addEdge(e2, "A", "C");
 
@@ -186,8 +186,8 @@ public class JsonGraphExporterTest {
 
     @Test
     public void testDescriptionInMetadata() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<edge>());
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        JsonGraphExporter exporter = new JsonGraphExporter(g, new ArrayList<Edge>());
         exporter.setDescription("Test graph for unit testing");
         String json = exporter.exportToString();
 

@@ -15,15 +15,15 @@ import static org.junit.Assert.*;
  */
 public class BipartiteAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -393,7 +393,7 @@ public class BipartiteAnalyzerTest {
         List<String> cover = ba.getMinimumVertexCover();
         java.util.Set<String> coverSet = new java.util.HashSet<String>(cover);
         // Every edge must have at least one endpoint in the cover
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             assertTrue("Edge not covered: " + e.getVertex1() + "-" + e.getVertex2(),
                     coverSet.contains(e.getVertex1()) || coverSet.contains(e.getVertex2()));
         }
@@ -430,7 +430,7 @@ public class BipartiteAnalyzerTest {
         addEdge("C", "D");
         BipartiteAnalyzer ba = new BipartiteAnalyzer(graph).compute();
         Map<String, Integer> coloring = ba.getColoring();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             assertNotEquals("Adjacent vertices have same color: " + v1 + "-" + v2,

@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
  */
 public class GraphStatsTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private Vector<edge> friendEdges;
     private Vector<edge> fsEdges;
     private Vector<edge> classmateEdges;
@@ -25,7 +25,7 @@ public class GraphStatsTest {
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         friendEdges = new Vector<edge>();
         fsEdges = new Vector<edge>();
         classmateEdges = new Vector<edge>();
@@ -41,12 +41,12 @@ public class GraphStatsTest {
     // ── Helper ──────────────────────────────────────────────────
 
     private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
 
-    private void addToGraph(edge e) {
+    private void addToGraph(Edge e) {
         graph.addEdge(e, e.getVertex1(), e.getVertex2());
     }
 

@@ -19,19 +19,19 @@ public class CommunityEvolutionTrackerTest {
     // ── Helper Methods ─────────────────────────────────────────────
 
     private edge timedEdge(String type, String v1, String v2, long timestamp) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setTimestamp(timestamp);
         return e;
     }
 
     private edge intervalEdge(String type, String v1, String v2, long start, long end) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setTimestamp(start);
         e.setEndTimestamp(end);
         return e;
     }
 
-    private void addEdge(Graph<String, edge> graph, edge e) {
+    private void addEdge(Graph<String, Edge> graph, edge e) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
@@ -57,7 +57,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void track_singleWindow_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.track(1);
@@ -65,7 +65,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void trackAtTimePoints_nullList_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.trackAtTimePoints(null);
@@ -73,7 +73,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void trackAtTimePoints_singlePoint_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.trackAtTimePoints(Collections.singletonList(100L));
@@ -83,7 +83,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void setMatchThreshold_negative_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.setMatchThreshold(-0.1);
@@ -91,7 +91,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void setMatchThreshold_overOne_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.setMatchThreshold(1.1);
@@ -99,7 +99,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void setChangeThreshold_negative_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.setChangeThreshold(-0.1);
@@ -107,7 +107,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void setChangeThreshold_overOne_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.setChangeThreshold(1.1);
@@ -115,7 +115,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void setMinCommunitySize_zero_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         tracker.setMinCommunitySize(0);
@@ -123,7 +123,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void gettersReturnDefaults() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
         assertEquals(0.3, tracker.getMatchThreshold(), 0.001);
@@ -135,7 +135,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void stableCommunity_sameGroupAcrossTime() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, intervalEdge("f", "A", "C", 100, 200));
@@ -154,7 +154,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communityBirth_newGroupAppears() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -172,7 +172,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communityDeath_groupDisappears() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, intervalEdge("f", "X", "Y", 100, 200));
@@ -190,7 +190,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communityGrowth_membersAdded() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, timedEdge("f", "B", "C", 200));
         addEdge(g, timedEdge("f", "C", "D", 200));
@@ -208,7 +208,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communityContraction_membersLeave() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // A-B persists, but C, D, E only at t=100
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, timedEdge("f", "B", "C", 100));
@@ -227,7 +227,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communityMerge_twoBecomesOne() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // Two separate communities persist, bridge appears at t=200
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
@@ -248,7 +248,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void communitySplit_oneBecomesTwo() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         // All connected at t=100 via persistent edges + bridge
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
@@ -303,7 +303,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void nodeLineage_tracksNodeAcrossSnapshots() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 300));
         addEdge(g, intervalEdge("f", "B", "C", 100, 300));
 
@@ -322,7 +322,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void nodeLineage_missingNode_emptyList() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
 
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
@@ -338,7 +338,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void stabilityScore_inRange() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 
@@ -352,7 +352,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void volatilityScore_inRange() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -370,7 +370,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void getEventsByType_filtersCorrectly() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -391,7 +391,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void getEventsAtTransition_filtersCorrectly() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 300));
         addEdge(g, intervalEdge("f", "B", "C", 100, 300));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -412,7 +412,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void eventCounts_sumsToTotalEvents() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -433,7 +433,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void summary_containsKeyInfo() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 
@@ -452,7 +452,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void snapshot_vertexAndEdgeCounts() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, intervalEdge("f", "C", "A", 100, 200));
@@ -469,7 +469,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void snapshot_averageCommunitySize() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 
@@ -484,7 +484,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void snapshot_emptyGraph_producesEvents() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "X", "Y", 300));
 
@@ -499,7 +499,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void topMigrants_returnsLimitedResults() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 300));
         addEdge(g, intervalEdge("f", "B", "C", 100, 300));
         addEdge(g, timedEdge("f", "X", "Y", 100));
@@ -517,7 +517,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void minCommunitySize_filtersSingletons() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
 
@@ -536,7 +536,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void minCommunitySize_one_includesSingletons() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
 
         CommunityEvolutionTracker tracker = new CommunityEvolutionTracker(new TemporalGraph(g));
@@ -552,7 +552,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void track_withWindows_producesSnapshots() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 400));
         addEdge(g, intervalEdge("f", "B", "C", 100, 400));
         addEdge(g, timedEdge("f", "X", "Y", 300));
@@ -569,7 +569,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void eventToString_containsType() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -590,7 +590,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void nodeLineageEntry_toString() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 
@@ -611,7 +611,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void snapshotToString_containsCounts() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 
@@ -629,7 +629,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void complexScenario_multiPhaseEvolution() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
 
         // Persistent edges within sub-groups
         addEdge(g, intervalEdge("f", "Alice", "Bob", 100, 300));
@@ -669,7 +669,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void highMatchThreshold_runs() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, timedEdge("f", "C", "D", 100));
@@ -685,7 +685,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void lowChangeThreshold_runs() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, timedEdge("f", "C", "D", 200));
@@ -702,7 +702,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void eventProperties_accessible() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, timedEdge("f", "A", "B", 100));
         addEdge(g, timedEdge("f", "B", "C", 100));
         addEdge(g, timedEdge("f", "X", "Y", 200));
@@ -726,7 +726,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void snapshot_totalMembers() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
         addEdge(g, intervalEdge("f", "X", "Y", 100, 200));
@@ -743,7 +743,7 @@ public class CommunityEvolutionTrackerTest {
 
     @Test
     public void nodeLineageEntry_properties() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, intervalEdge("f", "A", "B", 100, 200));
         addEdge(g, intervalEdge("f", "B", "C", 100, 200));
 

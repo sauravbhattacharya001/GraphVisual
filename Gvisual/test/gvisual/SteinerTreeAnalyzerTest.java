@@ -16,29 +16,29 @@ public class SteinerTreeAnalyzerTest {
 
     private int edgeId = 0;
 
-    private edge addEdge(Graph<String, edge> g, String u, String v, float w) {
-        edge e = new edge("e", u, v);
+    private edge addEdge(Graph<String, Edge> g, String u, String v, float w) {
+        edge e = new Edge("e", u, v);
         e.setWeight(w);
         e.setLabel("e" + (edgeId++));
         g.addEdge(e, u, v);
         return e;
     }
 
-    private edge addEdge(Graph<String, edge> g, String u, String v) {
+    private edge addEdge(Graph<String, Edge> g, String u, String v) {
         return addEdge(g, u, v, 1.0f);
     }
 
     // ── Simple graphs ─────────────────────────────────────────────
 
-    private Graph<String, edge> makePath(String... vertices) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makePath(String... vertices) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : vertices) g.addVertex(v);
         for (int i = 0; i < vertices.length - 1; i++) addEdge(g, vertices[i], vertices[i + 1]);
         return g;
     }
 
-    private Graph<String, edge> makeStar(String center, String... leaves) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeStar(String center, String... leaves) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex(center);
         for (String l : leaves) { g.addVertex(l); addEdge(g, center, l); }
         return g;
@@ -55,7 +55,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testValidateTerminals() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         Set<String> valid = sa.validateTerminals(new HashSet<>(Arrays.asList("A", "C", "X")));
         assertEquals(new HashSet<>(Arrays.asList("A", "C")), valid);
@@ -63,7 +63,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testValidateTerminalsAllInvalid() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         assertTrue(sa.validateTerminals(new HashSet<>(Arrays.asList("X", "Y"))).isEmpty());
     }
@@ -72,14 +72,14 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTerminalsConnected() {
-        Graph<String, edge> g = makePath("A", "B", "C", "D");
+        Graph<String, Edge> g = makePath("A", "B", "C", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         assertTrue(sa.areTerminalsConnected(new HashSet<>(Arrays.asList("A", "D"))));
     }
 
     @Test
     public void testTerminalsDisconnected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
         addEdge(g, "A", "B");
         addEdge(g, "C", "D");
@@ -89,7 +89,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTerminalComponents() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
         addEdge(g, "A", "B");
         addEdge(g, "C", "D");
@@ -100,7 +100,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSingleTerminalAlwaysConnected() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         assertTrue(sa.areTerminalsConnected(Collections.singleton("A")));
     }
@@ -109,7 +109,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSPHeuristicSimplePath() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.shortestPathHeuristic(
                 new HashSet<>(Arrays.asList("A", "C")));
@@ -120,7 +120,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSPHeuristicStar() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.shortestPathHeuristic(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -130,7 +130,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSPHeuristicSingleTerminal() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.shortestPathHeuristic(Collections.singleton("A"));
         assertEquals(0, r.totalWeight, 0.001);
@@ -139,19 +139,19 @@ public class SteinerTreeAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSPHeuristicNullTerminals() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         new SteinerTreeAnalyzer(g).shortestPathHeuristic(null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSPHeuristicEmptyTerminals() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         new SteinerTreeAnalyzer(g).shortestPathHeuristic(Collections.emptySet());
     }
 
     @Test
     public void testSPHeuristicWeightedGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D")) g.addVertex(v);
         addEdge(g, "A", "B", 1);
         addEdge(g, "B", "C", 1);
@@ -167,7 +167,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testMSTHeuristicSimplePath() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.mstHeuristic(
                 new HashSet<>(Arrays.asList("A", "C")));
@@ -176,7 +176,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testMSTHeuristicStar() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.mstHeuristic(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -185,7 +185,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testMSTHeuristicSingleTerminal() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.mstHeuristic(Collections.singleton("A"));
         assertEquals(0, r.totalWeight, 0.001);
@@ -195,7 +195,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testExactSimplePath() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.exact(
                 new HashSet<>(Arrays.asList("A", "C")));
@@ -206,7 +206,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testExactStar() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.exact(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -216,7 +216,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testExactTwoTerminals() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C")) g.addVertex(v);
         addEdge(g, "A", "B", 5);
         addEdge(g, "A", "C", 2);
@@ -229,7 +229,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testExactSingleTerminal() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.exact(Collections.singleton("A"));
         assertEquals(0, r.totalWeight, 0.001);
@@ -238,7 +238,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testExactTooManyTerminals() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         Set<String> terms = new HashSet<>();
         for (int i = 0; i < 16; i++) {
             String v = "V" + i;
@@ -251,7 +251,7 @@ public class SteinerTreeAnalyzerTest {
     @Test
     public void testExactWeightedDiamond() {
         // Diamond: A-B(1), A-C(1), B-D(1), C-D(1), A-D(10)
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D")) g.addVertex(v);
         addEdge(g, "A", "B", 1);
         addEdge(g, "A", "C", 1);
@@ -268,7 +268,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testBestHeuristic() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.bestHeuristic(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -279,7 +279,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSolveSmallUsesExact() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.solve(
                 new HashSet<>(Arrays.asList("A", "C")));
@@ -290,7 +290,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testBottleneckEdge() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C")) g.addVertex(v);
         addEdge(g, "A", "B", 1);
         addEdge(g, "B", "C", 5);
@@ -304,7 +304,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testBottleneckEdgeEmpty() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.shortestPathHeuristic(Collections.singleton("A"));
@@ -316,7 +316,7 @@ public class SteinerTreeAnalyzerTest {
     @Test
     public void testSteinerRatioNoSteinerPoints() {
         // When all terminals are adjacent, ratio should be ~1
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C")) g.addVertex(v);
         addEdge(g, "A", "B", 1);
         addEdge(g, "B", "C", 1);
@@ -331,7 +331,7 @@ public class SteinerTreeAnalyzerTest {
     @Test
     public void testSteinerRatioWithSteinerPoints() {
         // Star topology: terminals at leaves, center is Steiner point
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D", "center")) g.addVertex(v);
         addEdge(g, "center", "A", 1);
         addEdge(g, "center", "B", 1);
@@ -352,7 +352,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSteinerPointImportance() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.shortestPathHeuristic(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -363,7 +363,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSteinerPointImportanceNoSteinerPoints() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         addEdge(g, "A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
@@ -376,7 +376,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTerminalMSTCost() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C")) g.addVertex(v);
         addEdge(g, "A", "B", 3);
         addEdge(g, "B", "C", 4);
@@ -387,7 +387,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTerminalMSTCostSingle() {
-        Graph<String, edge> g = makePath("A", "B");
+        Graph<String, Edge> g = makePath("A", "B");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         assertEquals(0, sa.terminalMSTCost(Collections.singleton("A")), 0.001);
     }
@@ -396,7 +396,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testAnalyze() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerReport report = sa.analyze(
                 new HashSet<>(Arrays.asList("A", "B", "D")));
@@ -406,7 +406,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTextReport() {
-        Graph<String, edge> g = makeStar("C", "A", "B", "D");
+        Graph<String, Edge> g = makeStar("C", "A", "B", "D");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         String report = sa.textReport(new HashSet<>(Arrays.asList("A", "B", "D")));
         assertTrue(report.contains("STEINER TREE ANALYSIS"));
@@ -455,7 +455,7 @@ public class SteinerTreeAnalyzerTest {
     @Test
     public void testGridGraph() {
         // 3x3 grid with unit weights
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int r = 0; r < 3; r++)
             for (int c = 0; c < 3; c++)
                 g.addVertex(r + "," + c);
@@ -475,7 +475,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testWeightedGraphPrefersCheaperPaths() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D", "E")) g.addVertex(v);
         addEdge(g, "A", "B", 10);
         addEdge(g, "A", "D", 1);
@@ -490,7 +490,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testTwoAdjacentTerminals() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         addEdge(g, "A", "B", 3);
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
@@ -502,7 +502,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testAllVerticesAreTerminals() {
-        Graph<String, edge> g = makePath("A", "B", "C");
+        Graph<String, Edge> g = makePath("A", "B", "C");
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
         SteinerTreeAnalyzer.SteinerTreeResult r = sa.solve(
                 new HashSet<>(Arrays.asList("A", "B", "C")));
@@ -512,7 +512,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testSavingsAnalysis() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "S")) g.addVertex(v);
         addEdge(g, "S", "A", 1);
         addEdge(g, "S", "B", 1);
@@ -529,7 +529,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testDisconnectedTerminals() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         // No edges
         SteinerTreeAnalyzer sa = new SteinerTreeAnalyzer(g);
@@ -538,7 +538,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testCompleteGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D")) g.addVertex(v);
         addEdge(g, "A", "B", 1);
         addEdge(g, "A", "C", 1);
@@ -554,7 +554,7 @@ public class SteinerTreeAnalyzerTest {
 
     @Test
     public void testHeuristicsVsExact() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String v : Arrays.asList("A", "B", "C", "D", "E")) g.addVertex(v);
         addEdge(g, "A", "D", 1);
         addEdge(g, "D", "B", 1);

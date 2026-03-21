@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
  */
 public class SvgExporterTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -22,19 +22,19 @@ public class SvgExporterTest {
         graph.addVertex("C");
         graph.addVertex("D");
 
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setWeight(1.5f);
         graph.addEdge(e1, "A", "B");
 
-        edge e2 = new edge("c", "B", "C");
+        edge e2 = new Edge("c", "B", "C");
         e2.setWeight(2.0f);
         graph.addEdge(e2, "B", "C");
 
-        edge e3 = new edge("s", "A", "C");
+        edge e3 = new Edge("s", "A", "C");
         e3.setWeight(0.5f);
         graph.addEdge(e3, "A", "C");
 
-        edge e4 = new edge("sg", "C", "D");
+        edge e4 = new Edge("sg", "C", "D");
         e4.setWeight(3.0f);
         graph.addEdge(e4, "C", "D");
     }
@@ -143,7 +143,7 @@ public class SvgExporterTest {
 
     @Test
     public void emptyGraphProducesSvg() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         SvgExporter exporter = new SvgExporter(empty);
         String svg = exporter.exportToString();
         assertTrue(svg.contains("<svg"));
@@ -152,7 +152,7 @@ public class SvgExporterTest {
 
     @Test
     public void singleNodeGraphWorks() {
-        Graph<String, edge> single = new UndirectedSparseGraph<>();
+        Graph<String, Edge> single = new UndirectedSparseGraph<>();
         single.addVertex("X");
         SvgExporter exporter = new SvgExporter(single);
         String svg = exporter.exportToString();
@@ -180,10 +180,10 @@ public class SvgExporterTest {
 
     @Test
     public void xmlSpecialCharsEscaped() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("<script>");
         g.addVertex("B&C");
-        edge e = new edge("f", "<script>", "B&C");
+        edge e = new Edge("f", "<script>", "B&C");
         e.setWeight(1.0f);
         g.addEdge(e, "<script>", "B&C");
 

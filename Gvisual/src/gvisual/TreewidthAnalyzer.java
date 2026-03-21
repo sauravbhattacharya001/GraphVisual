@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public class TreewidthAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * A bag in a tree decomposition.
@@ -114,7 +114,7 @@ public class TreewidthAnalyzer {
         }
     }
 
-    public TreewidthAnalyzer(Graph<String, edge> graph) {
+    public TreewidthAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph cannot be null");
         this.graph = graph;
     }
@@ -686,7 +686,7 @@ public class TreewidthAnalyzer {
         }
 
         // Check every edge is covered by some bag
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             List<String> epList = new ArrayList<>(endpoints);
             if (epList.size() != 2) continue;

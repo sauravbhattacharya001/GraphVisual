@@ -11,58 +11,58 @@ import java.util.*;
  */
 public class LineGraphAnalyzerTest {
 
-    private Graph<String, edge> makeGraph(String[][] edges) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> makeGraph(String[][] edges) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (String[] e : edges) {
             g.addVertex(e[0]);
             g.addVertex(e[1]);
-            edge ed = new edge("e", e[0], e[1]);
+            edge ed = new Edge("e", e[0], e[1]);
             ed.setLabel(e[0] + "-" + e[1]);
             g.addEdge(ed, e[0], e[1]);
         }
         return g;
     }
 
-    private Graph<String, edge> emptyGraph() {
-        return new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> emptyGraph() {
+        return new UndirectedSparseGraph<String, Edge>();
     }
 
-    private Graph<String, edge> singleVertex() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> singleVertex() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         return g;
     }
 
-    private Graph<String, edge> singleEdge() {
+    private Graph<String, Edge> singleEdge() {
         return makeGraph(new String[][]{{"A", "B"}});
     }
 
-    private Graph<String, edge> path3() {
+    private Graph<String, Edge> path3() {
         return makeGraph(new String[][]{{"A", "B"}, {"B", "C"}});
     }
 
-    private Graph<String, edge> triangle() {
+    private Graph<String, Edge> triangle() {
         return makeGraph(new String[][]{{"A", "B"}, {"B", "C"}, {"A", "C"}});
     }
 
-    private Graph<String, edge> k4() {
+    private Graph<String, Edge> k4() {
         return makeGraph(new String[][]{
             {"A", "B"}, {"A", "C"}, {"A", "D"},
             {"B", "C"}, {"B", "D"}, {"C", "D"}
         });
     }
 
-    private Graph<String, edge> star4() {
+    private Graph<String, Edge> star4() {
         return makeGraph(new String[][]{{"A", "B"}, {"A", "C"}, {"A", "D"}});
     }
 
-    private Graph<String, edge> cycle4() {
+    private Graph<String, Edge> cycle4() {
         return makeGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "A"}
         });
     }
 
-    private Graph<String, edge> cycle5() {
+    private Graph<String, Edge> cycle5() {
         return makeGraph(new String[][]{
             {"A", "B"}, {"B", "C"}, {"C", "D"}, {"D", "E"}, {"E", "A"}
         });
@@ -241,7 +241,7 @@ public class LineGraphAnalyzerTest {
 
     @Test
     public void testWhitneyDisconnected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A"); g.addVertex("B");
         assertTrue(new LineGraphAnalyzer(g).whitneyTheoremCheck().contains("disconnected"));
     }
@@ -261,7 +261,7 @@ public class LineGraphAnalyzerTest {
     public void testMatchDisjoint() {
         LineGraphAnalyzer a = new LineGraphAnalyzer(k4());
         Set<String> m = a.maximalMatchingViaLineGraph();
-        Graph<String, edge> lg = a.getLineGraph();
+        Graph<String, Edge> lg = a.getLineGraph();
         List<String> ml = new ArrayList<String>(m);
         for (int i = 0; i < ml.size(); i++)
             for (int j = i + 1; j < ml.size(); j++)

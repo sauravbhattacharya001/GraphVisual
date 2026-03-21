@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class TreewidthAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeId;
 
     @Before
@@ -24,7 +24,7 @@ public class TreewidthAnalyzerTest {
     }
 
     private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         e.setLabel("e" + (edgeId++));
         if (!graph.containsVertex(v1)) graph.addVertex(v1);

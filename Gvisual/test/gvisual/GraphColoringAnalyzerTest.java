@@ -15,12 +15,12 @@ import java.util.*;
  */
 public class GraphColoringAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeCounter;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         edgeCounter = 0;
     }
 
@@ -858,7 +858,7 @@ public class GraphColoringAnalyzerTest {
     // ==========================================
 
     private void addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setLabel("e" + (edgeCounter++));
         graph.addEdge(e, v1, v2);
     }

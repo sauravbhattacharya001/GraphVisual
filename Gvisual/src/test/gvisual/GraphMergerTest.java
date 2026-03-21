@@ -12,8 +12,8 @@ import static org.junit.Assert.*;
  */
 public class GraphMergerTest {
 
-    private Graph<String, edge> graphA;
-    private Graph<String, edge> graphB;
+    private Graph<String, Edge> graphA;
+    private Graph<String, Edge> graphB;
 
     @Before
     public void setUp() {
@@ -22,7 +22,7 @@ public class GraphMergerTest {
     }
 
     private edge makeEdge(String v1, String v2, float weight) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setWeight(weight);
         return e;
     }

@@ -14,20 +14,20 @@ import java.util.*;
  */
 public class MaxCutAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private void addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         graph.addEdge(e, v1, v2);
     }
 
     private void addWeightedEdge(String v1, String v2, float weight) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setWeight(weight);
         graph.addEdge(e, v1, v2);
     }
@@ -289,7 +289,7 @@ public class MaxCutAnalyzerTest {
     @Test
     public void testCutEdgesUnmodifiable() {
         addEdge("A","B");
-        try { new MaxCutAnalyzer(graph).computeExact().getCutEdges().add(new edge("f","X","Y")); fail(); }
+        try { new MaxCutAnalyzer(graph).computeExact().getCutEdges().add(new Edge("f","X","Y")); fail(); }
         catch (UnsupportedOperationException e) { /* expected */ }
     }
 

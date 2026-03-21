@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class EdgePersistenceAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -45,7 +45,7 @@ public class EdgePersistenceAnalyzerTest {
     @Test
     public void testClassify_allPersistent() {
         // Edge spans entire time range -> persistent in all windows
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L);
         e1.setEndTimestamp(1000L);
         graph.addEdge(e1, "A", "B");
@@ -59,11 +59,11 @@ public class EdgePersistenceAnalyzerTest {
     @Test
     public void testClassify_transientEdge() {
         // Edge active only in a tiny window of a long timeline
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L);
         e1.setEndTimestamp(1000L);
 
-        edge e2 = new edge("f", "C", "D");
+        edge e2 = new Edge("f", "C", "D");
         e2.setTimestamp(0L);
         e2.setEndTimestamp(10L);  // only first ~1% of range
 
@@ -79,11 +79,11 @@ public class EdgePersistenceAnalyzerTest {
     @Test
     public void testClassify_periodicEdge() {
         // Edge active in about half the windows
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L);
         e1.setEndTimestamp(1000L);  // full range marker
 
-        edge e2 = new edge("f", "C", "D");
+        edge e2 = new Edge("f", "C", "D");
         e2.setTimestamp(0L);
         e2.setEndTimestamp(500L);  // half the range
 
@@ -109,7 +109,7 @@ public class EdgePersistenceAnalyzerTest {
 
     @Test
     public void testClassify_singleWindow() {
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(100L);
         e1.setEndTimestamp(200L);
         graph.addEdge(e1, "A", "B");
@@ -125,9 +125,9 @@ public class EdgePersistenceAnalyzerTest {
 
     @Test
     public void testSummary_countsMatchClassify() {
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
-        edge e2 = new edge("f", "C", "D");
+        edge e2 = new Edge("f", "C", "D");
         e2.setTimestamp(0L); e2.setEndTimestamp(10L);
 
         graph.addEdge(e1, "A", "B");
@@ -145,7 +145,7 @@ public class EdgePersistenceAnalyzerTest {
 
     @Test
     public void testSummary_allKeysPresent() {
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L); e1.setEndTimestamp(100L);
         graph.addEdge(e1, "A", "B");
 
@@ -161,25 +161,25 @@ public class EdgePersistenceAnalyzerTest {
 
     @Test
     public void testGetEdgesByClassification_persistent() {
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
         graph.addEdge(e1, "A", "B");
 
         TemporalGraph tg = new TemporalGraph(graph);
         EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 5);
-        Set<edge> persistent = epa.getEdgesByClassification(EdgePersistenceAnalyzer.PERSISTENT);
+        Set<Edge> persistent = epa.getEdgesByClassification(EdgePersistenceAnalyzer.PERSISTENT);
         assertTrue(persistent.contains(e1));
     }
 
     @Test
     public void testGetEdgesByClassification_noMatch() {
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
         graph.addEdge(e1, "A", "B");
 
         TemporalGraph tg = new TemporalGraph(graph);
         EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 5);
-        Set<edge> transient_ = epa.getEdgesByClassification(EdgePersistenceAnalyzer.TRANSIENT);
+        Set<Edge> transient_ = epa.getEdgesByClassification(EdgePersistenceAnalyzer.TRANSIENT);
         assertFalse(transient_.contains(e1));
     }
 

@@ -50,8 +50,8 @@ import java.util.stream.Collectors;
  */
 public class SubgraphPatternMatcher {
 
-    private final Graph<String, edge> target;
-    private final Graph<String, edge> pattern;
+    private final Graph<String, Edge> target;
+    private final Graph<String, Edge> pattern;
     private final boolean degreeConstrained;
     private final String edgeTypeFilter;
     private final int maxMatches;
@@ -62,8 +62,8 @@ public class SubgraphPatternMatcher {
      * Fluent builder for configuring a SubgraphPatternMatcher.
      */
     public static class Builder {
-        private final Graph<String, edge> target;
-        private final Graph<String, edge> pattern;
+        private final Graph<String, Edge> target;
+        private final Graph<String, Edge> pattern;
         private boolean degreeConstrained = false;
         private String edgeTypeFilter = null;
         private int maxMatches = 10_000;
@@ -77,8 +77,8 @@ public class SubgraphPatternMatcher {
          * @throws IllegalArgumentException if either is null or pattern is
          *                                  too small
          */
-        public Builder(Graph<String, edge> target,
-                       Graph<String, edge> pattern) {
+        public Builder(Graph<String, Edge> target,
+                       Graph<String, Edge> pattern) {
             if (target == null) {
                 throw new IllegalArgumentException("Target graph must not be null");
             }
@@ -461,7 +461,7 @@ public class SubgraphPatternMatcher {
         for (String v : target.getVertices()) {
             adj.put(v, new HashSet<>());
         }
-        for (edge e : target.getEdges()) {
+        for (Edge e : target.getEdges()) {
             if (edgeTypeFilter != null &&
                     !edgeTypeFilter.equals(e.getType())) {
                 continue;
@@ -482,7 +482,7 @@ public class SubgraphPatternMatcher {
         for (String v : pattern.getVertices()) {
             adj.put(v, new HashSet<>());
         }
-        for (edge e : pattern.getEdges()) {
+        for (Edge e : pattern.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null) {
@@ -498,27 +498,27 @@ public class SubgraphPatternMatcher {
     /**
      * Create a triangle pattern (3 mutually connected nodes).
      */
-    public static Graph<String, edge> trianglePattern() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> trianglePattern() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("P0");
         g.addVertex("P1");
         g.addVertex("P2");
-        g.addEdge(new edge(null, "P0", "P1"), "P0", "P1");
-        g.addEdge(new edge(null, "P1", "P2"), "P1", "P2");
-        g.addEdge(new edge(null, "P0", "P2"), "P0", "P2");
+        g.addEdge(new Edge(null, "P0", "P1"), "P0", "P1");
+        g.addEdge(new Edge(null, "P1", "P2"), "P1", "P2");
+        g.addEdge(new Edge(null, "P0", "P2"), "P0", "P2");
         return g;
     }
 
     /**
      * Create a square/4-cycle pattern (C4).
      */
-    public static Graph<String, edge> squarePattern() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> squarePattern() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 4; i++) g.addVertex("P" + i);
-        g.addEdge(new edge(null, "P0", "P1"), "P0", "P1");
-        g.addEdge(new edge(null, "P1", "P2"), "P1", "P2");
-        g.addEdge(new edge(null, "P2", "P3"), "P2", "P3");
-        g.addEdge(new edge(null, "P3", "P0"), "P3", "P0");
+        g.addEdge(new Edge(null, "P0", "P1"), "P0", "P1");
+        g.addEdge(new Edge(null, "P1", "P2"), "P1", "P2");
+        g.addEdge(new Edge(null, "P2", "P3"), "P2", "P3");
+        g.addEdge(new Edge(null, "P3", "P0"), "P3", "P0");
         return g;
     }
 
@@ -528,14 +528,14 @@ public class SubgraphPatternMatcher {
      *
      * @param k number of leaves (must be ≥ 2)
      */
-    public static Graph<String, edge> starPattern(int k) {
+    public static Graph<String, Edge> starPattern(int k) {
         if (k < 2) throw new IllegalArgumentException("Star needs >= 2 leaves");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("hub");
         for (int i = 0; i < k; i++) {
             String leaf = "L" + i;
             g.addVertex(leaf);
-            g.addEdge(new edge(null, "hub", leaf), "hub", leaf);
+            g.addEdge(new Edge(null, "hub", leaf), "hub", leaf);
         }
         return g;
     }
@@ -545,12 +545,12 @@ public class SubgraphPatternMatcher {
      *
      * @param n path length (edges), must be ≥ 1
      */
-    public static Graph<String, edge> pathPattern(int n) {
+    public static Graph<String, Edge> pathPattern(int n) {
         if (n < 1) throw new IllegalArgumentException("Path length must be >= 1");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i <= n; i++) g.addVertex("P" + i);
         for (int i = 0; i < n; i++) {
-            g.addEdge(new edge(null, "P" + i, "P" + (i + 1)),
+            g.addEdge(new Edge(null, "P" + i, "P" + (i + 1)),
                     "P" + i, "P" + (i + 1));
         }
         return g;
@@ -560,15 +560,15 @@ public class SubgraphPatternMatcher {
      * Create a diamond pattern (K4 minus one edge: 4 nodes, 5 edges).
      * Shape: two triangles sharing an edge.
      */
-    public static Graph<String, edge> diamondPattern() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> diamondPattern() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 4; i++) g.addVertex("P" + i);
         // P0-P1, P0-P2, P0-P3, P1-P2, P2-P3 (missing P1-P3)
-        g.addEdge(new edge(null, "P0", "P1"), "P0", "P1");
-        g.addEdge(new edge(null, "P0", "P2"), "P0", "P2");
-        g.addEdge(new edge(null, "P0", "P3"), "P0", "P3");
-        g.addEdge(new edge(null, "P1", "P2"), "P1", "P2");
-        g.addEdge(new edge(null, "P2", "P3"), "P2", "P3");
+        g.addEdge(new Edge(null, "P0", "P1"), "P0", "P1");
+        g.addEdge(new Edge(null, "P0", "P2"), "P0", "P2");
+        g.addEdge(new Edge(null, "P0", "P3"), "P0", "P3");
+        g.addEdge(new Edge(null, "P1", "P2"), "P1", "P2");
+        g.addEdge(new Edge(null, "P2", "P3"), "P2", "P3");
         return g;
     }
 
@@ -576,17 +576,17 @@ public class SubgraphPatternMatcher {
      * Create a bowtie pattern (two triangles sharing one vertex: 5 nodes,
      * 6 edges).
      */
-    public static Graph<String, edge> bowtiePattern() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> bowtiePattern() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 5; i++) g.addVertex("P" + i);
         // Triangle 1: P0-P1-P2
-        g.addEdge(new edge(null, "P0", "P1"), "P0", "P1");
-        g.addEdge(new edge(null, "P1", "P2"), "P1", "P2");
-        g.addEdge(new edge(null, "P0", "P2"), "P0", "P2");
+        g.addEdge(new Edge(null, "P0", "P1"), "P0", "P1");
+        g.addEdge(new Edge(null, "P1", "P2"), "P1", "P2");
+        g.addEdge(new Edge(null, "P0", "P2"), "P0", "P2");
         // Triangle 2: P0-P3-P4 (P0 is shared)
-        g.addEdge(new edge(null, "P0", "P3"), "P0", "P3");
-        g.addEdge(new edge(null, "P3", "P4"), "P3", "P4");
-        g.addEdge(new edge(null, "P0", "P4"), "P0", "P4");
+        g.addEdge(new Edge(null, "P0", "P3"), "P0", "P3");
+        g.addEdge(new Edge(null, "P3", "P4"), "P3", "P4");
+        g.addEdge(new Edge(null, "P0", "P4"), "P0", "P4");
         return g;
     }
 
@@ -595,13 +595,13 @@ public class SubgraphPatternMatcher {
      *
      * @param n number of nodes (must be ≥ 2)
      */
-    public static Graph<String, edge> completePattern(int n) {
+    public static Graph<String, Edge> completePattern(int n) {
         if (n < 2) throw new IllegalArgumentException("Complete graph needs >= 2 nodes");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("P" + i);
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                g.addEdge(new edge(null, "P" + i, "P" + j),
+                g.addEdge(new Edge(null, "P" + i, "P" + j),
                         "P" + i, "P" + j);
             }
         }
@@ -611,17 +611,17 @@ public class SubgraphPatternMatcher {
     /**
      * Create a house pattern (square + triangle on top: 5 nodes, 6 edges).
      */
-    public static Graph<String, edge> housePattern() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> housePattern() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 5; i++) g.addVertex("P" + i);
         // Square base: P0-P1-P2-P3
-        g.addEdge(new edge(null, "P0", "P1"), "P0", "P1");
-        g.addEdge(new edge(null, "P1", "P2"), "P1", "P2");
-        g.addEdge(new edge(null, "P2", "P3"), "P2", "P3");
-        g.addEdge(new edge(null, "P3", "P0"), "P3", "P0");
+        g.addEdge(new Edge(null, "P0", "P1"), "P0", "P1");
+        g.addEdge(new Edge(null, "P1", "P2"), "P1", "P2");
+        g.addEdge(new Edge(null, "P2", "P3"), "P2", "P3");
+        g.addEdge(new Edge(null, "P3", "P0"), "P3", "P0");
         // Roof triangle: P2-P4-P3
-        g.addEdge(new edge(null, "P2", "P4"), "P2", "P4");
-        g.addEdge(new edge(null, "P3", "P4"), "P3", "P4");
+        g.addEdge(new Edge(null, "P2", "P4"), "P2", "P4");
+        g.addEdge(new Edge(null, "P3", "P4"), "P3", "P4");
         return g;
     }
 }

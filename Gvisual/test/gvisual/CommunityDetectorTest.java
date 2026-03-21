@@ -14,11 +14,11 @@ import java.util.*;
  */
 public class CommunityDetectorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -60,7 +60,7 @@ public class CommunityDetectorTest {
     public void testTwoConnectedNodes() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e = new edge("f", "A", "B");
+        edge e = new Edge("f", "A", "B");
         e.setWeight(5.0f);
         graph.addEdge(e, "A", "B");
 
@@ -77,9 +77,9 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setWeight(3.0f);
-        edge e2 = new edge("f", "B", "C");
+        edge e2 = new Edge("f", "B", "C");
         e2.setWeight(4.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -87,7 +87,7 @@ public class CommunityDetectorTest {
         // Community 2: D-E
         graph.addVertex("D");
         graph.addVertex("E");
-        edge e3 = new edge("c", "D", "E");
+        edge e3 = new Edge("c", "D", "E");
         e3.setWeight(6.0f);
         graph.addEdge(e3, "D", "E");
 
@@ -104,7 +104,7 @@ public class CommunityDetectorTest {
     public void testNodeToCommunityMapping() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e1 = new edge("f", "A", "B");
+        edge e1 = new Edge("f", "A", "B");
         e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
 
@@ -127,9 +127,9 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
-        edge e3 = new edge("f", "A", "C"); e3.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
+        edge e3 = new Edge("f", "A", "C"); e3.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
         graph.addEdge(e3, "A", "C");
@@ -152,9 +152,9 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("f", "A", "C"); e3.setWeight(3.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("c", "B", "C"); e2.setWeight(2.0f);
+        edge e3 = new Edge("f", "A", "C"); e3.setWeight(3.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
         graph.addEdge(e3, "A", "C");
@@ -173,8 +173,8 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(10.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(20.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(10.0f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(20.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
@@ -189,14 +189,14 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
         graph.addVertex("D");
         graph.addVertex("E");
-        edge e3 = new edge("c", "D", "E"); e3.setWeight(1.0f);
+        edge e3 = new Edge("c", "D", "E"); e3.setWeight(1.0f);
         graph.addEdge(e3, "D", "E");
 
         graph.addVertex("F"); // isolated
@@ -215,7 +215,7 @@ public class CommunityDetectorTest {
     public void testGetCommunityOf() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
 
         CommunityDetector detector = new CommunityDetector(graph);
@@ -235,9 +235,9 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
-        edge e3 = new edge("f", "A", "C"); e3.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
+        edge e3 = new Edge("f", "A", "C"); e3.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
         graph.addEdge(e3, "A", "C");
@@ -245,9 +245,9 @@ public class CommunityDetectorTest {
         graph.addVertex("D");
         graph.addVertex("E");
         graph.addVertex("F");
-        edge e4 = new edge("c", "D", "E"); e4.setWeight(1.0f);
-        edge e5 = new edge("c", "E", "F"); e5.setWeight(1.0f);
-        edge e6 = new edge("c", "D", "F"); e6.setWeight(1.0f);
+        edge e4 = new Edge("c", "D", "E"); e4.setWeight(1.0f);
+        edge e5 = new Edge("c", "E", "F"); e5.setWeight(1.0f);
+        edge e6 = new Edge("c", "D", "F"); e6.setWeight(1.0f);
         graph.addEdge(e4, "D", "E");
         graph.addEdge(e5, "E", "F");
         graph.addEdge(e6, "D", "F");
@@ -273,7 +273,7 @@ public class CommunityDetectorTest {
         // All in one component → modularity should be 0
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
 
         CommunityDetector detector = new CommunityDetector(graph);
@@ -287,7 +287,7 @@ public class CommunityDetectorTest {
     public void testCommunityToString() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(5.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(5.0f);
         graph.addEdge(e1, "A", "B");
 
         CommunityDetector detector = new CommunityDetector(graph);
@@ -311,8 +311,8 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(7.5f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.5f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(7.5f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.5f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
@@ -332,10 +332,10 @@ public class CommunityDetectorTest {
         graph.addVertex("F");
         graph.addVertex("G");
 
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "A", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("s", "A", "D"); e3.setWeight(3.0f);
-        edge e4 = new edge("sg", "A", "E"); e4.setWeight(4.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("c", "A", "C"); e2.setWeight(2.0f);
+        edge e3 = new Edge("s", "A", "D"); e3.setWeight(3.0f);
+        edge e4 = new Edge("sg", "A", "E"); e4.setWeight(4.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "A", "C");
         graph.addEdge(e3, "A", "D");
@@ -359,9 +359,9 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("fs", "B", "C"); e2.setWeight(1.0f);
-        edge e3 = new edge("sg", "A", "C"); e3.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("fs", "B", "C"); e2.setWeight(1.0f);
+        edge e3 = new Edge("sg", "A", "C"); e3.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
         graph.addEdge(e3, "A", "C");
@@ -400,14 +400,14 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
         graph.addVertex("D");
         graph.addVertex("E");
-        edge e3 = new edge("c", "D", "E"); e3.setWeight(1.0f);
+        edge e3 = new Edge("c", "D", "E"); e3.setWeight(1.0f);
         graph.addEdge(e3, "D", "E");
 
         CommunityDetector detector = new CommunityDetector(graph);
@@ -436,7 +436,7 @@ public class CommunityDetectorTest {
         // Verify getCommunityOf returns same object as communities.get(id)
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addVertex("C"); // isolated
 
@@ -457,7 +457,7 @@ public class CommunityDetectorTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         // C is isolated → two communities
 

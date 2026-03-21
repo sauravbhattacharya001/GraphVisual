@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class GraphEntropyAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -28,7 +28,7 @@ public class GraphEntropyAnalyzerTest {
     }
 
     private edge addEdge(String v1, String v2, String type) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -36,12 +36,12 @@ public class GraphEntropyAnalyzerTest {
         return e;
     }
 
-    private Graph<String, edge> completeGraph(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> completeGraph(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 1; i <= n; i++) g.addVertex("N" + i);
         for (int i = 1; i <= n; i++) {
             for (int j = i + 1; j <= n; j++) {
-                edge e = new edge("f", "N" + i, "N" + j);
+                edge e = new Edge("f", "N" + i, "N" + j);
                 e.setWeight(1.0f);
                 g.addEdge(e, "N" + i, "N" + j);
             }
@@ -49,31 +49,31 @@ public class GraphEntropyAnalyzerTest {
         return g;
     }
 
-    private Graph<String, edge> pathGraph(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> pathGraph(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 1; i <= n; i++) g.addVertex("N" + i);
         for (int i = 1; i < n; i++) {
-            edge e = new edge("f", "N" + i, "N" + (i + 1));
+            edge e = new Edge("f", "N" + i, "N" + (i + 1));
             e.setWeight(1.0f);
             g.addEdge(e, "N" + i, "N" + (i + 1));
         }
         return g;
     }
 
-    private Graph<String, edge> cycleGraph(int n) {
-        Graph<String, edge> g = pathGraph(n);
-        edge e = new edge("f", "N" + n, "N1");
+    private Graph<String, Edge> cycleGraph(int n) {
+        Graph<String, Edge> g = pathGraph(n);
+        edge e = new Edge("f", "N" + n, "N1");
         e.setWeight(1.0f);
         g.addEdge(e, "N" + n, "N1");
         return g;
     }
 
-    private Graph<String, edge> starGraph(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> starGraph(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("C");
         for (int i = 1; i <= n; i++) {
             g.addVertex("L" + i);
-            edge e = new edge("f", "C", "L" + i);
+            edge e = new Edge("f", "C", "L" + i);
             e.setWeight(1.0f);
             g.addEdge(e, "C", "L" + i);
         }
@@ -129,7 +129,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testDegreeEntropyRegularGraph() {
-        Graph<String, edge> g = cycleGraph(5);
+        Graph<String, Edge> g = cycleGraph(5);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getDegreeEntropy(), 1e-10);
@@ -137,7 +137,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testDegreeEntropyStarGraph() {
-        Graph<String, edge> g = starGraph(4);
+        Graph<String, Edge> g = starGraph(4);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         // 1 vertex with degree 4, 4 vertices with degree 1
@@ -149,7 +149,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testDegreeEntropyCompleteGraph() {
-        Graph<String, edge> g = completeGraph(5);
+        Graph<String, Edge> g = completeGraph(5);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getDegreeEntropy(), 1e-10);
@@ -164,7 +164,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testNormalisedDegreeEntropyRegular() {
-        Graph<String, edge> g = cycleGraph(6);
+        Graph<String, Edge> g = cycleGraph(6);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getNormalisedDegreeEntropy(), 1e-10);
@@ -211,7 +211,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testVonNeumannPositive() {
-        Graph<String, edge> g = pathGraph(5);
+        Graph<String, Edge> g = pathGraph(5);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertTrue(a.getVonNeumannEntropy() > 0);
@@ -232,7 +232,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testNeighbourhoodEntropyRegular() {
-        Graph<String, edge> g = cycleGraph(5);
+        Graph<String, Edge> g = cycleGraph(5);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getAvgNeighbourhoodEntropy(), 1e-10);
@@ -337,7 +337,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testTopoInfoContentComplete() {
-        Graph<String, edge> g = completeGraph(4);
+        Graph<String, Edge> g = completeGraph(4);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getTopologicalInfoContent(), 1e-6);
@@ -345,7 +345,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testTopoInfoContentAllDifferent() {
-        Graph<String, edge> g = pathGraph(4);
+        Graph<String, Edge> g = pathGraph(4);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertTrue(a.getTopologicalInfoContent() > 0);
@@ -365,7 +365,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testRWEntropyRateRegular() {
-        Graph<String, edge> g = cycleGraph(6);
+        Graph<String, Edge> g = cycleGraph(6);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         // C6: m=6, 2m=12, each d=2 for 6 vertices
@@ -399,7 +399,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testChromaticEntropyComplete() {
-        Graph<String, edge> g = completeGraph(4);
+        Graph<String, Edge> g = completeGraph(4);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(Math.log(4) / Math.log(2), a.getChromaticEntropy(), 1e-10);
@@ -407,7 +407,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testChromaticEntropyBipartite() {
-        Graph<String, edge> g = pathGraph(4);
+        Graph<String, Edge> g = pathGraph(4);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(1.0, a.getChromaticEntropy(), 1e-6);
@@ -448,7 +448,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testDegreeCCMutualInfoRegular() {
-        Graph<String, edge> g = cycleGraph(6);
+        Graph<String, Edge> g = cycleGraph(6);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getDegreeCCMutualInfo(), 1e-10);
@@ -469,7 +469,7 @@ public class GraphEntropyAnalyzerTest {
     public void testComplexityRegularLow() {
         // Cycle — all vertices have same degree, but Von Neumann entropy
         // is non-trivial so complexity is moderate, not low
-        Graph<String, edge> g = cycleGraph(6);
+        Graph<String, Edge> g = cycleGraph(6);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         String c = a.getComplexityClass();
@@ -551,7 +551,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testCompleteGraphK10() {
-        Graph<String, edge> g = completeGraph(10);
+        Graph<String, Edge> g = completeGraph(10);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertEquals(0, a.getDegreeEntropy(), 1e-10);
@@ -561,7 +561,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testPathGraph10() {
-        Graph<String, edge> g = pathGraph(10);
+        Graph<String, Edge> g = pathGraph(10);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertTrue(a.getDegreeEntropy() > 0);
@@ -571,7 +571,7 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testStarGraph10() {
-        Graph<String, edge> g = starGraph(10);
+        Graph<String, Edge> g = starGraph(10);
         GraphEntropyAnalyzer a = new GraphEntropyAnalyzer(g);
         a.compute();
         assertTrue(a.getDegreeEntropy() > 0);
@@ -632,15 +632,15 @@ public class GraphEntropyAnalyzerTest {
 
     @Test
     public void testEdgeTypeEntropyMonotonicity() {
-        Graph<String, edge> g1 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g1 = new UndirectedSparseGraph<>();
         g1.addVertex("A"); g1.addVertex("B"); g1.addVertex("C");
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1); g1.addEdge(e1, "A", "B");
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1); g1.addEdge(e2, "B", "C");
+        edge e1 = new Edge("f", "A", "B"); e1.setWeight(1); g1.addEdge(e1, "A", "B");
+        edge e2 = new Edge("f", "B", "C"); e2.setWeight(1); g1.addEdge(e2, "B", "C");
 
-        Graph<String, edge> g2 = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g2 = new UndirectedSparseGraph<>();
         g2.addVertex("A"); g2.addVertex("B"); g2.addVertex("C");
-        edge e3 = new edge("f", "A", "B"); e3.setWeight(1); g2.addEdge(e3, "A", "B");
-        edge e4 = new edge("c", "B", "C"); e4.setWeight(1); g2.addEdge(e4, "B", "C");
+        edge e3 = new Edge("f", "A", "B"); e3.setWeight(1); g2.addEdge(e3, "A", "B");
+        edge e4 = new Edge("c", "B", "C"); e4.setWeight(1); g2.addEdge(e4, "B", "C");
 
         GraphEntropyAnalyzer a1 = new GraphEntropyAnalyzer(g1);
         a1.compute();
@@ -692,13 +692,13 @@ public class GraphEntropyAnalyzerTest {
         graph.addVertex("C");
         for (int i = 1; i <= 6; i++) {
             graph.addVertex("N" + i);
-            edge e = new edge("f", "C", "N" + i);
+            edge e = new Edge("f", "C", "N" + i);
             e.setWeight(1.0f);
             graph.addEdge(e, "C", "N" + i);
         }
         for (int i = 1; i <= 6; i++) {
             int next = (i % 6) + 1;
-            edge e = new edge("f", "N" + i, "N" + next);
+            edge e = new Edge("f", "N" + i, "N" + next);
             e.setWeight(1.0f);
             graph.addEdge(e, "N" + i, "N" + next);
         }

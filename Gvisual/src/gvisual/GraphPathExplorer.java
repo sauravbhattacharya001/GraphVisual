@@ -39,7 +39,7 @@ public class GraphPathExplorer {
     /** Default maximum number of paths to return. */
     private static final int DEFAULT_MAX_PATHS = 1000;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> adjacency;
     private final Map<String, Map<String, Float>> weightMap;
 
@@ -51,7 +51,7 @@ public class GraphPathExplorer {
      * @param graph the JUNG graph to explore
      * @throws IllegalArgumentException if graph is null or empty
      */
-    public GraphPathExplorer(Graph<String, edge> graph) {
+    public GraphPathExplorer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -65,7 +65,7 @@ public class GraphPathExplorer {
 
     private Map<String, Map<String, Float>> buildWeightMap() {
         Map<String, Map<String, Float>> wm = new HashMap<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             float w = e.getWeight() > 0 ? e.getWeight() : 1.0f;

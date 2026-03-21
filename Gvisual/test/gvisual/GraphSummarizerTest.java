@@ -13,17 +13,17 @@ import java.util.*;
  */
 public class GraphSummarizerTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> friends, fs, classmates, strangers, studyG;
+    private Graph<String, Edge> graph;
+    private List<Edge> friends, fs, classmates, strangers, studyG;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
-        friends = new ArrayList<edge>();
-        fs = new ArrayList<edge>();
-        classmates = new ArrayList<edge>();
-        strangers = new ArrayList<edge>();
-        studyG = new ArrayList<edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
+        friends = new ArrayList<Edge>();
+        fs = new ArrayList<Edge>();
+        classmates = new ArrayList<Edge>();
+        strangers = new ArrayList<Edge>();
+        studyG = new ArrayList<Edge>();
     }
 
     private GraphSummarizer makeSummarizer() {
@@ -33,7 +33,7 @@ public class GraphSummarizerTest {
     private edge addEdge(String v1, String v2, String typeCode) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge(typeCode, v1, v2);
+        edge e = new Edge(typeCode, v1, v2);
         e.setWeight(50.0f);
         graph.addEdge(e, v1, v2);
         return e;

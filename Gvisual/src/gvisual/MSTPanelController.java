@@ -20,7 +20,7 @@ public class MSTPanelController {
 
     /** Callback for obtaining the graph and requesting repaints. */
     public interface GraphHost {
-        Graph<String, edge> getGraph();
+        Graph<String, Edge> getGraph();
         void onOverlayChanged();
     }
 
@@ -28,7 +28,7 @@ public class MSTPanelController {
     private final JPanel panel;
 
     private boolean overlayActive;
-    private final Set<edge> mstEdges = new HashSet<>();
+    private final Set<Edge> mstEdges = new HashSet<>();
 
     private final JLabel summaryLabel;
     private final JLabel statsLabel;
@@ -85,7 +85,7 @@ public class MSTPanelController {
 
     public JPanel getPanel() { return panel; }
     public boolean isOverlayActive() { return overlayActive; }
-    public Set<edge> getMstEdges() { return mstEdges; }
+    public Set<Edge> getMstEdges() { return mstEdges; }
 
     private String getDominantLabel(String typeCode) {
         EdgeType type = EdgeType.fromCode(typeCode);
@@ -93,7 +93,7 @@ public class MSTPanelController {
     }
 
     private void runComputation() {
-        Graph<String, edge> g = host.getGraph();
+        Graph<String, Edge> g = host.getGraph();
         if (g == null || g.getVertexCount() == 0) {
             summaryLabel.setText("<html>No graph loaded.</html>");
             return;

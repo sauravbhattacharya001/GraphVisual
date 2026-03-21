@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class GraphCompressorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -510,7 +510,7 @@ public class GraphCompressorTest {
     // ── Helper ──────────────────────────────────────────────────────
 
     private void addEdge(String v1, String v2, String id) {
-        edge e = new edge("test", v1, v2);
+        edge e = new Edge("test", v1, v2);
         e.setLabel(id);
         graph.addEdge(e, v1, v2);
     }

@@ -28,8 +28,8 @@ import java.util.*;
  */
 public class GraphDiffAnalyzer {
 
-    private final Graph<String, edge> graphA;
-    private final Graph<String, edge> graphB;
+    private final Graph<String, Edge> graphA;
+    private final Graph<String, Edge> graphB;
 
     /**
      * Create a diff analyzer comparing graphA (baseline) to graphB (target).
@@ -38,7 +38,7 @@ public class GraphDiffAnalyzer {
      * @param graphB the target graph to compare against
      * @throws IllegalArgumentException if either graph is null
      */
-    public GraphDiffAnalyzer(Graph<String, edge> graphA, Graph<String, edge> graphB) {
+    public GraphDiffAnalyzer(Graph<String, Edge> graphA, Graph<String, Edge> graphB) {
         if (graphA == null || graphB == null) {
             throw new IllegalArgumentException("Both graphs must not be null");
         }
@@ -285,9 +285,9 @@ public class GraphDiffAnalyzer {
 
     // ── Helpers ─────────────────────────────────────────────────
 
-    private Set<EdgeDiff> extractEdges(Graph<String, edge> g) {
+    private Set<EdgeDiff> extractEdges(Graph<String, Edge> g) {
         Set<EdgeDiff> edges = new HashSet<>();
-        for (edge e : g.getEdges()) {
+        for (Edge e : g.getEdges()) {
             Collection<String> endpoints = g.getEndpoints(e);
             if (endpoints != null && endpoints.size() == 2) {
                 Iterator<String> it = endpoints.iterator();

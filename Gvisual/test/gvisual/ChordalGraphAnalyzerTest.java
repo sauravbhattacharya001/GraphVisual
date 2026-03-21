@@ -14,17 +14,17 @@ import static org.junit.Assert.*;
  */
 public class ChordalGraphAnalyzerTest {
 
-    private Graph<String, edge> emptyGraph;
-    private Graph<String, edge> singleVertex;
-    private Graph<String, edge> singleEdge;
-    private Graph<String, edge> triangle;   // K3 — chordal
-    private Graph<String, edge> path4;      // A-B-C-D — chordal
-    private Graph<String, edge> cycle4;     // A-B-C-D-A — NOT chordal
-    private Graph<String, edge> cycle5;     // 5-cycle — NOT chordal
-    private Graph<String, edge> complete4;  // K4 — chordal
-    private Graph<String, edge> diamond;    // K4 minus one edge — chordal
-    private Graph<String, edge> star5;      // star — chordal
-    private Graph<String, edge> fan;        // fan graph — chordal
+    private Graph<String, Edge> emptyGraph;
+    private Graph<String, Edge> singleVertex;
+    private Graph<String, Edge> singleEdge;
+    private Graph<String, Edge> triangle;   // K3 — chordal
+    private Graph<String, Edge> path4;      // A-B-C-D — chordal
+    private Graph<String, Edge> cycle4;     // A-B-C-D-A — NOT chordal
+    private Graph<String, Edge> cycle5;     // 5-cycle — NOT chordal
+    private Graph<String, Edge> complete4;  // K4 — chordal
+    private Graph<String, Edge> diamond;    // K4 minus one edge — chordal
+    private Graph<String, Edge> star5;      // star — chordal
+    private Graph<String, Edge> fan;        // fan graph — chordal
 
     private int edgeCounter;
 
@@ -97,10 +97,10 @@ public class ChordalGraphAnalyzerTest {
         addEdge(fan, "X", "D");
     }
 
-    private void addEdge(Graph<String, edge> g, String u, String v) {
+    private void addEdge(Graph<String, Edge> g, String u, String v) {
         if (!g.containsVertex(u)) g.addVertex(u);
         if (!g.containsVertex(v)) g.addVertex(v);
-        g.addEdge(new edge("e" + (++edgeCounter), u, v), u, v);
+        g.addEdge(new Edge("e" + (++edgeCounter), u, v), u, v);
     }
 
     // ── MCS ordering ────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ public class ChordalGraphAnalyzerTest {
     public void testColoringIsValid() {
         ChordalGraphAnalyzer.ColoringResult c = ChordalGraphAnalyzer.optimalColoring(fan);
         Map<String, Integer> colors = c.getColors();
-        for (edge e : fan.getEdges()) {
+        for (Edge e : fan.getEdges()) {
             assertNotEquals("Adjacent vertices must have different colors: " + e.getVertex1() + "-" + e.getVertex2(),
                 colors.get(e.getVertex1()), colors.get(e.getVertex2()));
         }

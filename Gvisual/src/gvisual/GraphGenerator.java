@@ -10,7 +10,7 @@ import java.util.*;
  * <p>Useful for testing analysis algorithms, benchmarking performance,
  * exploring graph properties, and creating example networks for
  * demonstrations. All generated graphs use the same JUNG graph type
- * ({@code UndirectedSparseGraph<String, edge>}) as the rest of the
+ * ({@code UndirectedSparseGraph<String, Edge>}) as the rest of the
  * application.</p>
  *
  * <h3>Supported topologies:</h3>
@@ -33,7 +33,7 @@ import java.util.*;
  *
  * // Create a scale-free network with 100 nodes
  * GraphGenerator.GeneratedGraph sf = gen.scaleFreeBa(100, 3);
- * Graph<String, edge> graph = sf.getGraph();
+ * Graph<String, Edge> graph = sf.getGraph();
  *
  * // Create a small-world network
  * GraphGenerator.GeneratedGraph sw = gen.smallWorldWs(50, 4, 0.1);
@@ -70,11 +70,11 @@ public class GraphGenerator {
      * Holds a generated graph along with metadata about how it was created.
      */
     public static class GeneratedGraph {
-        private final Graph<String, edge> graph;
+        private final Graph<String, Edge> graph;
         private final String topology;
         private final Map<String, Object> parameters;
 
-        GeneratedGraph(Graph<String, edge> graph, String topology,
+        GeneratedGraph(Graph<String, Edge> graph, String topology,
                        Map<String, Object> parameters) {
             this.graph = graph;
             this.topology = topology;
@@ -82,7 +82,7 @@ public class GraphGenerator {
         }
 
         /** The generated JUNG graph. */
-        public Graph<String, edge> getGraph() { return graph; }
+        public Graph<String, Edge> getGraph() { return graph; }
 
         /** Name of the topology used. */
         public String getTopology() { return topology; }
@@ -145,19 +145,19 @@ public class GraphGenerator {
     }
 
     private edge createEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        edge e = new Edge("f", v1, v2);
         e.setLabel("gen_" + (edgeCounter++));
         e.setWeight(1.0f);
         return e;
     }
 
-    private void addNodes(Graph<String, edge> graph, int n) {
+    private void addNodes(Graph<String, Edge> graph, int n) {
         for (int i = 0; i < n; i++) {
             graph.addVertex(nodeName(i));
         }
     }
 
-    private void addEdgeIfAbsent(Graph<String, edge> graph, String v1, String v2) {
+    private void addEdgeIfAbsent(Graph<String, Edge> graph, String v1, String v2) {
         if (v1.equals(v2)) return;
         if (graph.findEdge(v1, v2) == null) {
             graph.addEdge(createEdge(v1, v2), v1, v2);
@@ -179,7 +179,7 @@ public class GraphGenerator {
      */
     public GeneratedGraph complete(int n) {
         if (n < 1) throw new IllegalArgumentException("n must be >= 1");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
@@ -204,7 +204,7 @@ public class GraphGenerator {
      */
     public GeneratedGraph ring(int n) {
         if (n < 3) throw new IllegalArgumentException("Ring requires n >= 3");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
         for (int i = 0; i < n; i++) {
             int next = (i + 1) % n;
@@ -228,7 +228,7 @@ public class GraphGenerator {
      */
     public GeneratedGraph star(int n) {
         if (n < 2) throw new IllegalArgumentException("Star requires n >= 2");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
         String hub = nodeName(0);
         for (int i = 1; i < n; i++) {
@@ -254,7 +254,7 @@ public class GraphGenerator {
      */
     public GeneratedGraph grid(int rows, int cols) {
         if (rows < 1 || cols < 1) throw new IllegalArgumentException("rows and cols must be >= 1");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         int n = rows * cols;
         addNodes(g, n);
         for (int r = 0; r < rows; r++) {
@@ -290,7 +290,7 @@ public class GraphGenerator {
      */
     public GeneratedGraph path(int n) {
         if (n < 2) throw new IllegalArgumentException("Path requires n >= 2");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
         for (int i = 0; i < n - 1; i++) {
             g.addEdge(createEdge(nodeName(i), nodeName(i + 1)),
@@ -317,7 +317,7 @@ public class GraphGenerator {
     public GeneratedGraph tree(int branchingFactor, int depth) {
         if (branchingFactor < 1) throw new IllegalArgumentException("branchingFactor must be >= 1");
         if (depth < 0) throw new IllegalArgumentException("depth must be >= 0");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         int nodeId = 0;
         g.addVertex(nodeName(nodeId));
 
@@ -362,7 +362,7 @@ public class GraphGenerator {
     public GeneratedGraph randomErdosRenyi(int n, double p) {
         if (n < 1) throw new IllegalArgumentException("n must be >= 1");
         if (p < 0.0 || p > 1.0) throw new IllegalArgumentException("p must be in [0, 1]");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
@@ -398,7 +398,7 @@ public class GraphGenerator {
     public GeneratedGraph scaleFreeBa(int n, int m) {
         if (m < 1) throw new IllegalArgumentException("m must be >= 1");
         if (n <= m) throw new IllegalArgumentException("n must be > m");
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
 
         // Start with a complete graph of m+1 nodes
         for (int i = 0; i <= m; i++) {
@@ -471,7 +471,7 @@ public class GraphGenerator {
         if (k >= n) throw new IllegalArgumentException("k must be < n");
         if (beta < 0.0 || beta > 1.0) throw new IllegalArgumentException("beta must be in [0, 1]");
 
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addNodes(g, n);
 
         // Create ring lattice
@@ -535,7 +535,7 @@ public class GraphGenerator {
         if (p < 0.0 || p > 1.0)
             throw new IllegalArgumentException("p must be in [0, 1]");
 
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         int total = groupASize + groupBSize;
         addNodes(g, total);
 

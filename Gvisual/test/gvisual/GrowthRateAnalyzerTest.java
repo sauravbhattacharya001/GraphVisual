@@ -16,29 +16,29 @@ import static org.junit.Assert.*;
  */
 public class GrowthRateAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // ─── Helper methods ───
 
     private edge makeEdge(String type, String v1, String v2, long start, long end) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setTimestamp(start);
         e.setEndTimestamp(end);
         return e;
     }
 
     private edge makeEdge(String type, String v1, String v2, long timestamp) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setTimestamp(timestamp);
         return e;
     }
 
-    private void addEdge(Graph<String, edge> g, edge e) {
+    private void addEdge(Graph<String, Edge> g, edge e) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         if (!g.containsVertex(v1)) g.addVertex(v1);

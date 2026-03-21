@@ -64,7 +64,7 @@ public class GraphGeneratorTest {
     @Test
     public void complete_allNodesConnected() {
         GraphGenerator.GeneratedGraph result = gen.complete(4);
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
         for (String v : g.getVertices()) {
             assertEquals(3, g.degree(v));
         }
@@ -110,7 +110,7 @@ public class GraphGeneratorTest {
         assertEquals(10, result.getNodeCount());
         assertEquals(9, result.getEdgeCount());
         // Hub has degree n-1, leaves have degree 1
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
         assertEquals(9, g.degree("n0"));
         for (int i = 1; i < 10; i++) {
             assertEquals(1, g.degree("n" + i));
@@ -184,7 +184,7 @@ public class GraphGeneratorTest {
         assertEquals(5, result.getNodeCount());
         assertEquals(4, result.getEdgeCount());
         // Endpoints have degree 1, interior nodes have degree 2
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
         assertEquals(1, g.degree("n0"));
         assertEquals(2, g.degree("n2"));
         assertEquals(1, g.degree("n4"));
@@ -314,7 +314,7 @@ public class GraphGeneratorTest {
     @Test
     public void scaleFreeBa_hasHubs() {
         GraphGenerator.GeneratedGraph result = gen.scaleFreeBa(100, 2);
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
         // Early nodes should have higher degree (preferential attachment)
         int maxDegree = 0;
         for (String v : g.getVertices()) {
@@ -416,7 +416,7 @@ public class GraphGeneratorTest {
     @Test
     public void bipartite_noIntraGroupEdges() {
         GraphGenerator.GeneratedGraph result = gen.bipartite(5, 5, 1.0);
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
         // Group A: n0-n4, Group B: n5-n9
         // No edges within group A
         for (int i = 0; i < 5; i++) {
@@ -548,7 +548,7 @@ public class GraphGeneratorTest {
     @Test
     public void generatedGraphs_workWithExistingAnalyzers() {
         GraphGenerator.GeneratedGraph result = gen.scaleFreeBa(30, 2);
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
 
         // Should work with ShortestPathFinder
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -571,11 +571,11 @@ public class GraphGeneratorTest {
     @Test
     public void generatedGraphs_workWithGraphStats() {
         GraphGenerator.GeneratedGraph result = gen.ring(10);
-        Graph<String, edge> g = result.getGraph();
+        Graph<String, Edge> g = result.getGraph();
 
         // Build edge lists (all "f" type in generated graphs)
-        List<edge> allEdges = new ArrayList<>(g.getEdges());
-        List<edge> empty = Collections.emptyList();
+        List<Edge> allEdges = new ArrayList<>(g.getEdges());
+        List<Edge> empty = Collections.emptyList();
 
         GraphStats stats = new GraphStats(g, allEdges, empty, empty, empty, empty);
         assertEquals(10, stats.getNodeCount());

@@ -23,7 +23,7 @@ import java.util.*;
  */
 public class MinimumSpanningTree {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new MST analyzer for the given graph.
@@ -31,7 +31,7 @@ public class MinimumSpanningTree {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public MinimumSpanningTree(Graph<String, edge> graph) {
+    public MinimumSpanningTree(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -55,25 +55,25 @@ public class MinimumSpanningTree {
         }
 
         // Collect all edges and sort by weight (Kruskal's)
-        List<edge> sortedEdges = new ArrayList<edge>();
-        Set<edge> seen = new HashSet<edge>();
-        for (edge e : graph.getEdges()) {
+        List<Edge> sortedEdges = new ArrayList<Edge>();
+        Set<Edge> seen = new HashSet<Edge>();
+        for (Edge e : graph.getEdges()) {
             if (!seen.contains(e)) {
                 sortedEdges.add(e);
                 seen.add(e);
             }
         }
-        Collections.sort(sortedEdges, (edge a, edge b) -> {
+        Collections.sort(sortedEdges, (Edge a, edge b) -> {
                 return Float.compare(a.getWeight(), b.getWeight());
             });
 
         // Union-Find
         UnionFind uf = new UnionFind(vertices);
 
-        List<edge> mstEdges = new ArrayList<edge>();
+        List<Edge> mstEdges = new ArrayList<Edge>();
         float totalWeight = 0.0f;
 
-        for (edge e : sortedEdges) {
+        for (Edge e : sortedEdges) {
             String u = e.getVertex1();
             String v = e.getVertex2();
             if (!uf.find(u).equals(uf.find(v))) {
@@ -96,12 +96,12 @@ public class MinimumSpanningTree {
         }
 
         // Map edges to their component
-        Map<String, List<edge>> rootToEdges = new LinkedHashMap<String, List<edge>>();
-        for (edge e : mstEdges) {
+        Map<String, List<Edge>> rootToEdges = new LinkedHashMap<String, List<Edge>>();
+        for (Edge e : mstEdges) {
             String root = uf.find(e.getVertex1());
-            List<edge> compEdges = rootToEdges.get(root);
+            List<Edge> compEdges = rootToEdges.get(root);
             if (compEdges == null) {
-                compEdges = new ArrayList<edge>();
+                compEdges = new ArrayList<Edge>();
                 rootToEdges.put(root, compEdges);
             }
             compEdges.add(e);
@@ -119,11 +119,11 @@ public class MinimumSpanningTree {
         for (Map.Entry<String, List<String>> entry : sortedComps) {
             String root = entry.getKey();
             List<String> members = entry.getValue();
-            List<edge> compEdges = rootToEdges.get(root);
+            List<Edge> compEdges = rootToEdges.get(root);
             if (compEdges == null) compEdges = Collections.<edge>emptyList();
 
             float compWeight = 0.0f;
-            for (edge e : compEdges) {
+            for (Edge e : compEdges) {
                 compWeight += e.getWeight();
             }
 
@@ -204,14 +204,14 @@ public class MinimumSpanningTree {
      * Complete MST computation result.
      */
     public static class MSTResult {
-        private final List<edge> edges;
+        private final List<Edge> edges;
         private final List<MSTComponent> components;
         private final int componentCount;
         private final float totalWeight;
         private final int edgeCount;
         private final int vertexCount;
 
-        MSTResult(List<edge> edges, List<MSTComponent> components,
+        MSTResult(List<Edge> edges, List<MSTComponent> components,
                   int componentCount, float totalWeight, int edgeCount, int vertexCount) {
             this.edges = Collections.unmodifiableList(edges);
             this.components = Collections.unmodifiableList(components);
@@ -222,7 +222,7 @@ public class MinimumSpanningTree {
         }
 
         /** All MST edges. */
-        public List<edge> getEdges() { return edges; }
+        public List<Edge> getEdges() { return edges; }
 
         /** Per-component breakdown. */
         public List<MSTComponent> getComponents() { return components; }
@@ -254,7 +254,7 @@ public class MinimumSpanningTree {
          */
         public Map<String, Integer> getEdgeTypeDistribution() {
             Map<String, Integer> dist = new LinkedHashMap<String, Integer>();
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 String type = e.getType();
                 if (type == null) type = "unknown";
                 Integer count = dist.get(type);
@@ -284,7 +284,7 @@ public class MinimumSpanningTree {
          */
         public edge getHeaviestEdge() {
             edge heaviest = null;
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 if (heaviest == null || e.getWeight() > heaviest.getWeight()) {
                     heaviest = e;
                 }
@@ -299,7 +299,7 @@ public class MinimumSpanningTree {
          */
         public edge getLightestEdge() {
             edge lightest = null;
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 if (lightest == null || e.getWeight() < lightest.getWeight()) {
                     lightest = e;
                 }
@@ -324,10 +324,10 @@ public class MinimumSpanningTree {
     public static class MSTComponent {
         private final int id;
         private final List<String> vertices;
-        private final List<edge> edges;
+        private final List<Edge> edges;
         private final float totalWeight;
 
-        MSTComponent(int id, List<String> vertices, List<edge> edges, float totalWeight) {
+        MSTComponent(int id, List<String> vertices, List<Edge> edges, float totalWeight) {
             this.id = id;
             this.vertices = Collections.unmodifiableList(vertices);
             this.edges = Collections.unmodifiableList(edges);
@@ -341,7 +341,7 @@ public class MinimumSpanningTree {
         public List<String> getVertices() { return vertices; }
 
         /** MST edges in this component. */
-        public List<edge> getEdges() { return edges; }
+        public List<Edge> getEdges() { return edges; }
 
         /** Total weight of MST edges in this component. */
         public float getTotalWeight() { return totalWeight; }
@@ -356,7 +356,7 @@ public class MinimumSpanningTree {
          */
         public String getDominantType() {
             Map<String, Integer> counts = new HashMap<String, Integer>();
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 String type = e.getType();
                 if (type == null) type = "unknown";
                 Integer c = counts.get(type);

@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class CommunityDetector {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new CommunityDetector for the given graph.
@@ -24,7 +24,7 @@ public class CommunityDetector {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public CommunityDetector(Graph<String, edge> graph) {
+    public CommunityDetector(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -175,7 +175,7 @@ public class CommunityDetector {
          * Q = sum_c [ (e_c / m) - (d_c / 2m)^2 ]
          * where e_c = internal edges, m = total edges, d_c = sum of degrees.
          */
-        public double getModularity(Graph<String, edge> graph) {
+        public double getModularity(Graph<String, Edge> graph) {
             int m = graph.getEdgeCount();
             if (m == 0) return 0.0;
 
@@ -212,7 +212,7 @@ public class CommunityDetector {
         int communityId = 0;
 
         // Track which edges have been counted globally to avoid double-counting
-        Set<edge> countedEdges = new HashSet<edge>();
+        Set<Edge> countedEdges = new HashSet<Edge>();
 
         // Find connected components via BFS, computing edge metrics inline
         for (String vertex : graph.getVertices()) {
@@ -228,7 +228,7 @@ public class CommunityDetector {
                 community.members.add(current);
                 nodeToCommunity.put(current, communityId);
 
-                for (edge e : graph.getIncidentEdges(current)) {
+                for (Edge e : graph.getIncidentEdges(current)) {
                     String neighbor = getOtherEnd(e, current);
                     if (neighbor == null) continue;
 
@@ -267,7 +267,7 @@ public class CommunityDetector {
         return new DetectionResult(communities, updatedMapping);
     }
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd(Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 }

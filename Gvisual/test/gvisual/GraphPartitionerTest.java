@@ -14,7 +14,7 @@ import java.util.*;
  */
 public class GraphPartitionerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,7 +24,7 @@ public class GraphPartitionerTest {
     // ---- Helpers ----
 
     private void addEdge(String u, String v) {
-        edge e = new edge("f", u, v);
+        edge e = new Edge("f", u, v);
         graph.addEdge(e, u, v);
     }
 

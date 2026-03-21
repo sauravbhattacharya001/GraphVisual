@@ -33,7 +33,7 @@ public class BipartiteAnalyzer {
     private static final String NIL = "__NIL__";
     private static final int INF = Integer.MAX_VALUE;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Integer> coloring;
     private boolean bipartite;
     private boolean computed;
@@ -45,7 +45,7 @@ public class BipartiteAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public BipartiteAnalyzer(Graph<String, edge> graph) {
+    public BipartiteAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

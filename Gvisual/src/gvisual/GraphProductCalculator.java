@@ -25,10 +25,10 @@ import java.util.*;
  * <h3>Usage:</h3>
  * <pre>{@code
  * GraphProductCalculator calc = new GraphProductCalculator(graphG, graphH);
- * Graph<String, edge> cartesian = calc.cartesianProduct();
- * Graph<String, edge> tensor = calc.tensorProduct();
- * Graph<String, edge> strong = calc.strongProduct();
- * Graph<String, edge> lex = calc.lexicographicProduct();
+ * Graph<String, Edge> cartesian = calc.cartesianProduct();
+ * Graph<String, Edge> tensor = calc.tensorProduct();
+ * Graph<String, Edge> strong = calc.strongProduct();
+ * Graph<String, Edge> lex = calc.lexicographicProduct();
  *
  * // Product metadata
  * ProductInfo info = calc.getProductInfo(ProductType.CARTESIAN);
@@ -95,11 +95,11 @@ public class GraphProductCalculator {
         }
     }
 
-    private final Graph<String, edge> graphG;
-    private final Graph<String, edge> graphH;
+    private final Graph<String, Edge> graphG;
+    private final Graph<String, Edge> graphH;
     private final List<String> verticesG;
     private final List<String> verticesH;
-    private final Map<ProductType, Graph<String, edge>> cache;
+    private final Map<ProductType, Graph<String, Edge>> cache;
     private final Map<ProductType, ProductInfo> infoCache;
 
     /**
@@ -109,7 +109,7 @@ public class GraphProductCalculator {
      * @param graphH the second graph (H)
      * @throws IllegalArgumentException if either graph is null
      */
-    public GraphProductCalculator(Graph<String, edge> graphG, Graph<String, edge> graphH) {
+    public GraphProductCalculator(Graph<String, Edge> graphG, Graph<String, Edge> graphH) {
         if (graphG == null || graphH == null) {
             throw new IllegalArgumentException("Both graphs must be non-null");
         }
@@ -117,7 +117,7 @@ public class GraphProductCalculator {
         this.graphH = graphH;
         this.verticesG = new ArrayList<String>(graphG.getVertices());
         this.verticesH = new ArrayList<String>(graphH.getVertices());
-        this.cache = new EnumMap<ProductType, Graph<String, edge>>(ProductType.class);
+        this.cache = new EnumMap<ProductType, Graph<String, Edge>>(ProductType.class);
         this.infoCache = new EnumMap<ProductType, ProductInfo>(ProductType.class);
     }
 
@@ -131,7 +131,7 @@ public class GraphProductCalculator {
     /**
      * Checks if two vertices are adjacent in the given graph.
      */
-    private boolean areAdjacent(Graph<String, edge> g, String v1, String v2) {
+    private boolean areAdjacent(Graph<String, Edge> g, String v1, String v2) {
         return g.findEdge(v1, v2) != null;
     }
 
@@ -141,7 +141,7 @@ public class GraphProductCalculator {
      * Creates a fresh product edge.
      */
     private edge newProductEdge(String u1, String v1, String u2, String v2) {
-        edge e = new edge("product",
+        edge e = new Edge("product",
                 productVertex(u1, v1),
                 productVertex(u2, v2));
         e.setLabel("e" + (edgeCounter++));
@@ -155,12 +155,12 @@ public class GraphProductCalculator {
      *
      * @return the Cartesian product graph
      */
-    public Graph<String, edge> cartesianProduct() {
+    public Graph<String, Edge> cartesianProduct() {
         if (cache.containsKey(ProductType.CARTESIAN)) {
             return cache.get(ProductType.CARTESIAN);
         }
         long start = System.currentTimeMillis();
-        Graph<String, edge> product = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> product = new UndirectedSparseGraph<String, Edge>();
 
         // Add all product vertices
         for (String u : verticesG) {
@@ -213,12 +213,12 @@ public class GraphProductCalculator {
      *
      * @return the tensor product graph
      */
-    public Graph<String, edge> tensorProduct() {
+    public Graph<String, Edge> tensorProduct() {
         if (cache.containsKey(ProductType.TENSOR)) {
             return cache.get(ProductType.TENSOR);
         }
         long start = System.currentTimeMillis();
-        Graph<String, edge> product = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> product = new UndirectedSparseGraph<String, Edge>();
 
         for (String u : verticesG) {
             for (String v : verticesH) {
@@ -263,12 +263,12 @@ public class GraphProductCalculator {
      *
      * @return the strong product graph
      */
-    public Graph<String, edge> strongProduct() {
+    public Graph<String, Edge> strongProduct() {
         if (cache.containsKey(ProductType.STRONG)) {
             return cache.get(ProductType.STRONG);
         }
         long start = System.currentTimeMillis();
-        Graph<String, edge> product = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> product = new UndirectedSparseGraph<String, Edge>();
 
         for (String u : verticesG) {
             for (String v : verticesH) {
@@ -318,7 +318,7 @@ public class GraphProductCalculator {
                 else if (uAdj && vAdj) connected = true;    // Tensor
 
                 if (connected) {
-                    edge e = new edge("product", pv1, pv2);
+                    edge e = new Edge("product", pv1, pv2);
                     e.setLabel("e" + (edgeCounter++));
                     product.addEdge(e, pv1, pv2);
                 }
@@ -341,12 +341,12 @@ public class GraphProductCalculator {
      *
      * @return the lexicographic product graph
      */
-    public Graph<String, edge> lexicographicProduct() {
+    public Graph<String, Edge> lexicographicProduct() {
         if (cache.containsKey(ProductType.LEXICOGRAPHIC)) {
             return cache.get(ProductType.LEXICOGRAPHIC);
         }
         long start = System.currentTimeMillis();
-        Graph<String, edge> product = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> product = new UndirectedSparseGraph<String, Edge>();
 
         for (String u : verticesG) {
             for (String v : verticesH) {
@@ -462,7 +462,7 @@ public class GraphProductCalculator {
      * @return sorted degree sequence (descending)
      */
     public List<Integer> getDegreeSequence(ProductType type) {
-        Graph<String, edge> product;
+        Graph<String, Edge> product;
         switch (type) {
             case CARTESIAN: product = cartesianProduct(); break;
             case TENSOR: product = tensorProduct(); break;

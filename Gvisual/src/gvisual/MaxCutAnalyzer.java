@@ -38,11 +38,11 @@ import java.util.*;
  */
 public class MaxCutAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private static final int EXACT_LIMIT = 20;
     private static final int RANDOM_RESTARTS = 25;
 
-    public MaxCutAnalyzer(Graph<String, edge> graph) {
+    public MaxCutAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -54,20 +54,20 @@ public class MaxCutAnalyzer {
         private final Set<String> setT;
         private final double cutValue;
         private final int cutEdgeCount;
-        private final List<edge> cutEdges;
+        private final List<Edge> cutEdges;
         private final String algorithm;
         private final int totalEdges;
         private final double cutRatio;
 
         public CutResult(Set<String> setS, Set<String> setT,
                           double cutValue, int cutEdgeCount,
-                          List<edge> cutEdges, String algorithm,
+                          List<Edge> cutEdges, String algorithm,
                           int totalEdges) {
             this.setS = Collections.unmodifiableSet(new LinkedHashSet<String>(setS));
             this.setT = Collections.unmodifiableSet(new LinkedHashSet<String>(setT));
             this.cutValue = cutValue;
             this.cutEdgeCount = cutEdgeCount;
-            this.cutEdges = Collections.unmodifiableList(new ArrayList<edge>(cutEdges));
+            this.cutEdges = Collections.unmodifiableList(new ArrayList<Edge>(cutEdges));
             this.algorithm = algorithm;
             this.totalEdges = totalEdges;
             this.cutRatio = totalEdges > 0 ? (double) cutEdgeCount / totalEdges : 0.0;
@@ -77,7 +77,7 @@ public class MaxCutAnalyzer {
         public Set<String> getSetT() { return setT; }
         public double getCutValue() { return cutValue; }
         public int getCutEdgeCount() { return cutEdgeCount; }
-        public List<edge> getCutEdges() { return cutEdges; }
+        public List<Edge> getCutEdges() { return cutEdges; }
         public String getAlgorithm() { return algorithm; }
         public int getTotalEdges() { return totalEdges; }
         public double getCutRatio() { return cutRatio; }
@@ -186,7 +186,7 @@ public class MaxCutAnalyzer {
         int n = graph.getVertexCount();
         if (n <= 1 || edgeCount == 0) return 0.0;
         double totalWeight = 0;
-        for (edge e : graph.getEdges()) totalWeight += Math.max(e.getWeight(), 1.0f);
+        for (Edge e : graph.getEdges()) totalWeight += Math.max(e.getWeight(), 1.0f);
         // Edwards bound is a guaranteed lower bound, not an upper bound.
         // The trivial upper bound is total edge weight (every edge cut).
         return totalWeight;
@@ -201,7 +201,7 @@ public class MaxCutAnalyzer {
     public Map<String, Integer> computeVertexContributions(CutResult result) {
         Map<String, Integer> contributions = new LinkedHashMap<String, Integer>();
         for (String v : graph.getVertices()) contributions.put(v, 0);
-        for (edge e : result.getCutEdges()) {
+        for (Edge e : result.getCutEdges()) {
             String v1 = e.getVertex1(), v2 = e.getVertex2();
             if (contributions.containsKey(v1)) contributions.put(v1, contributions.get(v1) + 1);
             if (contributions.containsKey(v2)) contributions.put(v2, contributions.get(v2) + 1);
@@ -337,9 +337,9 @@ public class MaxCutAnalyzer {
 
     private double weightedNeighborsIn(String v, Set<String> set) {
         double total = 0;
-        Collection<edge> incidentEdges = graph.getIncidentEdges(v);
+        Collection<Edge> incidentEdges = graph.getIncidentEdges(v);
         if (incidentEdges != null) {
-            for (edge e : incidentEdges) {
+            for (Edge e : incidentEdges) {
                 String other = GraphUtils.getOtherEnd(e, v);
                 if (other != null && set.contains(other)) total += Math.max(e.getWeight(), 1.0f);
             }
@@ -370,7 +370,7 @@ public class MaxCutAnalyzer {
 
     private double evaluateCutByMask(List<String> vertexList, long mask) {
         double cutValue = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             int i1 = vertexList.indexOf(e.getVertex1()), i2 = vertexList.indexOf(e.getVertex2());
             if (i1 < 0 || i2 < 0) continue;
             if (((mask & (1L << i1)) != 0) != ((mask & (1L << i2)) != 0))
@@ -381,8 +381,8 @@ public class MaxCutAnalyzer {
 
     private CutResult buildResult(Set<String> setS, Set<String> setT, String algorithm) {
         double cutValue = 0; int cutEdgeCount = 0;
-        List<edge> cutEdges = new ArrayList<edge>();
-        for (edge e : graph.getEdges()) {
+        List<Edge> cutEdges = new ArrayList<Edge>();
+        for (Edge e : graph.getEdges()) {
             if (setS.contains(e.getVertex1()) != setS.contains(e.getVertex2())) {
                 cutEdges.add(e); cutEdgeCount++;
                 cutValue += Math.max(e.getWeight(), 1.0f);
@@ -393,6 +393,6 @@ public class MaxCutAnalyzer {
 
     private CutResult emptyCut(String algorithm) {
         return new CutResult(new LinkedHashSet<String>(), new LinkedHashSet<String>(),
-            0.0, 0, new ArrayList<edge>(), algorithm, 0);
+            0.0, 0, new ArrayList<Edge>(), algorithm, 0);
     }
 }

@@ -14,11 +14,11 @@ import static org.junit.Assert.*;
  */
 public class GraphAnomalyDetectorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     /** Creates an edge with the given type and weight. */
     private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -33,7 +33,7 @@ public class GraphAnomalyDetectorTest {
      */
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
 
         // Add hub
         String hub = "0";
@@ -92,7 +92,7 @@ public class GraphAnomalyDetectorTest {
 
     @Test(expected = IllegalStateException.class)
     public void testAnalyzeTooFewVertices() {
-        Graph<String, edge> tiny = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> tiny = new UndirectedSparseGraph<String, Edge>();
         tiny.addVertex("A");
         tiny.addVertex("B");
         edge e = makeEdge("f", "A", "B", 1.0f);
@@ -102,7 +102,7 @@ public class GraphAnomalyDetectorTest {
 
     @Test
     public void testAnalyzeThreeVerticesMinimum() {
-        Graph<String, edge> small = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> small = new UndirectedSparseGraph<String, Edge>();
         small.addVertex("A");
         small.addVertex("B");
         small.addVertex("C");
@@ -437,7 +437,7 @@ public class GraphAnomalyDetectorTest {
     @Test
     public void testUniformGraphLowScores() {
         // Ring graph: all nodes have degree 2, same clustering, same diversity
-        Graph<String, edge> ring = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> ring = new UndirectedSparseGraph<String, Edge>();
         for (int i = 0; i < 6; i++) {
             ring.addVertex(String.valueOf(i));
         }
@@ -460,7 +460,7 @@ public class GraphAnomalyDetectorTest {
 
     @Test
     public void testStarGraphHubIsAnomaly() {
-        Graph<String, edge> star = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> star = new UndirectedSparseGraph<String, Edge>();
         star.addVertex("center");
         for (int i = 0; i < 10; i++) {
             String leaf = "leaf" + i;
@@ -480,7 +480,7 @@ public class GraphAnomalyDetectorTest {
 
     @Test
     public void testCompleteGraphAllSimilar() {
-        Graph<String, edge> complete = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> complete = new UndirectedSparseGraph<String, Edge>();
         String[] nodes = {"A", "B", "C", "D"};
         for (String n : nodes) complete.addVertex(n);
 

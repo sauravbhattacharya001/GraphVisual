@@ -13,17 +13,17 @@ import java.util.*;
  */
 public class NodeSimilarityAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private void addEdge(String v1, String v2, String type) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge(type, v1, v2);
+        edge e = new Edge(type, v1, v2);
         graph.addEdge(e, v1, v2);
     }
 

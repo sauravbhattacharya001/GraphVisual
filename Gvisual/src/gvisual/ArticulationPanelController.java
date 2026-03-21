@@ -22,18 +22,18 @@ public class ArticulationPanelController {
     private final JButton analyzeButton;
     private final JButton clearButton;
 
-    private final Supplier<Graph<String, edge>> graphSupplier;
+    private final Supplier<Graph<String, Edge>> graphSupplier;
     private final Runnable onOverlayChanged;
 
     private boolean overlayActive;
     private final Set<String> articulationPoints = new HashSet<>();
-    private final Set<edge> bridgeEdges = new HashSet<>();
+    private final Set<Edge> bridgeEdges = new HashSet<>();
 
     /**
      * @param graphSupplier     supplies the current graph
      * @param onOverlayChanged  callback to refresh renderers/visualization after overlay changes
      */
-    public ArticulationPanelController(Supplier<Graph<String, edge>> graphSupplier,
+    public ArticulationPanelController(Supplier<Graph<String, Edge>> graphSupplier,
                                         Runnable onOverlayChanged) {
         this.graphSupplier = graphSupplier;
         this.onOverlayChanged = onOverlayChanged;
@@ -78,10 +78,10 @@ public class ArticulationPanelController {
     public JPanel getPanel() { return panel; }
     public boolean isOverlayActive() { return overlayActive; }
     public Set<String> getArticulationPoints() { return Collections.unmodifiableSet(articulationPoints); }
-    public Set<edge> getBridgeEdges() { return Collections.unmodifiableSet(bridgeEdges); }
+    public Set<Edge> getBridgeEdges() { return Collections.unmodifiableSet(bridgeEdges); }
 
     private void runAnalysis() {
-        Graph<String, edge> g = graphSupplier.get();
+        Graph<String, Edge> g = graphSupplier.get();
         if (g == null || g.getVertexCount() == 0) {
             summaryLabel.setText("<html>No graph loaded.</html>");
             return;

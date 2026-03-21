@@ -34,8 +34,8 @@ import java.util.*;
  */
 public class CsvReportExporter {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String timestamp;
 
     /**
@@ -45,12 +45,12 @@ public class CsvReportExporter {
      * @param allEdges all edges (including those possibly filtered out of the graph)
      * @throws IllegalArgumentException if graph is null
      */
-    public CsvReportExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public CsvReportExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
         this.timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     }
 
@@ -293,7 +293,7 @@ public class CsvReportExporter {
      */
     private Map<String, int[]> computeEdgeTypeCounts() {
         Map<String, int[]> counts = new LinkedHashMap<String, int[]>();
-        for (edge e : allEdges) {
+        for (Edge e : allEdges) {
             if (!graph.containsEdge(e)) continue;
             String type = e.getType();
             int idx = typeIndex(type);
