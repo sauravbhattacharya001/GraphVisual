@@ -358,6 +358,71 @@ public final class GraphUtils {
         return copy;
     }
 
+    // ── Indexed Graph (shared structure for array-based algorithms) ───
+
+    /**
+     * Compact indexed representation of a JUNG graph for array-based
+     * algorithms. Converts string vertex IDs to integer indices and
+     * builds adjacency lists once, avoiding the duplicated setup code
+     * that was previously in {@link #computeBetweenness} and
+     * {@link #globalEfficiency}.
+     *
+     * <p>Immutable after construction — safe to pass to multiple
+     * algorithms.</p>
+     */
+    public static final class IndexedGraph {
+        /** Number of vertices. */
+        public final int n;
+        /** Vertex ID at each index. */
+        public final List<String> vertexList;
+        /** Index of each vertex ID. */
+        public final Map<String, Integer> vertexIndex;
+        /** Adjacency lists as integer arrays. */
+        public final int[][] adjLists;
+
+        /**
+         * Build an indexed representation from a JUNG graph.
+         *
+         * @param graph the JUNG graph
+         */
+        public IndexedGraph(Graph<String, edge> graph) {
+            this.n = graph.getVertexCount();
+            this.vertexList = new ArrayList<String>(graph.getVertices());
+            this.vertexIndex = new HashMap<String, Integer>(n * 2);
+            for (int i = 0; i < n; i++) {
+                vertexIndex.put(vertexList.get(i), i);
+            }
+            this.adjLists = new int[n][];
+            for (int i = 0; i < n; i++) {
+                String node = vertexList.get(i);
+                Collection<String> neighbors = graph.getNeighbors(node);
+                List<Integer> adj = new ArrayList<Integer>();
+                if (neighbors != null) {
+                    for (String nb : neighbors) {
+                        Integer idx = vertexIndex.get(nb);
+                        if (idx != null) adj.add(idx);
+                    }
+                }
+                adjLists[i] = new int[adj.size()];
+                for (int j = 0; j < adj.size(); j++) {
+                    adjLists[i][j] = adj.get(j);
+                }
+            }
+        }
+    }
+
+    /**
+     * Builds an {@link IndexedGraph} from a JUNG graph. Convenience
+     * factory for callers that need the indexed form for custom
+     * algorithms.
+     *
+     * @param graph the JUNG graph
+     * @return compact indexed representation
+     */
+    public static IndexedGraph indexGraph(Graph<String, edge> graph) {
+        return new IndexedGraph(graph);
+    }
+
     // ── Betweenness Centrality (array-based Brandes) ──────────────────
 
     /**
@@ -376,30 +441,8 @@ public final class GraphUtils {
         int n = graph.getVertexCount();
         if (n == 0) return Collections.emptyMap();
 
-        // Build vertex index for array-based lookups
-        List<String> vertexList = new ArrayList<String>(graph.getVertices());
-        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
-        for (int i = 0; i < n; i++) {
-            vertexIndex.put(vertexList.get(i), i);
-        }
-
-        // Build adjacency lists using integer indices
-        int[][] adjLists = new int[n][];
-        for (int i = 0; i < n; i++) {
-            String node = vertexList.get(i);
-            Collection<String> neighbors = graph.getNeighbors(node);
-            List<Integer> adj = new ArrayList<Integer>();
-            if (neighbors != null) {
-                for (String nb : neighbors) {
-                    Integer idx = vertexIndex.get(nb);
-                    if (idx != null) adj.add(idx);
-                }
-            }
-            adjLists[i] = new int[adj.size()];
-            for (int j = 0; j < adj.size(); j++) {
-                adjLists[i][j] = adj.get(j);
-            }
-        }
+        IndexedGraph ig = new IndexedGraph(graph);
+        int[][] adjLists = ig.adjLists;
 
         double[] bc = new double[n];
 
@@ -459,7 +502,7 @@ public final class GraphUtils {
         // Halve for undirected and build result map
         Map<String, Double> result = new LinkedHashMap<String, Double>();
         for (int i = 0; i < n; i++) {
-            result.put(vertexList.get(i), bc[i] / 2.0);
+            result.put(ig.vertexList.get(i), bc[i] / 2.0);
         }
         return result;
     }
@@ -481,29 +524,8 @@ public final class GraphUtils {
         int n = graph.getVertexCount();
         if (n <= 1) return 0.0;
 
-        // Build vertex index and adjacency lists
-        List<String> vertexList = new ArrayList<String>(graph.getVertices());
-        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
-        for (int i = 0; i < n; i++) {
-            vertexIndex.put(vertexList.get(i), i);
-        }
-
-        int[][] adjLists = new int[n][];
-        for (int i = 0; i < n; i++) {
-            String node = vertexList.get(i);
-            Collection<String> neighbors = graph.getNeighbors(node);
-            List<Integer> adj = new ArrayList<Integer>();
-            if (neighbors != null) {
-                for (String nb : neighbors) {
-                    Integer idx = vertexIndex.get(nb);
-                    if (idx != null) adj.add(idx);
-                }
-            }
-            adjLists[i] = new int[adj.size()];
-            for (int j = 0; j < adj.size(); j++) {
-                adjLists[i][j] = adj.get(j);
-            }
-        }
+        IndexedGraph ig = new IndexedGraph(graph);
+        int[][] adjLists = ig.adjLists;
 
         // Reusable BFS arrays
         int[] dist = new int[n];
