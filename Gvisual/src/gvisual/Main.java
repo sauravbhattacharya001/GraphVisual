@@ -1453,104 +1453,47 @@ public class Main extends JFrame {
 
 
 
-        playButton = new JButton();
-        pauseButton = new JButton();
-        stopButton = new JButton();
-        prevButton = new JButton();
-        nextButton = new JButton();
-        slowButton = new JButton();
-        fastButton = new JButton();
-
-        String playImgPath = "images/play.png";
-        String pauseImgPath = "images/pause.png";
-        String stopImgPath = "images/stop.png";
-        String slowImgPath = "images/slow.png";
-        String fastImgPath = "images/fast.png";
-        String prevImgPath = "images/prev.png";
-        String nextImgPath = "images/next.png";
-
-        Icon play = new ImageIcon(playImgPath);
-        Icon pause = new ImageIcon(pauseImgPath);
-        Icon stop = new ImageIcon(stopImgPath);
-        Icon prev = new ImageIcon(prevImgPath);
-        Icon next = new ImageIcon(nextImgPath);
-        Icon slow = new ImageIcon(slowImgPath);
-        Icon fast = new ImageIcon(fastImgPath);
-
-        playButton.setIcon(play);
-        pauseButton.setIcon(pause);
-        stopButton.setIcon(stop);
-        prevButton.setIcon(prev);
-        nextButton.setIcon(next);
-        slowButton.setIcon(slow);
-        fastButton.setIcon(fast);
-
-
-
-        MouseListener clickListener = new MouseListener() {
-
-            public void mouseClicked(MouseEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet.");
+        playButton  = createTimelineButton("images/play.png",  "Play",  e -> {
+            LOGGER.fine("Play pressed");
+            timer.start();
+        });
+        pauseButton = createTimelineButton("images/pause.png", "Pause", e -> {
+            LOGGER.fine("Pause pressed");
+            timer.stop();
+        });
+        stopButton  = createTimelineButton("images/stop.png",  "Stop",  e -> {
+            LOGGER.fine("Stop pressed");
+            timeline.setValue(1);
+            timer.stop();
+        });
+        prevButton  = createTimelineButton("images/prev.png",  "Previous important graph", e -> {
+            try {
+                LOGGER.fine("Prev pressed");
+                nextOrPrevGraph("prev");
+                timer.stop();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, null, ex);
             }
-
-            public void mousePressed(MouseEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet.");
-                if (e.getComponent() == playButton) {
-                    LOGGER.fine("Play pressed");
-                    timer.start();
-                } else if (e.getComponent() == pauseButton) {
-                    LOGGER.fine("Pause pressed");
-                    timer.stop();
-                } else if (e.getComponent() == stopButton) {
-                    LOGGER.fine("Stop pressed");
-                    timeline.setValue(1);
-                    timer.stop();
-                } else if (e.getComponent() == slowButton) {
-                    DELAY = DELAY * 2;
-                    timer.setDelay(DELAY);
-                    LOGGER.fine("Slow pressed, delay=" + timer.getDelay());
-                } else if (e.getComponent() == fastButton) {
-                    DELAY = DELAY / 2;
-                    timer.setDelay(DELAY);
-                    LOGGER.fine("Fast pressed, delay=" + timer.getDelay());
-                } else if (e.getComponent() == nextButton) {
-                    try {
-                        LOGGER.fine("Next pressed");
-                        nextOrPrevGraph("next");
-                        timer.stop();
-                    } catch (Exception ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    }
-                } else if (e.getComponent() == prevButton) {
-                    try {
-                        LOGGER.fine("Prev pressed");
-                        nextOrPrevGraph("prev");
-                        timer.stop();
-                    } catch (Exception ex) {
-                        LOGGER.log(Level.SEVERE, null, ex);
-                    }
-                }
+        });
+        nextButton  = createTimelineButton("images/next.png",  "Next important graph", e -> {
+            try {
+                LOGGER.fine("Next pressed");
+                nextOrPrevGraph("next");
+                timer.stop();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, null, ex);
             }
-
-            public void mouseReleased(MouseEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet.");
-            }
-
-            public void mouseEntered(MouseEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet.");
-            }
-
-            public void mouseExited(MouseEvent e) {
-                //throw new UnsupportedOperationException("Not supported yet.");
-            }
-        };
-        playButton.addMouseListener(clickListener);
-        pauseButton.addMouseListener(clickListener);
-        stopButton.addMouseListener(clickListener);
-        slowButton.addMouseListener(clickListener);
-        fastButton.addMouseListener(clickListener);
-        prevButton.addMouseListener(clickListener);
-        nextButton.addMouseListener(clickListener);
+        });
+        slowButton  = createTimelineButton("images/slow.png",  "Slow down", e -> {
+            DELAY = DELAY * 2;
+            timer.setDelay(DELAY);
+            LOGGER.fine("Slow pressed, delay=" + timer.getDelay());
+        });
+        fastButton  = createTimelineButton("images/fast.png",  "Speed up", e -> {
+            DELAY = DELAY / 2;
+            timer.setDelay(DELAY);
+            LOGGER.fine("Fast pressed, delay=" + timer.getDelay());
+        });
 
 
         Box box[] = new Box[1];
@@ -1576,6 +1519,27 @@ public class Main extends JFrame {
         contentPanel.add(box[0]);
 
         contentPanel.add(timeline);
+    }
+
+    /**
+     * Creates a timeline control button with an icon, tooltip, and action.
+     * Replaces the previous pattern of creating bare JButtons, manually
+     * setting icons, and routing all clicks through a single MouseListener
+     * with a component-identity if/else chain — which was fragile and
+     * contrary to Swing best practices (ActionListener is the correct
+     * abstraction for button clicks).
+     *
+     * @param iconPath  path to the button icon image
+     * @param tooltip   accessible tooltip text
+     * @param action    the action to perform on click
+     * @return a configured JButton
+     */
+    private JButton createTimelineButton(String iconPath, String tooltip,
+                                         ActionListener action) {
+        JButton button = new JButton(new ImageIcon(iconPath));
+        button.setToolTipText(tooltip);
+        button.addActionListener(action);
+        return button;
     }
 
     /**
