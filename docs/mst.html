@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MST Visualizer — GraphVisual</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--accent2:#a78bfa;--green:#4ade80;--orange:#fb923c;--red:#f87171;--radius:10px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:1.3rem;font-weight:700}
+header h1 span{color:var(--accent)}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,button{background:var(--surface);color:var(--text);border:1px solid var(--border);padding:6px 12px;border-radius:6px;font-size:.85rem;cursor:pointer}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);color:#0f172a;border-color:var(--accent);font-weight:600}
+button.primary:hover{opacity:.85}
+button:disabled{opacity:.4;cursor:default}
+.main{display:flex;flex:1;overflow:hidden}
+.canvas-wrap{flex:1;position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%;background:var(--bg)}
+.sidebar{width:320px;background:var(--surface);border-left:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.sidebar h3{font-size:.95rem;color:var(--accent);margin-bottom:4px}
+.sidebar p,.sidebar li{font-size:.82rem;color:var(--muted);line-height:1.5}
+.sidebar ul{padding-left:16px}
+.step-list{max-height:260px;overflow-y:auto}
+.step-item{padding:6px 8px;border-radius:6px;font-size:.8rem;margin-bottom:3px;border-left:3px solid transparent;cursor:pointer}
+.step-item.current{background:rgba(56,189,248,.12);border-left-color:var(--accent);color:var(--text)}
+.step-item.done{color:var(--green);border-left-color:var(--green)}
+.step-item:hover{background:rgba(255,255,255,.04)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--bg);padding:8px 10px;border-radius:6px;text-align:center}
+.stat .val{font-size:1.2rem;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:.7rem;color:var(--muted);margin-top:2px}
+.speed-slider{width:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.export-btns{display:flex;gap:6px;flex-wrap:wrap}
+.export-btns button{font-size:.78rem;padding:4px 10px}
+@media(max-width:800px){.main{flex-direction:column}.sidebar{width:100%;max-height:40vh;border-left:none;border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌲 <span>MST</span> Visualizer</h1>
+  <div class="controls">
+    <select id="preset">
+      <option value="triangle">Triangle (3)</option>
+      <option value="square">Square (4)</option>
+      <option value="pentagon">Pentagon (5)</option>
+      <option value="hexagon" selected>Hexagon (6)</option>
+      <option value="grid3x3">Grid 3×3</option>
+      <option value="complete5">Complete K₅</option>
+      <option value="petersen">Petersen (10)</option>
+      <option value="random10">Random (10)</option>
+      <option value="random20">Random (20)</option>
+      <option value="random30">Random (30)</option>
+    </select>
+    <select id="algo">
+      <option value="prim">Prim's Algorithm</option>
+      <option value="kruskal">Kruskal's Algorithm</option>
+    </select>
+    <button class="primary" id="btnRun">▶ Run</button>
+    <button id="btnStep">Step →</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnRandom">🎲 Random Graph</button>
+  </div>
+</header>
+<div class="main">
+  <div class="canvas-wrap"><canvas id="cvs"></canvas></div>
+  <div class="sidebar">
+    <div>
+      <h3>📊 Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat"><div class="val" id="sNodes">0</div><div class="lbl">Nodes</div></div>
+        <div class="stat"><div class="val" id="sEdges">0</div><div class="lbl">Edges</div></div>
+        <div class="stat"><div class="val" id="sMstW">0</div><div class="lbl">MST Weight</div></div>
+        <div class="stat"><div class="val" id="sStep">0/0</div><div class="lbl">Step</div></div>
+      </div>
+    </div>
+    <div>
+      <h3>⚡ Speed</h3>
+      <input type="range" class="speed-slider" id="speed" min="1" max="10" value="5">
+    </div>
+    <div>
+      <h3>🎨 Legend</h3>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--muted)"></span> Unvisited</span>
+        <span><span class="dot" style="background:var(--orange)"></span> Considering</span>
+        <span><span class="dot" style="background:var(--green)"></span> In MST</span>
+        <span><span class="dot" style="background:var(--red)"></span> Rejected</span>
+      </div>
+    </div>
+    <div>
+      <h3>📝 Steps</h3>
+      <div class="step-list" id="stepList"></div>
+    </div>
+    <div>
+      <h3>💾 Export</h3>
+      <div class="export-btns">
+        <button id="expJSON">JSON</button>
+        <button id="expSVG">SVG</button>
+      </div>
+    </div>
+    <div>
+      <h3>ℹ️ About</h3>
+      <p>A <b>Minimum Spanning Tree</b> connects all nodes with the minimum total edge weight and no cycles.</p>
+      <ul>
+        <li><b>Prim's</b> — grows tree from a start node, always adding the cheapest crossing edge.</li>
+        <li><b>Kruskal's</b> — sorts all edges by weight, adds them if they don't form a cycle (Union-Find).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const cvs = $('cvs'), ctx = cvs.getContext('2d');
+let W, H, nodes=[], edges=[], steps=[], curStep=-1, animId=null, running=false, dragging=null;
+
+function resize(){ const r=cvs.parentElement.getBoundingClientRect(); cvs.width=W=r.width; cvs.height=H=r.height; draw(); }
+window.addEventListener('resize', resize);
+
+// Graph generation
+function makePreset(name){
+  nodes=[]; edges=[];
+  const cx=W/2, cy=H/2, R=Math.min(W,H)*0.35;
+  const circ=(n)=>{ for(let i=0;i<n;i++){ const a=2*Math.PI*i/n - Math.PI/2; nodes.push({x:cx+R*Math.cos(a), y:cy+R*Math.sin(a), id:i}); }};
+  const addE=(a,b,w)=>edges.push({a,b,w:w||Math.round(dist(nodes[a],nodes[b])/20)});
+  const dist=(a,b)=>Math.hypot(a.x-b.x, a.y-b.y);
+  switch(name){
+    case 'triangle': circ(3); addE(0,1); addE(1,2); addE(0,2); break;
+    case 'square': circ(4); addE(0,1); addE(1,2); addE(2,3); addE(3,0); addE(0,2); break;
+    case 'pentagon': circ(5); for(let i=0;i<5;i++){addE(i,(i+1)%5); addE(i,(i+2)%5);} break;
+    case 'hexagon': circ(6); for(let i=0;i<6;i++){addE(i,(i+1)%6);} addE(0,3); addE(1,4); addE(2,5); break;
+    case 'grid3x3': {
+      const sp=Math.min(W,H)*0.25;
+      for(let r=0;r<3;r++) for(let c=0;c<3;c++) nodes.push({x:cx+(c-1)*sp, y:cy+(r-1)*sp, id:r*3+c});
+      for(let r=0;r<3;r++) for(let c=0;c<3;c++){ const i=r*3+c; if(c<2) addE(i,i+1); if(r<2) addE(i,i+3); }
+      break;
+    }
+    case 'complete5': circ(5); for(let i=0;i<5;i++) for(let j=i+1;j<5;j++) addE(i,j); break;
+    case 'petersen': {
+      for(let i=0;i<5;i++){const a=2*Math.PI*i/5-Math.PI/2; nodes.push({x:cx+R*Math.cos(a),y:cy+R*Math.sin(a),id:i});}
+      const r2=R*0.45;
+      for(let i=0;i<5;i++){const a=2*Math.PI*i/5-Math.PI/2; nodes.push({x:cx+r2*Math.cos(a),y:cy+r2*Math.sin(a),id:i+5});}
+      for(let i=0;i<5;i++){addE(i,(i+1)%5); addE(i,i+5); addE(i+5,5+(i+2)%5);}
+      break;
+    }
+    default: randomGraph(parseInt(name.replace('random',''))||10); return;
+  }
+  // Assign weights
+  edges.forEach(e=>{ if(!e.w) e.w=Math.round(dist(nodes[e.a],nodes[e.b])/20)||1; });
+}
+
+function randomGraph(n){
+  nodes=[]; edges=[];
+  const pad=60;
+  for(let i=0;i<n;i++) nodes.push({x:pad+Math.random()*(W-2*pad), y:pad+Math.random()*(H-2*pad), id:i});
+  // Ensure connected: spanning tree first
+  const order=[...Array(n).keys()]; for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const has=new Set();
+  const eKey=(a,b)=>Math.min(a,b)+','+Math.max(a,b);
+  for(let i=1;i<n;i++){const a=order[i],b=order[Math.floor(Math.random()*i)]; has.add(eKey(a,b)); edges.push({a,b,w:Math.round(Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y)/20)||1});}
+  // Extra edges
+  const extra=Math.floor(n*0.8);
+  for(let t=0;t<extra;t++){const a=Math.floor(Math.random()*n),b=Math.floor(Math.random()*n); if(a!==b&&!has.has(eKey(a,b))){has.add(eKey(a,b)); edges.push({a,b,w:Math.round(Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y)/20)||1});}}
+}
+
+// Algorithms
+function runPrim(){
+  steps=[]; const n=nodes.length, inMST=new Array(n).fill(false);
+  const mstEdges=[], adj=Array.from({length:n},()=>[]);
+  edges.forEach((e,i)=>{adj[e.a].push({to:e.b,ei:i,w:e.w}); adj[e.b].push({to:e.a,ei:i,w:e.w});});
+  inMST[0]=true;
+  steps.push({type:'start',msg:'Start from node 0',mst:[...mstEdges],considering:[],nodeStates:inMST.slice()});
+  let totalW=0;
+  for(let iter=0;iter<n-1;iter++){
+    let bestE=-1, bestW=Infinity, bestTo=-1;
+    const candidates=[];
+    for(let u=0;u<n;u++) if(inMST[u]) adj[u].forEach(({to,ei,w})=>{ if(!inMST[to]){candidates.push(ei); if(w<bestW){bestW=w;bestE=ei;bestTo=to;}}});
+    if(bestE===-1) break;
+    steps.push({type:'consider',msg:`Considering ${candidates.length} crossing edges, cheapest: edge ${edges[bestE].a}↔${edges[bestE].b} (w=${bestW})`,mst:[...mstEdges],considering:candidates,nodeStates:inMST.slice()});
+    mstEdges.push(bestE); inMST[bestTo]=true; totalW+=bestW;
+    steps.push({type:'add',msg:`Add edge ${edges[bestE].a}↔${edges[bestE].b} (w=${bestW}), total=${totalW}`,mst:[...mstEdges],considering:[],nodeStates:inMST.slice()});
+  }
+  steps.push({type:'done',msg:`MST complete! Total weight: ${totalW}`,mst:[...mstEdges],considering:[],nodeStates:inMST.slice()});
+  return totalW;
+}
+
+function runKruskal(){
+  steps=[]; const n=nodes.length;
+  const parent=Array.from({length:n},(_,i)=>i), rank=new Array(n).fill(0);
+  function find(x){while(parent[x]!==x)x=parent[x]=parent[parent[x]];return x;}
+  function union(a,b){a=find(a);b=find(b);if(a===b)return false;if(rank[a]<rank[b])[a,b]=[b,a];parent[b]=a;if(rank[a]===rank[b])rank[a]++;return true;}
+  const sorted=edges.map((e,i)=>({...e,i})).sort((a,b)=>a.w-b.w);
+  const mstEdges=[];let totalW=0;
+  const ns=new Array(n).fill(false);
+  steps.push({type:'start',msg:`Sorted ${edges.length} edges by weight`,mst:[],considering:[],nodeStates:ns.slice()});
+  for(const e of sorted){
+    steps.push({type:'consider',msg:`Try edge ${e.a}↔${e.b} (w=${e.w})`,mst:[...mstEdges],considering:[e.i],nodeStates:ns.slice()});
+    if(union(e.a,e.b)){
+      mstEdges.push(e.i); ns[e.a]=true; ns[e.b]=true; totalW+=e.w;
+      steps.push({type:'add',msg:`Add edge ${e.a}↔${e.b} (w=${e.w}), total=${totalW}`,mst:[...mstEdges],considering:[],nodeStates:ns.slice()});
+    } else {
+      steps.push({type:'reject',msg:`Reject edge ${e.a}↔${e.b} — would create cycle`,mst:[...mstEdges],considering:[],rejected:[e.i],nodeStates:ns.slice()});
+    }
+    if(mstEdges.length===n-1) break;
+  }
+  steps.push({type:'done',msg:`MST complete! Total weight: ${totalW}`,mst:[...mstEdges],considering:[],nodeStates:ns.slice()});
+  return totalW;
+}
+
+// Drawing
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const step=steps[curStep]||{mst:[],considering:[],rejected:[],nodeStates:[]};
+  const mstSet=new Set(step.mst||[]);
+  const conSet=new Set(step.considering||[]);
+  const rejSet=new Set(step.rejected||[]);
+  // Edges
+  edges.forEach((e,i)=>{
+    const a=nodes[e.a], b=nodes[e.b];
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    if(mstSet.has(i)){ctx.strokeStyle='#4ade80';ctx.lineWidth=3;}
+    else if(conSet.has(i)){ctx.strokeStyle='#fb923c';ctx.lineWidth=2.5;}
+    else if(rejSet.has(i)){ctx.strokeStyle='rgba(248,113,113,0.4)';ctx.lineWidth=1.5;}
+    else{ctx.strokeStyle='rgba(148,163,184,0.25)';ctx.lineWidth=1;}
+    ctx.stroke();
+    // Weight label
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    ctx.fillStyle=mstSet.has(i)?'#4ade80':conSet.has(i)?'#fb923c':'#64748b';
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(e.w, mx, my-8);
+  });
+  // Nodes
+  nodes.forEach((n,i)=>{
+    const inMst=step.nodeStates&&step.nodeStates[i];
+    ctx.beginPath(); ctx.arc(n.x,n.y,14,0,Math.PI*2);
+    ctx.fillStyle=inMst?'#065f46':'#1e293b';
+    ctx.fill();
+    ctx.strokeStyle=inMst?'#4ade80':'#64748b';
+    ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#e2e8f0'; ctx.font='bold 12px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(i, n.x, n.y);
+  });
+}
+
+function updateStats(){
+  $('sNodes').textContent=nodes.length;
+  $('sEdges').textContent=edges.length;
+  const step=steps[curStep];
+  const mstW=step?step.mst.reduce((s,i)=>s+edges[i].w,0):0;
+  $('sMstW').textContent=mstW;
+  $('sStep').textContent=steps.length?`${curStep+1}/${steps.length}`:'0/0';
+}
+
+function renderSteps(){
+  const el=$('stepList'); el.innerHTML='';
+  steps.forEach((s,i)=>{
+    const d=document.createElement('div'); d.className='step-item'+(i===curStep?' current':'')+(i<curStep?' done':'');
+    d.textContent=`${i+1}. ${s.msg}`; d.onclick=()=>{curStep=i;draw();updateStats();renderSteps();}; el.appendChild(d);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+
+function stepTo(i){curStep=Math.min(i,steps.length-1);draw();updateStats();renderSteps();}
+function stopAnim(){if(animId){clearInterval(animId);animId=null;running=false;}}
+
+function init(preset){
+  stopAnim(); curStep=-1; steps=[];
+  resize();
+  if(preset==='_random') randomGraph(Math.floor(Math.random()*15)+8);
+  else makePreset(preset);
+  draw(); updateStats(); renderSteps();
+}
+
+$('preset').onchange=()=>init($('preset').value);
+$('btnReset').onclick=()=>init($('preset').value);
+$('btnRandom').onclick=()=>{$('preset').value='random10';init('_random');};
+
+$('btnRun').onclick=()=>{
+  if(running){stopAnim();return;}
+  if(curStep>=steps.length-1){curStep=-1;steps=[];$('algo').value==='prim'?runPrim():runKruskal();}
+  if(!steps.length){$('algo').value==='prim'?runPrim():runKruskal();}
+  running=true;
+  const delay=()=>1100-$('speed').value*100;
+  animId=setInterval(()=>{
+    if(curStep>=steps.length-1){stopAnim();return;}
+    stepTo(curStep+1);
+  }, delay());
+};
+
+$('btnStep').onclick=()=>{
+  stopAnim();
+  if(!steps.length){$('algo').value==='prim'?runPrim():runKruskal();renderSteps();}
+  if(curStep<steps.length-1) stepTo(curStep+1);
+};
+
+// Drag nodes
+let dragNode=null;
+cvs.onmousedown=e=>{const r=cvs.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top; dragNode=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<18)||null;};
+cvs.onmousemove=e=>{if(!dragNode)return;const r=cvs.getBoundingClientRect();dragNode.x=e.clientX-r.left;dragNode.y=e.clientY-r.top;draw();};
+cvs.onmouseup=()=>{dragNode=null;};
+
+// Export
+$('expJSON').onclick=()=>{
+  const step=steps[curStep]||{mst:[]};
+  const data={nodes:nodes.map(n=>({id:n.id,x:Math.round(n.x),y:Math.round(n.y)})),edges:edges.map((e,i)=>({from:e.a,to:e.b,weight:e.w,inMST:step.mst.includes(i)}))};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mst-graph.json';a.click();
+};
+
+$('expSVG').onclick=()=>{
+  const step=steps[curStep]||{mst:[],nodeStates:[]};
+  const mstSet=new Set(step.mst);
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="background:#0f172a">`;
+  edges.forEach((e,i)=>{const a=nodes[e.a],b=nodes[e.b];const c=mstSet.has(i)?'#4ade80':'#475569';const w=mstSet.has(i)?3:1;svg+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${c}" stroke-width="${w}"/>`;const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;svg+=`<text x="${mx}" y="${my-8}" fill="${c}" text-anchor="middle" font-size="11" font-weight="bold">${e.w}</text>`;});
+  nodes.forEach((n,i)=>{const inM=step.nodeStates&&step.nodeStates[i];svg+=`<circle cx="${n.x}" cy="${n.y}" r="14" fill="${inM?'#065f46':'#1e293b'}" stroke="${inM?'#4ade80':'#64748b'}" stroke-width="2"/>`;svg+=`<text x="${n.x}" y="${n.y+4}" fill="#e2e8f0" text-anchor="middle" font-size="12" font-weight="bold">${i}</text>`;});
+  svg+='</svg>';
+  const blob=new Blob([svg],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mst-graph.svg';a.click();
+};
+
+// Init
+requestAnimationFrame(()=>{resize();init('hexagon');});
+</script>
+</body>
+</html>
