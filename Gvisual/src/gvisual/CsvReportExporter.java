@@ -278,45 +278,13 @@ public class CsvReportExporter {
     }
 
     /**
-     * Finds articulation points using Tarjan's DFS algorithm.
+     * Finds articulation points by delegating to {@link ArticulationPointAnalyzer}.
+     * Previously this method reimplemented Tarjan's algorithm locally (~40 lines);
+     * now it reuses the canonical, well-tested implementation.
      */
     private Set<String> computeArticulationPoints() {
-        Set<String> aps = new HashSet<String>();
-        Set<String> visited = new HashSet<String>();
-        Map<String, Integer> disc = new LinkedHashMap<String, Integer>();
-        Map<String, Integer> low = new LinkedHashMap<String, Integer>();
-        Map<String, String> parent = new LinkedHashMap<String, String>();
-        final int[] timer = {0};
-
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                apDfs(v, visited, disc, low, parent, aps, timer);
-            }
-        }
-        return aps;
-    }
-
-    private void apDfs(String u, Set<String> visited,
-                       Map<String, Integer> disc, Map<String, Integer> low,
-                       Map<String, String> parent, Set<String> aps, int[] timer) {
-        visited.add(u);
-        disc.put(u, timer[0]);
-        low.put(u, timer[0]);
-        timer[0]++;
-        int children = 0;
-
-        for (String v : graph.getNeighbors(u)) {
-            if (!visited.contains(v)) {
-                children++;
-                parent.put(v, u);
-                apDfs(v, visited, disc, low, parent, aps, timer);
-                low.put(u, Math.min(low.get(u), low.get(v)));
-                if (!parent.containsKey(u) && children > 1) aps.add(u);
-                if (parent.containsKey(u) && low.get(v) >= disc.get(u)) aps.add(u);
-            } else if (!v.equals(parent.get(u))) {
-                low.put(u, Math.min(low.get(u), disc.get(v)));
-            }
-        }
+        ArticulationPointAnalyzer analyzer = new ArticulationPointAnalyzer(graph);
+        return analyzer.analyze().getArticulationPoints();
     }
 
     /**
