@@ -16,15 +16,15 @@ import java.util.*;
  */
 public class GraphPathExplorerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
     }
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -116,7 +116,7 @@ public class GraphPathExplorerTest {
     public void testAllSimplePathsNoPath() {
         graph.addVertex("A");
         graph.addVertex("B");
-        // No edge between them
+        // No Edge between them
         GraphPathExplorer explorer = new GraphPathExplorer(graph);
         List<GraphPathExplorer.Path> paths = explorer.findAllSimplePaths("A", "B");
         assertTrue("Disconnected vertices should yield no paths", paths.isEmpty());
@@ -290,7 +290,7 @@ public class GraphPathExplorerTest {
     public void testAvoidEdge() {
         buildDiamondGraph();
         GraphPathExplorer explorer = new GraphPathExplorer(graph);
-        // Avoid edge A-B → must go A-C-D
+        // Avoid Edge A-B → must go A-C-D
         Set<String> avoidEdges = new HashSet<>();
         avoidEdges.add(GraphPathExplorer.edgeKey("A", "B"));
         GraphPathExplorer.Path p = explorer.findPathAvoiding(

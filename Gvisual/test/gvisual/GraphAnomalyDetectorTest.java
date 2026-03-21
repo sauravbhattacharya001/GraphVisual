@@ -14,11 +14,11 @@ import static org.junit.Assert.*;
  */
 public class GraphAnomalyDetectorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
-    /** Creates an edge with the given type and weight. */
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    /** Creates an Edge with the given type and weight. */
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -27,13 +27,13 @@ public class GraphAnomalyDetectorTest {
      * Builds a graph with a clear anomaly: one hub connected to everything,
      * plus a regular ring structure.
      *
-     *   Hub (node 0) connects to nodes 1-8 with diverse edge types
+     *   Hub (node 0) connects to nodes 1-8 with diverse Edge types
      *   Nodes 1-8 form a ring (each connected to 2 neighbors)
      *   Node 9 is an isolated leaf connected only to node 1
      */
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
 
         // Add hub
         String hub = "0";
@@ -45,7 +45,7 @@ public class GraphAnomalyDetectorTest {
             String node = String.valueOf(i);
             graph.addVertex(node);
             // Hub connects to each ring node with varying types
-            edge e = makeEdge(types[i - 1], hub, node, 1.0f);
+            Edge e = makeEdge(types[i - 1], hub, node, 1.0f);
             graph.addEdge(e, hub, node);
         }
 
@@ -53,13 +53,13 @@ public class GraphAnomalyDetectorTest {
         for (int i = 1; i <= 8; i++) {
             String from = String.valueOf(i);
             String to = String.valueOf(i == 8 ? 1 : i + 1);
-            edge e = makeEdge("f", from, to, 1.0f);
+            Edge e = makeEdge("f", from, to, 1.0f);
             graph.addEdge(e, from, to);
         }
 
         // Leaf node
         graph.addVertex("9");
-        edge leafEdge = makeEdge("s", "1", "9", 1.0f);
+        Edge leafEdge = makeEdge("s", "1", "9", 1.0f);
         graph.addEdge(leafEdge, "1", "9");
     }
 
@@ -92,22 +92,22 @@ public class GraphAnomalyDetectorTest {
 
     @Test(expected = IllegalStateException.class)
     public void testAnalyzeTooFewVertices() {
-        Graph<String, edge> tiny = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> tiny = new UndirectedSparseGraph<String, Edge>();
         tiny.addVertex("A");
         tiny.addVertex("B");
-        edge e = makeEdge("f", "A", "B", 1.0f);
+        Edge e = makeEdge("f", "A", "B", 1.0f);
         tiny.addEdge(e, "A", "B");
         new GraphAnomalyDetector(tiny).analyze();
     }
 
     @Test
     public void testAnalyzeThreeVerticesMinimum() {
-        Graph<String, edge> small = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> small = new UndirectedSparseGraph<String, Edge>();
         small.addVertex("A");
         small.addVertex("B");
         small.addVertex("C");
-        edge e1 = makeEdge("f", "A", "B", 1.0f);
-        edge e2 = makeEdge("f", "B", "C", 1.0f);
+        Edge e1 = makeEdge("f", "A", "B", 1.0f);
+        Edge e2 = makeEdge("f", "B", "C", 1.0f);
         small.addEdge(e1, "A", "B");
         small.addEdge(e2, "B", "C");
 
@@ -345,8 +345,8 @@ public class GraphAnomalyDetectorTest {
     public void testHubHasHighDiversity() {
         GraphAnomalyDetector det = new GraphAnomalyDetector(graph).analyze();
         GraphAnomalyDetector.AnomalyResult hub = det.getResult("0");
-        // Hub connects with 5 different edge types
-        assertTrue("Hub should have high edge diversity",
+        // Hub connects with 5 different Edge types
+        assertTrue("Hub should have high Edge diversity",
             hub.getEdgeDiversity() > 0.5);
     }
 
@@ -354,8 +354,8 @@ public class GraphAnomalyDetectorTest {
     public void testLeafHasZeroDiversity() {
         GraphAnomalyDetector det = new GraphAnomalyDetector(graph).analyze();
         GraphAnomalyDetector.AnomalyResult leaf = det.getResult("9");
-        // Leaf has only 1 edge type
-        assertEquals("Leaf with one edge type should have 0 diversity",
+        // Leaf has only 1 Edge type
+        assertEquals("Leaf with one Edge type should have 0 diversity",
             0.0, leaf.getEdgeDiversity(), 0.001);
     }
 
@@ -437,14 +437,14 @@ public class GraphAnomalyDetectorTest {
     @Test
     public void testUniformGraphLowScores() {
         // Ring graph: all nodes have degree 2, same clustering, same diversity
-        Graph<String, edge> ring = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> ring = new UndirectedSparseGraph<String, Edge>();
         for (int i = 0; i < 6; i++) {
             ring.addVertex(String.valueOf(i));
         }
         for (int i = 0; i < 6; i++) {
             String from = String.valueOf(i);
             String to = String.valueOf((i + 1) % 6);
-            edge e = makeEdge("f", from, to, 1.0f);
+            Edge e = makeEdge("f", from, to, 1.0f);
             ring.addEdge(e, from, to);
         }
 
@@ -460,12 +460,12 @@ public class GraphAnomalyDetectorTest {
 
     @Test
     public void testStarGraphHubIsAnomaly() {
-        Graph<String, edge> star = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> star = new UndirectedSparseGraph<String, Edge>();
         star.addVertex("center");
         for (int i = 0; i < 10; i++) {
             String leaf = "leaf" + i;
             star.addVertex(leaf);
-            edge e = makeEdge("f", "center", leaf, 1.0f);
+            Edge e = makeEdge("f", "center", leaf, 1.0f);
             star.addEdge(e, "center", leaf);
         }
 
@@ -480,14 +480,14 @@ public class GraphAnomalyDetectorTest {
 
     @Test
     public void testCompleteGraphAllSimilar() {
-        Graph<String, edge> complete = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> complete = new UndirectedSparseGraph<String, Edge>();
         String[] nodes = {"A", "B", "C", "D"};
         for (String n : nodes) complete.addVertex(n);
 
         int edgeId = 0;
         for (int i = 0; i < nodes.length; i++) {
             for (int j = i + 1; j < nodes.length; j++) {
-                edge e = makeEdge("f", nodes[i], nodes[j], 1.0f);
+                Edge e = makeEdge("f", nodes[i], nodes[j], 1.0f);
                 complete.addEdge(e, nodes[i], nodes[j]);
             }
         }

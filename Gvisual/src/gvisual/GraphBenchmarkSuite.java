@@ -14,13 +14,13 @@ public class GraphBenchmarkSuite {
     public static class BenchmarkGraph {
         private final String name;
         private final String description;
-        private final Graph<String, edge> graph;
+        private final Graph<String, Edge> graph;
         private final int expectedNodes;
         private final int expectedEdges;
         private final Map<String, String> properties;
 
         public BenchmarkGraph(String name, String description,
-                              Graph<String, edge> graph,
+                              Graph<String, Edge> graph,
                               int expectedNodes, int expectedEdges,
                               Map<String, String> properties) {
             this.name = name;
@@ -33,7 +33,7 @@ public class GraphBenchmarkSuite {
 
         public String getName() { return name; }
         public String getDescription() { return description; }
-        public Graph<String, edge> getGraph() { return graph; }
+        public Graph<String, Edge> getGraph() { return graph; }
         public int getExpectedNodes() { return expectedNodes; }
         public int getExpectedEdges() { return expectedEdges; }
         public Map<String, String> getProperties() { return properties; }
@@ -59,10 +59,10 @@ public class GraphBenchmarkSuite {
         }
     }
 
-    private static void addEdge(Graph<String, edge> g, String v1, String v2) {
+    private static void addEdge(Graph<String, Edge> g, String v1, String v2) {
         if (!g.containsVertex(v1)) g.addVertex(v1);
         if (!g.containsVertex(v2)) g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setLabel(v1 + "-" + v2);
         g.addEdge(e, v1, v2);
     }
@@ -74,7 +74,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph zacharyKarateClub() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int[][] edges = {
             {1,2},{1,3},{1,4},{1,5},{1,6},{1,7},{1,8},{1,9},{1,11},{1,12},
             {1,13},{1,14},{1,18},{1,20},{1,22},{1,32},
@@ -95,7 +95,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph petersenGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int[][] edges = {{0,1},{1,2},{2,3},{3,4},{4,0},{5,7},{7,9},{9,6},{6,8},{8,5},{0,5},{1,6},{2,7},{3,8},{4,9}};
         for (int[] p : edges) addEdge(g, String.valueOf(p[0]), String.valueOf(p[1]));
         return new BenchmarkGraph("Petersen Graph",
@@ -104,7 +104,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph florentineFamilies() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         String[][] edges = {
             {"Medici","Barbadori"},{"Medici","Ridolfi"},{"Medici","Tornabuoni"},
             {"Medici","Albizzi"},{"Medici","Salviati"},{"Medici","Acciaiuoli"},
@@ -122,7 +122,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph cubeGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int[][] edges = {{0,1},{0,2},{0,4},{1,3},{1,5},{2,3},{2,6},{3,7},{4,5},{4,6},{5,7},{6,7}};
         for (int[] p : edges) {
             String v1 = String.format("%03d", Integer.parseInt(Integer.toBinaryString(p[0])));
@@ -135,7 +135,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph dodecahedron() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int[][] edges = {
             {1,2},{2,3},{3,4},{4,5},{5,1},{1,6},{2,7},{3,8},{4,9},{5,10},
             {6,11},{6,15},{7,11},{7,12},{8,12},{8,13},{9,13},{9,14},{10,14},{10,15},
@@ -148,7 +148,7 @@ public class GraphBenchmarkSuite {
     }
 
     public BenchmarkGraph tutteGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         int[][] edges = {
             {1,2},{1,4},{1,26},
             {2,3},{2,5},{3,4},{3,8},{4,29},
@@ -171,7 +171,7 @@ public class GraphBenchmarkSuite {
 
     public BenchmarkGraph friendshipGraph(int n) {
         if (n < 1) throw new IllegalArgumentException("n must be >= 1");
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("0");
         for (int i = 0; i < n; i++) {
             String a = String.valueOf(2 * i + 1), b = String.valueOf(2 * i + 2);

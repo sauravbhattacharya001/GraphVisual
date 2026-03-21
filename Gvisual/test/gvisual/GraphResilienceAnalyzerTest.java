@@ -12,15 +12,15 @@ import java.util.List;
  * Unit tests for {@link GraphResilienceAnalyzer}.
  *
  * Tests cover all three attack strategies (degree, betweenness, random),
- * robustness index computation, summary/CSV export, and edge cases
+ * robustness index computation, summary/CSV export, and Edge cases
  * (empty graphs, single nodes, disconnected graphs, star/complete topologies).
  */
 public class GraphResilienceAnalyzerTest {
 
     private int edgeCounter = 0;
 
-    private edge makeEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge makeEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setLabel("e" + (edgeCounter++));
         return e;
     }
@@ -28,8 +28,8 @@ public class GraphResilienceAnalyzerTest {
     /**
      * Creates a simple triangle graph: A—B—C—A.
      */
-    private Graph<String, edge> createTriangle() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createTriangle() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
@@ -42,8 +42,8 @@ public class GraphResilienceAnalyzerTest {
     /**
      * Creates a star graph: center connected to N leaves.
      */
-    private Graph<String, edge> createStar(int leaves) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createStar(int leaves) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("center");
         for (int i = 0; i < leaves; i++) {
             String leaf = "leaf" + i;
@@ -56,8 +56,8 @@ public class GraphResilienceAnalyzerTest {
     /**
      * Creates a path graph: v0—v1—v2—...—vN.
      */
-    private Graph<String, edge> createPath(int length) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createPath(int length) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i <= length; i++) {
             g.addVertex("v" + i);
         }
@@ -70,8 +70,8 @@ public class GraphResilienceAnalyzerTest {
     /**
      * Creates a complete graph K_n.
      */
-    private Graph<String, edge> createComplete(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> createComplete(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) {
             g.addVertex("v" + i);
         }
@@ -337,7 +337,7 @@ public class GraphResilienceAnalyzerTest {
 
     @Test
     public void testSingleNode_NoCrash() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("alone");
 
         GraphResilienceAnalyzer analyzer = new GraphResilienceAnalyzer(g);
@@ -351,7 +351,7 @@ public class GraphResilienceAnalyzerTest {
 
     @Test
     public void testTwoNodes_OneEdge() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         g.addEdge(makeEdge("A", "B"), "A", "B");
@@ -369,7 +369,7 @@ public class GraphResilienceAnalyzerTest {
     @Test
     public void testDisconnectedGraph() {
         // Two disconnected triangles
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         g.addVertex("D"); g.addVertex("E"); g.addVertex("F");
         g.addEdge(makeEdge("A", "B"), "A", "B");

@@ -15,17 +15,17 @@ import static org.junit.Assert.*;
  */
 public class NodeCentralityAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // --- Helper methods ---
 
-    private edge addEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge addEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -76,7 +76,7 @@ public class NodeCentralityAnalyzerTest {
         assertEquals("Trivial", analyzer.classifyTopology());
     }
 
-    // --- Single edge graph ---
+    // --- Single Edge graph ---
 
     @Test
     public void testSingleEdge() {
@@ -663,7 +663,7 @@ public class NodeCentralityAnalyzerTest {
         NodeCentralityAnalyzer analyzer = new NodeCentralityAnalyzer(graph);
         analyzer.compute();
 
-        // Should work regardless of edge types
+        // Should work regardless of Edge types
         assertEquals(4, analyzer.getRankedResults().size());
         for (NodeCentralityAnalyzer.CentralityResult r : analyzer.getRankedResults()) {
             assertTrue(r.getDegreeCentrality() >= 0);

@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
  *
  * <h3>Algorithm</h3>
  * <p>Places all vertices evenly around a circle, then optionally reorders
- * them to minimize edge crossings or group related nodes together:</p>
+ * them to minimize Edge crossings or group related nodes together:</p>
  * <ol>
  *   <li><b>Vertex ordering</b> — selects a strategy (alphabetical, degree,
  *       community, BFS, or minimize-crossings heuristic).</li>
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  *   <li><b>BFS</b> — breadth-first traversal order from the highest-degree
  *       node (neighbors stay close)</li>
  *   <li><b>MINIMIZE_CROSSINGS</b> — greedy barycenter heuristic that
- *       iteratively swaps adjacent nodes to reduce edge crossings</li>
+ *       iteratively swaps adjacent nodes to reduce Edge crossings</li>
  * </ul>
  *
  * <h3>Features</h3>
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  *   <li>Edge crossing count metric</li>
  *   <li>SVG export with node labels and edges</li>
  *   <li>Layout quality report</li>
- *   <li>Works with any JUNG {@code Graph<String, edge>}</li>
+ *   <li>Works with any JUNG {@code Graph<String, Edge>}</li>
  * </ul>
  *
  * <h3>When to use</h3>
@@ -79,11 +79,11 @@ public class CircularLayout {
         COMMUNITY,
         /** BFS traversal from the highest-degree node. */
         BFS,
-        /** Greedy heuristic to minimize edge crossings. */
+        /** Greedy heuristic to minimize Edge crossings. */
         MINIMIZE_CROSSINGS
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final double width;
     private final double height;
     private final double padding;
@@ -114,7 +114,7 @@ public class CircularLayout {
 
     /** Builder for flexible construction. */
     public static class Builder {
-        private final Graph<String, edge> graph;
+        private final Graph<String, Edge> graph;
         private double width = 800;
         private double height = 800;
         private double padding = 50;
@@ -123,7 +123,7 @@ public class CircularLayout {
         private boolean dualRing = false;
         private double hubThreshold = 0.9;
 
-        public Builder(Graph<String, edge> graph) {
+        public Builder(Graph<String, Edge> graph) {
             if (graph == null) throw new IllegalArgumentException("Graph must not be null");
             this.graph = graph;
         }
@@ -294,7 +294,7 @@ public class CircularLayout {
         }
 
         List<int[]> edgeIndices = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null && indexMap.containsKey(v1) && indexMap.containsKey(v2)) {
@@ -410,7 +410,7 @@ public class CircularLayout {
         return Collections.unmodifiableList(orderedVertices);
     }
 
-    /** Returns edge crossing count. */
+    /** Returns Edge crossing count. */
     public int getEdgeCrossings() {
         ensureComputed();
         return edgeCrossings;
@@ -472,7 +472,7 @@ public class CircularLayout {
             + "viewBox=\"0 0 %.0f %.0f\">\n",
             width, height, width, height));
         svg.append("<style>\n");
-        svg.append("  .edge { stroke: #666; stroke-width: 1; opacity: 0.5; }\n");
+        svg.append("  .Edge { stroke: #666; stroke-width: 1; opacity: 0.5; }\n");
         svg.append("  .node { fill: #4A90D9; stroke: #2C5F8A; stroke-width: 1.5; }\n");
         svg.append("  .hub  { fill: #E74C3C; stroke: #C0392B; stroke-width: 2; }\n");
         svg.append("  .label { font-family: sans-serif; font-size: 10px; "
@@ -482,14 +482,14 @@ public class CircularLayout {
             width, height));
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 != null && v2 != null && positions.containsKey(v1) && positions.containsKey(v2)) {
                 double[] p1 = positions.get(v1);
                 double[] p2 = positions.get(v2);
                 svg.append(String.format(
-                    "  <line class=\"edge\" x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\"/>\n",
+                    "  <line class=\"Edge\" x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\"/>\n",
                     p1[0], p1[1], p2[0], p2[1]));
             }
         }

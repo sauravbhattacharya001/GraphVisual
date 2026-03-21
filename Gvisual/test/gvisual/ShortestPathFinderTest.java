@@ -16,15 +16,15 @@ import java.util.Set;
  */
 public class ShortestPathFinderTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
@@ -60,7 +60,7 @@ public class ShortestPathFinderTest {
     public void testDirectConnection() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e = makeEdge("f", "A", "B", 5.0f);
+        Edge e = makeEdge("f", "A", "B", 5.0f);
         graph.addEdge(e, "A", "B");
 
         ShortestPathFinder finder = new ShortestPathFinder(graph);
@@ -120,7 +120,7 @@ public class ShortestPathFinderTest {
     public void testNoPathExists() {
         graph.addVertex("A");
         graph.addVertex("B");
-        // No edge between them
+        // No Edge between them
 
         ShortestPathFinder finder = new ShortestPathFinder(graph);
         ShortestPathFinder.PathResult result = finder.findShortestByHops("A", "B");
@@ -286,7 +286,7 @@ public class ShortestPathFinderTest {
     public void testPathResultToString() {
         graph.addVertex("A");
         graph.addVertex("B");
-        edge e = makeEdge("f", "A", "B", 5.0f);
+        Edge e = makeEdge("f", "A", "B", 5.0f);
         graph.addEdge(e, "A", "B");
 
         ShortestPathFinder finder = new ShortestPathFinder(graph);
@@ -345,7 +345,7 @@ public class ShortestPathFinderTest {
         assertEquals(3, result.getHopCount());
         assertEquals(10.0, result.getTotalWeight(), 0.001);
 
-        // Check edge types
+        // Check Edge types
         assertEquals("f", result.getEdges().get(0).getType());
         assertEquals("c", result.getEdges().get(1).getType());
         assertEquals("s", result.getEdges().get(2).getType());
@@ -393,7 +393,7 @@ public class ShortestPathFinderTest {
         assertEquals("H", result.getVertices().get(1));
     }
 
-    // ── Zero-weight edge bug fix (previously clamped to 0.001) ────
+    // ── Zero-weight Edge bug fix (previously clamped to 0.001) ────
 
     @Test
     public void dijkstraZeroWeightEdge_reportsZeroTotalWeight() {
@@ -455,7 +455,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void dijkstraZeroWeightSelfConsistentResult() {
-        // Ensure totalWeight in result matches actual edge weights
+        // Ensure totalWeight in result matches actual Edge weights
         // (was inconsistent: Dijkstra used 0.001 but result used true weight)
         graph.addEdge(makeEdge("e", "A", "B", 0.0f), "A", "B");
         graph.addEdge(makeEdge("e", "B", "C", 1.0f), "B", "C");

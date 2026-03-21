@@ -10,15 +10,15 @@ import java.util.*;
 
 /**
  * Tests for GraphClusterQualityAnalyzer -- clustering quality metrics,
- * NMI, Adjusted Rand Index, and edge cases.
+ * NMI, Adjusted Rand Index, and Edge cases.
  */
 public class GraphClusterQualityAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // ── Helper methods ──────────────────────────────────────────
@@ -26,7 +26,7 @@ public class GraphClusterQualityAnalyzerTest {
     private void addEdge(String v1, String v2, String type) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge(type, v1, v2);
+        Edge e = new Edge(type, v1, v2);
         graph.addEdge(e, v1, v2);
     }
 

@@ -13,17 +13,17 @@ import java.util.*;
  */
 public class GraphSamplerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     private void addEdge(String v1, String v2) {
         graph.addVertex(v1);
         graph.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
     }
@@ -449,12 +449,12 @@ public class GraphSamplerTest {
 
     @Test
     public void randomEdge_inducesExtraEdges() {
-        // Build triangle A-B-C, sample edge A-B
+        // Build triangle A-B-C, sample Edge A-B
         // Should also induce A-C and B-C if nodes A,B,C are all included
         addEdge("A", "B");
         addEdge("B", "C");
         addEdge("A", "C");
-        // Add isolated node to make edge fraction meaningful
+        // Add isolated node to make Edge fraction meaningful
         graph.addVertex("D");
 
         GraphSampler sampler = new GraphSampler(graph, new Random(1));

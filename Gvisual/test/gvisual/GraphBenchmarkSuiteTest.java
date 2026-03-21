@@ -17,7 +17,7 @@ public class GraphBenchmarkSuiteTest {
         assertTrue(bg.verify());
     }
     @Test public void testZacharyKeyNodes() {
-        Graph<String, edge> g = suite.zacharyKarateClub().getGraph();
+        Graph<String, Edge> g = suite.zacharyKarateClub().getGraph();
         assertTrue(g.containsVertex("1"));
         assertTrue(g.containsVertex("34"));
         assertTrue(g.degree("1") >= 16);
@@ -32,7 +32,7 @@ public class GraphBenchmarkSuiteTest {
         assertTrue(bg.verify());
     }
     @Test public void testPetersenThreeRegular() {
-        Graph<String, edge> g = suite.petersenGraph().getGraph();
+        Graph<String, Edge> g = suite.petersenGraph().getGraph();
         for (String v : g.getVertices()) assertEquals(3, g.degree(v));
     }
     @Test public void testPetersenNotHamiltonian() {
@@ -45,12 +45,12 @@ public class GraphBenchmarkSuiteTest {
         assertTrue(bg.verify());
     }
     @Test public void testFlorentineMediciHighest() {
-        Graph<String, edge> g = suite.florentineFamilies().getGraph();
+        Graph<String, Edge> g = suite.florentineFamilies().getGraph();
         int md = g.degree("Medici");
         for (String v : g.getVertices()) assertTrue(md >= g.degree(v));
     }
     @Test public void testFlorentineNames() {
-        Graph<String, edge> g = suite.florentineFamilies().getGraph();
+        Graph<String, Edge> g = suite.florentineFamilies().getGraph();
         assertTrue(g.containsVertex("Strozzi"));
         assertTrue(g.containsVertex("Albizzi"));
     }
@@ -104,7 +104,7 @@ public class GraphBenchmarkSuiteTest {
         assertEquals(8, suite.friendshipGraph(4).getGraph().degree("0"));
     }
     @Test public void testFriendshipLeafDegree() {
-        Graph<String, edge> g = suite.friendshipGraph(3).getGraph();
+        Graph<String, Edge> g = suite.friendshipGraph(3).getGraph();
         for (String v : g.getVertices())
             if (!v.equals("0")) assertEquals(2, g.degree(v));
     }

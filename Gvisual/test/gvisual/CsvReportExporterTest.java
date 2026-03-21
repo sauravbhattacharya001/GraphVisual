@@ -25,7 +25,7 @@ public class CsvReportExporterTest {
 
     @Test
     public void testNullEdgeListAccepted() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         CsvReportExporter exporter = new CsvReportExporter(g, null);
         assertNotNull(exporter.exportToString());
     }
@@ -34,8 +34,8 @@ public class CsvReportExporterTest {
 
     @Test
     public void testEmptyGraphProducesHeaderOnly() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         exporter.setTimestamp("2026-01-01 00:00:00");
         String csv = exporter.exportToString();
 
@@ -51,9 +51,9 @@ public class CsvReportExporterTest {
 
     @Test
     public void testSingleNodeNoEdges() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Alice");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
 
         assertTrue(csv.contains("Nodes: 1"));
@@ -65,12 +65,12 @@ public class CsvReportExporterTest {
 
     @Test
     public void testTriangleGraphMetrics() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        List<edge> edges = new ArrayList<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        List<Edge> edges = new ArrayList<>();
 
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("f", "B", "C");
-        edge e3 = new edge("f", "A", "C");
+        Edge e1 = new Edge("f", "A", "B");
+        Edge e2 = new Edge("f", "B", "C");
+        Edge e3 = new Edge("f", "A", "C");
         edges.add(e1);
         edges.add(e2);
         edges.add(e3);
@@ -85,7 +85,7 @@ public class CsvReportExporterTest {
         assertTrue(csv.contains("Nodes: 3"));
         assertTrue(csv.contains("Edges: 3"));
 
-        // Each node has degree 2, friend edge count 2
+        // Each node has degree 2, friend Edge count 2
         // Clustering coefficient of a triangle node = 1.0
         String[] lines = csv.split("\n");
         // 2 comment + 1 header + 3 data = 6 lines
@@ -104,11 +104,11 @@ public class CsvReportExporterTest {
     @Test
     public void testBridgeGraphHasArticulationPoint() {
         // A-B-C where B is an articulation point
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        List<edge> edges = new ArrayList<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        List<Edge> edges = new ArrayList<>();
 
-        edge e1 = new edge("f", "A", "B");
-        edge e2 = new edge("c", "B", "C");
+        Edge e1 = new Edge("f", "A", "B");
+        Edge e2 = new Edge("c", "B", "C");
         edges.add(e1);
         edges.add(e2);
         g.addEdge(e1, "A", "B");
@@ -142,12 +142,12 @@ public class CsvReportExporterTest {
 
     @Test
     public void testEdgeTypeCounts() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        List<edge> edges = new ArrayList<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        List<Edge> edges = new ArrayList<>();
 
-        edge e1 = new edge("f", "X", "Y");   // friend
-        edge e2 = new edge("fs", "X", "Z");  // familiar stranger
-        edge e3 = new edge("sg", "Y", "Z");  // study group
+        Edge e1 = new Edge("f", "X", "Y");   // friend
+        Edge e2 = new Edge("fs", "X", "Z");  // familiar stranger
+        Edge e3 = new Edge("sg", "Y", "Z");  // study group
         edges.add(e1);
         edges.add(e2);
         edges.add(e3);
@@ -166,7 +166,7 @@ public class CsvReportExporterTest {
         }
         assertNotNull(xLine);
         // X,2,1,1,0,0,0,...
-        assertTrue("X should have 1 friend and 1 fs edge",
+        assertTrue("X should have 1 friend and 1 fs Edge",
                    xLine.startsWith("X,2,1,1,0,0,0,"));
     }
 
@@ -174,9 +174,9 @@ public class CsvReportExporterTest {
 
     @Test
     public void testNodeNameWithCommaIsEscaped() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Last, First");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("Comma in node name should be quoted",
                    csv.contains("\"Last, First\""));
@@ -186,9 +186,9 @@ public class CsvReportExporterTest {
 
     @Test
     public void testExportToFile() throws IOException {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Solo");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
 
         File tempFile = File.createTempFile("graph-report-", ".csv");
         tempFile.deleteOnExit();
@@ -203,8 +203,8 @@ public class CsvReportExporterTest {
 
     @Test
     public void testSetTimestamp() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         exporter.setTimestamp("2099-12-31 23:59:59");
         String csv = exporter.exportToString();
         assertTrue(csv.contains("2099-12-31 23:59:59"));
@@ -214,11 +214,11 @@ public class CsvReportExporterTest {
 
     @Test
     public void testNodeOutputIsSorted() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Charlie");
         g.addVertex("Alice");
         g.addVertex("Bob");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
 
         int idxA = csv.indexOf("Alice,");
@@ -232,9 +232,9 @@ public class CsvReportExporterTest {
 
     @Test
     public void testFormulaInjectionNodeEquals() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("=CMD()");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("Formula prefix defused", csv.contains("\"'=CMD()\""));
         assertFalse("Raw formula not present", csv.contains(",=CMD(),"));
@@ -242,36 +242,36 @@ public class CsvReportExporterTest {
 
     @Test
     public void testFormulaInjectionNodePlus() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("+1234");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("Plus-prefix defused", csv.contains("\"'+1234\""));
     }
 
     @Test
     public void testFormulaInjectionNodeMinus() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("-DROP");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("Minus-prefix defused", csv.contains("\"'-DROP\""));
     }
 
     @Test
     public void testFormulaInjectionNodeAt() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("@SUM(A1:A10)");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("At-prefix defused", csv.contains("\"'@SUM(A1:A10)\""));
     }
 
     @Test
     public void testSafeNodeNotPrefixed() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Alice");
-        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<edge>());
+        CsvReportExporter exporter = new CsvReportExporter(g, new ArrayList<Edge>());
         String csv = exporter.exportToString();
         assertTrue("Safe name present", csv.contains("Alice,"));
         assertFalse("No spurious quoting", csv.contains("\"'Alice\""));

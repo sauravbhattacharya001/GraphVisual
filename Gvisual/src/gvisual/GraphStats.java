@@ -5,19 +5,19 @@ import java.util.*;
 
 /**
  * Computes network analysis metrics for a JUNG graph.
- * Provides node/edge counts, per-category breakdowns, density,
+ * Provides node/Edge counts, per-category breakdowns, density,
  * degree statistics, and identifies hub nodes.
  *
  * @author zalenix
  */
 public class GraphStats {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> friendEdges;
-    private final List<edge> fsEdges;
-    private final List<edge> classmateEdges;
-    private final List<edge> strangerEdges;
-    private final List<edge> studyGEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> friendEdges;
+    private final List<Edge> fsEdges;
+    private final List<Edge> classmateEdges;
+    private final List<Edge> strangerEdges;
+    private final List<Edge> studyGEdges;
 
     /**
      * @param graph         the current JUNG graph
@@ -27,12 +27,12 @@ public class GraphStats {
      * @param strangerEdges stranger edges
      * @param studyGEdges   study group edges
      */
-    public GraphStats(Graph<String, edge> graph,
-                      List<edge> friendEdges,
-                      List<edge> fsEdges,
-                      List<edge> classmateEdges,
-                      List<edge> strangerEdges,
-                      List<edge> studyGEdges) {
+    public GraphStats(Graph<String, Edge> graph,
+                      List<Edge> friendEdges,
+                      List<Edge> fsEdges,
+                      List<Edge> classmateEdges,
+                      List<Edge> strangerEdges,
+                      List<Edge> studyGEdges) {
         this.graph = graph;
         this.friendEdges = friendEdges;
         this.fsEdges = fsEdges;
@@ -188,12 +188,12 @@ public class GraphStats {
     }
 
     /**
-     * Cached edge weight statistics computed once.
+     * Cached Edge weight statistics computed once.
      */
     private double cachedTotalWeight = -1.0;
 
     /**
-     * Average edge weight across all visible edges.
+     * Average Edge weight across all visible edges.
      * Caches the total weight sum to avoid re-iterating edges if called
      * multiple times.
      */
@@ -201,7 +201,7 @@ public class GraphStats {
         if (graph.getEdgeCount() == 0) return 0.0;
         if (cachedTotalWeight < 0) {
             cachedTotalWeight = 0;
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 cachedTotalWeight += e.getWeight();
             }
         }

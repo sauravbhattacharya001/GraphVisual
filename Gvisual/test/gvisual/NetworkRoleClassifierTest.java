@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
  * Tests for {@link NetworkRoleClassifier}.
  *
  * <p>Covers: classification pipeline, role assignment rules, adaptive thresholds,
- * report generation, edge cases (empty graph, single node, disconnected nodes,
+ * report generation, Edge cases (empty graph, single node, disconnected nodes,
  * complete graph), and all structural role archetypes.</p>
  *
  * @author zalenix
@@ -21,13 +21,13 @@ public class NetworkRoleClassifierTest {
 
     // ── Helper methods ──────────────────────────────────────────
 
-    private static Graph<String, edge> emptyGraph() {
+    private static Graph<String, Edge> emptyGraph() {
         return new UndirectedSparseGraph<>();
     }
 
-    private static void addEdge(Graph<String, edge> g, String v1, String v2) {
+    private static void addEdge(Graph<String, Edge> g, String v1, String v2) {
         String id = v1 + "-" + v2;
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setLabel(id);
         g.addEdge(e, v1, v2);
     }
@@ -35,8 +35,8 @@ public class NetworkRoleClassifierTest {
     /**
      * Builds a star graph: center connected to all spokes, no spoke-spoke edges.
      */
-    private static Graph<String, edge> starGraph(int spokes) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> starGraph(int spokes) {
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("center");
         for (int i = 1; i <= spokes; i++) {
             String spoke = "s" + i;
@@ -48,8 +48,8 @@ public class NetworkRoleClassifierTest {
     /**
      * Builds a bridge topology: two cliques connected by a single bridge node.
      */
-    private static Graph<String, edge> bridgeGraph() {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> bridgeGraph() {
+        Graph<String, Edge> g = emptyGraph();
         String[] cliqueA = {"A1", "A2", "A3", "A4"};
         for (int i = 0; i < cliqueA.length; i++) {
             for (int j = i + 1; j < cliqueA.length; j++) {
@@ -71,8 +71,8 @@ public class NetworkRoleClassifierTest {
     /**
      * Builds a complete graph of n nodes (K_n).
      */
-    private static Graph<String, edge> completeGraph(int n) {
-        Graph<String, edge> g = emptyGraph();
+    private static Graph<String, Edge> completeGraph(int n) {
+        Graph<String, Edge> g = emptyGraph();
         for (int i = 1; i <= n; i++) g.addVertex("N" + i);
         for (int i = 1; i <= n; i++) {
             for (int j = i + 1; j <= n; j++) {
@@ -113,7 +113,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_singleIsolatedNode() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("alone");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
@@ -127,7 +127,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_disconnectedNodes_allIsolates() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("X");
         g.addVertex("Y");
         g.addVertex("Z");
@@ -143,7 +143,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_starGraph_centerIsNotPeripheral() {
-        Graph<String, edge> g = starGraph(8);
+        Graph<String, Edge> g = starGraph(8);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         NetworkRoleClassifier.NodeRole centerRole = c.getRole("center");
@@ -155,7 +155,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_starGraph_spokesArePeripheral() {
-        Graph<String, edge> g = starGraph(8);
+        Graph<String, Edge> g = starGraph(8);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         for (int i = 1; i <= 8; i++) {
@@ -169,7 +169,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_bridgeGraph_XHighBetweenness() {
-        Graph<String, edge> g = bridgeGraph();
+        Graph<String, Edge> g = bridgeGraph();
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         NetworkRoleClassifier.NodeRole xRole = c.getRole("X");
@@ -181,7 +181,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_bridgeGraph_cliqueNodesNotIsolate() {
-        Graph<String, edge> g = bridgeGraph();
+        Graph<String, Edge> g = bridgeGraph();
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         for (String v : new String[]{"A1", "A2", "B1", "B2"}) {
@@ -194,7 +194,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_completeGraph_allSameRole() {
-        Graph<String, edge> g = completeGraph(6);
+        Graph<String, Edge> g = completeGraph(6);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         Set<NetworkRoleClassifier.StructuralRole> seenRoles = new HashSet<>();
@@ -211,7 +211,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void getNodesByRole_returnsCorrectNodes() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("X");
         g.addVertex("Y");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
@@ -224,7 +224,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void getNodesByRole_isSorted() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("Z");
         g.addVertex("A");
         g.addVertex("M");
@@ -236,7 +236,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void getNodesByRole_emptyForUnusedRole() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("A");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
@@ -247,7 +247,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void distribution_countsMatchTotal() {
-        Graph<String, edge> g = starGraph(6);
+        Graph<String, Edge> g = starGraph(6);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         NetworkRoleClassifier.RoleDistribution dist = c.getRoleDistribution();
@@ -261,7 +261,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void distribution_percentagesSumTo100() {
-        Graph<String, edge> g = bridgeGraph();
+        Graph<String, Edge> g = bridgeGraph();
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         NetworkRoleClassifier.RoleDistribution dist = c.getRoleDistribution();
@@ -276,7 +276,7 @@ public class NetworkRoleClassifierTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void topByImportance_zeroThrows() {
-        Graph<String, edge> g = starGraph(3);
+        Graph<String, Edge> g = starGraph(3);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         c.topByImportance(0);
@@ -284,7 +284,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void topByImportance_starGraph_centerFirst() {
-        Graph<String, edge> g = starGraph(6);
+        Graph<String, Edge> g = starGraph(6);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         List<NetworkRoleClassifier.NodeRole> top = c.topByImportance(3);
@@ -294,7 +294,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void topByImportance_limitsToN() {
-        Graph<String, edge> g = starGraph(10);
+        Graph<String, Edge> g = starGraph(10);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         assertEquals(2, c.topByImportance(2).size());
@@ -302,7 +302,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void topByImportance_requestMoreThanExists() {
-        Graph<String, edge> g = starGraph(3);
+        Graph<String, Edge> g = starGraph(3);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         List<NetworkRoleClassifier.NodeRole> top = c.topByImportance(100);
@@ -313,7 +313,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void generateReport_containsHeader() {
-        Graph<String, edge> g = starGraph(3);
+        Graph<String, Edge> g = starGraph(3);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         String report = c.generateReport();
@@ -324,7 +324,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void generateReport_listsAllNodes() {
-        Graph<String, edge> g = starGraph(4);
+        Graph<String, Edge> g = starGraph(4);
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
         String report = c.generateReport();
@@ -347,7 +347,7 @@ public class NetworkRoleClassifierTest {
 
     @Test(expected = IllegalStateException.class)
     public void getRole_beforeClassify_throws() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("A");
         new NetworkRoleClassifier(g).getRole("A");
     }
@@ -382,7 +382,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void reclassify_resetsRoles() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("A");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
@@ -397,7 +397,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void nodeRole_toString_includesAllFields() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("solo");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
@@ -454,7 +454,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void metrics_pairGraph_symmetric() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "A", "B");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();
@@ -470,7 +470,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void metrics_triangleGraph_fullClustering() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "A", "C");
@@ -484,7 +484,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void metrics_pathGraph_zeroClustering() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
@@ -497,7 +497,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void classify_mixedTopology_multipleRoles() {
-        Graph<String, edge> g = bridgeGraph();
+        Graph<String, Edge> g = bridgeGraph();
         addEdge(g, "A1", "leaf1");
         addEdge(g, "B1", "leaf2");
 
@@ -515,7 +515,7 @@ public class NetworkRoleClassifierTest {
 
     @Test
     public void getRole_nonexistentNode_returnsNull() {
-        Graph<String, edge> g = emptyGraph();
+        Graph<String, Edge> g = emptyGraph();
         g.addVertex("A");
         NetworkRoleClassifier c = new NetworkRoleClassifier(g);
         c.classify();

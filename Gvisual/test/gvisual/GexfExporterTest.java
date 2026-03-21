@@ -18,8 +18,8 @@ import static org.junit.Assert.*;
  */
 public class GexfExporterTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> edges;
+    private Graph<String, Edge> graph;
+    private List<Edge> edges;
 
     @Before
     public void setUp() {
@@ -28,12 +28,12 @@ public class GexfExporterTest {
         graph.addVertex("Bob");
         graph.addVertex("Carol");
 
-        edge e1 = new edge("f", "Alice", "Bob");
+        Edge e1 = new Edge("f", "Alice", "Bob");
         e1.setWeight(3.5f);
         e1.setLabel("friends");
         graph.addEdge(e1, "Alice", "Bob");
 
-        edge e2 = new edge("c", "Bob", "Carol");
+        Edge e2 = new Edge("c", "Bob", "Carol");
         e2.setWeight(1.0f);
         graph.addEdge(e2, "Bob", "Carol");
 
@@ -91,12 +91,12 @@ public class GexfExporterTest {
 
     @Test
     public void testTemporalEdgesEnableDynamicMode() {
-        edge e1 = new edge("f", "Alice", "Bob");
+        Edge e1 = new Edge("f", "Alice", "Bob");
         e1.setWeight(1.0f);
         e1.setTimestamp(1000L);
         e1.setEndTimestamp(5000L);
 
-        Graph<String, edge> tGraph = new UndirectedSparseGraph<>();
+        Graph<String, Edge> tGraph = new UndirectedSparseGraph<>();
         tGraph.addVertex("Alice");
         tGraph.addVertex("Bob");
         tGraph.addEdge(e1, "Alice", "Bob");
@@ -129,11 +129,11 @@ public class GexfExporterTest {
 
     @Test
     public void testXmlEscaping() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A&B");
         g.addVertex("C<D>");
 
-        edge e = new edge("f", "A&B", "C<D>");
+        Edge e = new Edge("f", "A&B", "C<D>");
         e.setWeight(1.0f);
         g.addEdge(e, "A&B", "C<D>");
 
@@ -148,7 +148,7 @@ public class GexfExporterTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         GexfExporter exporter = new GexfExporter(empty, new ArrayList<>());
         String xml = exporter.exportToString();
 

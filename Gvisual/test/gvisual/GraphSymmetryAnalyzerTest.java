@@ -14,15 +14,15 @@ import static org.junit.Assert.*;
  */
 public class GraphSymmetryAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
@@ -108,7 +108,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Complete graph K_n (vertex-transitive, edge-transitive)
+    // Complete graph K_n (vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     @Test
@@ -147,7 +147,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Cycle C_n (vertex-transitive, edge-transitive)
+    // Cycle C_n (vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     @Test
@@ -214,7 +214,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Star K_{1,n} (not vertex-transitive, edge-transitive)
+    // Star K_{1,n} (not vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     @Test
@@ -250,7 +250,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Petersen graph (vertex-transitive, edge-transitive)
+    // Petersen graph (vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     private void buildPetersen() {
@@ -512,7 +512,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Bipartite K_{3,3} (vertex-transitive, edge-transitive)
+    // Bipartite K_{3,3} (vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     @Test
@@ -526,7 +526,7 @@ public class GraphSymmetryAnalyzerTest {
     }
 
     // ═══════════════════════════════════════
-    // Cube Q3 (vertex-transitive, edge-transitive)
+    // Cube Q3 (vertex-transitive, Edge-transitive)
     // ═══════════════════════════════════════
 
     @Test

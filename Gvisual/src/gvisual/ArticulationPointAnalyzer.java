@@ -10,7 +10,7 @@ import java.util.*;
  *
  * <p>An <b>articulation point</b> is a vertex whose removal disconnects
  * the graph (or increases its number of connected components). A
- * <b>bridge</b> is an edge whose removal disconnects the graph.</p>
+ * <b>bridge</b> is an Edge whose removal disconnects the graph.</p>
  *
  * <p>These are critical elements for network reliability analysis:</p>
  * <ul>
@@ -25,7 +25,7 @@ import java.util.*;
  */
 public class ArticulationPointAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new analyzer for the given graph.
@@ -33,7 +33,7 @@ public class ArticulationPointAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public ArticulationPointAnalyzer(Graph<String, edge> graph) {
+    public ArticulationPointAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -43,16 +43,16 @@ public class ArticulationPointAnalyzer {
     // ── Result classes ──────────────────────────────────────────
 
     /**
-     * A bridge (cut edge) whose removal disconnects the graph.
+     * A bridge (cut Edge) whose removal disconnects the graph.
      */
     public static class Bridge {
-        private final edge bridgeEdge;
+        private final Edge bridgeEdge;
         private final String endpoint1;
         private final String endpoint2;
         private final int componentSizeA;
         private final int componentSizeB;
 
-        public Bridge(edge bridgeEdge, String endpoint1, String endpoint2,
+        public Bridge(Edge bridgeEdge, String endpoint1, String endpoint2,
                       int componentSizeA, int componentSizeB) {
             this.bridgeEdge = bridgeEdge;
             this.endpoint1 = endpoint1;
@@ -61,8 +61,8 @@ public class ArticulationPointAnalyzer {
             this.componentSizeB = componentSizeB;
         }
 
-        /** The bridge edge. */
-        public edge getEdge() { return bridgeEdge; }
+        /** The bridge Edge. */
+        public Edge getEdge() { return bridgeEdge; }
         /** One endpoint. */
         public String getEndpoint1() { return endpoint1; }
         /** Other endpoint. */
@@ -227,7 +227,7 @@ public class ArticulationPointAnalyzer {
         Map<String, String> parent = new HashMap<String, String>();
         Set<String> visited = new HashSet<String>();
         Set<String> articulationPoints = new LinkedHashSet<String>();
-        List<edge> bridgeEdges = new ArrayList<edge>();
+        List<Edge> bridgeEdges = new ArrayList<Edge>();
         int[] timer = {0};
 
         // Run DFS from each unvisited vertex (handles disconnected graphs)
@@ -245,7 +245,7 @@ public class ArticulationPointAnalyzer {
         for (String ap : articulationPoints) {
             int degree = graph.degree(ap);
             Map<String, Integer> edgeTypeCounts = new HashMap<String, Integer>();
-            for (edge e : graph.getIncidentEdges(ap)) {
+            for (Edge e : graph.getIncidentEdges(ap)) {
                 String type = e.getType() != null ? e.getType() : "unknown";
                 edgeTypeCounts.put(type, edgeTypeCounts.getOrDefault(type, 0) + 1);
             }
@@ -260,7 +260,7 @@ public class ArticulationPointAnalyzer {
 
         // Build bridge details with component size estimation
         List<Bridge> bridges = new ArrayList<Bridge>();
-        for (edge e : bridgeEdges) {
+        for (Edge e : bridgeEdges) {
             String v1 = e.getVertex1() != null ? e.getVertex1() : findEndpoints(e)[0];
             String v2 = e.getVertex2() != null ? e.getVertex2() : findEndpoints(e)[1];
             int[] sizes = estimateComponentSizes(v1, v2, e);
@@ -284,7 +284,7 @@ public class ArticulationPointAnalyzer {
                      Map<String, String> parent,
                      Set<String> visited,
                      Set<String> articulationPoints,
-                     List<edge> bridges,
+                     List<Edge> bridges,
                      int[] timer) {
         visited.add(u);
         disc.put(u, timer[0]);
@@ -314,23 +314,23 @@ public class ArticulationPointAnalyzer {
 
                 // Bridge: low[v] > disc[u]
                 if (low.get(v) > disc.get(u)) {
-                    edge bridgeEdge = findEdge(u, v);
+                    Edge bridgeEdge = findEdge(u, v);
                     if (bridgeEdge != null) {
                         bridges.add(bridgeEdge);
                     }
                 }
             } else if (!v.equals(parent.get(u))) {
-                // Back edge — update low value
+                // Back Edge — update low value
                 low.put(u, Math.min(low.get(u), disc.get(v)));
             }
         }
     }
 
     /**
-     * Find the edge connecting two vertices.
+     * Find the Edge connecting two vertices.
      */
-    private edge findEdge(String u, String v) {
-        for (edge e : graph.getIncidentEdges(u)) {
+    private Edge findEdge(String u, String v) {
+        for (Edge e : graph.getIncidentEdges(u)) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             // Also check via JUNG endpoints since vertex1/vertex2 may be null
@@ -346,9 +346,9 @@ public class ArticulationPointAnalyzer {
     }
 
     /**
-     * Find endpoints of an edge via the graph when vertex1/vertex2 may be null.
+     * Find endpoints of an Edge via the graph when vertex1/vertex2 may be null.
      */
-    private String[] findEndpoints(edge e) {
+    private String[] findEndpoints(Edge e) {
         Collection<String> endpoints = graph.getEndpoints(e);
         if (endpoints != null && endpoints.size() == 2) {
             Iterator<String> it = endpoints.iterator();
@@ -394,19 +394,19 @@ public class ArticulationPointAnalyzer {
 
     /**
      * Estimate the sizes of the two components that would result from
-     * removing a bridge edge.
+     * removing a bridge Edge.
      */
-    private int[] estimateComponentSizes(String v1, String v2, edge bridgeEdge) {
-        // BFS from v1, excluding the bridge edge
+    private int[] estimateComponentSizes(String v1, String v2, Edge bridgeEdge) {
+        // BFS from v1, excluding the bridge Edge
         Set<String> comp1 = bfsExcludingEdge(v1, bridgeEdge);
         Set<String> comp2 = bfsExcludingEdge(v2, bridgeEdge);
         return new int[]{comp1.size(), comp2.size()};
     }
 
     /**
-     * BFS from a start vertex, excluding a specific edge.
+     * BFS from a start vertex, excluding a specific Edge.
      */
-    private Set<String> bfsExcludingEdge(String start, edge excluded) {
+    private Set<String> bfsExcludingEdge(String start, Edge excluded) {
         Set<String> visited = new HashSet<String>();
         Queue<String> queue = new LinkedList<String>();
         queue.add(start);
@@ -414,7 +414,7 @@ public class ArticulationPointAnalyzer {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            for (edge e : graph.getIncidentEdges(current)) {
+            for (Edge e : graph.getIncidentEdges(current)) {
                 if (e == excluded) continue;
                 Collection<String> endpoints = graph.getEndpoints(e);
                 for (String neighbor : endpoints) {

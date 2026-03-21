@@ -7,9 +7,9 @@ import java.util.*;
 /**
  * Analyzes Eulerian paths and circuits in graphs.
  *
- * <p>An <b>Eulerian circuit</b> is a closed walk that visits every edge
+ * <p>An <b>Eulerian circuit</b> is a closed walk that visits every Edge
  * exactly once and returns to the starting vertex. An <b>Eulerian path</b>
- * visits every edge exactly once but may start and end at different vertices.</p>
+ * visits every Edge exactly once but may start and end at different vertices.</p>
  *
  * <p>Conditions (undirected graphs):</p>
  * <ul>
@@ -26,7 +26,7 @@ import java.util.*;
  */
 public class EulerianPathAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new analyzer for the given graph.
@@ -34,7 +34,7 @@ public class EulerianPathAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public EulerianPathAnalyzer(Graph<String, edge> graph) {
+    public EulerianPathAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -103,17 +103,17 @@ public class EulerianPathAnalyzer {
      */
     public static class EulerianPathResult {
         private final List<String> vertices;
-        private final List<edge> edges;
+        private final List<Edge> edges;
         private final boolean isCircuit;
 
-        public EulerianPathResult(List<String> vertices, List<edge> edges, boolean isCircuit) {
+        public EulerianPathResult(List<String> vertices, List<Edge> edges, boolean isCircuit) {
             this.vertices = Collections.unmodifiableList(new ArrayList<String>(vertices));
-            this.edges = Collections.unmodifiableList(new ArrayList<edge>(edges));
+            this.edges = Collections.unmodifiableList(new ArrayList<Edge>(edges));
             this.isCircuit = isCircuit;
         }
 
         public List<String> getVertices() { return vertices; }
-        public List<edge> getEdges() { return edges; }
+        public List<Edge> getEdges() { return edges; }
         public boolean isCircuit() { return isCircuit; }
         public int getEdgeCount() { return edges.size(); }
     }
@@ -168,14 +168,14 @@ public class EulerianPathAnalyzer {
             return null;
         }
 
-        // Build adjacency with edge tracking
+        // Build adjacency with Edge tracking
         Map<String, LinkedList<EdgeEntry>> adj = new LinkedHashMap<String, LinkedList<EdgeEntry>>();
         for (String v : graph.getVertices()) {
             adj.put(v, new LinkedList<EdgeEntry>());
         }
 
-        Set<edge> allEdges = new HashSet<edge>();
-        for (edge e : graph.getEdges()) {
+        Set<Edge> allEdges = new HashSet<Edge>();
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             EdgeEntry entry1 = new EdgeEntry(v2, e);
@@ -206,14 +206,14 @@ public class EulerianPathAnalyzer {
                 if (graph.getVertexCount() > 0) {
                     verts.add(graph.getVertices().iterator().next());
                 }
-                return new EulerianPathResult(verts, new ArrayList<edge>(), true);
+                return new EulerianPathResult(verts, new ArrayList<Edge>(), true);
             }
         }
 
         // Hierholzer's algorithm
         Deque<String> stack = new ArrayDeque<String>();
         List<String> pathVertices = new ArrayList<String>();
-        List<edge> pathEdges = new ArrayList<edge>();
+        List<Edge> pathEdges = new ArrayList<Edge>();
 
         stack.push(start);
 
@@ -241,12 +241,12 @@ public class EulerianPathAnalyzer {
         Collections.reverse(pathVertices);
 
         // Reconstruct edges from vertex sequence
-        List<edge> orderedEdges = new ArrayList<edge>();
+        List<Edge> orderedEdges = new ArrayList<Edge>();
         for (int i = 0; i < pathVertices.size() - 1; i++) {
             String v1 = pathVertices.get(i);
             String v2 = pathVertices.get(i + 1);
-            edge found = null;
-            for (edge e : allEdges) {
+            Edge found = null;
+            for (Edge e : allEdges) {
                 String e1 = graph.getEndpoints(e).getFirst();
                 String e2 = graph.getEndpoints(e).getSecond();
                 if ((e1.equals(v1) && e2.equals(v2)) || (e1.equals(v2) && e2.equals(v1))) {
@@ -288,11 +288,11 @@ public class EulerianPathAnalyzer {
     }
 
     /**
-     * Compute edge connectivity — minimum edges to remove to disconnect the graph.
+     * Compute Edge connectivity — minimum edges to remove to disconnect the graph.
      * Uses iterative max-flow between a fixed source and all other vertices,
      * returning the minimum.
      *
-     * @return edge connectivity (0 if disconnected or single vertex)
+     * @return Edge connectivity (0 if disconnected or single vertex)
      */
     public int computeEdgeConnectivity() {
         Collection<String> vertices = graph.getVertices();
@@ -334,7 +334,7 @@ public class EulerianPathAnalyzer {
 
         switch (analysis.getType()) {
             case EULERIAN_CIRCUIT:
-                sb.append("→ An Eulerian circuit exists (every edge visited exactly once, returning to start).\n");
+                sb.append("→ An Eulerian circuit exists (every Edge visited exactly once, returning to start).\n");
                 break;
             case EULERIAN_PATH:
                 sb.append(String.format("→ An Eulerian path exists from %s to %s.\n",
@@ -343,11 +343,11 @@ public class EulerianPathAnalyzer {
                 break;
             case NOT_EULERIAN:
                 sb.append("→ No Eulerian path or circuit exists.\n");
-                sb.append(String.format("  Need to duplicate at least %d edge(s) for Chinese Postman solution.\n",
+                sb.append(String.format("  Need to duplicate at least %d Edge(s) for Chinese Postman solution.\n",
                         analysis.getMinEdgeDuplications()));
                 List<String[]> suggestions = suggestEdgesForEulerian();
                 if (!suggestions.isEmpty()) {
-                    sb.append("  Suggested edge additions:\n");
+                    sb.append("  Suggested Edge additions:\n");
                     for (String[] pair : suggestions) {
                         sb.append(String.format("    Connect %s — %s\n", pair[0], pair[1]));
                     }
@@ -369,11 +369,11 @@ public class EulerianPathAnalyzer {
 
     private static class EdgeEntry {
         final String target;
-        final edge e;
+        final Edge e;
         boolean used = false;
         EdgeEntry partner;
 
-        EdgeEntry(String target, edge e) {
+        EdgeEntry(String target, Edge e) {
             this.target = target;
             this.e = e;
         }
@@ -405,15 +405,15 @@ public class EulerianPathAnalyzer {
     }
 
     /**
-     * Simple BFS-based max flow (unit capacity) for edge connectivity.
+     * Simple BFS-based max flow (unit capacity) for Edge connectivity.
      */
     private int maxFlowBFS(String source, String target) {
-        // Build capacity map (unit capacity per edge)
+        // Build capacity map (unit capacity per Edge)
         Map<String, Map<String, Integer>> capacity = new HashMap<String, Map<String, Integer>>();
         for (String v : graph.getVertices()) {
             capacity.put(v, new HashMap<String, Integer>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             Integer cur = capacity.get(v1).get(v2);

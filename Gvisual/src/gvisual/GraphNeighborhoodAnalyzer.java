@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  *       hop depth, revealing local topology (tree-like vs mesh-like)</li>
  *   <li><b>Neighborhood overlap</b> — Jaccard similarity of k-hop
  *       neighborhoods between two vertices, measuring structural proximity</li>
- *   <li><b>Local density</b> — edge density within the k-hop induced
+ *   <li><b>Local density</b> — Edge density within the k-hop induced
  *       subgraph, indicating how tightly connected a neighbourhood is</li>
  *   <li><b>Boundary vertices</b> — vertices exactly k hops away (the
  *       frontier), useful for expansion analysis</li>
@@ -28,14 +28,14 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * <p>All computations use BFS from the source vertex.  For directed graphs
- * the successor (out-edge) direction is followed.  The source vertex itself
+ * the successor (out-Edge) direction is followed.  The source vertex itself
  * is always at depth 0.</p>
  *
  * @author zalenix
  */
 public class GraphNeighborhoodAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Constructs an analyser for the given graph.
@@ -43,7 +43,7 @@ public class GraphNeighborhoodAnalyzer {
      * @param graph the graph to analyse (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphNeighborhoodAnalyzer(Graph<String, edge> graph) {
+    public GraphNeighborhoodAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -185,7 +185,7 @@ public class GraphNeighborhoodAnalyzer {
     // ------------------------------------------------------------------
 
     /**
-     * Computes the edge density of the induced subgraph on the k-hop
+     * Computes the Edge density of the induced subgraph on the k-hop
      * neighborhood of the source vertex.
      *
      * <p>Density = 2 * |edges in subgraph| / (n * (n-1)) for n &gt; 1,
@@ -194,7 +194,7 @@ public class GraphNeighborhoodAnalyzer {
      *
      * @param source starting vertex
      * @param k      hop distance
-     * @return edge density in [0.0, 1.0]
+     * @return Edge density in [0.0, 1.0]
      */
     public double getLocalDensity(String source, int k) {
         Set<String> neighborhood = getKHopNeighborhood(source, k);
@@ -204,7 +204,7 @@ public class GraphNeighborhoodAnalyzer {
         }
 
         int edgeCount = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String src = graph.getEndpoints(e).getFirst();
             String dst = graph.getEndpoints(e).getSecond();
             if (neighborhood.contains(src) && neighborhood.contains(dst)) {

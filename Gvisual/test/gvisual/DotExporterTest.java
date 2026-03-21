@@ -17,8 +17,8 @@ import static org.junit.Assert.*;
  */
 public class DotExporterTest {
 
-    private Graph<String, edge> undirectedGraph;
-    private Graph<String, edge> directedGraph;
+    private Graph<String, Edge> undirectedGraph;
+    private Graph<String, Edge> directedGraph;
 
     @Before
     public void setUp() {
@@ -27,11 +27,11 @@ public class DotExporterTest {
         undirectedGraph.addVertex("A");
         undirectedGraph.addVertex("B");
         undirectedGraph.addVertex("C");
-        edge e1 = new edge("f", "A", "B");
+        Edge e1 = new Edge("f", "A", "B");
         e1.setWeight(2.0f);
         e1.setLabel("friendship");
         undirectedGraph.addEdge(e1, "A", "B");
-        edge e2 = new edge("c", "B", "C");
+        Edge e2 = new Edge("c", "B", "C");
         e2.setWeight(1.0f);
         undirectedGraph.addEdge(e2, "B", "C");
 
@@ -40,10 +40,10 @@ public class DotExporterTest {
         directedGraph.addVertex("X");
         directedGraph.addVertex("Y");
         directedGraph.addVertex("Z");
-        edge d1 = new edge("s", "X", "Y");
+        Edge d1 = new Edge("s", "X", "Y");
         d1.setWeight(3.0f);
         directedGraph.addEdge(d1, "X", "Y");
-        edge d2 = new edge("sg", "Y", "Z");
+        Edge d2 = new Edge("sg", "Y", "Z");
         d2.setWeight(5.0f);
         directedGraph.addEdge(d2, "Y", "Z");
     }
@@ -107,7 +107,7 @@ public class DotExporterTest {
         DotExporter exporter = new DotExporter(undirectedGraph);
         exporter.setColorByEdgeType(true);
         String dot = exporter.exportToString();
-        // Should have legend subgraph with edge types
+        // Should have legend subgraph with Edge types
         assertTrue("Should contain legend", dot.contains("cluster_legend"));
         // Should contain the type colors
         assertTrue("Should contain Friend legend", dot.contains("Friend"));
@@ -125,7 +125,7 @@ public class DotExporterTest {
     public void testEdgeLabelInOutput() {
         DotExporter exporter = new DotExporter(undirectedGraph);
         String dot = exporter.exportToString();
-        assertTrue("Should contain edge label", dot.contains("\"friendship\""));
+        assertTrue("Should contain Edge label", dot.contains("\"friendship\""));
     }
 
     @Test
@@ -171,7 +171,7 @@ public class DotExporterTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         DotExporter exporter = new DotExporter(empty);
         String dot = exporter.exportToString();
         assertTrue(dot.contains("graph G {"));
@@ -195,10 +195,10 @@ public class DotExporterTest {
     @Test
     public void testQuoteEscapesSpecialChars() {
         // Add a vertex with special characters
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Node\"With\"Quotes");
         g.addVertex("Normal");
-        edge e = new edge("f", "Node\"With\"Quotes", "Normal");
+        Edge e = new Edge("f", "Node\"With\"Quotes", "Normal");
         g.addEdge(e, "Node\"With\"Quotes", "Normal");
 
         DotExporter exporter = new DotExporter(g);
@@ -229,7 +229,7 @@ public class DotExporterTest {
 
     @Test
     public void testSingleVertexGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("Solo");
         DotExporter exporter = new DotExporter(g);
         String dot = exporter.exportToString();

@@ -1,4 +1,4 @@
-﻿package gvisual;
+package gvisual;
 
 import app.Network;
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -43,7 +43,7 @@ import org.xml.sax.SAXException;
  * visualisation and analysis tool built on JUNG (Java Universal Network/Graph).
  *
  * <h3>Overview</h3>
- * <p>Loads edge-list data (from flat files or a database via {@link app.Network}),
+ * <p>Loads Edge-list data (from flat files or a database via {@link app.Network}),
  * builds an {@link edu.uci.ics.jung.graph.UndirectedSparseGraph}, and renders it
  * in a Swing {@link edu.uci.ics.jung.visualization.VisualizationViewer} with
  * interactive controls for filtering, layout, analysis, and export.</p>
@@ -60,7 +60,7 @@ import org.xml.sax.SAXException;
  *   <li><b>Graph algorithms:</b> shortest path (hop/weight), minimum spanning tree,
  *       community detection (Louvain), articulation points/bridges, ego-network
  *       extraction, PageRank, centrality, and many more via the analysis menu.</li>
- *   <li><b>Export:</b> GraphML, DOT, GEXF, SVG, PNG, CSV edge-list, interactive HTML,
+ *   <li><b>Export:</b> GraphML, DOT, GEXF, SVG, PNG, CSV Edge-list, interactive HTML,
  *       and network reports through {@link ExportActions} and {@link ToolbarBuilder}.</li>
  * </ul>
  *
@@ -97,9 +97,9 @@ public class Main extends JFrame {
     private String month;
     private String date;
     private String timeStamp;
-    private Graph<String, edge> g;
-    private VisualizationViewer<String, edge> vv;
-    private Layout<String, edge> graphLayout;
+    private Graph<String, Edge> g;
+    private VisualizationViewer<String, Edge> vv;
+    private Layout<String, Edge> graphLayout;
     private final GraphRenderers renderers = new GraphRenderers();
 
     /**
@@ -123,11 +123,11 @@ public class Main extends JFrame {
         renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
     }
-    private List<edge> friendEdges = new ArrayList<>();
-    private List<edge> fsEdges = new ArrayList<>();
-    private List<edge> classmateEdges = new ArrayList<>();
-    private List<edge> strangerEdges = new ArrayList<>();
-    private List<edge> studyGEdges = new ArrayList<>();
+    private List<Edge> friendEdges = new ArrayList<>();
+    private List<Edge> fsEdges = new ArrayList<>();
+    private List<Edge> classmateEdges = new ArrayList<>();
+    private List<Edge> strangerEdges = new ArrayList<>();
+    private List<Edge> studyGEdges = new ArrayList<>();
     private String fileName;
     private Box parameterSpace;
     private JPanel notesPanel;
@@ -227,10 +227,10 @@ public class Main extends JFrame {
     }
 
     /**
-     * Returns the edge list for the given edge type.
+     * Returns the Edge list for the given Edge type.
      * Used to replace the cascading if/else chain in addGraph().
      */
-    private List<edge> getEdgeList(EdgeType type) {
+    private List<Edge> getEdgeList(EdgeType type) {
         switch (type) {
             case FRIEND:      return friendEdges;
             case CLASSMATE:   return classmateEdges;
@@ -242,7 +242,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * Returns whether the given edge type code is currently visible
+     * Returns whether the given Edge type code is currently visible
      * (its checkbox is selected).
      */
     private boolean isEdgeTypeVisible(String typeCode) {
@@ -262,7 +262,7 @@ public class Main extends JFrame {
      * Create the layout for the graph
      */
     public void createLayout() {
-        graphLayout = new StaticLayout<String, edge>(g);
+        graphLayout = new StaticLayout<String, Edge>(g);
         List<List<String>> clusters = new ArrayList<>();
 
         for (int i = 0; i < 9; i++) {
@@ -276,7 +276,7 @@ public class Main extends JFrame {
             boolean isS = false;
             boolean isSg = false;
             int areaId;
-            for (edge y : g.getOutEdges(x)) {
+            for (Edge y : g.getOutEdges(x)) {
                 EdgeType type = EdgeType.fromCode(y.getType());
                 if (type != null) {
                     switch (type) {
@@ -404,7 +404,7 @@ public class Main extends JFrame {
     }
 
     /**
-     * Holds the UI components for a single edge-type category row.
+     * Holds the UI components for a single Edge-type category row.
      */
     private static class CategoryRow {
         final JCheckBox checkbox;
@@ -431,17 +431,17 @@ public class Main extends JFrame {
 
     /**
      * Creates a fully-wired category row (checkbox + label + sliders + settings
-     * button) for the given edge type.  This replaces the five near-identical
+     * button) for the given Edge type.  This replaces the five near-identical
      * blocks that previously lived in {@code initializeCategoryPanel()}.
      *
-     * @param type        the edge type this row controls
-     * @param edgeList    the corresponding edge list (e.g. {@code friendEdges})
+     * @param type        the Edge type this row controls
+     * @param edgeList    the corresponding Edge list (e.g. {@code friendEdges})
      * @param labelText   the display text for the label
      * @param durMax      maximum value for the duration slider
      * @return a fully-initialised {@code CategoryRow}
      */
     private CategoryRow createCategoryRow(final EdgeType type,
-                                          final List<edge> edgeList,
+                                          final List<Edge> edgeList,
                                           String labelText,
                                           int durMax) {
         JButton settingsBtn = new JButton(new ImageIcon("./images/settings.png"));
@@ -451,9 +451,9 @@ public class Main extends JFrame {
         cb.setSelected(true);
         cb.addActionListener(e -> {
             if (cb.isSelected()) {
-                for (edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
+                for (Edge x : edgeList) { g.addEdge(x, x.getVertex1(), x.getVertex2()); }
             } else {
-                for (edge x : edgeList) { g.removeEdge(x); }
+                for (Edge x : edgeList) { g.removeEdge(x); }
             }
             imagePanel.setVisible(false);
             imagePanel.setVisible(true);
@@ -579,9 +579,9 @@ public class Main extends JFrame {
 
         g = parseResult.getGraph();
 
-        // Populate classified edge lists from parse result
+        // Populate classified Edge lists from parse result
         for (EdgeType type : EdgeType.values()) {
-            List<edge> list = getEdgeList(type);
+            List<Edge> list = getEdgeList(type);
             if (list != null) {
                 list.clear();
                 list.addAll(parseResult.getEdges(type));
@@ -589,7 +589,7 @@ public class Main extends JFrame {
         }
 
         createLayout();
-        vv = new VisualizationViewer<String, edge>(graphLayout);
+        vv = new VisualizationViewer<String, Edge>(graphLayout);
         vv.setSize(new Dimension(100, 0));
 
         DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
@@ -598,7 +598,7 @@ public class Main extends JFrame {
         vv.setGraphMouse(gm);
 
 
-        Transformer<edge, String> edgeLabel = (edge i) -> {
+        Transformer<Edge, String> edgeLabel = (Edge i) -> {
                 return i.getLabel();
             };
 
@@ -707,9 +707,9 @@ public class Main extends JFrame {
      */
     public final void initializePathController() {
         pathController = new PathPanelController(new PathPanelController.GraphHost() {
-            @Override public Graph<String, edge> getGraph() { return g; }
-            @Override public edu.uci.ics.jung.algorithms.layout.Layout<String, edge> getLayout() { return graphLayout; }
-            @Override public VisualizationViewer<String, edge> getViewer() { return vv; }
+            @Override public Graph<String, Edge> getGraph() { return g; }
+            @Override public edu.uci.ics.jung.algorithms.layout.Layout<String, Edge> getLayout() { return graphLayout; }
+            @Override public VisualizationViewer<String, Edge> getViewer() { return vv; }
             @Override public void refreshGraph() { Main.this.refreshGraph(); }
         });
     }
@@ -730,13 +730,13 @@ public class Main extends JFrame {
      */
     public final void initializeCommunityController() {
         communityController = new CommunityPanelController(new CommunityPanelController.GraphHost() {
-            @Override public Graph<String, edge> getGraph() { return g; }
+            @Override public Graph<String, Edge> getGraph() { return g; }
             @Override public void onOverlayChanged() { syncRenderers(); refreshGraph(); }
         });
     }
 
     /**
-     * Returns a human-readable label for edge type codes.
+     * Returns a human-readable label for Edge type codes.
      */
     private String getDominantLabel(String typeCode) {
         EdgeType type = EdgeType.fromCode(typeCode);
@@ -748,7 +748,7 @@ public class Main extends JFrame {
      */
     public final void initializeMSTController() {
         mstController = new MSTPanelController(new MSTPanelController.GraphHost() {
-            @Override public Graph<String, edge> getGraph() { return g; }
+            @Override public Graph<String, Edge> getGraph() { return g; }
             @Override public void onOverlayChanged() { syncRenderers(); refreshGraph(); }
         });
     }
@@ -1067,7 +1067,7 @@ public class Main extends JFrame {
 
     /**
      * initialize the category panel â€" creates one {@link CategoryRow}
-     * per edge type using the shared {@code createCategoryRow()} helper.
+     * per Edge type using the shared {@code createCategoryRow()} helper.
      */
     public final void initializeCategoryPanel() {
         categoryRows = new CategoryRow[5];
@@ -1128,10 +1128,10 @@ public class Main extends JFrame {
      */
     public final void initializeToolBar() {
         ToolbarBuilder.GraphContext ctx = new ToolbarBuilder.GraphContext() {
-            @Override public Graph<String, edge> getGraph() { return g; }
-            @Override public VisualizationViewer<String, edge> getVisualizationViewer() { return vv; }
+            @Override public Graph<String, Edge> getGraph() { return g; }
+            @Override public VisualizationViewer<String, Edge> getVisualizationViewer() { return vv; }
             @Override public String getTimestamp() { return timeStamp; }
-            @Override public List<edge> collectAllEdges() { return Main.this.collectAllEdges(); }
+            @Override public List<Edge> collectAllEdges() { return Main.this.collectAllEdges(); }
         };
         toolPanel = ToolbarBuilder.build(Main.this, ctx, legendPanel);
         contentPanel.add(toolPanel, BorderLayout.WEST);
@@ -1141,10 +1141,10 @@ public class Main extends JFrame {
      * Collects all edges from every category into a single list.
      * Replaces the 5-line addAll() pattern duplicated across export handlers.
      */
-    private List<edge> collectAllEdges() {
-        List<edge> allEdges = new ArrayList<>();
+    private List<Edge> collectAllEdges() {
+        List<Edge> allEdges = new ArrayList<>();
         for (EdgeType type : EdgeType.values()) {
-            List<edge> list = getEdgeList(type);
+            List<Edge> list = getEdgeList(type);
             if (list != null) {
                 allEdges.addAll(list);
             }

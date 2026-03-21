@@ -16,17 +16,17 @@ import static org.junit.Assert.*;
  */
 public class TournamentAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new DirectedSparseGraph<String, edge>();
+        graph = new DirectedSparseGraph<String, Edge>();
     }
 
     // ── Helper methods ──────────────────────────────────────────
 
     private void addEdge(String from, String to) {
-        edge e = new edge("f", from, to);
+        Edge e = new Edge("f", from, to);
         graph.addEdge(e, from, to);
     }
 
@@ -309,7 +309,7 @@ public class TournamentAnalyzerTest {
         buildTransitive3();
         List<String> path = new TournamentAnalyzer(graph).findHamiltonianPath();
         assertEquals(3, path.size());
-        // Verify it's a valid path: each edge exists in tournament
+        // Verify it's a valid path: each Edge exists in tournament
         for (int i = 0; i < path.size() - 1; i++) {
             String from = path.get(i);
             String to = path.get(i + 1);
@@ -679,7 +679,7 @@ public class TournamentAnalyzerTest {
         assertTrue(report.contains("Vertices: 0"));
     }
 
-    // ── Additional edge case tests ──────────────────────────────
+    // ── Additional Edge case tests ──────────────────────────────
 
     @Test
     public void testTransitive4HasCondorcetWinnerAndLoser() {
@@ -727,7 +727,7 @@ public class TournamentAnalyzerTest {
     // ── Verify helper ───────────────────────────────────────────
 
     private boolean hasEdge(String from, String to) {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (from.equals(e.getVertex1()) && to.equals(e.getVertex2())) {
                 return true;
             }
@@ -739,9 +739,9 @@ public class TournamentAnalyzerTest {
         // All vertices present
         assertEquals(graph.getVertexCount(), path.size());
         assertEquals(graph.getVertexCount(), new HashSet<String>(path).size());
-        // Each consecutive pair has a directed edge
+        // Each consecutive pair has a directed Edge
         for (int i = 0; i < path.size() - 1; i++) {
-            assertTrue("Expected edge " + path.get(i) + "→" + path.get(i + 1),
+            assertTrue("Expected Edge " + path.get(i) + "→" + path.get(i + 1),
                 hasEdge(path.get(i), path.get(i + 1)));
         }
     }

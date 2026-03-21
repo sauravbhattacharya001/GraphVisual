@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class LaplacianBuilderTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -22,7 +22,7 @@ public class LaplacianBuilderTest {
     }
 
     private void addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
         graph.addEdge(e, v1, v2);
@@ -147,7 +147,7 @@ public class LaplacianBuilderTest {
     @Test
     public void testSubgraphLaplacian_subset() {
         addEdge("A", "B"); addEdge("B", "C"); addEdge("C", "D");
-        // Subgraph on {B, C}: only the B-C edge counts
+        // Subgraph on {B, C}: only the B-C Edge counts
         List<String> sub = Arrays.asList("B", "C");
         double[][] L = LaplacianBuilder.buildSubgraphLaplacian(graph, sub);
         assertEquals(1.0, L[0][0], 1e-10);
