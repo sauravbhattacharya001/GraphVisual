@@ -270,16 +270,16 @@ public final class GraphUtils {
      */
     public static int countEdgesInSubgraph(
             Graph<String, edge> graph, Set<String> vertices) {
+        // Single pass over all edges — O(E) with no auxiliary HashSet.
+        // For sparse subgraphs this is competitive with the vertex-centric
+        // approach, and for dense subgraphs it avoids the O(Σdeg) edge
+        // deduplication overhead that the previous seen-set approach had.
         int count = 0;
-        Set<edge> seen = new HashSet<edge>();
-        for (String v : vertices) {
-            for (edge e : graph.getIncidentEdges(v)) {
-                if (seen.contains(e)) continue;
-                boolean allIn = true;
-                for (String ep : graph.getEndpoints(e)) {
-                    if (!vertices.contains(ep)) { allIn = false; break; }
-                }
-                if (allIn) { seen.add(e); count++; }
+        for (edge e : graph.getEdges()) {
+            String v1 = e.getVertex1();
+            String v2 = e.getVertex2();
+            if (vertices.contains(v1) && vertices.contains(v2)) {
+                count++;
             }
         }
         return count;
