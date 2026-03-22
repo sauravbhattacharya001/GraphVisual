@@ -18,23 +18,25 @@ import java.awt.Color;
  */
 public enum EdgeType {
 
-    FRIEND      ("f",  "friend",            Color.GREEN,             10, 2),
-    CLASSMATE   ("c",  "Classmate",         Color.BLUE,              30, 1),
-    FAMILIAR    ("fs", "Familiar Stranger",  Color.GRAY,              2, 1),
-    STRANGER    ("s",  "Stranger",           Color.RED,               2, 2),
-    STUDY_GROUP ("sg", "Study Groups",       Color.ORANGE,           20, 1);
+    FRIEND      ("f",  "friend",            Color.GREEN,  "images/green.jpg",  10, 2),
+    CLASSMATE   ("c",  "Classmate",         Color.BLUE,   "images/blue.jpg",   30, 1),
+    FAMILIAR    ("fs", "Familiar Stranger",  Color.GRAY,  "images/gray.jpg",    2, 1),
+    STRANGER    ("s",  "Stranger",           Color.RED,   "images/red.jpg",     2, 2),
+    STUDY_GROUP ("sg", "Study Groups",       Color.ORANGE,"images/yellow.jpg", 20, 1);
 
     private final String code;
     private final String displayLabel;
     private final Color color;
+    private final String legendImagePath;
     private final int defaultDurationThreshold;
     private final int defaultMeetingThreshold;
 
-    EdgeType(String code, String displayLabel, Color color,
+    EdgeType(String code, String displayLabel, Color color, String legendImagePath,
              int defaultDurationThreshold, int defaultMeetingThreshold) {
         this.code = code;
         this.displayLabel = displayLabel;
         this.color = color;
+        this.legendImagePath = legendImagePath;
         this.defaultDurationThreshold = defaultDurationThreshold;
         this.defaultMeetingThreshold = defaultMeetingThreshold;
     }
@@ -52,6 +54,11 @@ public enum EdgeType {
     /** Returns the default edge colour for rendering. */
     public Color getColor() {
         return color;
+    }
+
+    /** Returns the path to the legend colour-swatch image. */
+    public String getLegendImagePath() {
+        return legendImagePath;
     }
 
     /** Returns the default duration-of-meeting threshold (minutes). */

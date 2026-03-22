@@ -637,62 +637,17 @@ public class Main extends JFrame {
 
         JLabel legendHeading = new JLabel("Legend for the Graph");
 
-        String blueImgPath = "images/blue.jpg";
-        String redImgPath = "images/red.jpg";
-        String greenImgPath = "images/green.jpg";
-        String yellowImgPath = "images/yellow.jpg";
-        String grayImgPath = "images/gray.jpg";
-
-        Icon blue = new ImageIcon(blueImgPath);
-        Icon red = new ImageIcon(redImgPath);
-        Icon green = new ImageIcon(greenImgPath);
-        Icon yellow = new ImageIcon(yellowImgPath);
-        Icon gray = new ImageIcon(grayImgPath);
-
-        JLabel fLabel = new JLabel("Friend");
-        JLabel fColor= new JLabel(green);
-        JLabel fsLabel= new JLabel("Familiar Stranger");
-        JLabel fsColor= new JLabel(gray);
-        JLabel sLabel= new JLabel("Stranger");
-        JLabel sColor= new JLabel(red);
-        JLabel cLabel= new JLabel("Classmate");
-        JLabel cColor = new JLabel(blue);
-        JLabel sgLabel= new JLabel("Study Group");
-        JLabel sgColor= new JLabel(yellow);
-
-        Box HBox[] = new Box[5];
-        Box VBox[] = new Box[1];
-
-        VBox[0]= Box.createVerticalBox();
-
-        HBox[0]= Box.createHorizontalBox();
-        HBox[1]= Box.createHorizontalBox();
-        HBox[2]= Box.createHorizontalBox();
-        HBox[3]= Box.createHorizontalBox();
-        HBox[4]= Box.createHorizontalBox();
-
-
-        HBox[0].add(fColor);
-        HBox[1].add(fsColor);
-        HBox[2].add(sColor);
-        HBox[3].add(cColor);
-        HBox[4].add(sgColor);
-
-        HBox[0].add(fLabel);
-        HBox[1].add(fsLabel);
-        HBox[2].add(sLabel);
-        HBox[3].add(cLabel);
-        HBox[4].add(sgLabel);
-
-        VBox[0].add(HBox[0]);
-        VBox[0].add(HBox[1]);
-        VBox[0].add(HBox[2]);
-        VBox[0].add(HBox[3]);
-        VBox[0].add(HBox[4]);
+        Box legendBox = Box.createVerticalBox();
+        for (EdgeType type : EdgeType.values()) {
+            Icon icon = new ImageIcon(type.getLegendImagePath());
+            Box row = Box.createHorizontalBox();
+            row.add(new JLabel(icon));
+            row.add(new JLabel(type.getDisplayLabel()));
+            legendBox.add(row);
+        }
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                legendHeading, VBox[0]);
-
+                legendHeading, legendBox);
 
         legendPanel.add(splitPane);
 
