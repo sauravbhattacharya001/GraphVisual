@@ -22,7 +22,7 @@ import java.util.*;
  *   <li>Edge weight → stroke width scaling</li>
  *   <li>Node degree → radius scaling</li>
  *   <li>Node labels with automatic contrast (white on dark fills)</li>
- *   <li>Optional legend for edge types</li>
+ *   <li>Optional legend for Edge types</li>
  *   <li>Dark or light theme support</li>
  *   <li>Configurable canvas dimensions and margins</li>
  *   <li>Hover tooltips via SVG &lt;title&gt; elements</li>
@@ -42,7 +42,7 @@ import java.util.*;
  */
 public class SvgExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private int width = 800;
     private int height = 600;
     private int margin = 60;
@@ -82,7 +82,7 @@ public class SvgExporter {
      * @param graph the JUNG graph to export
      * @throws IllegalArgumentException if graph is null
      */
-    public SvgExporter(Graph<String, edge> graph) {
+    public SvgExporter(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -107,7 +107,7 @@ public class SvgExporter {
     /** Use dark background (default: true). */
     public void setDarkTheme(boolean dark) { this.darkTheme = dark; }
 
-    /** Show edge type legend (default: true). */
+    /** Show Edge type legend (default: true). */
     public void setShowLegend(boolean show) { this.showLegend = show; }
 
     /** Show node labels (default: true). */
@@ -116,7 +116,7 @@ public class SvgExporter {
     /** Scale node radius by degree (default: true). */
     public void setScaleNodesByDegree(boolean scale) { this.scaleNodesByDegree = scale; }
 
-    /** Scale edge stroke by weight (default: true). */
+    /** Scale Edge stroke by weight (default: true). */
     public void setScaleEdgesByWeight(boolean scale) { this.scaleEdgesByWeight = scale; }
 
     /** Color edges by type (default: true). */
@@ -127,7 +127,7 @@ public class SvgExporter {
         this.layoutIterations = Math.max(10, iterations);
     }
 
-    /** Override color for a specific edge type code. */
+    /** Override color for a specific Edge type code. */
     public void setTypeColor(String type, String hexColor) {
         customColors.put(type, hexColor);
     }
@@ -166,16 +166,16 @@ public class SvgExporter {
             maxDegree = Math.max(maxDegree, graph.degree(v));
         }
         float minWeight = Float.MAX_VALUE, maxWeight = Float.MIN_VALUE;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             minWeight = Math.min(minWeight, e.getWeight());
             maxWeight = Math.max(maxWeight, e.getWeight());
         }
         if (minWeight == Float.MAX_VALUE) { minWeight = 0; maxWeight = 1; }
         if (maxWeight <= minWeight) maxWeight = minWeight + 1;
 
-        // Collect used edge types
+        // Collect used Edge types
         Set<String> usedTypes = new LinkedHashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (e.getType() != null) usedTypes.add(e.getType());
         }
 
@@ -209,7 +209,7 @@ public class SvgExporter {
         sb.append("; stroke: ").append(nodeStroke).append("; stroke-width: 1.5; }\n");
         sb.append("      .node-label { fill: ").append(textColor);
         sb.append("; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-anchor: middle; dominant-baseline: central; }\n");
-        sb.append("      .edge-line { stroke-linecap: round; }\n");
+        sb.append("      .Edge-line { stroke-linecap: round; }\n");
         sb.append("      .title-text { fill: ").append(textColor);
         sb.append("; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: bold; }\n");
         sb.append("      .legend-text { fill: ").append(textColor);
@@ -234,7 +234,7 @@ public class SvgExporter {
         // Edges (drawn first, beneath nodes)
         sb.append("  <g id=\"edges\">\n");
         Set<String> emitted = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             String key = v1.compareTo(v2) < 0 ? v1 + "|" + v2 : v2 + "|" + v1;
@@ -256,7 +256,7 @@ public class SvgExporter {
                 strokeWidth = 0.5 + ratio * 3.5;
             }
 
-            sb.append("    <line class=\"edge-line\" ");
+            sb.append("    <line class=\"Edge-line\" ");
             sb.append("x1=\"").append(fmt(p1[0])).append("\" ");
             sb.append("y1=\"").append(fmt(p1[1])).append("\" ");
             sb.append("x2=\"").append(fmt(p2[0])).append("\" ");
@@ -403,7 +403,7 @@ public class SvgExporter {
             }
 
             // Attractive forces along edges
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Integer i = index.get(e.getVertex1());
                 Integer j = index.get(e.getVertex2());
                 if (i == null || j == null || i.equals(j)) continue;

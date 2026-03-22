@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class GraphCentralityCorrelator {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final NodeCentralityAnalyzer centralityAnalyzer;
     private boolean computed;
 
@@ -158,7 +158,7 @@ public class GraphCentralityCorrelator {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphCentralityCorrelator(Graph<String, edge> graph) {
+    public GraphCentralityCorrelator(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

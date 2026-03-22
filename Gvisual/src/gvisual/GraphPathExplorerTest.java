@@ -21,8 +21,8 @@ public class GraphPathExplorerTest {
     /**
      * Linear: A - B - C - D - E
      */
-    private static Graph<String, edge> linearGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> linearGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         g.addVertex("D"); g.addVertex("E");
         addEdge(g, "A", "B", 1); addEdge(g, "B", "C", 1);
@@ -37,8 +37,8 @@ public class GraphPathExplorerTest {
      *            \ /
      *             D
      */
-    private static Graph<String, edge> diamondGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> diamondGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         g.addVertex("C"); g.addVertex("D");
         addEdge(g, "A", "B", 1); addEdge(g, "A", "C", 1);
@@ -54,8 +54,8 @@ public class GraphPathExplorerTest {
      *   |   |   |
      *   G - H - I
      */
-    private static Graph<String, edge> gridGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> gridGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[] nodes = {"A","B","C","D","E","F","G","H","I"};
         for (String n : nodes) g.addVertex(n);
         // Horizontal
@@ -76,8 +76,8 @@ public class GraphPathExplorerTest {
      *                  |     |
      *                  D -1- E
      */
-    private static Graph<String, edge> weightedGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> weightedGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         g.addVertex("D"); g.addVertex("E");
         addEdge(g, "A", "B", 1); addEdge(g, "B", "C", 2);
@@ -89,8 +89,8 @@ public class GraphPathExplorerTest {
     /**
      * Disconnected: A - B - C    D - E
      */
-    private static Graph<String, edge> disconnectedGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> disconnectedGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         g.addVertex("D"); g.addVertex("E");
         addEdge(g, "A", "B", 1); addEdge(g, "B", "C", 1);
@@ -101,8 +101,8 @@ public class GraphPathExplorerTest {
     /**
      * Complete K4: A, B, C, D — all connected
      */
-    private static Graph<String, edge> completeK4() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> completeK4() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         g.addVertex("C"); g.addVertex("D");
         addEdge(g, "A", "B", 1); addEdge(g, "A", "C", 1);
@@ -117,8 +117,8 @@ public class GraphPathExplorerTest {
      *                   E - F - X (same X)
      * X is the only path between {A,B} and {C,D,E,F}
      */
-    private static Graph<String, edge> bottleneckGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private static Graph<String, Edge> bottleneckGraph() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("X");
         g.addVertex("C"); g.addVertex("D");
         addEdge(g, "A", "B", 1); addEdge(g, "B", "X", 1);
@@ -127,8 +127,8 @@ public class GraphPathExplorerTest {
     }
 
     private static int edgeCounter = 0;
-    private static void addEdge(Graph<String, edge> g, String v1, String v2, float w) {
-        edge e = new edge("e", v1, v2);
+    private static void addEdge(Graph<String, Edge> g, String v1, String v2, float w) {
+        Edge e = new Edge("e", v1, v2);
         e.setWeight(w);
         e.setLabel("e" + (edgeCounter++));
         g.addEdge(e, v1, v2);
@@ -192,7 +192,7 @@ public class GraphPathExplorerTest {
         checkThrows("empty graph",
             () -> new GraphPathExplorer(new UndirectedSparseGraph<>()),
             IllegalArgumentException.class);
-        Graph<String, edge> g = linearGraph();
+        Graph<String, Edge> g = linearGraph();
         GraphPathExplorer ex = new GraphPathExplorer(g);
         check("valid construction", ex != null);
     }
@@ -344,8 +344,8 @@ public class GraphPathExplorerTest {
         Set<String> avoidEdges = new HashSet<>();
         avoidEdges.add(GraphPathExplorer.edgeKey("A", "B"));
         p = dia.findPathAvoiding("A", "D", null, avoidEdges);
-        check("diamond: avoid A-B edge exists", p != null);
-        check("diamond: goes through C (edge avoided)",
+        check("diamond: avoid A-B Edge exists", p != null);
+        check("diamond: goes through C (Edge avoided)",
             p.getVertices().contains("C"));
 
         // Avoid source returns null

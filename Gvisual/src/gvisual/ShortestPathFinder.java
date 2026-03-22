@@ -5,7 +5,7 @@ import java.util.*;
 
 /**
  * Finds shortest paths in a JUNG graph using BFS (unweighted)
- * and Dijkstra-like traversal (weighted by edge weight).
+ * and Dijkstra-like traversal (weighted by Edge weight).
  *
  * <p>Provides both hop-count-optimal and weight-optimal paths
  * between any two nodes in the network. Useful for analyzing
@@ -15,7 +15,7 @@ import java.util.*;
  */
 public class ShortestPathFinder {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new ShortestPathFinder for the given graph.
@@ -23,7 +23,7 @@ public class ShortestPathFinder {
      * @param graph the JUNG graph to search
      * @throws IllegalArgumentException if graph is null
      */
-    public ShortestPathFinder(Graph<String, edge> graph) {
+    public ShortestPathFinder(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -36,17 +36,17 @@ public class ShortestPathFinder {
      */
     public static class PathResult {
         private final List<String> vertices;
-        private final List<edge> edges;
+        private final List<Edge> edges;
         private final double totalWeight;
 
         /**
          * @param vertices ordered list of vertex IDs from source to target
          * @param edges    ordered list of edges along the path
-         * @param totalWeight sum of edge weights along the path
+         * @param totalWeight sum of Edge weights along the path
          */
-        public PathResult(List<String> vertices, List<edge> edges, double totalWeight) {
+        public PathResult(List<String> vertices, List<Edge> edges, double totalWeight) {
             this.vertices = Collections.unmodifiableList(new ArrayList<String>(vertices));
-            this.edges = Collections.unmodifiableList(new ArrayList<edge>(edges));
+            this.edges = Collections.unmodifiableList(new ArrayList<Edge>(edges));
             this.totalWeight = totalWeight;
         }
 
@@ -56,7 +56,7 @@ public class ShortestPathFinder {
         }
 
         /** Ordered edges from source to target. */
-        public List<edge> getEdges() {
+        public List<Edge> getEdges() {
             return edges;
         }
 
@@ -65,7 +65,7 @@ public class ShortestPathFinder {
             return edges.size();
         }
 
-        /** Sum of edge weights along the path. */
+        /** Sum of Edge weights along the path. */
         public double getTotalWeight() {
             return totalWeight;
         }
@@ -102,13 +102,13 @@ public class ShortestPathFinder {
         if (source.equals(target)) {
             return new PathResult(
                     Collections.singletonList(source),
-                    Collections.<edge>emptyList(),
+                    Collections.<Edge>emptyList(),
                     0.0);
         }
 
         // BFS
         Map<String, String> predecessor = new HashMap<String, String>();
-        Map<String, edge> predecessorEdge = new HashMap<String, edge>();
+        Map<String, Edge> predecessorEdge = new HashMap<String, Edge>();
         Queue<String> queue = new LinkedList<String>();
 
         predecessor.put(source, null);
@@ -121,7 +121,7 @@ public class ShortestPathFinder {
                 return buildPath(source, target, predecessor, predecessorEdge);
             }
 
-            for (edge e : graph.getIncidentEdges(current)) {
+            for (Edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !predecessor.containsKey(neighbor)) {
                     predecessor.put(neighbor, current);
@@ -135,7 +135,7 @@ public class ShortestPathFinder {
     }
 
     /**
-     * Finds the shortest path by total edge weight (Dijkstra) between source and target.
+     * Finds the shortest path by total Edge weight (Dijkstra) between source and target.
      *
      * <p>Uses a typed {@link DijkstraEntry} in the priority queue for clean
      * vertex lookups without index indirection or double-to-int casting.</p>
@@ -152,7 +152,7 @@ public class ShortestPathFinder {
         if (source.equals(target)) {
             return new PathResult(
                     Collections.singletonList(source),
-                    Collections.<edge>emptyList(),
+                    Collections.<Edge>emptyList(),
                     0.0);
         }
 
@@ -162,7 +162,7 @@ public class ShortestPathFinder {
         // at insertion time. Stale entries are skipped via the visited set.
         final Map<String, Double> dist = new HashMap<String, Double>();
         Map<String, String> predecessor = new HashMap<String, String>();
-        Map<String, edge> predecessorEdge = new HashMap<String, edge>();
+        Map<String, Edge> predecessorEdge = new HashMap<String, Edge>();
 
         PriorityQueue<DijkstraEntry> pq = new PriorityQueue<DijkstraEntry>();
 
@@ -184,14 +184,14 @@ public class ShortestPathFinder {
                 return buildPath(source, target, predecessor, predecessorEdge, true);
             }
 
-            for (edge e : graph.getIncidentEdges(current)) {
+            for (Edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor == null || visited.contains(neighbor)) continue;
 
                 double edgeWeight = e.getWeight();
                 if (edgeWeight < 0) {
                     throw new IllegalArgumentException(
-                            "Dijkstra does not support negative edge weights. " +
+                            "Dijkstra does not support negative Edge weights. " +
                             "Edge between '" + current + "' and '" + neighbor +
                             "' has weight " + edgeWeight);
                 }
@@ -231,7 +231,7 @@ public class ShortestPathFinder {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            for (edge e : graph.getIncidentEdges(current)) {
+            for (Edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !reachable.contains(neighbor)) {
                     reachable.add(neighbor);
@@ -265,7 +265,7 @@ public class ShortestPathFinder {
 
         while (!queue.isEmpty()) {
             String current = queue.poll();
-            for (edge e : graph.getIncidentEdges(current)) {
+            for (Edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !visited.contains(neighbor)) {
                     if (neighbor.equals(target)) return true;
@@ -313,13 +313,13 @@ public class ShortestPathFinder {
         }
     }
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd(Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 
     private PathResult buildPath(String source, String target,
                                  Map<String, String> predecessor,
-                                 Map<String, edge> predecessorEdge) {
+                                 Map<String, Edge> predecessorEdge) {
         return buildPath(source, target, predecessor, predecessorEdge, false);
     }
 
@@ -332,16 +332,16 @@ public class ShortestPathFinder {
      */
     private PathResult buildPath(String source, String target,
                                  Map<String, String> predecessor,
-                                 Map<String, edge> predecessorEdge,
+                                 Map<String, Edge> predecessorEdge,
                                  boolean normalizeZeroWeights) {
         List<String> vertices = new ArrayList<String>();
-        List<edge> edges = new ArrayList<edge>();
+        List<Edge> edges = new ArrayList<Edge>();
         double totalWeight = 0;
 
         String current = target;
         while (current != null) {
             vertices.add(current);
-            edge e = predecessorEdge.get(current);
+            Edge e = predecessorEdge.get(current);
             if (e != null) {
                 edges.add(e);
                 double w = e.getWeight();

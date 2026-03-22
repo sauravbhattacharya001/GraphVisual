@@ -28,7 +28,7 @@ import java.util.*;
  */
 public class LinkPredictionAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Create a new link prediction analyzer.
@@ -36,7 +36,7 @@ public class LinkPredictionAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public LinkPredictionAnalyzer(Graph<String, edge> graph) {
+    public LinkPredictionAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -248,7 +248,7 @@ public class LinkPredictionAnalyzer {
                 };
 
     /**
-     * Holds the results of enumerating all candidate (non-edge) vertex pairs,
+     * Holds the results of enumerating all candidate (non-Edge) vertex pairs,
      * along with precomputed adjacency and common-neighbor sets. This lets
      * {@link #predict} and {@link #predictEnsemble} share the expensive O(V²)
      * pair enumeration, adjacency construction, and common-neighbor
@@ -277,7 +277,7 @@ public class LinkPredictionAnalyzer {
     }
 
     /**
-     * Enumerates all non-edge vertex pairs, builds adjacency, and computes
+     * Enumerates all non-Edge vertex pairs, builds adjacency, and computes
      * common neighbors for each pair. Called once by predict/predictEnsemble.
      */
     private PairEvaluation evaluatePairs() {

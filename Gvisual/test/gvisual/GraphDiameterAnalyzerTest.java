@@ -15,11 +15,11 @@ import static org.junit.Assert.*;
  */
 public class GraphDiameterAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -60,9 +60,9 @@ public class GraphDiameterAnalyzerTest {
         graph.addVertex("B");
         graph.addVertex("C");
         graph.addVertex("D");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
-        graph.addEdge(new edge("f", "C", "D"), "C", "D");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "C", "D"), "C", "D");
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
         analyzer.analyze();
@@ -85,7 +85,7 @@ public class GraphDiameterAnalyzerTest {
         int edgeId = 0;
         for (int i = 0; i < verts.length; i++) {
             for (int j = i + 1; j < verts.length; j++) {
-                graph.addEdge(new edge("f", verts[i], verts[j]), verts[i], verts[j]);
+                graph.addEdge(new Edge("f", verts[i], verts[j]), verts[i], verts[j]);
             }
         }
 
@@ -105,7 +105,7 @@ public class GraphDiameterAnalyzerTest {
         for (int i = 1; i <= 4; i++) {
             String leaf = "L" + i;
             graph.addVertex(leaf);
-            graph.addEdge(new edge("f", "H", leaf), "H", leaf);
+            graph.addEdge(new Edge("f", "H", leaf), "H", leaf);
         }
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
@@ -127,9 +127,9 @@ public class GraphDiameterAnalyzerTest {
         graph.addVertex("C");
         graph.addVertex("X");
         graph.addVertex("Y");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
-        graph.addEdge(new edge("f", "X", "Y"), "X", "Y");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "X", "Y"), "X", "Y");
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
         analyzer.analyze();
@@ -147,8 +147,8 @@ public class GraphDiameterAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
         analyzer.analyze();
@@ -162,7 +162,7 @@ public class GraphDiameterAnalyzerTest {
     public void summaryContainsKey() {
         graph.addVertex("A");
         graph.addVertex("B");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
         analyzer.analyze();
@@ -179,8 +179,8 @@ public class GraphDiameterAnalyzerTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        graph.addEdge(new edge("f", "A", "B"), "A", "B");
-        graph.addEdge(new edge("f", "B", "C"), "B", "C");
+        graph.addEdge(new Edge("f", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("f", "B", "C"), "B", "C");
 
         GraphDiameterAnalyzer analyzer = new GraphDiameterAnalyzer(graph);
         analyzer.analyze();

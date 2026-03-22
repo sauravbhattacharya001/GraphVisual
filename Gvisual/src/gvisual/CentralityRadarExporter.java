@@ -33,10 +33,10 @@ import java.util.*;
  */
 public class CentralityRadarExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private String title = "Centrality Radar Chart";
 
-    public CentralityRadarExporter(Graph<String, edge> graph) {
+    public CentralityRadarExporter(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
     }

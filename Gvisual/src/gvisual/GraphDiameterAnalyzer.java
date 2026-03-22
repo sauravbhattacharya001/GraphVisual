@@ -23,7 +23,7 @@ import java.util.*;
  */
 public class GraphDiameterAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Integer> eccentricities;
     private int diameter;
     private int radius;
@@ -38,7 +38,7 @@ public class GraphDiameterAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphDiameterAnalyzer(Graph<String, edge> graph) {
+    public GraphDiameterAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -216,7 +216,7 @@ public class GraphDiameterAnalyzer {
         return GraphUtils.findLargestComponent(graph);
     }
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd(Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 

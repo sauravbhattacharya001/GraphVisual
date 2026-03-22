@@ -19,7 +19,7 @@ import java.util.*;
  *   <li>Edge type → color mapping for visual distinction</li>
  *   <li>Edge weight → pen width scaling</li>
  *   <li>Node degree → font size scaling</li>
- *   <li>Optional clustering by edge type</li>
+ *   <li>Optional clustering by Edge type</li>
  *   <li>Configurable graph attributes (layout engine, rank direction, etc.)</li>
  * </ul>
  *
@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class DotExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private String graphName = "G";
     private String timestamp;
     private String description;
@@ -49,7 +49,7 @@ public class DotExporter {
     private String rankDir = null; // TB, LR, BT, RL
     private final Map<String, String> graphAttributes = new LinkedHashMap<>();
 
-    // Default color palette for edge types
+    // Default color palette for Edge types
     private static final Map<String, String> DEFAULT_TYPE_COLORS = new LinkedHashMap<>();
     static {
         DEFAULT_TYPE_COLORS.put("f",  "#4CAF50"); // friend = green
@@ -67,7 +67,7 @@ public class DotExporter {
      * @param graph the JUNG graph to export
      * @throws IllegalArgumentException if graph is null
      */
-    public DotExporter(Graph<String, edge> graph) {
+    public DotExporter(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -91,7 +91,7 @@ public class DotExporter {
     /** Whether to scale node font size by degree. Default: true. */
     public void setScaleNodesByDegree(boolean scale) { this.scaleNodesByDegree = scale; }
 
-    /** Whether to scale edge pen width by weight. Default: true. */
+    /** Whether to scale Edge pen width by weight. Default: true. */
     public void setScaleEdgesByWeight(boolean scale) { this.scaleEdgesByWeight = scale; }
 
     /** Set the graph as directed (digraph) or undirected (graph). Default: undirected. */
@@ -108,7 +108,7 @@ public class DotExporter {
         graphAttributes.put(key, value);
     }
 
-    /** Override the color for a specific edge type. */
+    /** Override the color for a specific Edge type. */
     public void setTypeColor(String edgeType, String hexColor) {
         typeColors.put(edgeType, hexColor);
     }
@@ -165,13 +165,13 @@ public class DotExporter {
         }
         sb.append("];\n");
         sb.append("    node [shape=circle, style=filled, fillcolor=\"#333333\", fontcolor=white, fontname=\"Helvetica\"];\n");
-        sb.append("    edge [fontname=\"Helvetica\", fontsize=9];\n");
+        sb.append("    Edge [fontname=\"Helvetica\", fontsize=9];\n");
         sb.append("    bgcolor=\"#1a1a1a\";\n\n");
 
         // Legend as subgraph (if coloring by type)
         if (colorByEdgeType) {
             Set<String> usedTypes = new HashSet<>();
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 if (e.getType() != null) usedTypes.add(e.getType());
             }
             if (!usedTypes.isEmpty()) {
@@ -232,10 +232,10 @@ public class DotExporter {
             sb.append(";\n");
         }
 
-        // Compute weight range for edge scaling
+        // Compute weight range for Edge scaling
         float minWeight = Float.MAX_VALUE, maxWeight = Float.MIN_VALUE;
         if (scaleEdgesByWeight) {
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 float w = e.getWeight();
                 if (w < minWeight) minWeight = w;
                 if (w > maxWeight) maxWeight = w;
@@ -245,7 +245,7 @@ public class DotExporter {
         // Edges
         sb.append("\n    // Edges\n");
         Set<String> emittedEdges = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             // Deduplicate for undirected graphs
@@ -294,7 +294,7 @@ public class DotExporter {
     }
 
     /**
-     * Returns a human-readable name for an edge type code.
+     * Returns a human-readable name for an Edge type code.
      */
     private String getTypeName(String type) {
         if (type == null) return "unknown";

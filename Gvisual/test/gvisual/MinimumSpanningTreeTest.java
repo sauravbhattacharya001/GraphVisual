@@ -10,15 +10,15 @@ import java.util.*;
 
 /**
  * Tests for MinimumSpanningTree — Kruskal's algorithm with Union-Find,
- * MST computation, component analysis, and edge type distribution.
+ * MST computation, component analysis, and Edge type distribution.
  */
 public class MinimumSpanningTreeTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // ==========================================
@@ -83,7 +83,7 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testSingleEdge() {
-        edge e1 = new edge("f", "A", "B");
+        Edge e1 = new Edge("f", "A", "B");
         e1.setWeight(5.0f);
         graph.addEdge(e1, "A", "B");
 
@@ -105,11 +105,11 @@ public class MinimumSpanningTreeTest {
     @Test
     public void testTrianglePicksLightestTwoEdges() {
         // Triangle: A-B(1), B-C(2), A-C(3) → MST = A-B(1) + B-C(2) = weight 3
-        edge e1 = new edge("f", "A", "B");
+        Edge e1 = new Edge("f", "A", "B");
         e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C");
+        Edge e2 = new Edge("f", "B", "C");
         e2.setWeight(2.0f);
-        edge e3 = new edge("f", "A", "C");
+        Edge e3 = new Edge("f", "A", "C");
         e3.setWeight(3.0f);
 
         graph.addEdge(e1, "A", "B");
@@ -133,11 +133,11 @@ public class MinimumSpanningTreeTest {
         // Square: A-B(1), B-C(4), C-D(2), A-D(3)
         // Also diagonal: A-C(5)
         // MST = A-B(1) + C-D(2) + A-D(3) = weight 6
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C"); e2.setWeight(4.0f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(2.0f);
-        edge e4 = new edge("s", "A", "D"); e4.setWeight(3.0f);
-        edge e5 = new edge("fs", "A", "C"); e5.setWeight(5.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("c", "B", "C"); e2.setWeight(4.0f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(2.0f);
+        Edge e4 = new Edge("s", "A", "D"); e4.setWeight(3.0f);
+        Edge e5 = new Edge("fs", "A", "C"); e5.setWeight(5.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -160,7 +160,7 @@ public class MinimumSpanningTreeTest {
         float w = 1.0f;
         for (int i = 0; i < nodes.length; i++) {
             for (int j = i + 1; j < nodes.length; j++) {
-                edge e = new edge("f", nodes[i], nodes[j]);
+                Edge e = new Edge("f", nodes[i], nodes[j]);
                 e.setWeight(w);
                 graph.addEdge(e, nodes[i], nodes[j]);
                 w += 1.0f;
@@ -181,13 +181,13 @@ public class MinimumSpanningTreeTest {
     @Test
     public void testDisconnectedGraphProducesForest() {
         // Component 1: A-B(1), B-C(2)
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
         // Component 2: D-E(3)
-        edge e3 = new edge("c", "D", "E"); e3.setWeight(3.0f);
+        Edge e3 = new Edge("c", "D", "E"); e3.setWeight(3.0f);
         graph.addEdge(e3, "D", "E");
 
         MinimumSpanningTree mst = new MinimumSpanningTree(graph);
@@ -202,13 +202,13 @@ public class MinimumSpanningTreeTest {
     @Test
     public void testForestComponentBreakdown() {
         // Component 1: A-B(1), B-C(2)
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
         // Component 2: D-E(5)
-        edge e3 = new edge("c", "D", "E"); e3.setWeight(5.0f);
+        Edge e3 = new Edge("c", "D", "E"); e3.setWeight(5.0f);
         graph.addEdge(e3, "D", "E");
 
         // Isolated vertex
@@ -250,9 +250,9 @@ public class MinimumSpanningTreeTest {
     @Test
     public void testEqualWeightsProducesValidMst() {
         // All edges weight 1 — any spanning tree is MST
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
-        edge e3 = new edge("f", "A", "C"); e3.setWeight(1.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
+        Edge e3 = new Edge("f", "A", "C"); e3.setWeight(1.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -268,8 +268,8 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testZeroWeightEdges() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(0.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(0.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(0.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(0.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -283,8 +283,8 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testLargeWeights() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1000000.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(999999.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1000000.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(999999.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -302,10 +302,10 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testEdgeTypeDistribution() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(3.0f);
-        edge e4 = new edge("s", "D", "E"); e4.setWeight(4.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("c", "B", "C"); e2.setWeight(2.0f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(3.0f);
+        Edge e4 = new Edge("s", "D", "E"); e4.setWeight(4.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -331,8 +331,8 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testEdgeTypeDistributionAllSameType() {
-        edge e1 = new edge("sg", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("sg", "B", "C"); e2.setWeight(2.0f);
+        Edge e1 = new Edge("sg", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("sg", "B", "C"); e2.setWeight(2.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -351,9 +351,9 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testHeaviestEdge() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(5.0f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(3.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(5.0f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(3.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -376,9 +376,9 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testLightestEdge() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(3.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(1.0f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(5.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(3.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(1.0f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(5.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -401,9 +401,9 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testAverageWeight() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(2.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(4.0f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(6.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(2.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(4.0f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(6.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -425,8 +425,8 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testGetSummaryConnected() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -443,7 +443,7 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testGetSummaryForest() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addVertex("C");
 
@@ -462,13 +462,13 @@ public class MinimumSpanningTreeTest {
     @Test
     public void testComponentWeights() {
         // Comp1: A-B(1) B-C(2) → weight 3
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
 
         // Comp2: D-E(7)
-        edge e3 = new edge("c", "D", "E"); e3.setWeight(7.0f);
+        Edge e3 = new Edge("c", "D", "E"); e3.setWeight(7.0f);
         graph.addEdge(e3, "D", "E");
 
         MinimumSpanningTree mst = new MinimumSpanningTree(graph);
@@ -489,9 +489,9 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testComponentDominantType() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("c", "C", "D"); e3.setWeight(3.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e3 = new Edge("c", "C", "D"); e3.setWeight(3.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -516,7 +516,7 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testComponentIds() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
         graph.addVertex("C");
         graph.addVertex("D");
@@ -546,13 +546,13 @@ public class MinimumSpanningTreeTest {
         //   4   3 5   2
         //   |  /  |  /
         //   D--7--E--8--F
-        edge[] edges = {
+        Edge[] edges = {
             makeEdge("f", "A", "B", 1), makeEdge("c", "A", "D", 4),
             makeEdge("f", "B", "D", 3), makeEdge("s", "B", "E", 5),
             makeEdge("f", "B", "C", 6), makeEdge("c", "C", "E", 2),
             makeEdge("sg", "D", "E", 7), makeEdge("f", "E", "F", 8)
         };
-        for (edge e : edges) {
+        for (Edge e : edges) {
             graph.addEdge(e, e.getVertex1(), e.getVertex2());
         }
 
@@ -569,7 +569,7 @@ public class MinimumSpanningTreeTest {
     public void testStarGraph() {
         // Hub (A) connected to 5 leaves
         for (int i = 0; i < 5; i++) {
-            edge e = new edge("f", "A", "L" + i);
+            Edge e = new Edge("f", "A", "L" + i);
             e.setWeight(i + 1.0f);
             graph.addEdge(e, "A", "L" + i);
         }
@@ -586,7 +586,7 @@ public class MinimumSpanningTreeTest {
     public void testLinearChain() {
         // A-B-C-D-E (chain)
         for (int i = 0; i < 4; i++) {
-            edge e = new edge("f", "N" + i, "N" + (i + 1));
+            Edge e = new Edge("f", "N" + i, "N" + (i + 1));
             e.setWeight((i + 1) * 2.0f);
             graph.addEdge(e, "N" + i, "N" + (i + 1));
         }
@@ -611,7 +611,7 @@ public class MinimumSpanningTreeTest {
         };
         for (int i = 0; i < 4; i++) {
             for (int j = i + 1; j < 4; j++) {
-                edge e = new edge("f", nodes[i], nodes[j]);
+                Edge e = new Edge("f", nodes[i], nodes[j]);
                 e.setWeight(weights[i][j]);
                 graph.addEdge(e, nodes[i], nodes[j]);
             }
@@ -632,9 +632,9 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testMultipleComputesSameResult() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("f", "B", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("f", "A", "C"); e3.setWeight(3.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("f", "B", "C"); e2.setWeight(2.0f);
+        Edge e3 = new Edge("f", "A", "C"); e3.setWeight(3.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -652,14 +652,14 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testResultIsUnmodifiable() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
 
         MinimumSpanningTree mst = new MinimumSpanningTree(graph);
         MinimumSpanningTree.MSTResult result = mst.compute();
 
         try {
-            result.getEdges().add(new edge("f", "X", "Y"));
+            result.getEdges().add(new Edge("f", "X", "Y"));
             fail("Should not be able to modify edges list");
         } catch (UnsupportedOperationException expected) {
             // pass
@@ -668,7 +668,7 @@ public class MinimumSpanningTreeTest {
 
     @Test
     public void testComponentsUnmodifiable() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
         graph.addEdge(e1, "A", "B");
 
         MinimumSpanningTree mst = new MinimumSpanningTree(graph);
@@ -683,16 +683,16 @@ public class MinimumSpanningTreeTest {
     }
 
     // ==========================================
-    //  Mixed edge types
+    //  Mixed Edge types
     // ==========================================
 
     @Test
     public void testMixedEdgeTypes() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C"); e2.setWeight(2.0f);
-        edge e3 = new edge("s", "C", "D"); e3.setWeight(3.0f);
-        edge e4 = new edge("fs", "D", "E"); e4.setWeight(4.0f);
-        edge e5 = new edge("sg", "A", "E"); e5.setWeight(10.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("c", "B", "C"); e2.setWeight(2.0f);
+        Edge e3 = new Edge("s", "C", "D"); e3.setWeight(3.0f);
+        Edge e4 = new Edge("fs", "D", "E"); e4.setWeight(4.0f);
+        Edge e5 = new Edge("sg", "A", "E"); e5.setWeight(10.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -705,7 +705,7 @@ public class MinimumSpanningTreeTest {
 
         assertEquals(4, result.getEdgeCount());
         assertEquals(10.0f, result.getTotalWeight(), 0.001f); // 1+2+3+4
-        // sg edge (weight 10) should NOT be in MST
+        // sg Edge (weight 10) should NOT be in MST
         assertFalse(result.getEdges().contains(e5));
 
         Map<String, Integer> dist = result.getEdgeTypeDistribution();
@@ -768,8 +768,8 @@ public class MinimumSpanningTreeTest {
     //  Helper
     // ==========================================
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }

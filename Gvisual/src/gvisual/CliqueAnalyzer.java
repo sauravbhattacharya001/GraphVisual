@@ -30,7 +30,7 @@ import java.util.*;
  */
 public class CliqueAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Set<String>> neighborCache;
     private List<Set<String>> cliques;
     private boolean computed;
@@ -44,7 +44,7 @@ public class CliqueAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public CliqueAnalyzer(Graph<String, edge> graph) {
+    public CliqueAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

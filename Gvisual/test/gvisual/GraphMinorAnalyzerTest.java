@@ -14,58 +14,58 @@ public class GraphMinorAnalyzerTest {
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
-    private Graph<String, edge> makePath(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makePath(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         for (int i = 0; i < n - 1; i++)
-            g.addEdge(new edge("e" + i, "v" + i, "v" + (i + 1)), "v" + i, "v" + (i + 1));
+            g.addEdge(new Edge("e" + i, "v" + i, "v" + (i + 1)), "v" + i, "v" + (i + 1));
         return g;
     }
 
-    private Graph<String, edge> makeCycle(int n) {
-        Graph<String, edge> g = makePath(n);
-        g.addEdge(new edge("ec", "v" + (n - 1), "v0"), "v" + (n - 1), "v0");
+    private Graph<String, Edge> makeCycle(int n) {
+        Graph<String, Edge> g = makePath(n);
+        g.addEdge(new Edge("ec", "v" + (n - 1), "v0"), "v" + (n - 1), "v0");
         return g;
     }
 
-    private Graph<String, edge> makeComplete(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeComplete(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         int id = 0;
         for (int i = 0; i < n; i++)
             for (int j = i + 1; j < n; j++)
-                g.addEdge(new edge("e" + id++, "v" + i, "v" + j), "v" + i, "v" + j);
+                g.addEdge(new Edge("e" + id++, "v" + i, "v" + j), "v" + i, "v" + j);
         return g;
     }
 
-    private Graph<String, edge> makeK33() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeK33() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 3; i++) { g.addVertex("a" + i); g.addVertex("b" + i); }
         int id = 0;
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                g.addEdge(new edge("e" + id++, "a" + i, "b" + j), "a" + i, "b" + j);
+                g.addEdge(new Edge("e" + id++, "a" + i, "b" + j), "a" + i, "b" + j);
         return g;
     }
 
-    private Graph<String, edge> makeEmpty(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makeEmpty(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         return g;
     }
 
-    private Graph<String, edge> makePetersen() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+    private Graph<String, Edge> makePetersen() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < 10; i++) g.addVertex("v" + i);
         // Outer cycle
         for (int i = 0; i < 5; i++)
-            g.addEdge(new edge("o" + i, "v" + i, "v" + ((i + 1) % 5)), "v" + i, "v" + ((i + 1) % 5));
+            g.addEdge(new Edge("o" + i, "v" + i, "v" + ((i + 1) % 5)), "v" + i, "v" + ((i + 1) % 5));
         // Inner pentagram
         for (int i = 0; i < 5; i++)
-            g.addEdge(new edge("i" + i, "v" + (i + 5), "v" + ((i + 2) % 5 + 5)), "v" + (i + 5), "v" + ((i + 2) % 5 + 5));
+            g.addEdge(new Edge("i" + i, "v" + (i + 5), "v" + ((i + 2) % 5 + 5)), "v" + (i + 5), "v" + ((i + 2) % 5 + 5));
         // Spokes
         for (int i = 0; i < 5; i++)
-            g.addEdge(new edge("s" + i, "v" + i, "v" + (i + 5)), "v" + i, "v" + (i + 5));
+            g.addEdge(new Edge("s" + i, "v" + i, "v" + (i + 5)), "v" + i, "v" + (i + 5));
         return g;
     }
 
@@ -80,16 +80,16 @@ public class GraphMinorAnalyzerTest {
 
     @Test
     public void testCopyPreservesStructure() {
-        Graph<String, edge> g = makeComplete(4);
-        Graph<String, edge> copy = GraphMinorAnalyzer.copyGraph(g);
+        Graph<String, Edge> g = makeComplete(4);
+        Graph<String, Edge> copy = GraphMinorAnalyzer.copyGraph(g);
         assertEquals(g.getVertexCount(), copy.getVertexCount());
         assertEquals(g.getEdgeCount(), copy.getEdgeCount());
     }
 
     @Test
     public void testCopyIsIndependent() {
-        Graph<String, edge> g = makeComplete(3);
-        Graph<String, edge> copy = GraphMinorAnalyzer.copyGraph(g);
+        Graph<String, Edge> g = makeComplete(3);
+        Graph<String, Edge> copy = GraphMinorAnalyzer.copyGraph(g);
         copy.removeVertex("v0");
         assertEquals(3, g.getVertexCount());
         assertEquals(2, copy.getVertexCount());
@@ -100,7 +100,7 @@ public class GraphMinorAnalyzerTest {
     @Test
     public void testDeleteVertex() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makeComplete(4));
-        Graph<String, edge> result = a.deleteVertex("v0");
+        Graph<String, Edge> result = a.deleteVertex("v0");
         assertEquals(3, result.getVertexCount());
         assertFalse(result.containsVertex("v0"));
         // K4 - v0 = K3
@@ -115,7 +115,7 @@ public class GraphMinorAnalyzerTest {
     @Test
     public void testDeleteMultipleVertices() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makeComplete(5));
-        Graph<String, edge> result = a.deleteVertices(Arrays.asList("v0", "v1"));
+        Graph<String, Edge> result = a.deleteVertices(Arrays.asList("v0", "v1"));
         assertEquals(3, result.getVertexCount());
         assertEquals(3, result.getEdgeCount()); // K3
     }
@@ -125,7 +125,7 @@ public class GraphMinorAnalyzerTest {
     @Test
     public void testDeleteEdge() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makeComplete(3));
-        Graph<String, edge> result = a.deleteEdge("v0", "v1");
+        Graph<String, Edge> result = a.deleteEdge("v0", "v1");
         assertEquals(3, result.getVertexCount());
         assertEquals(2, result.getEdgeCount());
         assertNull(result.findEdge("v0", "v1"));
@@ -142,7 +142,7 @@ public class GraphMinorAnalyzerTest {
     public void testContractEdgeReducesVertices() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makePath(3));
         // v0--v1--v2, contract v0-v1
-        Graph<String, edge> result = a.contractEdge("v0", "v1");
+        Graph<String, Edge> result = a.contractEdge("v0", "v1");
         assertEquals(2, result.getVertexCount());
         assertTrue(result.containsVertex("v0"));
         assertTrue(result.containsVertex("v2"));
@@ -152,8 +152,8 @@ public class GraphMinorAnalyzerTest {
     @Test
     public void testContractEdgeInTriangle() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makeComplete(3));
-        Graph<String, edge> result = a.contractEdge("v0", "v1");
-        // K3 contract → K2 (v0 and v2 with one edge)
+        Graph<String, Edge> result = a.contractEdge("v0", "v1");
+        // K3 contract → K2 (v0 and v2 with one Edge)
         assertEquals(2, result.getVertexCount());
         assertEquals(1, result.getEdgeCount());
     }
@@ -161,8 +161,8 @@ public class GraphMinorAnalyzerTest {
     @Test
     public void testContractEdgeK4ToK3() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makeComplete(4));
-        Graph<String, edge> result = a.contractEdge("v0", "v1");
-        // K4 contract one edge → K3
+        Graph<String, Edge> result = a.contractEdge("v0", "v1");
+        // K4 contract one Edge → K3
         assertEquals(3, result.getVertexCount());
         assertEquals(3, result.getEdgeCount());
     }
@@ -182,7 +182,7 @@ public class GraphMinorAnalyzerTest {
             GraphMinorAnalyzer.MinorOp.deleteVertex("v3"),
             GraphMinorAnalyzer.MinorOp.contract("v0", "v1")
         );
-        Graph<String, edge> result = a.applySequence(ops);
+        Graph<String, Edge> result = a.applySequence(ops);
         assertEquals(2, result.getVertexCount());
     }
 
@@ -297,7 +297,7 @@ public class GraphMinorAnalyzerTest {
 
     @Test
     public void testHadwigerEmpty() {
-        assertEquals(0, new GraphMinorAnalyzer(new UndirectedSparseGraph<String, edge>()).hadwigerNumber());
+        assertEquals(0, new GraphMinorAnalyzer(new UndirectedSparseGraph<String, Edge>()).hadwigerNumber());
     }
 
     @Test
@@ -331,24 +331,24 @@ public class GraphMinorAnalyzerTest {
 
     @Test
     public void testContractionDegeneracyDisconnected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a"); g.addVertex("b"); g.addVertex("c");
-        g.addEdge(new edge("e0", "a", "b"), "a", "b");
+        g.addEdge(new Edge("e0", "a", "b"), "a", "b");
         // c is isolated → 2 components
         assertEquals(2, new GraphMinorAnalyzer(g).contractionDegeneracy());
     }
 
     @Test
     public void testContractionDegeneracyEmpty() {
-        assertEquals(0, new GraphMinorAnalyzer(new UndirectedSparseGraph<String, edge>()).contractionDegeneracy());
+        assertEquals(0, new GraphMinorAnalyzer(new UndirectedSparseGraph<String, Edge>()).contractionDegeneracy());
     }
 
-    // ── Subdivide edge ──────────────────────────────────────────────────
+    // ── Subdivide Edge ──────────────────────────────────────────────────
 
     @Test
     public void testSubdivideEdge() {
         GraphMinorAnalyzer a = new GraphMinorAnalyzer(makePath(2));
-        Graph<String, edge> result = a.subdivideEdge("v0", "v1", "mid");
+        Graph<String, Edge> result = a.subdivideEdge("v0", "v1", "mid");
         assertEquals(3, result.getVertexCount());
         assertEquals(2, result.getEdgeCount());
         assertNull(result.findEdge("v0", "v1"));

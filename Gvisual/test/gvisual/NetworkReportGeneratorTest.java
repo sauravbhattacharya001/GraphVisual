@@ -16,27 +16,27 @@ import static org.junit.Assert.*;
  */
 public class NetworkReportGeneratorTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> friendEdges;
-    private List<edge> fsEdges;
-    private List<edge> classmateEdges;
-    private List<edge> strangerEdges;
-    private List<edge> studyGEdges;
+    private Graph<String, Edge> graph;
+    private List<Edge> friendEdges;
+    private List<Edge> fsEdges;
+    private List<Edge> classmateEdges;
+    private List<Edge> strangerEdges;
+    private List<Edge> studyGEdges;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
-        friendEdges = new ArrayList<edge>();
-        fsEdges = new ArrayList<edge>();
-        classmateEdges = new ArrayList<edge>();
-        strangerEdges = new ArrayList<edge>();
-        studyGEdges = new ArrayList<edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
+        friendEdges = new ArrayList<Edge>();
+        fsEdges = new ArrayList<Edge>();
+        classmateEdges = new ArrayList<Edge>();
+        strangerEdges = new ArrayList<Edge>();
+        studyGEdges = new ArrayList<Edge>();
     }
 
-    private edge addEdge(String v1, String v2, String type) {
+    private Edge addEdge(String v1, String v2, String type) {
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
-        edge e = new edge(type, v1, v2);
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
         return e;
@@ -64,7 +64,7 @@ public class NetworkReportGeneratorTest {
 
         assertTrue(html.contains("Test Network"));
         assertTrue(html.contains("4")); // node count
-        assertTrue(html.contains("3")); // edge count
+        assertTrue(html.contains("3")); // Edge count
         assertTrue(html.contains("Friend"));
         assertTrue(html.contains("Classmate"));
     }
@@ -80,7 +80,7 @@ public class NetworkReportGeneratorTest {
 
         assertTrue("Should contain SVG elements", html.contains("<svg"));
         assertTrue("Should contain degree distribution", html.contains("Degree Distribution"));
-        assertTrue("Should contain edge type breakdown", html.contains("Edge Type Breakdown"));
+        assertTrue("Should contain Edge type breakdown", html.contains("Edge Type Breakdown"));
         assertTrue("Should contain top nodes", html.contains("Top 10"));
     }
 
@@ -138,7 +138,7 @@ public class NetworkReportGeneratorTest {
 
     @Test
     public void testNullEdgeLists() {
-        // Should handle null edge lists gracefully
+        // Should handle null Edge lists gracefully
         NetworkReportGenerator gen = new NetworkReportGenerator(graph, null, null, null, null, null);
         String html = gen.generate();
         assertNotNull(html);

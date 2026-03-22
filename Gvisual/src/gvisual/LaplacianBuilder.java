@@ -41,7 +41,7 @@ public class LaplacianBuilder {
      * @param vertexList ordered list of vertices (defines row/column mapping)
      * @return n×n adjacency matrix
      */
-    public static double[][] buildAdjacencyMatrix(Graph<String, edge> graph,
+    public static double[][] buildAdjacencyMatrix(Graph<String, Edge> graph,
                                                    List<String> vertexList) {
         int n = vertexList.size();
         double[][] A = new double[n][n];
@@ -50,7 +50,7 @@ public class LaplacianBuilder {
             indexMap.put(vertexList.get(i), i);
         }
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -114,7 +114,7 @@ public class LaplacianBuilder {
      * @param vertexList ordered list of vertices
      * @return L = D − A
      */
-    public static double[][] buildLaplacian(Graph<String, edge> graph,
+    public static double[][] buildLaplacian(Graph<String, Edge> graph,
                                              List<String> vertexList) {
         double[][] A = buildAdjacencyMatrix(graph, vertexList);
         return buildLaplacian(A, vertexList.size());
@@ -128,7 +128,7 @@ public class LaplacianBuilder {
      * @param vertices ordered subset of vertices
      * @return n×n Laplacian for the induced subgraph
      */
-    public static double[][] buildSubgraphLaplacian(Graph<String, edge> graph,
+    public static double[][] buildSubgraphLaplacian(Graph<String, Edge> graph,
                                                       List<String> vertices) {
         int n = vertices.size();
         Map<String, Integer> index = new HashMap<>();
@@ -191,7 +191,7 @@ public class LaplacianBuilder {
      * @param vertexList ordered list of vertices
      * @return normalized Laplacian matrix
      */
-    public static double[][] buildNormalizedLaplacian(Graph<String, edge> graph,
+    public static double[][] buildNormalizedLaplacian(Graph<String, Edge> graph,
                                                        List<String> vertexList) {
         double[][] A = buildAdjacencyMatrix(graph, vertexList);
         return buildNormalizedLaplacian(A, vertexList.size());
@@ -233,7 +233,7 @@ public class LaplacianBuilder {
      * @param vertexList ordered list of vertices
      * @return random walk Laplacian matrix
      */
-    public static double[][] buildRandomWalkLaplacian(Graph<String, edge> graph,
+    public static double[][] buildRandomWalkLaplacian(Graph<String, Edge> graph,
                                                         List<String> vertexList) {
         double[][] A = buildAdjacencyMatrix(graph, vertexList);
         return buildRandomWalkLaplacian(A, vertexList.size());

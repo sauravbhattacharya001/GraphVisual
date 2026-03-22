@@ -24,13 +24,13 @@ public class GraphMLExporterTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private Graph<String, edge> graph;
-    private List<edge> allEdges;
+    private Graph<String, Edge> graph;
+    private List<Edge> allEdges;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
-        allEdges = new ArrayList<edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
+        allEdges = new ArrayList<Edge>();
     }
 
     // --- Constructor tests ---
@@ -58,7 +58,7 @@ public class GraphMLExporterTest {
         assertTrue(xml.contains("edgedefault=\"undirected\""));
         assertTrue(xml.contains("</graphml>"));
         assertFalse(xml.contains("<node"));
-        assertFalse(xml.contains("<edge"));
+        assertFalse(xml.contains("<Edge"));
     }
 
     // --- Vertex export ---
@@ -98,7 +98,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgesExported() {
-        edge e = new edge("f", "A", "B");
+        Edge e = new Edge("f", "A", "B");
         e.setWeight(42.5f);
         allEdges.add(e);
         graph.addEdge(e, "A", "B");
@@ -106,7 +106,7 @@ public class GraphMLExporterTest {
         GraphMLExporter exporter = new GraphMLExporter(graph, allEdges);
         String xml = exporter.exportToString();
 
-        assertTrue(xml.contains("<edge id=\"e0\" source=\"A\" target=\"B\">"));
+        assertTrue(xml.contains("<Edge id=\"e0\" source=\"A\" target=\"B\">"));
         assertTrue(xml.contains("<data key=\"d1\">f</data>"));
         assertTrue(xml.contains("<data key=\"d2\">Friend</data>"));
         assertTrue(xml.contains("<data key=\"d3\">42.5</data>"));
@@ -114,7 +114,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgeLabelExported() {
-        edge e = new edge("c", "X", "Y");
+        Edge e = new Edge("c", "X", "Y");
         e.setWeight(10f);
         e.setLabel("Classmate");
         allEdges.add(e);
@@ -128,7 +128,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgeWithoutLabelOmitted() {
-        edge e = new edge("s", "X", "Y");
+        Edge e = new Edge("s", "X", "Y");
         e.setWeight(5f);
         allEdges.add(e);
         graph.addEdge(e, "X", "Y");
@@ -139,7 +139,7 @@ public class GraphMLExporterTest {
         assertFalse(xml.contains("<data key=\"d4\">"));
     }
 
-    // --- All edge types ---
+    // --- All Edge types ---
 
     @Test
     public void testAllEdgeTypeLabels() {
@@ -154,11 +154,11 @@ public class GraphMLExporterTest {
 
     @Test
     public void testMultipleEdgeTypesExported() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(10f);
-        edge e2 = new edge("fs", "B", "C"); e2.setWeight(5f);
-        edge e3 = new edge("c", "C", "D"); e3.setWeight(20f);
-        edge e4 = new edge("s", "D", "E"); e4.setWeight(3f);
-        edge e5 = new edge("sg", "E", "A"); e5.setWeight(15f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(10f);
+        Edge e2 = new Edge("fs", "B", "C"); e2.setWeight(5f);
+        Edge e3 = new Edge("c", "C", "D"); e3.setWeight(20f);
+        Edge e4 = new Edge("s", "D", "E"); e4.setWeight(3f);
+        Edge e5 = new Edge("sg", "E", "A"); e5.setWeight(15f);
         allEdges.add(e1); allEdges.add(e2); allEdges.add(e3);
         allEdges.add(e4); allEdges.add(e5);
         graph.addEdge(e1, "A", "B");
@@ -266,7 +266,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testExportToFile() throws IOException {
-        edge e = new edge("f", "X", "Y");
+        Edge e = new Edge("f", "X", "Y");
         e.setWeight(99f);
         allEdges.add(e);
         graph.addEdge(e, "X", "Y");
@@ -284,7 +284,7 @@ public class GraphMLExporterTest {
         assertTrue(content.contains("<?xml"));
         assertTrue(content.contains("<node id=\"X\">"));
         assertTrue(content.contains("<node id=\"Y\">"));
-        assertTrue(content.contains("<edge id=\"e0\""));
+        assertTrue(content.contains("<Edge id=\"e0\""));
         assertTrue(content.contains("Timestamp: 2011-03-15"));
     }
 
@@ -302,8 +302,8 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgeCountUsesAllEdges() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(10f);
-        edge e2 = new edge("c", "C", "D"); e2.setWeight(20f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(10f);
+        Edge e2 = new Edge("c", "C", "D"); e2.setWeight(20f);
         allEdges.add(e1);
         allEdges.add(e2);
         // Only add one to graph (simulating filter)
@@ -317,10 +317,10 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgeCountFallsBackToGraphEdges() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(10f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(10f);
         graph.addEdge(e1, "A", "B");
 
-        GraphMLExporter exporter = new GraphMLExporter(graph, new ArrayList<edge>());
+        GraphMLExporter exporter = new GraphMLExporter(graph, new ArrayList<Edge>());
         assertEquals(1, exporter.getEdgeCount());
     }
 
@@ -345,8 +345,8 @@ public class GraphMLExporterTest {
 
     @Test
     public void testExportVisibleOnly() {
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(10f);
-        edge e2 = new edge("c", "C", "D"); e2.setWeight(20f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(10f);
+        Edge e2 = new Edge("c", "C", "D"); e2.setWeight(20f);
         allEdges.add(e1);
         allEdges.add(e2);
         // Only e1 in graph
@@ -361,7 +361,7 @@ public class GraphMLExporterTest {
         assertTrue(fullXml.contains("e0"));
         assertTrue(fullXml.contains("e1"));
 
-        // Visible-only export should have 1 edge
+        // Visible-only export should have 1 Edge
         String visibleXml = exporter.exportVisibleToString();
         assertTrue(visibleXml.contains("e0"));
         assertFalse(visibleXml.contains("e1"));
@@ -378,7 +378,7 @@ public class GraphMLExporterTest {
             graph.addVertex("N" + i);
         }
         for (int i = 0; i < 99; i++) {
-            edge e = new edge("f", "N" + i, "N" + (i + 1));
+            Edge e = new Edge("f", "N" + i, "N" + (i + 1));
             e.setWeight(i * 1.5f);
             allEdges.add(e);
             graph.addEdge(e, "N" + i, "N" + (i + 1));
@@ -391,15 +391,15 @@ public class GraphMLExporterTest {
         String xml = exporter.exportToString();
         assertTrue(xml.contains("<node id=\"N0\">"));
         assertTrue(xml.contains("<node id=\"N99\">"));
-        assertTrue(xml.contains("<edge id=\"e0\""));
-        assertTrue(xml.contains("<edge id=\"e98\""));
+        assertTrue(xml.contains("<Edge id=\"e0\""));
+        assertTrue(xml.contains("<Edge id=\"e98\""));
     }
 
     // --- Edge weight formatting ---
 
     @Test
     public void testEdgeWeightFormatting() {
-        edge e = new edge("f", "A", "B");
+        Edge e = new Edge("f", "A", "B");
         e.setWeight(3.14159f);
         allEdges.add(e);
         graph.addEdge(e, "A", "B");
@@ -413,7 +413,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testZeroWeightEdge() {
-        edge e = new edge("s", "A", "B");
+        Edge e = new Edge("s", "A", "B");
         e.setWeight(0f);
         allEdges.add(e);
         graph.addEdge(e, "A", "B");
@@ -448,7 +448,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testEdgeWithEmptyLabelOmitted() {
-        edge e = new edge("f", "A", "B");
+        Edge e = new Edge("f", "A", "B");
         e.setWeight(10f);
         e.setLabel("");
         allEdges.add(e);
@@ -465,7 +465,7 @@ public class GraphMLExporterTest {
     @Test
     public void testIsolatedVerticesExported() {
         graph.addVertex("Lonely");
-        edge e = new edge("f", "A", "B");
+        Edge e = new Edge("f", "A", "B");
         e.setWeight(10f);
         allEdges.add(e);
         graph.addEdge(e, "A", "B");
@@ -481,7 +481,7 @@ public class GraphMLExporterTest {
 
     @Test
     public void testDeterministicOutput() {
-        edge e = new edge("f", "A", "B");
+        Edge e = new Edge("f", "A", "B");
         e.setWeight(10f);
         allEdges.add(e);
         graph.addEdge(e, "A", "B");
@@ -546,7 +546,7 @@ public class GraphMLExporterTest {
     public void testExport_vertexWithControlCharsProducesValidXml() {
         graph.addVertex("node\0inject");
         graph.addVertex("B");
-        edge e = new edge("f", "node\0inject", "B");
+        Edge e = new Edge("f", "node\0inject", "B");
         allEdges.add(e);
         graph.addEdge(e, "node\0inject", "B");
 

@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class InteractiveHtmlExporterTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
@@ -24,19 +24,19 @@ public class InteractiveHtmlExporterTest {
         graph.addVertex("Carol");
         graph.addVertex("Dave");
 
-        edge e1 = new edge("f", "Alice", "Bob");
+        Edge e1 = new Edge("f", "Alice", "Bob");
         e1.setWeight(1.0f);
         graph.addEdge(e1, "Alice", "Bob");
 
-        edge e2 = new edge("c", "Bob", "Carol");
+        Edge e2 = new Edge("c", "Bob", "Carol");
         e2.setWeight(0.5f);
         graph.addEdge(e2, "Bob", "Carol");
 
-        edge e3 = new edge("sg", "Alice", "Carol");
+        Edge e3 = new Edge("sg", "Alice", "Carol");
         e3.setWeight(2.0f);
         graph.addEdge(e3, "Alice", "Carol");
 
-        edge e4 = new edge("fs", "Carol", "Dave");
+        Edge e4 = new Edge("fs", "Carol", "Dave");
         e4.setWeight(1.0f);
         graph.addEdge(e4, "Carol", "Dave");
     }
@@ -174,7 +174,7 @@ public class InteractiveHtmlExporterTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         InteractiveHtmlExporter exporter = new InteractiveHtmlExporter(empty);
         String html = exporter.exportToString();
         assertTrue(html.contains("<!DOCTYPE html>"));
@@ -184,7 +184,7 @@ public class InteractiveHtmlExporterTest {
 
     @Test
     public void testSingleNodeGraph() {
-        Graph<String, edge> single = new UndirectedSparseGraph<>();
+        Graph<String, Edge> single = new UndirectedSparseGraph<>();
         single.addVertex("Lonely");
         InteractiveHtmlExporter exporter = new InteractiveHtmlExporter(single);
         String html = exporter.exportToString();

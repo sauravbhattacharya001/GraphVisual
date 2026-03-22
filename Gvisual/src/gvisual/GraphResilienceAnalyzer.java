@@ -22,7 +22,7 @@ import java.util.*;
  */
 public class GraphResilienceAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private List<ResilienceStep> degreeAttackCurve;
     private List<ResilienceStep> betweennessAttackCurve;
     private List<ResilienceStep> randomAttackCurve;
@@ -34,7 +34,7 @@ public class GraphResilienceAnalyzer {
      *
      * @param graph the JUNG graph to analyze
      */
-    public GraphResilienceAnalyzer(Graph<String, edge> graph) {
+    public GraphResilienceAnalyzer(Graph<String, Edge> graph) {
         this.graph = graph;
         this.randomTrials = 10;
         this.computed = false;
@@ -174,7 +174,7 @@ public class GraphResilienceAnalyzer {
     // --- Private simulation methods ---
 
     private List<ResilienceStep> simulateDegreeAttack() {
-        Graph<String, edge> copy = copyGraph();
+        Graph<String, Edge> copy = copyGraph();
         List<ResilienceStep> curve = new ArrayList<>();
         int originalSize = copy.getVertexCount();
 
@@ -199,7 +199,7 @@ public class GraphResilienceAnalyzer {
     }
 
     private List<ResilienceStep> simulateBetweennessAttack() {
-        Graph<String, edge> copy = copyGraph();
+        Graph<String, Edge> copy = copyGraph();
         List<ResilienceStep> curve = new ArrayList<>();
         int originalSize = copy.getVertexCount();
 
@@ -231,7 +231,7 @@ public class GraphResilienceAnalyzer {
 
         Random rng = new Random(42);
         for (int t = 0; t < trials; t++) {
-            Graph<String, edge> copy = copyGraph();
+            Graph<String, Edge> copy = copyGraph();
             List<String> vertices = new ArrayList<>(copy.getVertices());
             Collections.shuffle(vertices, rng);
 
@@ -259,11 +259,11 @@ public class GraphResilienceAnalyzer {
         return curve;
     }
 
-    private Graph<String, edge> copyGraph() {
+    private Graph<String, Edge> copyGraph() {
         return GraphUtils.copyGraph(graph);
     }
 
-    private ResilienceStep captureStep(Graph<String, edge> g, int originalSize,
+    private ResilienceStep captureStep(Graph<String, Edge> g, int originalSize,
                                         int step, String removedNode) {
         return new ResilienceStep(
                 step,
@@ -274,21 +274,21 @@ public class GraphResilienceAnalyzer {
                 removedNode);
     }
 
-    private int largestComponentSize(Graph<String, edge> g) {
+    private int largestComponentSize(Graph<String, Edge> g) {
         if (g.getVertexCount() == 0) return 0;
         return GraphUtils.findLargestComponent(g).size();
     }
 
-    private int countComponents(Graph<String, edge> g) {
+    private int countComponents(Graph<String, Edge> g) {
         if (g.getVertexCount() == 0) return 0;
         return GraphUtils.findComponents(g).size();
     }
 
-    private double globalEfficiency(Graph<String, edge> g) {
+    private double globalEfficiency(Graph<String, Edge> g) {
         return GraphUtils.globalEfficiency(g);
     }
 
-    private Map<String, Double> computeBetweenness(Graph<String, edge> g) {
+    private Map<String, Double> computeBetweenness(Graph<String, Edge> g) {
         return GraphUtils.computeBetweenness(g);
     }
 

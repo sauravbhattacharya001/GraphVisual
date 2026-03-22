@@ -8,7 +8,7 @@ import java.util.*;
  * Computes the <b>complement graph</b> of a given graph and provides comparative
  * analysis between the original and its complement.
  *
- * <p>The complement G' of a graph G has the same vertices, but an edge exists in G'
+ * <p>The complement G' of a graph G has the same vertices, but an Edge exists in G'
  * if and only if it does <em>not</em> exist in G. This is useful for understanding
  * graph density, identifying missing connections, and studying structural properties
  * that become apparent when relationships are inverted.</p>
@@ -16,7 +16,7 @@ import java.util.*;
  * <h3>Features</h3>
  * <ul>
  *   <li>Build the complement graph as a new JUNG UndirectedSparseGraph</li>
- *   <li>Compare edge counts, density, and degree distributions</li>
+ *   <li>Compare Edge counts, density, and degree distributions</li>
  *   <li>Identify vertices whose degree changes most dramatically</li>
  *   <li>Check self-complementarity (isomorphism with complement)</li>
  *   <li>Export a textual comparison report</li>
@@ -34,8 +34,8 @@ public final class GraphComplementAnalyzer {
      * @param graph the original graph
      * @return a new graph containing all edges not present in the original
      */
-    public static Graph<String, edge> buildComplement(Graph<String, edge> graph) {
-        UndirectedSparseGraph<String, edge> complement = new UndirectedSparseGraph<>();
+    public static Graph<String, Edge> buildComplement(Graph<String, Edge> graph) {
+        UndirectedSparseGraph<String, Edge> complement = new UndirectedSparseGraph<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
 
         for (String v : vertices) {
@@ -43,7 +43,7 @@ public final class GraphComplementAnalyzer {
         }
 
         Set<String> existingEdges = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             existingEdges.add(edgeKey(v1, v2));
@@ -55,7 +55,7 @@ public final class GraphComplementAnalyzer {
                 String v1 = vertices.get(i);
                 String v2 = vertices.get(j);
                 if (!existingEdges.contains(edgeKey(v1, v2))) {
-                    edge e = new edge(v1, v2, "complement_" + edgeId++);
+                    Edge e = new Edge(v1, v2, "complement_" + edgeId++);
                     complement.addEdge(e, v1, v2);
                 }
             }
@@ -71,8 +71,8 @@ public final class GraphComplementAnalyzer {
      * @param graph the original graph
      * @return a formatted analysis report string
      */
-    public static String analyze(Graph<String, edge> graph) {
-        Graph<String, edge> complement = buildComplement(graph);
+    public static String analyze(Graph<String, Edge> graph) {
+        Graph<String, Edge> complement = buildComplement(graph);
         int n = graph.getVertexCount();
         int origEdges = graph.getEdgeCount();
         int compEdges = complement.getEdgeCount();
@@ -98,18 +98,18 @@ public final class GraphComplementAnalyzer {
         sb.append(String.format("  Avg degree:          %.2f%n", avgDegree(complement)));
         sb.append("\n");
 
-        // Verify edge counts sum correctly
+        // Verify Edge counts sum correctly
         sb.append("── Validation ─────────────────────────────\n");
         sb.append("  Orig + Complement:   ").append(origEdges + compEdges).append("\n");
         sb.append("  Expected (n*(n-1)/2):").append(maxEdges).append("\n");
         sb.append("  Valid:               ").append(origEdges + compEdges == maxEdges ? "✓" : "✗").append("\n\n");
 
-        // Self-complementary check (quick heuristic: edge count must equal n*(n-1)/4)
+        // Self-complementary check (quick heuristic: Edge count must equal n*(n-1)/4)
         boolean couldBeSelfComplementary = (maxEdges % 2 == 0) && (origEdges == maxEdges / 2);
         sb.append("── Self-Complementary ─────────────────────\n");
         sb.append("  Edge-count test:     ").append(couldBeSelfComplementary ? "PASS (possible)" : "FAIL").append("\n");
         if (couldBeSelfComplementary) {
-            sb.append("  (Full isomorphism check not performed — edge count is necessary but not sufficient)\n");
+            sb.append("  (Full isomorphism check not performed — Edge count is necessary but not sufficient)\n");
         }
         sb.append("\n");
 
@@ -139,15 +139,15 @@ public final class GraphComplementAnalyzer {
     }
 
     /**
-     * Returns the complement graph's edge list as a list of string pairs.
+     * Returns the complement graph's Edge list as a list of string pairs.
      *
      * @param graph the original graph
      * @return list of [vertex1, vertex2] arrays representing complement edges
      */
-    public static List<String[]> getComplementEdgeList(Graph<String, edge> graph) {
-        Graph<String, edge> complement = buildComplement(graph);
+    public static List<String[]> getComplementEdgeList(Graph<String, Edge> graph) {
+        Graph<String, Edge> complement = buildComplement(graph);
         List<String[]> result = new ArrayList<>();
-        for (edge e : complement.getEdges()) {
+        for (Edge e : complement.getEdges()) {
             result.add(new String[]{e.getVertex1(), e.getVertex2()});
         }
         return result;
@@ -164,7 +164,7 @@ public final class GraphComplementAnalyzer {
         return (2.0 * edges) / (vertices * (vertices - 1));
     }
 
-    private static double avgDegree(Graph<String, edge> g) {
+    private static double avgDegree(Graph<String, Edge> g) {
         if (g.getVertexCount() == 0) return 0.0;
         double sum = 0;
         for (String v : g.getVertices()) {
@@ -174,7 +174,7 @@ public final class GraphComplementAnalyzer {
     }
 
     private static List<DegreeChange> computeDegreeChanges(
-            Graph<String, edge> orig, Graph<String, edge> comp) {
+            Graph<String, Edge> orig, Graph<String, Edge> comp) {
         List<DegreeChange> list = new ArrayList<>();
         for (String v : orig.getVertices()) {
             int od = orig.degree(v);

@@ -14,16 +14,16 @@ import static org.junit.Assert.*;
  */
 public class IndependentSetAnalyzerTest {
 
-    private Graph<String, edge> emptyGraph;
-    private Graph<String, edge> singleVertex;
-    private Graph<String, edge> singleEdge;
-    private Graph<String, edge> triangle;
-    private Graph<String, edge> path4;    // A-B-C-D
-    private Graph<String, edge> star5;    // center connected to 4 leaves
-    private Graph<String, edge> cycle5;   // 5-cycle
-    private Graph<String, edge> complete4;
-    private Graph<String, edge> bipartite; // K_{2,3}
-    private Graph<String, edge> petersen;  // Petersen graph approx
+    private Graph<String, Edge> emptyGraph;
+    private Graph<String, Edge> singleVertex;
+    private Graph<String, Edge> singleEdge;
+    private Graph<String, Edge> triangle;
+    private Graph<String, Edge> path4;    // A-B-C-D
+    private Graph<String, Edge> star5;    // center connected to 4 leaves
+    private Graph<String, Edge> cycle5;   // 5-cycle
+    private Graph<String, Edge> complete4;
+    private Graph<String, Edge> bipartite; // K_{2,3}
+    private Graph<String, Edge> petersen;  // Petersen graph approx
 
     @Before
     public void setUp() {
@@ -34,52 +34,52 @@ public class IndependentSetAnalyzerTest {
         singleVertex = new UndirectedSparseGraph<>();
         singleVertex.addVertex("A");
 
-        // Single edge
+        // Single Edge
         singleEdge = new UndirectedSparseGraph<>();
         singleEdge.addVertex("A");
         singleEdge.addVertex("B");
-        singleEdge.addEdge(new edge("e1", "A", "B"), "A", "B");
+        singleEdge.addEdge(new Edge("e1", "A", "B"), "A", "B");
 
         // Triangle
         triangle = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C"}) triangle.addVertex(v);
-        triangle.addEdge(new edge("e1", "A", "B"), "A", "B");
-        triangle.addEdge(new edge("e2", "B", "C"), "B", "C");
-        triangle.addEdge(new edge("e3", "A", "C"), "A", "C");
+        triangle.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        triangle.addEdge(new Edge("e2", "B", "C"), "B", "C");
+        triangle.addEdge(new Edge("e3", "A", "C"), "A", "C");
 
         // Path: A-B-C-D
         path4 = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C", "D"}) path4.addVertex(v);
-        path4.addEdge(new edge("e1", "A", "B"), "A", "B");
-        path4.addEdge(new edge("e2", "B", "C"), "B", "C");
-        path4.addEdge(new edge("e3", "C", "D"), "C", "D");
+        path4.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        path4.addEdge(new Edge("e2", "B", "C"), "B", "C");
+        path4.addEdge(new Edge("e3", "C", "D"), "C", "D");
 
         // Star: center=X, leaves=A,B,C,D
         star5 = new UndirectedSparseGraph<>();
         for (String v : new String[]{"X", "A", "B", "C", "D"}) star5.addVertex(v);
-        star5.addEdge(new edge("e1", "X", "A"), "X", "A");
-        star5.addEdge(new edge("e2", "X", "B"), "X", "B");
-        star5.addEdge(new edge("e3", "X", "C"), "X", "C");
-        star5.addEdge(new edge("e4", "X", "D"), "X", "D");
+        star5.addEdge(new Edge("e1", "X", "A"), "X", "A");
+        star5.addEdge(new Edge("e2", "X", "B"), "X", "B");
+        star5.addEdge(new Edge("e3", "X", "C"), "X", "C");
+        star5.addEdge(new Edge("e4", "X", "D"), "X", "D");
 
         // 5-cycle: A-B-C-D-E-A
         cycle5 = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C", "D", "E"}) cycle5.addVertex(v);
-        cycle5.addEdge(new edge("e1", "A", "B"), "A", "B");
-        cycle5.addEdge(new edge("e2", "B", "C"), "B", "C");
-        cycle5.addEdge(new edge("e3", "C", "D"), "C", "D");
-        cycle5.addEdge(new edge("e4", "D", "E"), "D", "E");
-        cycle5.addEdge(new edge("e5", "E", "A"), "E", "A");
+        cycle5.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        cycle5.addEdge(new Edge("e2", "B", "C"), "B", "C");
+        cycle5.addEdge(new Edge("e3", "C", "D"), "C", "D");
+        cycle5.addEdge(new Edge("e4", "D", "E"), "D", "E");
+        cycle5.addEdge(new Edge("e5", "E", "A"), "E", "A");
 
         // K4
         complete4 = new UndirectedSparseGraph<>();
         for (String v : new String[]{"A", "B", "C", "D"}) complete4.addVertex(v);
-        complete4.addEdge(new edge("e1", "A", "B"), "A", "B");
-        complete4.addEdge(new edge("e2", "A", "C"), "A", "C");
-        complete4.addEdge(new edge("e3", "A", "D"), "A", "D");
-        complete4.addEdge(new edge("e4", "B", "C"), "B", "C");
-        complete4.addEdge(new edge("e5", "B", "D"), "B", "D");
-        complete4.addEdge(new edge("e6", "C", "D"), "C", "D");
+        complete4.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        complete4.addEdge(new Edge("e2", "A", "C"), "A", "C");
+        complete4.addEdge(new Edge("e3", "A", "D"), "A", "D");
+        complete4.addEdge(new Edge("e4", "B", "C"), "B", "C");
+        complete4.addEdge(new Edge("e5", "B", "D"), "B", "D");
+        complete4.addEdge(new Edge("e6", "C", "D"), "C", "D");
 
         // K_{2,3}: {A,B} x {C,D,E}
         bipartite = new UndirectedSparseGraph<>();
@@ -87,7 +87,7 @@ public class IndependentSetAnalyzerTest {
         int eid = 0;
         for (String l : new String[]{"A", "B"}) {
             for (String r : new String[]{"C", "D", "E"}) {
-                bipartite.addEdge(new edge("e" + (eid++), l, r), l, r);
+                bipartite.addEdge(new Edge("e" + (eid++), l, r), l, r);
             }
         }
     }
@@ -387,7 +387,7 @@ public class IndependentSetAnalyzerTest {
 
     @Test
     public void testKernelOnIsolatedVertices() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(g);
         IndependentSetAnalyzer.KernelResult kr = a.kernelReduction();
@@ -555,7 +555,7 @@ public class IndependentSetAnalyzerTest {
 
     @Test(expected = IllegalStateException.class)
     public void testPolynomialTooLargeThrows() {
-        Graph<String, edge> big = new UndirectedSparseGraph<>();
+        Graph<String, Edge> big = new UndirectedSparseGraph<>();
         for (int i = 0; i < 25; i++) big.addVertex("V" + i);
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(big);
         a.independencePolynomial(); // > 20 vertices
@@ -574,12 +574,12 @@ public class IndependentSetAnalyzerTest {
     public void testMaxCliqueOnPath4() {
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(path4);
         Set<String> clique = a.maximumCliqueViaComplement();
-        assertEquals(2, clique.size()); // max clique in P4 = any edge
+        assertEquals(2, clique.size()); // max clique in P4 = any Edge
     }
 
     @Test
     public void testMaxCliqueOnIndependentVertices() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(g);
         Set<String> clique = a.maximumCliqueViaComplement();
@@ -658,11 +658,11 @@ public class IndependentSetAnalyzerTest {
     @Test
     public void testDisconnectedGraph() {
         // Two components: triangle + isolated vertex
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
-        g.addEdge(new edge("e1", "A", "B"), "A", "B");
-        g.addEdge(new edge("e2", "B", "C"), "B", "C");
-        g.addEdge(new edge("e3", "A", "C"), "A", "C");
+        g.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        g.addEdge(new Edge("e2", "B", "C"), "B", "C");
+        g.addEdge(new Edge("e3", "A", "C"), "A", "C");
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(g);
         Set<String> mis = a.exactMaximumIndependentSet();
         assertEquals(2, mis.size()); // 1 from triangle + D
@@ -671,10 +671,10 @@ public class IndependentSetAnalyzerTest {
 
     @Test
     public void testTwoDisconnectedEdges() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
-        g.addEdge(new edge("e1", "A", "B"), "A", "B");
-        g.addEdge(new edge("e2", "C", "D"), "C", "D");
+        g.addEdge(new Edge("e1", "A", "B"), "A", "B");
+        g.addEdge(new Edge("e2", "C", "D"), "C", "D");
         IndependentSetAnalyzer a = new IndependentSetAnalyzer(g);
         assertEquals(2, a.exactMaximumIndependentSet().size());
     }

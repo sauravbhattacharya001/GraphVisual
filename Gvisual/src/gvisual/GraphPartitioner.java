@@ -4,19 +4,19 @@ import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
 
 /**
- * Partitions a JUNG graph into k balanced parts while minimizing edge cuts.
+ * Partitions a JUNG graph into k balanced parts while minimizing Edge cuts.
  * Implements multiple partitioning strategies:
  *
  * <ul>
  *   <li><b>BFS-based</b> — grows partitions from seed vertices using breadth-first
  *       traversal, balancing partition sizes at each step.</li>
  *   <li><b>Kernighan-Lin refinement</b> — iteratively swaps vertex pairs between
- *       partitions to reduce edge cuts (2-way, applied recursively for k-way).</li>
+ *       partitions to reduce Edge cuts (2-way, applied recursively for k-way).</li>
  *   <li><b>Spectral bisection</b> — uses the Fiedler vector (second-smallest eigenvector
  *       of the Laplacian) to find a natural split, refined with KL swaps.</li>
  * </ul>
  *
- * <p>Produces a {@link PartitionResult} with per-partition membership, edge cut count,
+ * <p>Produces a {@link PartitionResult} with per-partition membership, Edge cut count,
  * imbalance ratio, cut ratio, and partition-level metrics (size, internal/external edges,
  * conductance).</p>
  *
@@ -42,7 +42,7 @@ public class GraphPartitioner {
         SPECTRAL
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new GraphPartitioner for the given graph.
@@ -50,7 +50,7 @@ public class GraphPartitioner {
      * @param graph the JUNG graph to partition
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphPartitioner(Graph<String, edge> graph) {
+    public GraphPartitioner(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -250,7 +250,7 @@ public class GraphPartitioner {
 
     /**
      * Kernighan-Lin refinement: for each pair of partitions, try swapping
-     * vertices to reduce edge cuts. Repeat until no improvement.
+     * vertices to reduce Edge cuts. Repeat until no improvement.
      */
     private Map<String, Integer> refineKL(Map<String, Integer> assignment, int k) {
         boolean improved = true;
@@ -327,7 +327,7 @@ public class GraphPartitioner {
 
     /**
      * Compute the gain from swapping u (in partA) with v (in partB).
-     * Gain = reduction in edge cuts after the swap.
+     * Gain = reduction in Edge cuts after the swap.
      */
     private int computeSwapGain(Map<String, Integer> assignment, String u, String v,
                                 int partA, int partB) {
@@ -606,7 +606,7 @@ public class GraphPartitioner {
         private final double cutRatio;
         private final List<PartitionInfo> partitions;
 
-        PartitionResult(Map<String, Integer> assignment, int k, Graph<String, edge> graph) {
+        PartitionResult(Map<String, Integer> assignment, int k, Graph<String, Edge> graph) {
             this.assignment = Collections.unmodifiableMap(new HashMap<>(assignment));
             this.k = k;
 
@@ -619,12 +619,12 @@ public class GraphPartitioner {
                 partMap.computeIfAbsent(e.getValue(), x -> new HashSet<>()).add(e.getKey());
             }
 
-            // Count edge cuts and per-partition metrics
+            // Count Edge cuts and per-partition metrics
             int cuts = 0;
             Map<Integer, Integer> internalEdges = new HashMap<>();
             Map<Integer, Integer> externalEdges = new HashMap<>();
 
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Collection<String> endpoints = graph.getEndpoints(e);
                 if (endpoints.size() < 2) continue;
                 Iterator<String> it = endpoints.iterator();
