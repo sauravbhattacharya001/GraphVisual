@@ -137,10 +137,8 @@ public class ShortestPathFinder {
     /**
      * Finds the shortest path by total edge weight (Dijkstra) between source and target.
      *
-     * <p>Uses a typed priority queue entry instead of encoding vertices as
-     * double-array indices into a separate vertex list. This eliminates the
-     * O(V) vertex-index map construction and avoids integer-to-double-to-integer
-     * conversion overhead on every PQ operation.</p>
+     * <p>Uses a typed {@link DijkstraEntry} in the priority queue for clean
+     * vertex lookups without index indirection or double-to-int casting.</p>
      *
      * @param source source vertex ID
      * @param target target vertex ID
@@ -166,27 +164,18 @@ public class ShortestPathFinder {
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, edge> predecessorEdge = new HashMap<String, edge>();
 
-        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11, (double[] a, double[] b) -> {
-                return Double.compare(a[0], b[0]);
-            });
-        // Vertex names indexed by insertion order
-        List<String> vertexIndex = new ArrayList<String>();
-        // Map vertex name -> index for O(1) lookup
-        Map<String, Integer> vertexToIndex = new HashMap<String, Integer>();
+        PriorityQueue<DijkstraEntry> pq = new PriorityQueue<DijkstraEntry>();
 
-        int sourceIdx = 0;
-        vertexIndex.add(source);
-        vertexToIndex.put(source, sourceIdx);
         dist.put(source, 0.0);
         predecessor.put(source, null);
-        pq.add(new double[]{0.0, sourceIdx});
+        pq.add(new DijkstraEntry(0.0, source));
 
         Set<String> visited = new HashSet<String>();
 
         while (!pq.isEmpty()) {
-            double[] entry = pq.poll();
-            double entryDist = entry[0];
-            String current = vertexIndex.get((int) entry[1]);
+            DijkstraEntry entry = pq.poll();
+            double entryDist = entry.distance;
+            String current = entry.vertex;
 
             if (visited.contains(current)) continue;
             visited.add(current);
@@ -217,13 +206,7 @@ public class ShortestPathFinder {
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
 
-                    Integer idx = vertexToIndex.get(neighbor);
-                    if (idx == null) {
-                        idx = vertexIndex.size();
-                        vertexIndex.add(neighbor);
-                        vertexToIndex.put(neighbor, idx);
-                    }
-                    pq.add(new double[]{newDist, idx});
+                    pq.add(new DijkstraEntry(newDist, neighbor));
                 }
             }
         }
@@ -293,6 +276,29 @@ public class ShortestPathFinder {
         }
 
         return false;
+    }
+
+    // --- Dijkstra priority-queue entry ---
+
+    /**
+     * Typed PQ entry replacing the previous {@code double[]} hack that required
+     * a parallel {@code vertexIndex} list and {@code vertexToIndex} map for
+     * int-to-vertex lookups. This eliminates the O(V) index bookkeeping and
+     * the fragile double-to-int casting on every PQ poll.
+     */
+    private static final class DijkstraEntry implements Comparable<DijkstraEntry> {
+        final double distance;
+        final String vertex;
+
+        DijkstraEntry(double distance, String vertex) {
+            this.distance = distance;
+            this.vertex = vertex;
+        }
+
+        @Override
+        public int compareTo(DijkstraEntry other) {
+            return Double.compare(this.distance, other.distance);
+        }
     }
 
     // --- private helpers ---
