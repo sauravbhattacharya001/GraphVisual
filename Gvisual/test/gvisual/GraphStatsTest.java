@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
  */
 public class GraphStatsTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private Vector<edge> friendEdges;
     private Vector<edge> fsEdges;
     private Vector<edge> classmateEdges;
@@ -25,7 +25,7 @@ public class GraphStatsTest {
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
         friendEdges = new Vector<edge>();
         fsEdges = new Vector<edge>();
         classmateEdges = new Vector<edge>();
@@ -40,13 +40,13 @@ public class GraphStatsTest {
 
     // ── Helper ──────────────────────────────────────────────────
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }
 
-    private void addToGraph(edge e) {
+    private void addToGraph(Edge e) {
         graph.addEdge(e, e.getVertex1(), e.getVertex2());
     }
 
@@ -106,7 +106,7 @@ public class GraphStatsTest {
 
     @Test
     public void testSingleEdge() {
-        edge e = makeEdge("f", "A", "B", 50.0f);
+        Edge e = makeEdge("f", "A", "B", 50.0f);
         friendEdges.add(e);
         addToGraph(e);
 
@@ -121,7 +121,7 @@ public class GraphStatsTest {
     @Test
     public void testSingleEdge_density() {
         // 2 nodes, 1 edge: density = 2*1 / (2*1) = 1.0
-        edge e = makeEdge("f", "A", "B", 10);
+        Edge e = makeEdge("f", "A", "B", 10);
         friendEdges.add(e);
         addToGraph(e);
         GraphStats stats = createStats();
@@ -131,7 +131,7 @@ public class GraphStatsTest {
     @Test
     public void testSingleEdge_averageDegree() {
         // 2 nodes, 1 edge: avg = 2*1/2 = 1.0
-        edge e = makeEdge("f", "A", "B", 10);
+        Edge e = makeEdge("f", "A", "B", 10);
         friendEdges.add(e);
         addToGraph(e);
         GraphStats stats = createStats();
@@ -142,9 +142,9 @@ public class GraphStatsTest {
 
     @Test
     public void testDensityTriangle() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -155,9 +155,9 @@ public class GraphStatsTest {
     @Test
     public void testTriangle_averageDegree() {
         // 3 nodes, 3 edges: avg = 2*3/3 = 2.0
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -167,9 +167,9 @@ public class GraphStatsTest {
 
     @Test
     public void testTriangle_maxDegree() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -179,9 +179,9 @@ public class GraphStatsTest {
 
     @Test
     public void testTriangle_noIsolatedNodes() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -194,8 +194,8 @@ public class GraphStatsTest {
     @Test
     public void testAverageDegree() {
         // 3 nodes, 2 edges: degrees are 2, 1, 1 -> avg = 4/3
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("c", "A", "C", 20);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("c", "A", "C", 20);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); classmateEdges.add(e2);
 
@@ -207,9 +207,9 @@ public class GraphStatsTest {
     @Test
     public void testAverageDegree_fourNodesPath() {
         // A-B-C-D (path): 3 edges, 4 nodes, degrees: 1,2,2,1 avg = 6/4 = 1.5
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "C", "D", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "C", "D", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -221,9 +221,9 @@ public class GraphStatsTest {
 
     @Test
     public void testTopNodes() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "A", "C", 10);
-        edge e3 = makeEdge("f", "A", "D", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "A", "C", 10);
+        Edge e3 = makeEdge("f", "A", "D", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -236,7 +236,7 @@ public class GraphStatsTest {
 
     @Test
     public void testTopNodes_requestMoreThanExist() {
-        edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
         addToGraph(e1);
         friendEdges.add(e1);
 
@@ -247,7 +247,7 @@ public class GraphStatsTest {
 
     @Test
     public void testTopNodes_requestZero() {
-        edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
         addToGraph(e1);
         friendEdges.add(e1);
 
@@ -258,7 +258,7 @@ public class GraphStatsTest {
 
     @Test
     public void testTopNodes_requestNegative() {
-        edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
         addToGraph(e1);
         friendEdges.add(e1);
 
@@ -269,8 +269,8 @@ public class GraphStatsTest {
 
     @Test
     public void testTopNodes_requestOne() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); friendEdges.add(e2);
 
@@ -284,9 +284,9 @@ public class GraphStatsTest {
     @Test
     public void testTopNodes_allSameDegree() {
         // Triangle: all have degree 2
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
-        edge e3 = makeEdge("f", "A", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e3 = makeEdge("f", "A", "C", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
 
@@ -316,12 +316,12 @@ public class GraphStatsTest {
     @Test
     public void testTopNodes_descending() {
         // Hub A connects to 4, B connects to 2, C connects to 1
-        edge e1 = makeEdge("f", "A", "X", 10);
-        edge e2 = makeEdge("f", "A", "Y", 10);
-        edge e3 = makeEdge("f", "A", "Z", 10);
-        edge e4 = makeEdge("f", "A", "W", 10);
-        edge e5 = makeEdge("f", "B", "X", 10);
-        edge e6 = makeEdge("f", "B", "Y", 10);
+        Edge e1 = makeEdge("f", "A", "X", 10);
+        Edge e2 = makeEdge("f", "A", "Y", 10);
+        Edge e3 = makeEdge("f", "A", "Z", 10);
+        Edge e4 = makeEdge("f", "A", "W", 10);
+        Edge e5 = makeEdge("f", "B", "X", 10);
+        Edge e6 = makeEdge("f", "B", "Y", 10);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
         addToGraph(e4); addToGraph(e5); addToGraph(e6);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
@@ -350,7 +350,7 @@ public class GraphStatsTest {
     @Test
     public void testIsolatedNodes_mixedConnectivity() {
         // A-B connected, C and D isolated
-        edge e = makeEdge("f", "A", "B", 10);
+        Edge e = makeEdge("f", "A", "B", 10);
         addToGraph(e);
         friendEdges.add(e);
         graph.addVertex("C");
@@ -362,8 +362,8 @@ public class GraphStatsTest {
 
     @Test
     public void testIsolatedNodes_noneIsolated() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "B", "C", 10);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "B", "C", 10);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); friendEdges.add(e2);
 
@@ -375,8 +375,8 @@ public class GraphStatsTest {
 
     @Test
     public void testAverageWeight() {
-        edge e1 = makeEdge("f", "A", "B", 30.0f);
-        edge e2 = makeEdge("s", "C", "D", 10.0f);
+        Edge e1 = makeEdge("f", "A", "B", 30.0f);
+        Edge e2 = makeEdge("s", "C", "D", 10.0f);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); strangerEdges.add(e2);
 
@@ -386,7 +386,7 @@ public class GraphStatsTest {
 
     @Test
     public void testAverageWeight_singleEdge() {
-        edge e = makeEdge("f", "A", "B", 42.0f);
+        Edge e = makeEdge("f", "A", "B", 42.0f);
         addToGraph(e);
         friendEdges.add(e);
 
@@ -396,8 +396,8 @@ public class GraphStatsTest {
 
     @Test
     public void testAverageWeight_zeroWeight() {
-        edge e1 = makeEdge("f", "A", "B", 0.0f);
-        edge e2 = makeEdge("f", "C", "D", 0.0f);
+        Edge e1 = makeEdge("f", "A", "B", 0.0f);
+        Edge e2 = makeEdge("f", "C", "D", 0.0f);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); friendEdges.add(e2);
 
@@ -414,10 +414,10 @@ public class GraphStatsTest {
 
     @Test
     public void testAverageWeight_multipleEdges() {
-        edge e1 = makeEdge("f", "A", "B", 10.0f);
-        edge e2 = makeEdge("f", "B", "C", 20.0f);
-        edge e3 = makeEdge("f", "C", "D", 30.0f);
-        edge e4 = makeEdge("f", "D", "E", 40.0f);
+        Edge e1 = makeEdge("f", "A", "B", 10.0f);
+        Edge e2 = makeEdge("f", "B", "C", 20.0f);
+        Edge e3 = makeEdge("f", "C", "D", 30.0f);
+        Edge e4 = makeEdge("f", "D", "E", 40.0f);
         addToGraph(e1); addToGraph(e2); addToGraph(e3); addToGraph(e4);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3); friendEdges.add(e4);
 
@@ -429,11 +429,11 @@ public class GraphStatsTest {
 
     @Test
     public void testCategoryCountsIndependent() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("fs", "C", "D", 5);
-        edge e3 = makeEdge("c", "E", "F", 20);
-        edge e4 = makeEdge("s", "G", "H", 2);
-        edge e5 = makeEdge("sg", "I", "J", 15);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("fs", "C", "D", 5);
+        Edge e3 = makeEdge("c", "E", "F", 20);
+        Edge e4 = makeEdge("s", "G", "H", 2);
+        Edge e5 = makeEdge("sg", "I", "J", 15);
 
         friendEdges.add(e1);
         fsEdges.add(e2);
@@ -457,9 +457,9 @@ public class GraphStatsTest {
 
     @Test
     public void testCategoryCount_multipleFriends() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "C", "D", 20);
-        edge e3 = makeEdge("f", "E", "F", 30);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "C", "D", 20);
+        Edge e3 = makeEdge("f", "E", "F", 30);
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
         addToGraph(e1); addToGraph(e2); addToGraph(e3);
 
@@ -488,7 +488,7 @@ public class GraphStatsTest {
     @Test
     public void testDensity_sparseGraph() {
         // 4 nodes, 1 edge: density = 2*1 / (4*3) = 1/6
-        edge e = makeEdge("f", "A", "B", 10);
+        Edge e = makeEdge("f", "A", "B", 10);
         addToGraph(e);
         friendEdges.add(e);
         graph.addVertex("C");
@@ -505,7 +505,7 @@ public class GraphStatsTest {
         int id = 0;
         for (int i = 0; i < nodes.length; i++) {
             for (int j = i + 1; j < nodes.length; j++) {
-                edge e = makeEdge("f", nodes[i], nodes[j], 10);
+                Edge e = makeEdge("f", nodes[i], nodes[j], 10);
                 e.setLabel("e" + id++);
                 addToGraph(e);
                 friendEdges.add(e);
@@ -521,7 +521,7 @@ public class GraphStatsTest {
         // Center connects to 5 others: 6 nodes, 5 edges
         // density = 2*5 / (6*5) = 10/30 = 1/3
         for (int i = 1; i <= 5; i++) {
-            edge e = makeEdge("f", "center", "n" + i, 10);
+            Edge e = makeEdge("f", "center", "n" + i, 10);
             e.setLabel("e" + i);
             addToGraph(e);
             friendEdges.add(e);
@@ -537,7 +537,7 @@ public class GraphStatsTest {
     public void testMaxDegree_starGraph() {
         // Center has degree 5
         for (int i = 1; i <= 5; i++) {
-            edge e = makeEdge("f", "hub", "leaf" + i, 10);
+            Edge e = makeEdge("f", "hub", "leaf" + i, 10);
             e.setLabel("e" + i);
             addToGraph(e);
             friendEdges.add(e);
@@ -565,8 +565,8 @@ public class GraphStatsTest {
 
     @Test
     public void testCaching_multipleCallsReturnSameResult() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("f", "A", "C", 20);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("f", "A", "C", 20);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); friendEdges.add(e2);
 
@@ -585,8 +585,8 @@ public class GraphStatsTest {
 
     @Test
     public void testCaching_weightMultipleCalls() {
-        edge e1 = makeEdge("f", "A", "B", 15.0f);
-        edge e2 = makeEdge("f", "C", "D", 25.0f);
+        Edge e1 = makeEdge("f", "A", "B", 15.0f);
+        Edge e2 = makeEdge("f", "C", "D", 25.0f);
         addToGraph(e1); addToGraph(e2);
         friendEdges.add(e1); friendEdges.add(e2);
 
@@ -613,9 +613,9 @@ public class GraphStatsTest {
 
     @Test
     public void testFiltered_partialVisible() {
-        edge e1 = makeEdge("f", "A", "B", 30);
-        edge e2 = makeEdge("f", "C", "D", 10);
-        edge e3 = makeEdge("f", "E", "F", 50); // not added to graph
+        Edge e1 = makeEdge("f", "A", "B", 30);
+        Edge e2 = makeEdge("f", "C", "D", 10);
+        Edge e3 = makeEdge("f", "E", "F", 50); // not added to graph
 
         friendEdges.add(e1); friendEdges.add(e2); friendEdges.add(e3);
         addToGraph(e1); addToGraph(e2);
@@ -632,7 +632,7 @@ public class GraphStatsTest {
     public void testLargerGraph_tenNodes() {
         // Build a star: node0 connects to nodes 1-9
         for (int i = 1; i <= 9; i++) {
-            edge e = makeEdge("f", "n0", "n" + i, i * 10.0f);
+            Edge e = makeEdge("f", "n0", "n" + i, i * 10.0f);
             e.setLabel("e" + i);
             addToGraph(e);
             friendEdges.add(e);
@@ -663,7 +663,7 @@ public class GraphStatsTest {
     public void testLargerGraph_chainOf10() {
         // Linear chain: n0-n1-n2-...-n9
         for (int i = 0; i < 9; i++) {
-            edge e = makeEdge("f", "n" + i, "n" + (i + 1), 10);
+            Edge e = makeEdge("f", "n" + i, "n" + (i + 1), 10);
             e.setLabel("e" + i);
             addToGraph(e);
             friendEdges.add(e);
@@ -681,7 +681,7 @@ public class GraphStatsTest {
     @Test
     public void testNodeCount_verticesFromEdgesOnly() {
         // Vertices only added implicitly through edges
-        edge e = makeEdge("f", "X", "Y", 5);
+        Edge e = makeEdge("f", "X", "Y", 5);
         addToGraph(e);
         friendEdges.add(e);
 
@@ -694,7 +694,7 @@ public class GraphStatsTest {
         graph.addVertex("A");
         graph.addVertex("B");
         graph.addVertex("C");
-        edge e = makeEdge("f", "A", "B", 10);
+        Edge e = makeEdge("f", "A", "B", 10);
         addToGraph(e);
         friendEdges.add(e);
 
@@ -708,11 +708,11 @@ public class GraphStatsTest {
 
     @Test
     public void testMixedCategories_allInGraph() {
-        edge e1 = makeEdge("f", "A", "B", 10);
-        edge e2 = makeEdge("fs", "C", "D", 20);
-        edge e3 = makeEdge("c", "E", "F", 30);
-        edge e4 = makeEdge("s", "G", "H", 40);
-        edge e5 = makeEdge("sg", "I", "J", 50);
+        Edge e1 = makeEdge("f", "A", "B", 10);
+        Edge e2 = makeEdge("fs", "C", "D", 20);
+        Edge e3 = makeEdge("c", "E", "F", 30);
+        Edge e4 = makeEdge("s", "G", "H", 40);
+        Edge e5 = makeEdge("sg", "I", "J", 50);
         e1.setLabel("e1"); e2.setLabel("e2"); e3.setLabel("e3"); e4.setLabel("e4"); e5.setLabel("e5");
 
         addToGraph(e1); addToGraph(e2); addToGraph(e3);

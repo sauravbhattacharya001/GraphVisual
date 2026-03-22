@@ -14,15 +14,15 @@ import java.util.*;
  */
 public class ArticulationPointAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
-    private edge addEdge(String v1, String v2, String type) {
-        edge e = new edge(type, v1, v2);
+    private Edge addEdge(String v1, String v2, String type) {
+        Edge e = new Edge(type, v1, v2);
         e.setLabel(v1 + "-" + v2);
         graph.addEdge(e, v1, v2);
         return e;

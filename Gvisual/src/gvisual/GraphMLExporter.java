@@ -15,7 +15,7 @@ import java.util.*;
  * <ul>
  *   <li>All vertices with their node IDs</li>
  *   <li>All edges with type, weight, label, and endpoint metadata</li>
- *   <li>Graph metadata (timestamp, node count, edge count)</li>
+ *   <li>Graph metadata (timestamp, node count, Edge count)</li>
  *   <li>GraphML key definitions for custom attributes</li>
  * </ul>
  *
@@ -32,8 +32,8 @@ import java.util.*;
  */
 public class GraphMLExporter {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> allEdges;
     private String timestamp;
     private String description;
 
@@ -43,12 +43,12 @@ public class GraphMLExporter {
      * @param graph    the JUNG graph to export
      * @param allEdges all edges (including those not currently visible in graph)
      */
-    public GraphMLExporter(Graph<String, edge> graph, List<edge> allEdges) {
+    public GraphMLExporter(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<edge>();
+        this.allEdges = (allEdges != null) ? allEdges : new ArrayList<Edge>();
         this.timestamp = "";
         this.description = "";
     }
@@ -109,9 +109,9 @@ public class GraphMLExporter {
      * @return the complete GraphML XML as a string
      */
     public String exportToString() {
-        List<edge> edgesToExport = !allEdges.isEmpty()
+        List<Edge> edgesToExport = !allEdges.isEmpty()
                 ? allEdges
-                : new ArrayList<edge>(graph.getEdges());
+                : new ArrayList<Edge>(graph.getEdges());
         return exportToString(edgesToExport);
     }
 
@@ -121,7 +121,7 @@ public class GraphMLExporter {
      * @return GraphML XML string with only visible edges
      */
     public String exportVisibleToString() {
-        return exportToString(new ArrayList<edge>(graph.getEdges()));
+        return exportToString(new ArrayList<Edge>(graph.getEdges()));
     }
 
     /**
@@ -130,7 +130,7 @@ public class GraphMLExporter {
      * @param edgesToExport the edges to include in the export
      * @return the complete GraphML XML as a string
      */
-    private String exportToString(List<edge> edgesToExport) {
+    private String exportToString(List<Edge> edgesToExport) {
         StringBuilder sb = new StringBuilder();
 
         // XML header
@@ -179,9 +179,9 @@ public class GraphMLExporter {
         // Edges — use the provided edgesToExport list
 
         int edgeIndex = 0;
-        for (edge e : edgesToExport) {
+        for (Edge e : edgesToExport) {
             String edgeId = "e" + edgeIndex++;
-            sb.append("    <edge id=\"").append(edgeId).append("\"");
+            sb.append("    <Edge id=\"").append(edgeId).append("\"");
             sb.append(" source=\"").append(escapeXml(e.getVertex1())).append("\"");
             sb.append(" target=\"").append(escapeXml(e.getVertex2())).append("\">\n");
 

@@ -57,7 +57,7 @@ import java.util.*;
  */
 public class MetricDimensionAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private List<String> vertices;
     private int n;
     private int[][] dist;
@@ -73,7 +73,7 @@ public class MetricDimensionAnalyzer {
     /** Maximum vertex count for exact computation. */
     private static final int EXACT_LIMIT = 30;
 
-    public MetricDimensionAnalyzer(Graph<String, edge> graph) {
+    public MetricDimensionAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

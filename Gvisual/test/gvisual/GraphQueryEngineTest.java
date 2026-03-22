@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  */
 public class GraphQueryEngineTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private GraphQueryEngine engine;
 
     @Before
@@ -31,10 +31,10 @@ public class GraphQueryEngineTest {
         graph.addVertex("D");
         graph.addVertex("E");
 
-        edge e1 = new edge("f", "A", "B"); e1.setWeight(1.0f);
-        edge e2 = new edge("c", "B", "C"); e2.setWeight(2.5f);
-        edge e3 = new edge("f", "C", "D"); e3.setWeight(0.5f);
-        edge e4 = new edge("s", "B", "D"); e4.setWeight(3.0f);
+        Edge e1 = new Edge("f", "A", "B"); e1.setWeight(1.0f);
+        Edge e2 = new Edge("c", "B", "C"); e2.setWeight(2.5f);
+        Edge e3 = new Edge("f", "C", "D"); e3.setWeight(0.5f);
+        Edge e4 = new Edge("s", "B", "D"); e4.setWeight(3.0f);
 
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
@@ -108,26 +108,26 @@ public class GraphQueryEngineTest {
 
     @Test
     public void testEdgeMinWeight() {
-        Set<edge> result = engine.edges().withMinWeight(2.0f).results();
+        Set<Edge> result = engine.edges().withMinWeight(2.0f).results();
         assertEquals(2, result.size()); // c=2.5, s=3.0
     }
 
     @Test
     public void testEdgeBetweenNodes() {
         Set<String> subset = new HashSet<>(Arrays.asList("B", "C", "D"));
-        Set<edge> result = engine.edges().betweenNodes(subset).results();
+        Set<Edge> result = engine.edges().betweenNodes(subset).results();
         assertEquals(3, result.size()); // B-C, C-D, B-D
     }
 
     @Test
     public void testEdgeIncidentTo() {
-        Set<edge> result = engine.edges().incidentTo("A").results();
+        Set<Edge> result = engine.edges().incidentTo("A").results();
         assertEquals(1, result.size());
     }
 
     @Test
     public void testEdgeSortedByWeight() {
-        List<edge> sorted = engine.edges().sortedByWeight();
+        List<Edge> sorted = engine.edges().sortedByWeight();
         assertEquals(3.0f, sorted.get(0).getWeight(), 0.001f);
     }
 
@@ -142,7 +142,7 @@ public class GraphQueryEngineTest {
     @Test
     public void testChainedFilters() {
         // Edges of type "f" with weight >= 1.0
-        Set<edge> result = engine.edges().ofType("f").withMinWeight(1.0f).results();
+        Set<Edge> result = engine.edges().ofType("f").withMinWeight(1.0f).results();
         assertEquals(1, result.size()); // only A-B (w=1.0), C-D has w=0.5
     }
 
@@ -176,7 +176,7 @@ public class GraphQueryEngineTest {
 
     @Test
     public void testTemporalEdgeQuery() {
-        edge te = new edge("f", "A", "E");
+        Edge te = new Edge("f", "A", "E");
         te.setTimestamp(1000L);
         te.setEndTimestamp(2000L);
         graph.addEdge(te, "A", "E");

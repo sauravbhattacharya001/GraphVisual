@@ -43,7 +43,7 @@ public class GraphColoringAnalyzer {
         DSATUR
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Creates a new GraphColoringAnalyzer for the given graph.
@@ -51,7 +51,7 @@ public class GraphColoringAnalyzer {
      * @param graph the JUNG graph to color
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphColoringAnalyzer(Graph<String, edge> graph) {
+    public GraphColoringAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -395,7 +395,7 @@ public class GraphColoringAnalyzer {
             throw new IllegalArgumentException("Assignment must not be null");
         }
         List<String[]> conflicts = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             Integer c1 = assignment.get(v1);
@@ -674,7 +674,7 @@ public class GraphColoringAnalyzer {
     }
 
     private boolean validate(Map<String, Integer> assignment) {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = graph.getEndpoints(e).getFirst();
             String v2 = graph.getEndpoints(e).getSecond();
             Integer c1 = assignment.get(v1);

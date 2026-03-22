@@ -16,29 +16,29 @@ import static org.junit.Assert.*;
  */
 public class GrowthRateAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
     }
 
     // ─── Helper methods ───
 
-    private edge makeEdge(String type, String v1, String v2, long start, long end) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, long start, long end) {
+        Edge e = new Edge(type, v1, v2);
         e.setTimestamp(start);
         e.setEndTimestamp(end);
         return e;
     }
 
-    private edge makeEdge(String type, String v1, String v2, long timestamp) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, long timestamp) {
+        Edge e = new Edge(type, v1, v2);
         e.setTimestamp(timestamp);
         return e;
     }
 
-    private void addEdge(Graph<String, edge> g, edge e) {
+    private void addEdge(Graph<String, Edge> g, Edge e) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         if (!g.containsVertex(v1)) g.addVertex(v1);
@@ -67,7 +67,7 @@ public class GrowthRateAnalyzerTest {
 
     @Test
     public void testConstructor_validArguments() {
-        edge e = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e = makeEdge("f", "A", "B", 100L, 200L);
         addEdge(graph, e);
         TemporalGraph tg = new TemporalGraph(graph);
         GrowthRateAnalyzer analyzer = new GrowthRateAnalyzer(tg, 3);
@@ -76,7 +76,7 @@ public class GrowthRateAnalyzerTest {
 
     @Test
     public void testConstructor_singleWindow() {
-        edge e = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e = makeEdge("f", "A", "B", 100L, 200L);
         addEdge(graph, e);
         TemporalGraph tg = new TemporalGraph(graph);
         GrowthRateAnalyzer analyzer = new GrowthRateAnalyzer(tg, 1);
@@ -87,7 +87,7 @@ public class GrowthRateAnalyzerTest {
 
     @Test
     public void testAnalyze_singleWindowSingleEdge() {
-        edge e = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e = makeEdge("f", "A", "B", 100L, 200L);
         addEdge(graph, e);
         TemporalGraph tg = new TemporalGraph(graph);
         GrowthRateAnalyzer analyzer = new GrowthRateAnalyzer(tg, 1);
@@ -101,9 +101,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_multipleWindows() {
         // Build a growing graph: edges appear at different times
-        edge e1 = makeEdge("f", "A", "B", 100L, 500L);
-        edge e2 = makeEdge("f", "B", "C", 200L, 500L);
-        edge e3 = makeEdge("f", "C", "D", 300L, 500L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 500L);
+        Edge e2 = makeEdge("f", "B", "C", 200L, 500L);
+        Edge e3 = makeEdge("f", "C", "D", 300L, 500L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -123,8 +123,8 @@ public class GrowthRateAnalyzerTest {
 
     @Test
     public void testAnalyze_snapshotsAreOrdered() {
-        edge e1 = makeEdge("f", "A", "B", 100L, 400L);
-        edge e2 = makeEdge("f", "C", "D", 200L, 400L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 400L);
+        Edge e2 = makeEdge("f", "C", "D", 200L, 400L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -140,11 +140,11 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_growingNetwork() {
         // Phase 1: 1 edge (t=0..1000)
-        edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
         addEdge(graph, e1);
         // Phase 2: 2 more edges (t=500..1000)
-        edge e2 = makeEdge("f", "B", "C", 500L, 1000L);
-        edge e3 = makeEdge("f", "C", "A", 500L, 1000L);
+        Edge e2 = makeEdge("f", "B", "C", 500L, 1000L);
+        Edge e3 = makeEdge("f", "C", "A", 500L, 1000L);
         addEdge(graph, e2);
         addEdge(graph, e3);
 
@@ -162,9 +162,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_densityOfCompleteTriangle() {
         // Triangle: 3 nodes, 3 edges → density = 3/3 = 1.0
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "A", "C", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "A", "C", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -179,8 +179,8 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_densityOfPath() {
         // Path A-B-C: 3 nodes, 2 edges → density = 2/3 ≈ 0.667
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -194,7 +194,7 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_densityOfSingleEdge() {
         // 2 nodes, 1 edge → density = 1/1 = 1.0
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
         addEdge(graph, e1);
 
         TemporalGraph tg = new TemporalGraph(graph);
@@ -209,9 +209,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_clusteringOfTriangle() {
         // Complete triangle: all neighbors are connected → clustering = 1.0
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "A", "C", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "A", "C", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -228,8 +228,8 @@ public class GrowthRateAnalyzerTest {
         // Path A-B-C: B has 2 neighbors not connected → clustering(B) = 0
         // A and C each have 1 neighbor → clustering = 0
         // Average = 0
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -244,10 +244,10 @@ public class GrowthRateAnalyzerTest {
     public void testAnalyze_clusteringOfStar() {
         // Star: A connected to B,C,D,E but no connections among B,C,D,E
         // clustering(A) = 0 (no triangles), others have degree 1 (skip)
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "A", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "A", "D", 100L, 200L);
-        edge e4 = makeEdge("f", "A", "E", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "A", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "A", "D", 100L, 200L);
+        Edge e4 = makeEdge("f", "A", "E", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -265,10 +265,10 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testEdgeGrowthRate_growingNetwork() {
         // Edges appearing over time: should have positive growth rate
-        edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
-        edge e2 = makeEdge("f", "B", "C", 250L, 1000L);
-        edge e3 = makeEdge("f", "C", "D", 500L, 1000L);
-        edge e4 = makeEdge("f", "D", "E", 750L, 1000L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
+        Edge e2 = makeEdge("f", "B", "C", 250L, 1000L);
+        Edge e3 = makeEdge("f", "C", "D", 500L, 1000L);
+        Edge e4 = makeEdge("f", "D", "E", 750L, 1000L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -284,9 +284,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testEdgeGrowthRate_shrinkingNetwork() {
         // Edges disappearing over time: should have negative growth rate
-        edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
-        edge e2 = makeEdge("f", "B", "C", 0L, 250L);
-        edge e3 = makeEdge("f", "C", "D", 0L, 500L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
+        Edge e2 = makeEdge("f", "B", "C", 0L, 250L);
+        Edge e3 = makeEdge("f", "C", "D", 0L, 500L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -301,9 +301,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testEdgeGrowthRate_stableNetwork() {
         // All edges active for entire duration: constant count → rate ≈ 0
-        edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
-        edge e2 = makeEdge("f", "B", "C", 0L, 1000L);
-        edge e3 = makeEdge("f", "C", "A", 0L, 1000L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
+        Edge e2 = makeEdge("f", "B", "C", 0L, 1000L);
+        Edge e3 = makeEdge("f", "C", "A", 0L, 1000L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -318,7 +318,7 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testEdgeGrowthRate_singleWindow() {
         // With only 1 window, can't compute regression → returns 0
-        edge e = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e = makeEdge("f", "A", "B", 100L, 200L);
         addEdge(graph, e);
 
         TemporalGraph tg = new TemporalGraph(graph);
@@ -358,8 +358,8 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_disconnectedComponents() {
         // Two disconnected edges at same time
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "C", "D", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "C", "D", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -376,9 +376,9 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_edgesWithDifferentTypes() {
         // Multiple edge types shouldn't affect metric computation
-        edge e1 = makeEdge("friendship", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("work", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("family", "C", "A", 100L, 200L);
+        Edge e1 = makeEdge("friendship", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("work", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("family", "C", "A", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -396,10 +396,10 @@ public class GrowthRateAnalyzerTest {
     public void testAnalyze_windowWithNoEdges() {
         // Edge only active in first half of time range
         // Last windows should have 0 edges
-        edge e1 = makeEdge("f", "A", "B", 0L, 100L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 100L);
         addEdge(graph, e1);
         // Add another edge later to extend time range
-        edge e2 = makeEdge("f", "C", "D", 900L, 1000L);
+        Edge e2 = makeEdge("f", "C", "D", 900L, 1000L);
         addEdge(graph, e2);
 
         TemporalGraph tg = new TemporalGraph(graph);
@@ -426,7 +426,7 @@ public class GrowthRateAnalyzerTest {
         int id = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = i + 1; j < 4; j++) {
-                edge e = makeEdge("f", verts[i], verts[j], 100L, 200L);
+                Edge e = makeEdge("f", verts[i], verts[j], 100L, 200L);
                 addEdge(graph, e);
                 id++;
             }
@@ -446,8 +446,8 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_manyWindows() {
         // Test with many windows (10)
-        edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
-        edge e2 = makeEdge("f", "B", "C", 500L, 1000L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 1000L);
+        Edge e2 = makeEdge("f", "B", "C", 500L, 1000L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -465,7 +465,7 @@ public class GrowthRateAnalyzerTest {
             String v1 = "V" + i;
             String v2 = "V" + (i + 1);
             long start = i * 100L;
-            edge e = makeEdge("f", v1, v2, start, 1000L);
+            Edge e = makeEdge("f", v1, v2, start, 1000L);
             addEdge(graph, e);
         }
 
@@ -478,7 +478,7 @@ public class GrowthRateAnalyzerTest {
 
     @Test
     public void testAnalyze_snapshotCountMatchesWindowCount() {
-        edge e = makeEdge("f", "A", "B", 0L, 100L);
+        Edge e = makeEdge("f", "A", "B", 0L, 100L);
         addEdge(graph, e);
         TemporalGraph tg = new TemporalGraph(graph);
 
@@ -493,9 +493,9 @@ public class GrowthRateAnalyzerTest {
     public void testEdgeGrowthRate_twoWindows() {
         // 2 windows: window 1 has 1 edge, window 2 has 3 edges
         // slope = (3-1)/1 = 2.0
-        edge e1 = makeEdge("f", "A", "B", 0L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "C", "D", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "C", "D", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -510,8 +510,8 @@ public class GrowthRateAnalyzerTest {
     @Test
     public void testAnalyze_densityWithEmptyWindow() {
         // Windows with 0 or 1 nodes should have density 0
-        edge e1 = makeEdge("f", "A", "B", 0L, 50L);
-        edge e2 = makeEdge("f", "C", "D", 950L, 1000L);
+        Edge e1 = makeEdge("f", "A", "B", 0L, 50L);
+        Edge e2 = makeEdge("f", "C", "D", 950L, 1000L);
         addEdge(graph, e1);
         addEdge(graph, e2);
 
@@ -530,10 +530,10 @@ public class GrowthRateAnalyzerTest {
     public void testAnalyze_clusteringWithPartialTriangles() {
         // Square: A-B-C-D-A (4 nodes, 4 edges, no diagonals)
         // Each node has degree 2, neighbors not connected → clustering = 0
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "C", "D", 100L, 200L);
-        edge e4 = makeEdge("f", "D", "A", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "C", "D", 100L, 200L);
+        Edge e4 = makeEdge("f", "D", "A", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);
@@ -555,11 +555,11 @@ public class GrowthRateAnalyzerTest {
         // C: neighbors A,B,D; pairs: (A,B)=yes, (A,D)=yes, (B,D)=no → 2/3
         // D: neighbors A,C; pair (A,C)=yes → 1/1 = 1.0
         // Average = (2/3 + 1 + 2/3 + 1) / 4 = (10/3) / 4 ≈ 0.833
-        edge e1 = makeEdge("f", "A", "B", 100L, 200L);
-        edge e2 = makeEdge("f", "B", "C", 100L, 200L);
-        edge e3 = makeEdge("f", "C", "D", 100L, 200L);
-        edge e4 = makeEdge("f", "D", "A", 100L, 200L);
-        edge e5 = makeEdge("f", "A", "C", 100L, 200L);
+        Edge e1 = makeEdge("f", "A", "B", 100L, 200L);
+        Edge e2 = makeEdge("f", "B", "C", 100L, 200L);
+        Edge e3 = makeEdge("f", "C", "D", 100L, 200L);
+        Edge e4 = makeEdge("f", "D", "A", 100L, 200L);
+        Edge e5 = makeEdge("f", "A", "C", 100L, 200L);
         addEdge(graph, e1);
         addEdge(graph, e2);
         addEdge(graph, e3);

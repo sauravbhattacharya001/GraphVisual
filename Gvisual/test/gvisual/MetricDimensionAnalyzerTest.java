@@ -15,41 +15,41 @@ public class MetricDimensionAnalyzerTest {
 
     // ── Graph builders ──────────────────────────────────────────────
 
-    private Graph<String, edge> makeGraph(String[][] edges) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> makeGraph(String[][] edges) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (String[] e : edges) {
             g.addVertex(e[0]);
             g.addVertex(e[1]);
-            edge ed = new edge("e", e[0], e[1]);
+            Edge ed = new Edge("e", e[0], e[1]);
             ed.setLabel(e[0] + "-" + e[1]);
             g.addEdge(ed, e[0], e[1]);
         }
         return g;
     }
 
-    private Graph<String, edge> emptyGraph() {
-        return new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> emptyGraph() {
+        return new UndirectedSparseGraph<String, Edge>();
     }
 
-    private Graph<String, edge> singleVertex() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> singleVertex() {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         return g;
     }
 
-    private Graph<String, edge> path(String... nodes) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> path(String... nodes) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (String v : nodes) g.addVertex(v);
         for (int i = 0; i < nodes.length - 1; i++) {
-            edge e = new edge("e", nodes[i], nodes[i + 1]);
+            Edge e = new Edge("e", nodes[i], nodes[i + 1]);
             e.setLabel(nodes[i] + "-" + nodes[i + 1]);
             g.addEdge(e, nodes[i], nodes[i + 1]);
         }
         return g;
     }
 
-    private Graph<String, edge> cycle(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> cycle(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         String[] v = new String[n];
         for (int i = 0; i < n; i++) {
             v[i] = String.valueOf((char) ('A' + i));
@@ -57,15 +57,15 @@ public class MetricDimensionAnalyzerTest {
         }
         for (int i = 0; i < n; i++) {
             String a = v[i], b = v[(i + 1) % n];
-            edge e = new edge("e", a, b);
+            Edge e = new Edge("e", a, b);
             e.setLabel(a + "-" + b);
             g.addEdge(e, a, b);
         }
         return g;
     }
 
-    private Graph<String, edge> complete(int n) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> complete(int n) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         String[] v = new String[n];
         for (int i = 0; i < n; i++) {
             v[i] = String.valueOf((char) ('A' + i));
@@ -73,7 +73,7 @@ public class MetricDimensionAnalyzerTest {
         }
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                edge e = new edge("e", v[i], v[j]);
+                Edge e = new Edge("e", v[i], v[j]);
                 e.setLabel(v[i] + "-" + v[j]);
                 g.addEdge(e, v[i], v[j]);
             }
@@ -81,41 +81,41 @@ public class MetricDimensionAnalyzerTest {
         return g;
     }
 
-    private Graph<String, edge> star(int leaves) {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+    private Graph<String, Edge> star(int leaves) {
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("C");
         for (int i = 0; i < leaves; i++) {
             String v = "L" + i;
             g.addVertex(v);
-            edge e = new edge("e", "C", v);
+            Edge e = new Edge("e", "C", v);
             e.setLabel("C-" + v);
             g.addEdge(e, "C", v);
         }
         return g;
     }
 
-    private Graph<String, edge> petersen() {
+    private Graph<String, Edge> petersen() {
         // Petersen graph: outer cycle 0-4, inner pentagram 5-9
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (int i = 0; i < 10; i++) g.addVertex("V" + i);
         // Outer cycle: 0-1-2-3-4-0
         int[][] outer = {{0,1},{1,2},{2,3},{3,4},{4,0}};
         for (int[] e : outer) {
-            edge ed = new edge("e", "V" + e[0], "V" + e[1]);
+            Edge ed = new Edge("e", "V" + e[0], "V" + e[1]);
             ed.setLabel("V" + e[0] + "-V" + e[1]);
             g.addEdge(ed, "V" + e[0], "V" + e[1]);
         }
         // Inner pentagram: 5-7, 7-9, 9-6, 6-8, 8-5
         int[][] inner = {{5,7},{7,9},{9,6},{6,8},{8,5}};
         for (int[] e : inner) {
-            edge ed = new edge("e", "V" + e[0], "V" + e[1]);
+            Edge ed = new Edge("e", "V" + e[0], "V" + e[1]);
             ed.setLabel("V" + e[0] + "-V" + e[1]);
             g.addEdge(ed, "V" + e[0], "V" + e[1]);
         }
         // Spokes: 0-5, 1-6, 2-7, 3-8, 4-9
         int[][] spokes = {{0,5},{1,6},{2,7},{3,8},{4,9}};
         for (int[] e : spokes) {
-            edge ed = new edge("e", "V" + e[0], "V" + e[1]);
+            Edge ed = new Edge("e", "V" + e[0], "V" + e[1]);
             ed.setLabel("V" + e[0] + "-V" + e[1]);
             g.addEdge(ed, "V" + e[0], "V" + e[1]);
         }
@@ -258,7 +258,7 @@ public class MetricDimensionAnalyzerTest {
 
     @Test
     public void testDistanceMatrixDisconnected() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         MetricDimensionAnalyzer a = new MetricDimensionAnalyzer(g);
@@ -527,11 +527,11 @@ public class MetricDimensionAnalyzerTest {
 
     @Test
     public void testDisconnectedGraph() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         g.addVertex("C");
-        edge e = new edge("e", "A", "B");
+        Edge e = new Edge("e", "A", "B");
         e.setLabel("A-B");
         g.addEdge(e, "A", "B");
         // C is isolated — disconnected graph
@@ -543,7 +543,7 @@ public class MetricDimensionAnalyzerTest {
 
     @Test
     public void testTwoIsolatedVertices() {
-        Graph<String, edge> g = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A");
         g.addVertex("B");
         MetricDimensionAnalyzer a = new MetricDimensionAnalyzer(g);

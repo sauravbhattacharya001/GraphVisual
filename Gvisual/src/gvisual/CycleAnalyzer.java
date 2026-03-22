@@ -34,7 +34,7 @@ import java.util.*;
  */
 public class CycleAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final boolean isDirected;
 
     /**
@@ -43,7 +43,7 @@ public class CycleAnalyzer {
      * @param graph the JUNG graph to analyze (directed or undirected)
      * @throws IllegalArgumentException if graph is null
      */
-    public CycleAnalyzer(Graph<String, edge> graph) {
+    public CycleAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -72,12 +72,12 @@ public class CycleAnalyzer {
         public int length() { return vertices.size(); }
 
         /** Total weight of all edges in the cycle (0 if no weights). */
-        public float totalWeight(Graph<String, edge> graph) {
+        public float totalWeight(Graph<String, Edge> graph) {
             float w = 0;
             for (int i = 0; i < vertices.size(); i++) {
                 String from = vertices.get(i);
                 String to = vertices.get((i + 1) % vertices.size());
-                edge e = graph.findEdge(from, to);
+                Edge e = graph.findEdge(from, to);
                 if (e == null) e = graph.findEdge(to, from);
                 if (e != null) w += e.getWeight();
             }
@@ -390,7 +390,7 @@ public class CycleAnalyzer {
         }
 
         // Each non-tree edge defines a fundamental cycle
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 == null || v2 == null) continue;

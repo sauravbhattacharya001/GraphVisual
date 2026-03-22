@@ -20,13 +20,13 @@ public class EulerianPathAnalyzerTest {
 
     private int edgeId = 0;
 
-    private Graph<String, edge> newGraph() {
+    private Graph<String, Edge> newGraph() {
         edgeId = 0;
-        return new UndirectedSparseGraph<String, edge>();
+        return new UndirectedSparseGraph<String, Edge>();
     }
 
-    private void addEdge(Graph<String, edge> g, String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private void addEdge(Graph<String, Edge> g, String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setLabel("e" + (edgeId++));
         g.addEdge(e, v1, v2);
     }
@@ -35,7 +35,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testTriangleIsEulerianCircuit() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -49,7 +49,7 @@ public class EulerianPathAnalyzerTest {
     public void testSquareWithDiagonalsIsEulerianCircuit() {
         // K4 minus one edge won't work; use a proper even-degree graph
         // Square: A-B-C-D-A, all degree 2
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -61,7 +61,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testK4IsNotEulerian() {
         // K4: every vertex has degree 3 (odd)
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "C");
         addEdge(g, "A", "D");
@@ -78,7 +78,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testSimplePathGraph() {
         // A-B-C: A and C have degree 1 (odd), B has degree 2 (even)
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -91,7 +91,7 @@ public class EulerianPathAnalyzerTest {
     public void testKoenigsbergBridges() {
         // Classic 7-bridges problem (simplified): 4 vertices, 7 edges
         // All vertices have odd degree → NOT_EULERIAN
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "B"); // multi-edge simulated with different edge objects
         addEdge(g, "A", "C");
@@ -108,7 +108,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testFindCircuitInTriangle() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -123,7 +123,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testFindPathInLinearGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -136,7 +136,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testNoPathInK4() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "C");
         addEdge(g, "A", "D");
@@ -150,7 +150,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testFindPathVisitsAllEdges() {
         // House graph: square + triangle on top
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -168,7 +168,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testEmptyGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
         EulerianPathAnalyzer.EulerianAnalysis result = analyzer.analyze();
         assertEquals(EulerianPathAnalyzer.EulerianType.EULERIAN_CIRCUIT, result.getType());
@@ -176,7 +176,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testSingleVertex() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         g.addVertex("A");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
         assertEquals(EulerianPathAnalyzer.EulerianType.EULERIAN_CIRCUIT, analyzer.analyze().getType());
@@ -184,7 +184,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testSingleEdge() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
         assertEquals(EulerianPathAnalyzer.EulerianType.EULERIAN_PATH, analyzer.analyze().getType());
@@ -197,7 +197,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testDisconnectedGraphNotEulerian() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "C", "D");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -208,7 +208,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testIsolatedVerticesIgnored() {
         // Triangle + isolated vertex → still Eulerian circuit
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -221,7 +221,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testDegreeMapCorrect() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -234,7 +234,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testDegreeMapImmutable() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
         Map<String, Integer> degrees = analyzer.analyze().getDegreeMap();
@@ -250,7 +250,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testSuggestEdgesForEulerianOnEulerianGraph() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -260,7 +260,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testSuggestEdgesForK4() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "C");
         addEdge(g, "A", "D");
@@ -276,7 +276,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testEdgeConnectivityTriangle() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -287,7 +287,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testEdgeConnectivityBridge() {
         // A-B-C: bridge at B
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -296,7 +296,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testEdgeConnectivitySingleVertex() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         g.addVertex("A");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
         assertEquals(0, analyzer.computeEdgeConnectivity());
@@ -306,7 +306,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testReportContainsType() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -319,7 +319,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testReportForNonEulerian() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "C");
         addEdge(g, "A", "D");
@@ -335,7 +335,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testReportForPath() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -347,7 +347,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testMinDuplicationsEulerianCircuit() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -357,7 +357,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testMinDuplicationsEulerianPath() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -366,7 +366,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testMinDuplicationsK4() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "A", "C");
         addEdge(g, "A", "D");
@@ -382,7 +382,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testPetersenGraphNotEulerian() {
         // Petersen graph: 10 vertices, 15 edges, all degree 3
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         // Outer cycle
         addEdge(g, "0", "1"); addEdge(g, "1", "2"); addEdge(g, "2", "3");
         addEdge(g, "3", "4"); addEdge(g, "4", "0");
@@ -400,7 +400,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testCompleteGraphK5HasEulerianCircuit() {
         // K5: 5 vertices, 10 edges, all degree 4 (even) → Eulerian circuit
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         String[] v = {"A", "B", "C", "D", "E"};
         for (int i = 0; i < v.length; i++) {
             for (int j = i + 1; j < v.length; j++) {
@@ -418,7 +418,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testCircuitPathReturnsToStart() {
         // Square graph
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -436,7 +436,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testAnalysisTotalEdges() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -446,7 +446,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testAnalysisTotalVertices() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         g.addVertex("D");
@@ -456,7 +456,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testAnalysisConnected() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -465,7 +465,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testAnalysisDisconnected() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "C", "D");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);
@@ -474,7 +474,7 @@ public class EulerianPathAnalyzerTest {
 
     @Test
     public void testPathResultImmutable() {
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "A");
@@ -493,7 +493,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testStarGraphNotEulerian() {
         // Star with 5 leaves: center has degree 5, leaves have degree 1
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         for (int i = 1; i <= 5; i++) {
             addEdge(g, "center", "leaf" + i);
         }
@@ -504,7 +504,7 @@ public class EulerianPathAnalyzerTest {
     @Test
     public void testStarWithEvenLeaves() {
         // Star with 2 leaves: center degree 2, leaves degree 1 → Eulerian path
-        Graph<String, edge> g = newGraph();
+        Graph<String, Edge> g = newGraph();
         addEdge(g, "center", "A");
         addEdge(g, "center", "B");
         EulerianPathAnalyzer analyzer = new EulerianPathAnalyzer(g);

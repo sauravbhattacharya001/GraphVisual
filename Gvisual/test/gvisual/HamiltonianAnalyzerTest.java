@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 public class HamiltonianAnalyzerTest {
 
     private HamiltonianAnalyzer analyzer;
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private int edgeId;
 
     @Before
@@ -25,8 +25,8 @@ public class HamiltonianAnalyzerTest {
         edgeId = 0;
     }
 
-    private edge addEdge(String v1, String v2) {
-        edge e = new edge("f", v1, v2);
+    private Edge addEdge(String v1, String v2) {
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(1.0f);
         e.setLabel("e" + (edgeId++));
         if (!graph.containsVertex(v1)) graph.addVertex(v1);

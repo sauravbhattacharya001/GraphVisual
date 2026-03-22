@@ -43,7 +43,7 @@ import java.util.*;
  */
 public class GraphSampler {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Random rng;
 
     /**
@@ -52,7 +52,7 @@ public class GraphSampler {
      * @param graph the source graph
      * @throws IllegalArgumentException if graph is null
      */
-    public GraphSampler(Graph<String, edge> graph) {
+    public GraphSampler(Graph<String, Edge> graph) {
         this(graph, new Random());
     }
 
@@ -62,7 +62,7 @@ public class GraphSampler {
      * @param graph the source graph
      * @param rng   random number generator
      */
-    public GraphSampler(Graph<String, edge> graph, Random rng) {
+    public GraphSampler(Graph<String, Edge> graph, Random rng) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         if (rng == null) throw new IllegalArgumentException("RNG must not be null");
         this.graph = graph;
@@ -107,13 +107,13 @@ public class GraphSampler {
         int m = graph.getEdgeCount();
         int target = Math.max(1, (int) Math.ceil(m * fraction));
 
-        List<edge> edges = new ArrayList<edge>(graph.getEdges());
+        List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
         Collections.shuffle(edges, rng);
 
         Set<String> sampled = new LinkedHashSet<String>();
-        Set<edge> sampledEdges = new LinkedHashSet<edge>();
+        Set<Edge> sampledEdges = new LinkedHashSet<Edge>();
         for (int i = 0; i < Math.min(target, edges.size()); i++) {
-            edge e = edges.get(i);
+            Edge e = edges.get(i);
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints != null && endpoints.size() == 2) {
                 Iterator<String> it = endpoints.iterator();
@@ -351,19 +351,19 @@ public class GraphSampler {
      * Build a SampleResult by inducing the subgraph on the sampled nodes.
      */
     private SampleResult buildResult(Set<String> sampledNodes, String strategy) {
-        Graph<String, edge> sample = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> sample = new UndirectedSparseGraph<String, Edge>();
         for (String v : sampledNodes) {
             sample.addVertex(v);
         }
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints == null || endpoints.size() < 2) continue;
             Iterator<String> it = endpoints.iterator();
             String v1 = it.next();
             String v2 = it.next();
             if (sampledNodes.contains(v1) && sampledNodes.contains(v2)) {
-                edge copy = new edge(e.getType(), v1, v2);
+                Edge copy = new Edge(e.getType(), v1, v2);
                 copy.setWeight(e.getWeight());
                 copy.setLabel(e.getLabel());
                 if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
@@ -377,23 +377,23 @@ public class GraphSampler {
     }
 
     /**
-     * Build a SampleResult from pre-selected edges (for edge sampling).
+     * Build a SampleResult from pre-selected edges (for Edge sampling).
      */
     private SampleResult buildResultFromEdges(Set<String> sampledNodes,
-                                              Set<edge> sampledEdges,
+                                              Set<Edge> sampledEdges,
                                               String strategy) {
-        Graph<String, edge> sample = new UndirectedSparseGraph<String, edge>();
+        Graph<String, Edge> sample = new UndirectedSparseGraph<String, Edge>();
         for (String v : sampledNodes) {
             sample.addVertex(v);
         }
 
-        for (edge e : sampledEdges) {
+        for (Edge e : sampledEdges) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints == null || endpoints.size() < 2) continue;
             Iterator<String> it = endpoints.iterator();
             String v1 = it.next();
             String v2 = it.next();
-            edge copy = new edge(e.getType(), v1, v2);
+            Edge copy = new Edge(e.getType(), v1, v2);
             copy.setWeight(e.getWeight());
             copy.setLabel(e.getLabel());
             if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
@@ -403,7 +403,7 @@ public class GraphSampler {
 
         // Also add any induced edges between sampled nodes that weren't
         // directly selected (edges between endpoints of sampled edges)
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (sampledEdges.contains(e)) continue;
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints == null || endpoints.size() < 2) continue;
@@ -412,7 +412,7 @@ public class GraphSampler {
             String v2 = it.next();
             if (sampledNodes.contains(v1) && sampledNodes.contains(v2)
                     && sample.findEdge(v1, v2) == null) {
-                edge copy = new edge(e.getType(), v1, v2);
+                Edge copy = new Edge(e.getType(), v1, v2);
                 copy.setWeight(e.getWeight());
                 copy.setLabel(e.getLabel());
                 if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
@@ -434,7 +434,7 @@ public class GraphSampler {
      * representativeness metrics, and a summary.
      */
     public static class SampleResult {
-        private final Graph<String, edge> sample;
+        private final Graph<String, Edge> sample;
         private final int originalNodes;
         private final int originalEdges;
         private final String strategy;
@@ -444,7 +444,7 @@ public class GraphSampler {
         private final double originalDensity;
         private final int componentCount;
 
-        SampleResult(Graph<String, edge> sample, int originalNodes,
+        SampleResult(Graph<String, Edge> sample, int originalNodes,
                      int originalEdges, String strategy) {
             this.sample = sample;
             this.originalNodes = originalNodes;
@@ -467,7 +467,7 @@ public class GraphSampler {
         }
 
         /** The sampled subgraph. */
-        public Graph<String, edge> getSample() { return sample; }
+        public Graph<String, Edge> getSample() { return sample; }
 
         /** Number of nodes in the sample. */
         public int getNodeCount() { return sample.getVertexCount(); }

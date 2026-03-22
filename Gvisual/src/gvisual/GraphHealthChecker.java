@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
  */
 public class GraphHealthChecker {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
-    public GraphHealthChecker(Graph<String, edge> graph) {
+    public GraphHealthChecker(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
     }
 
@@ -53,9 +53,9 @@ public class GraphHealthChecker {
                 .collect(Collectors.toList());
     }
 
-    private List<edge> findSelfLoops() {
-        List<edge> loops = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+    private List<Edge> findSelfLoops() {
+        List<Edge> loops = new ArrayList<>();
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints != null && endpoints.size() == 1) {
                 loops.add(e);
@@ -72,7 +72,7 @@ public class GraphHealthChecker {
     private List<String[]> findParallelEdges() {
         Set<String> seen = new HashSet<>();
         List<String[]> duplicates = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> ep = graph.getEndpoints(e);
             if (ep == null || ep.size() < 2) continue;
             Iterator<String> it = ep.iterator();
@@ -136,9 +136,9 @@ public class GraphHealthChecker {
     }
 
     /** Bridge edges whose removal would increase component count. */
-    private List<edge> findBridges() {
+    private List<Edge> findBridges() {
         // Tarjan's bridge-finding via DFS
-        List<edge> bridges = new ArrayList<>();
+        List<Edge> bridges = new ArrayList<>();
         if (graph.getVertexCount() == 0) return bridges;
 
         Map<String, Integer> disc = new HashMap<>();
@@ -156,7 +156,7 @@ public class GraphHealthChecker {
 
     private void bridgeDfs(String u, String parent,
                            Map<String, Integer> disc, Map<String, Integer> low,
-                           Set<String> visited, int[] timer, List<edge> bridges) {
+                           Set<String> visited, int[] timer, List<Edge> bridges) {
         visited.add(u);
         disc.put(u, timer[0]);
         low.put(u, timer[0]);
@@ -167,7 +167,7 @@ public class GraphHealthChecker {
                 bridgeDfs(v, u, disc, low, visited, timer, bridges);
                 low.put(u, Math.min(low.get(u), low.get(v)));
                 if (low.get(v) > disc.get(u)) {
-                    edge bridgeEdge = graph.findEdge(u, v);
+                    Edge bridgeEdge = graph.findEdge(u, v);
                     if (bridgeEdge != null) bridges.add(bridgeEdge);
                 }
             } else if (!v.equals(parent)) {
@@ -284,11 +284,11 @@ public class GraphHealthChecker {
         public int edgeCount;
         public int score;
         public List<String> isolatedNodes = Collections.emptyList();
-        public List<edge> selfLoops = Collections.emptyList();
+        public List<Edge> selfLoops = Collections.emptyList();
         public List<String[]> parallelEdgePairs = Collections.emptyList();
         public List<Integer> componentSizes = Collections.emptyList();
         public List<String> degreeOutliers = Collections.emptyList();
-        public List<edge> bridges = Collections.emptyList();
+        public List<Edge> bridges = Collections.emptyList();
 
         /** Plain text summary. */
         public String toText() {

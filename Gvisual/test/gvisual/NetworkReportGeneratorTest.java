@@ -16,27 +16,27 @@ import static org.junit.Assert.*;
  */
 public class NetworkReportGeneratorTest {
 
-    private Graph<String, edge> graph;
-    private List<edge> friendEdges;
-    private List<edge> fsEdges;
-    private List<edge> classmateEdges;
-    private List<edge> strangerEdges;
-    private List<edge> studyGEdges;
+    private Graph<String, Edge> graph;
+    private List<Edge> friendEdges;
+    private List<Edge> fsEdges;
+    private List<Edge> classmateEdges;
+    private List<Edge> strangerEdges;
+    private List<Edge> studyGEdges;
 
     @Before
     public void setUp() {
-        graph = new UndirectedSparseGraph<String, edge>();
-        friendEdges = new ArrayList<edge>();
-        fsEdges = new ArrayList<edge>();
-        classmateEdges = new ArrayList<edge>();
-        strangerEdges = new ArrayList<edge>();
-        studyGEdges = new ArrayList<edge>();
+        graph = new UndirectedSparseGraph<String, Edge>();
+        friendEdges = new ArrayList<Edge>();
+        fsEdges = new ArrayList<Edge>();
+        classmateEdges = new ArrayList<Edge>();
+        strangerEdges = new ArrayList<Edge>();
+        studyGEdges = new ArrayList<Edge>();
     }
 
-    private edge addEdge(String v1, String v2, String type) {
+    private Edge addEdge(String v1, String v2, String type) {
         if (!graph.containsVertex(v1)) graph.addVertex(v1);
         if (!graph.containsVertex(v2)) graph.addVertex(v2);
-        edge e = new edge(type, v1, v2);
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
         return e;

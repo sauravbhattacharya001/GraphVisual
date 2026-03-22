@@ -50,8 +50,8 @@ import java.util.*;
  */
 public class SubgraphExtractor {
 
-    private final Graph<String, edge> sourceGraph;
-    private final List<edge> allEdges;
+    private final Graph<String, Edge> sourceGraph;
+    private final List<Edge> allEdges;
 
     // Filter state
     private final Set<String> allowedEdgeTypes = new HashSet<>();
@@ -72,7 +72,7 @@ public class SubgraphExtractor {
      * @param graph    the source JUNG graph
      * @param allEdges the full edge list (used for filtering before graph insertion)
      */
-    public SubgraphExtractor(Graph<String, edge> graph, List<edge> allEdges) {
+    public SubgraphExtractor(Graph<String, Edge> graph, List<Edge> allEdges) {
         if (graph == null) throw new IllegalArgumentException("graph must not be null");
         if (allEdges == null) throw new IllegalArgumentException("allEdges must not be null");
         this.sourceGraph = graph;
@@ -115,7 +115,7 @@ public class SubgraphExtractor {
     }
 
     /**
-     * After edge filtering, keep only nodes whose degree in the resulting
+     * After Edge filtering, keep only nodes whose degree in the resulting
      * subgraph falls within [minDegree, maxDegree].
      *
      * @param minDegree minimum degree (inclusive), or null for no lower bound
@@ -191,8 +191,8 @@ public class SubgraphExtractor {
         Set<String> candidateNodes = determineCandidateNodes();
 
         // Step 2: Filter edges
-        List<edge> filteredEdges = new ArrayList<>();
-        for (edge e : allEdges) {
+        List<Edge> filteredEdges = new ArrayList<>();
+        for (Edge e : allEdges) {
             if (!candidateNodes.contains(e.getVertex1()) || !candidateNodes.contains(e.getVertex2())) {
                 continue;
             }
@@ -212,7 +212,7 @@ public class SubgraphExtractor {
         }
 
         // Step 3: Build subgraph
-        Graph<String, edge> subgraph = new UndirectedSparseGraph<>();
+        Graph<String, Edge> subgraph = new UndirectedSparseGraph<>();
 
         // Add all candidate nodes first (unless connectedOnly)
         if (!connectedOnly) {
@@ -221,7 +221,7 @@ public class SubgraphExtractor {
             }
         }
 
-        for (edge e : filteredEdges) {
+        for (Edge e : filteredEdges) {
             subgraph.addVertex(e.getVertex1());
             subgraph.addVertex(e.getVertex2());
             subgraph.addEdge(e, e.getVertex1(), e.getVertex2());
@@ -299,15 +299,15 @@ public class SubgraphExtractor {
 
     /**
      * Holds the result of a subgraph extraction, including the extracted graph,
-     * the filtered edge list, and summary statistics.
+     * the filtered Edge list, and summary statistics.
      */
     public static class Result {
-        private final Graph<String, edge> graph;
-        private final List<edge> edges;
+        private final Graph<String, Edge> graph;
+        private final List<Edge> edges;
         private final int originalNodeCount;
         private final int originalEdgeCount;
 
-        Result(Graph<String, edge> graph, List<edge> edges,
+        Result(Graph<String, Edge> graph, List<Edge> edges,
                int originalNodeCount, int originalEdgeCount) {
             this.graph = graph;
             this.edges = Collections.unmodifiableList(new ArrayList<>(edges));
@@ -316,12 +316,12 @@ public class SubgraphExtractor {
         }
 
         /** Returns the extracted subgraph. */
-        public Graph<String, edge> getGraph() {
+        public Graph<String, Edge> getGraph() {
             return graph;
         }
 
         /** Returns the filtered edges in the subgraph. */
-        public List<edge> getEdges() {
+        public List<Edge> getEdges() {
             return edges;
         }
 
@@ -350,7 +350,7 @@ public class SubgraphExtractor {
         /** Returns a per-edge-type count breakdown. */
         public Map<String, Integer> getEdgeTypeBreakdown() {
             Map<String, Integer> breakdown = new TreeMap<>();
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 String type = e.getType();
                 EdgeType et = EdgeType.fromCode(type);
                 String label = et != null ? et.getDisplayLabel() : type;
@@ -397,7 +397,7 @@ public class SubgraphExtractor {
             try (PrintWriter pw = new PrintWriter(
                     new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
                 pw.println("source,target,type,weight,label");
-                for (edge e : edges) {
+                for (Edge e : edges) {
                     pw.printf("%s,%s,%s,%.2f,%s%n",
                             csvEscape(e.getVertex1()),
                             csvEscape(e.getVertex2()),
@@ -416,7 +416,7 @@ public class SubgraphExtractor {
         public String exportEdgeListToString() {
             StringBuilder sb = new StringBuilder();
             sb.append("source,target,type,weight,label\n");
-            for (edge e : edges) {
+            for (Edge e : edges) {
                 sb.append(String.format("%s,%s,%s,%.2f,%s%n",
                         csvEscape(e.getVertex1()),
                         csvEscape(e.getVertex2()),

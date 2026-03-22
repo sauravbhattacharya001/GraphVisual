@@ -38,7 +38,7 @@ import java.util.AbstractMap;
  */
 public class GraphAlgorithmAnimator {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, double[]> positions;
     private final int defaultWidth;
     private final int defaultHeight;
@@ -109,7 +109,7 @@ public class GraphAlgorithmAnimator {
      *
      * @param graph the graph to animate
      */
-    public GraphAlgorithmAnimator(Graph<String, edge> graph) {
+    public GraphAlgorithmAnimator(Graph<String, Edge> graph) {
         this(graph, 800, 600, 18);
     }
 
@@ -121,7 +121,7 @@ public class GraphAlgorithmAnimator {
      * @param height SVG viewport height
      * @param radius node circle radius
      */
-    public GraphAlgorithmAnimator(Graph<String, edge> graph,
+    public GraphAlgorithmAnimator(Graph<String, Edge> graph,
                                    int width, int height, int radius) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
@@ -137,7 +137,7 @@ public class GraphAlgorithmAnimator {
      * @param graph     the graph
      * @param positions map of vertex to {x, y} positions
      */
-    public GraphAlgorithmAnimator(Graph<String, edge> graph,
+    public GraphAlgorithmAnimator(Graph<String, Edge> graph,
                                    Map<String, double[]> positions) {
         this(graph, positions, 800, 600, 18);
     }
@@ -145,7 +145,7 @@ public class GraphAlgorithmAnimator {
     /**
      * Create an animator with pre-computed positions and custom dimensions.
      */
-    public GraphAlgorithmAnimator(Graph<String, edge> graph,
+    public GraphAlgorithmAnimator(Graph<String, Edge> graph,
                                    Map<String, double[]> positions,
                                    int width, int height, int radius) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
@@ -180,7 +180,7 @@ public class GraphAlgorithmAnimator {
             s.nodeColors.put(v, COLOR_UNVISITED);
             s.nodeLabels.put(v, v);
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             s.edgeColors.put(edgeKey(e), COLOR_UNVISITED);
         }
         return s;
@@ -222,7 +222,7 @@ public class GraphAlgorithmAnimator {
             Collections.sort(neighbors);
 
             for (String neighbor : neighbors) {
-                edge e = findEdge(current, neighbor);
+                Edge e = findEdge(current, neighbor);
                 if (e != null) {
                     s.edgeColors.put(edgeKey(e), COLOR_ACTIVE_EDGE);
                 }
@@ -307,7 +307,7 @@ public class GraphAlgorithmAnimator {
 
         for (String neighbor : neighbors) {
             if (!visited.contains(neighbor)) {
-                edge e = findEdge(current, neighbor);
+                Edge e = findEdge(current, neighbor);
                 if (e != null) {
                     s.edgeColors.put(edgeKey(e), COLOR_TREE_EDGE);
                 }
@@ -368,7 +368,7 @@ public class GraphAlgorithmAnimator {
 
             // Highlight the tree edge to this node
             if (prev.containsKey(u)) {
-                edge pe = findEdge(prev.get(u), u);
+                Edge pe = findEdge(prev.get(u), u);
                 if (pe != null) s.edgeColors.put(edgeKey(pe), COLOR_TREE_EDGE);
             }
 
@@ -380,7 +380,7 @@ public class GraphAlgorithmAnimator {
             for (String v : neighbors) {
                 if (finalized.contains(v)) continue;
 
-                edge e = findEdge(u, v);
+                Edge e = findEdge(u, v);
                 double weight = (e != null) ? Math.max(e.getWeight(), 0.001) : 1.0;
                 double alt = dist.get(u) + weight;
 
@@ -427,7 +427,7 @@ public class GraphAlgorithmAnimator {
         Map<String, String> edgeLabelOverrides = new LinkedHashMap<>();
 
         // Sort edges by weight
-        List<edge> sortedEdges = new ArrayList<>(graph.getEdges());
+        List<Edge> sortedEdges = new ArrayList<>(graph.getEdges());
         sortedEdges.sort(Comparator.comparingDouble(edge::getWeight));
 
         // Union-Find
@@ -447,7 +447,7 @@ public class GraphAlgorithmAnimator {
         int treeEdges = 0;
         double totalWeight = 0;
 
-        for (edge e : sortedEdges) {
+        for (Edge e : sortedEdges) {
             String u = e.getVertex1();
             String v = e.getVertex2();
             String ek = edgeKey(e);
@@ -614,7 +614,7 @@ public class GraphAlgorithmAnimator {
         int offsetY = 60;
 
         // Draw edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String ek = edgeKey(e);
             String color = frame.edgeColors.getOrDefault(ek, COLOR_UNVISITED);
             double[] p1 = positions.get(e.getVertex1());
@@ -789,15 +789,15 @@ public class GraphAlgorithmAnimator {
         }
     }
 
-    private String edgeKey(edge e) {
+    private String edgeKey(Edge e) {
         if (e == null) return "";
         String a = e.getVertex1();
         String b = e.getVertex2();
         return (a.compareTo(b) <= 0) ? a + "~~" + b : b + "~~" + a;
     }
 
-    private edge findEdge(String u, String v) {
-        edge e = graph.findEdge(u, v);
+    private Edge findEdge(String u, String v) {
+        Edge e = graph.findEdge(u, v);
         if (e == null) e = graph.findEdge(v, u);
         return e;
     }
@@ -858,7 +858,7 @@ public class GraphAlgorithmAnimator {
      * Compute a simple circular layout for the graph.
      */
     private static Map<String, double[]> computeLayout(
-            Graph<String, edge> graph, int width, int height, int radius) {
+            Graph<String, Edge> graph, int width, int height, int radius) {
         Map<String, double[]> pos = new LinkedHashMap<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);

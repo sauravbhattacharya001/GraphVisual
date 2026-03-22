@@ -26,7 +26,7 @@ import java.util.List;
  */
 public class AdjacencyMatrixHeatmap extends JPanel {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private List<String> nodeOrder;
     private final Map<String, Map<String, edge>> adjacency;
     private int cellSize = 12;
@@ -49,7 +49,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
     private static final Color HIGHLIGHT_COLOR = new Color(255, 255, 255, 40);
     private static final Color LABEL_COLOR = new Color(200, 200, 200);
 
-    public AdjacencyMatrixHeatmap(Graph<String, edge> graph) {
+    public AdjacencyMatrixHeatmap(Graph<String, Edge> graph) {
         this.graph = graph;
         this.adjacency = new HashMap<>();
         setBackground(BG_COLOR);
@@ -62,7 +62,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
 
     private void buildAdjacency() {
         adjacency.clear();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             adjacency.computeIfAbsent(v1, k -> new HashMap<>()).put(v2, e);
@@ -194,7 +194,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
             }
             Map<String, edge> rowMap = adjacency.get(hoveredRow);
             if (rowMap != null && rowMap.containsKey(hoveredCol)) {
-                edge ed = rowMap.get(hoveredCol);
+                Edge ed = rowMap.get(hoveredCol);
                 String type = getEdgeTypeName(ed.getType());
                 String weight = ed.getWeight() != 0 ? ", weight: " + ed.getWeight() : "";
                 return hoveredRow + " ↔ " + hoveredCol + " [" + type + weight + "]";
@@ -216,7 +216,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
         }
     }
 
-    private Color getEdgeColor(edge e) {
+    private Color getEdgeColor(Edge e) {
         if (e == null) return DEFAULT_COLOR;
         String type = e.getType();
         if (type == null) return DEFAULT_COLOR;
@@ -271,7 +271,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
                 } else {
                     Map<String, edge> rowMap = adjacency.get(nodeR);
                     if (rowMap != null && rowMap.containsKey(nodeC)) {
-                        edge e = rowMap.get(nodeC);
+                        Edge e = rowMap.get(nodeC);
                         Color base = getEdgeColor(e);
                         float alpha = e.getWeight() > 0 ? Math.min(1f, 0.4f + e.getWeight() * 0.1f) : 0.85f;
                         g.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(),
@@ -347,7 +347,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
         };
         for (int i = 0; i < legend.length; i++) {
             int ly = legendY + 20 + i * 22;
-            edge dummy = new edge(legend[i][1], "", "");
+            Edge dummy = new Edge(legend[i][1], "", "");
             g.setColor(getEdgeColor(dummy));
             g.fillRect(legendX, ly - 10, 14, 14);
             g.setColor(LABEL_COLOR);
@@ -366,7 +366,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
     /**
      * Creates a dialog window containing the heatmap with controls.
      */
-    public static JDialog createDialog(JFrame parent, Graph<String, edge> graph) {
+    public static JDialog createDialog(JFrame parent, Graph<String, Edge> graph) {
         JDialog dialog = new JDialog(parent, "Adjacency Matrix Heatmap", false);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 

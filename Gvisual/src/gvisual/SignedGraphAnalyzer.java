@@ -38,7 +38,7 @@ import java.util.*;
  */
 public class SignedGraphAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /**
      * Constructs an analyzer for the given graph.
@@ -48,7 +48,7 @@ public class SignedGraphAnalyzer {
      * @param graph the graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public SignedGraphAnalyzer(Graph<String, edge> graph) {
+    public SignedGraphAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -61,7 +61,7 @@ public class SignedGraphAnalyzer {
      * @param e the edge
      * @return true if edge is negative (weight &lt; 0 or label is "-"/"negative")
      */
-    public boolean isNegative(edge e) {
+    public boolean isNegative(Edge e) {
         if (e.getWeight() < 0) return true;
         String label = e.getLabel();
         return label != null && (label.equals("-") || label.equalsIgnoreCase("negative"));
@@ -73,7 +73,7 @@ public class SignedGraphAnalyzer {
      * @param e the edge
      * @return true if edge is positive
      */
-    public boolean isPositive(edge e) {
+    public boolean isPositive(Edge e) {
         return !isNegative(e);
     }
 
@@ -85,7 +85,7 @@ public class SignedGraphAnalyzer {
      */
     public int countPositiveEdges() {
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) count++;
         }
         return count;
@@ -97,7 +97,7 @@ public class SignedGraphAnalyzer {
      */
     public int countNegativeEdges() {
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isNegative(e)) count++;
         }
         return count;
@@ -123,13 +123,13 @@ public class SignedGraphAnalyzer {
     public Map<String, Double> vertexPolarization() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
-            Collection<edge> incident = graph.getIncidentEdges(v);
+            Collection<Edge> incident = graph.getIncidentEdges(v);
             if (incident == null || incident.isEmpty()) {
                 result.put(v, 0.0);
                 continue;
             }
             long negCount = 0;
-            for (edge e : incident) {
+            for (Edge e : incident) {
                 if (isNegative(e)) negCount++;
             }
             result.put(v, (double) negCount / incident.size());
@@ -229,7 +229,7 @@ public class SignedGraphAnalyzer {
             adj.put(v, new HashSet<>());
             edgeMap.put(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
             String u = it.next();
@@ -297,7 +297,7 @@ public class SignedGraphAnalyzer {
                 String u = queue.poll();
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     int expectedColor = isNegative(e) ? (1 - cu) : cu;
                     if (color.containsKey(v)) {
                         if (color.get(v) != expectedColor) return false;
@@ -334,7 +334,7 @@ public class SignedGraphAnalyzer {
         }
         Map<String, Map<String, edge>> edgeMap = buildEdgeMap();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -365,7 +365,7 @@ public class SignedGraphAnalyzer {
         }
 
         // Check that all negative edges go between different components
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isNegative(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -411,7 +411,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -432,7 +432,7 @@ public class SignedGraphAnalyzer {
         for (String v : graph.getVertices()) {
             posAdj.put(v, new ArrayList<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (isPositive(e)) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
@@ -504,7 +504,7 @@ public class SignedGraphAnalyzer {
         int limit = 1 << (n - 1);
         for (int mask = 0; mask < limit; mask++) {
             int frustration = 0;
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Collection<String> eps = graph.getEndpoints(e);
                 Iterator<String> it = eps.iterator();
                 String u = it.next();
@@ -545,7 +545,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -553,7 +553,7 @@ public class SignedGraphAnalyzer {
         }
 
         int frustration = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -573,13 +573,13 @@ public class SignedGraphAnalyzer {
      *
      * @return list of frustrated edges
      */
-    public List<edge> findFrustratedEdges() {
+    public List<Edge> findFrustratedEdges() {
         if (graph.getEdgeCount() == 0) return Collections.emptyList();
 
         Map<String, Integer> color = computePartition();
-        List<edge> frustrated = new ArrayList<>();
+        List<Edge> frustrated = new ArrayList<>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -608,7 +608,7 @@ public class SignedGraphAnalyzer {
                 int cu = color.get(u);
                 for (String v : adj.getOrDefault(u, Collections.emptyList())) {
                     if (color.containsKey(v)) continue;
-                    edge e = edgeMap.get(u).get(v);
+                    Edge e = edgeMap.get(u).get(v);
                     color.put(v, isNegative(e) ? (1 - cu) : cu);
                     queue.add(v);
                 }
@@ -771,7 +771,7 @@ public class SignedGraphAnalyzer {
         for (String v : graph.getVertices()) {
             adj.put(v, new ArrayList<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();
@@ -787,7 +787,7 @@ public class SignedGraphAnalyzer {
         for (String v : graph.getVertices()) {
             edgeMap.put(v, new HashMap<>());
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> eps = graph.getEndpoints(e);
             Iterator<String> it = eps.iterator();
             String u = it.next();

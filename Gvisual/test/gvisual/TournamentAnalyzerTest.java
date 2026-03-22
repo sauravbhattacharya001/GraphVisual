@@ -16,17 +16,17 @@ import static org.junit.Assert.*;
  */
 public class TournamentAnalyzerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
-        graph = new DirectedSparseGraph<String, edge>();
+        graph = new DirectedSparseGraph<String, Edge>();
     }
 
     // ── Helper methods ──────────────────────────────────────────
 
     private void addEdge(String from, String to) {
-        edge e = new edge("f", from, to);
+        Edge e = new Edge("f", from, to);
         graph.addEdge(e, from, to);
     }
 
@@ -727,7 +727,7 @@ public class TournamentAnalyzerTest {
     // ── Verify helper ───────────────────────────────────────────
 
     private boolean hasEdge(String from, String to) {
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (from.equals(e.getVertex1()) && to.equals(e.getVertex2())) {
                 return true;
             }

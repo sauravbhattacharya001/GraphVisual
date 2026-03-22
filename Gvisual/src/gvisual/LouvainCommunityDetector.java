@@ -21,14 +21,14 @@ import java.util.*;
  */
 public class LouvainCommunityDetector {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final double resolution;
 
-    public LouvainCommunityDetector(Graph<String, edge> graph) {
+    public LouvainCommunityDetector(Graph<String, Edge> graph) {
         this(graph, 1.0);
     }
 
-    public LouvainCommunityDetector(Graph<String, edge> graph, double resolution) {
+    public LouvainCommunityDetector(Graph<String, Edge> graph, double resolution) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         if (resolution <= 0) throw new IllegalArgumentException("Resolution must be positive");
         this.graph = graph;
@@ -324,8 +324,8 @@ public class LouvainCommunityDetector {
             cmap.get(cid).members.add(e.getKey());
         }
 
-        Set<edge> counted = new HashSet<edge>();
-        for (edge e : graph.getEdges()) {
+        Set<Edge> counted = new HashSet<Edge>();
+        for (Edge e : graph.getEdges()) {
             if (counted.contains(e)) continue;
             counted.add(e);
             Integer c1 = finalAssign.get(e.getVertex1());
@@ -360,7 +360,7 @@ public class LouvainCommunityDetector {
     private List<Map<Integer, Double>> buildAdjacency(Map<String, Integer> nodeIndex, int n) {
         List<Map<Integer, Double>> adj = new ArrayList<Map<Integer, Double>>();
         for (int i = 0; i < n; i++) adj.add(new HashMap<Integer, Double>());
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Integer i = nodeIndex.get(e.getVertex1());
             Integer j = nodeIndex.get(e.getVertex2());
             if (i == null || j == null) continue;

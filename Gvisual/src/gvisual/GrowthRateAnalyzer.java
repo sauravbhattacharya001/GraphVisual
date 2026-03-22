@@ -4,7 +4,7 @@ import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
 
 /**
- * Tracks how graph metrics change over time: node count, edge count,
+ * Tracks how graph metrics change over time: node count, Edge count,
  * density, and average clustering coefficient across time windows.
  * Useful for identifying growth phases, stability periods, and
  * network degradation.
@@ -66,12 +66,12 @@ public class GrowthRateAnalyzer {
      * @return ordered list of metric snapshots
      */
     public List<MetricSnapshot> analyze() {
-        List<Map.Entry<Long, Graph<String, edge>>> windows =
+        List<Map.Entry<Long, Graph<String, Edge>>> windows =
             temporalGraph.generateWindows(windowCount);
 
         List<MetricSnapshot> snapshots = new ArrayList<>();
-        for (Map.Entry<Long, Graph<String, edge>> window : windows) {
-            Graph<String, edge> g = window.getValue();
+        for (Map.Entry<Long, Graph<String, Edge>> window : windows) {
+            Graph<String, Edge> g = window.getValue();
             int nodes = g.getVertexCount();
             int edges = g.getEdgeCount();
             double density = computeDensity(nodes, edges);
@@ -115,7 +115,7 @@ public class GrowthRateAnalyzer {
         return edges / maxEdges;
     }
 
-    private static double computeAvgClustering(Graph<String, edge> g) {
+    private static double computeAvgClustering(Graph<String, Edge> g) {
         if (g.getVertexCount() == 0) return 0.0;
 
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(g);

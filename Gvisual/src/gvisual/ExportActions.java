@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 /**
  * Centralizes export button creation for the toolbar.
  *
- * <p>Each format (GraphML, DOT, GEXF, CSV edge list, node metrics) previously
+ * <p>Each format (GraphML, DOT, GEXF, CSV Edge list, node metrics) previously
  * had its own inline ActionListener with an identical
  * create-exporter → save-dialog → try/catch → success/error-dialog flow.
  * This class extracts that pattern into {@link #addExportButton} so adding

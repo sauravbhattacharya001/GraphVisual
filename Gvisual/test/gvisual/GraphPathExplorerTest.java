@@ -16,15 +16,15 @@ import java.util.*;
  */
 public class GraphPathExplorerTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
     }
 
-    private edge makeEdge(String type, String v1, String v2, float weight) {
-        edge e = new edge(type, v1, v2);
+    private Edge makeEdge(String type, String v1, String v2, float weight) {
+        Edge e = new Edge(type, v1, v2);
         e.setWeight(weight);
         return e;
     }

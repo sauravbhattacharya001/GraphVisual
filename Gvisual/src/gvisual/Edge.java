@@ -8,7 +8,7 @@ package gvisual;
  *
  * @author user
  */
-public class edge {
+public class Edge {
     private String edgeType;
     private String vertex1;
     private String vertex2;
@@ -46,7 +46,7 @@ public class edge {
     /**
      * Constructor
      */
-    public edge()
+    public Edge()
     {
     }
 
@@ -56,7 +56,7 @@ public class edge {
      * @param vertex1 vertex id
      * @param vertex2 vertex id
      */
-    public edge(String edgeType,String vertex1,String vertex2)
+    public Edge(String edgeType,String vertex1,String vertex2)
     {
         this.edgeType = edgeType;
         this.vertex1 = vertex1;
