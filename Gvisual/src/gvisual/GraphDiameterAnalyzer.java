@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import java.util.Arrays;
 
 /**
  * Analyzes graph diameter, radius, eccentricity, center, and periphery.
@@ -78,12 +79,64 @@ public class GraphDiameterAnalyzer {
             return;
         }
 
+        // Build vertex index and adjacency arrays ONCE for all BFS passes.
+        // This avoids per-source HashMap<String,Integer> allocations and
+        // String hashing inside the BFS hot loop — the same optimisation
+        // used in NodeCentralityAnalyzer and PageRankAnalyzer.
+        List<String> compList = new ArrayList<String>(largestComponent);
+        int compN = compList.size();
+        Map<String, Integer> idxMap = new HashMap<String, Integer>(compN * 2);
+        for (int i = 0; i < compN; i++) idxMap.put(compList.get(i), i);
+
+        // Pre-build int[][] adjacency for cache-friendly traversal
+        int[][] adj = new int[compN][];
+        {
+            @SuppressWarnings("unchecked")
+            List<Integer>[] tmp = new List[compN];
+            for (int i = 0; i < compN; i++) tmp[i] = new ArrayList<Integer>();
+            for (edge e : graph.getEdges()) {
+                Integer ui = idxMap.get(e.getVertex1());
+                Integer vi = idxMap.get(e.getVertex2());
+                if (ui != null && vi != null && !ui.equals(vi)) {
+                    tmp[ui].add(vi);
+                    tmp[vi].add(ui);
+                }
+            }
+            for (int i = 0; i < compN; i++) {
+                List<Integer> nb = tmp[i];
+                adj[i] = new int[nb.size()];
+                for (int j = 0; j < nb.size(); j++) adj[i][j] = nb.get(j);
+            }
+        }
+
+        // Reusable BFS arrays (allocated once, reset per source)
+        int[] dist = new int[compN];
+        int[] queue = new int[compN];
+
         // Compute eccentricity for each vertex in the largest component
-        for (String vertex : largestComponent) {
-            int ecc = computeEccentricity(vertex, largestComponent);
-            eccentricities.put(vertex, ecc);
-            if (ecc > diameter) diameter = ecc;
-            if (ecc < radius) radius = ecc;
+        for (int s = 0; s < compN; s++) {
+            // Array-based BFS — no HashMap, no boxing, no per-source allocation
+            Arrays.fill(dist, -1);
+            dist[s] = 0;
+            int qStart = 0, qEnd = 0;
+            queue[qEnd++] = s;
+            int maxDist = 0;
+
+            while (qStart < qEnd) {
+                int v = queue[qStart++];
+                int d = dist[v];
+                for (int w : adj[v]) {
+                    if (dist[w] < 0) {
+                        dist[w] = d + 1;
+                        if (dist[w] > maxDist) maxDist = dist[w];
+                        queue[qEnd++] = w;
+                    }
+                }
+            }
+
+            eccentricities.put(compList.get(s), maxDist);
+            if (maxDist > diameter) diameter = maxDist;
+            if (maxDist < radius) radius = maxDist;
         }
 
         // Identify center and periphery
