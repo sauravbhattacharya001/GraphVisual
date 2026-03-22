@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikZ/LaTeX Export — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav><a href="index.html">← Back to Docs</a></nav>
+    <main>
+        <h1>TikZ/LaTeX Graph Exporter</h1>
+        <p>Export your graph as a <code>.tex</code> file that compiles directly with <code>pdflatex</code> or <code>lualatex</code>. Perfect for including network visualizations in academic papers, theses, and presentations.</p>
+
+        <h2>Features</h2>
+        <ul>
+            <li>Force-directed automatic layout (computed at export time)</li>
+            <li>Edge type → color mapping using LaTeX <code>xcolor</code></li>
+            <li>Edge weight → line width scaling</li>
+            <li>Node degree → size scaling</li>
+            <li>Optional legend showing edge types</li>
+            <li>Standalone mode (complete document) or fragment mode (for <code>\input{}</code>)</li>
+        </ul>
+
+        <h2>Quick Start</h2>
+        <ol>
+            <li>Load your graph in GraphVisual</li>
+            <li>Click <strong>Export TikZ</strong> in the toolbar</li>
+            <li>Choose a filename (e.g., <code>network.tex</code>)</li>
+            <li>Compile: <code>pdflatex network.tex</code></li>
+        </ol>
+
+        <h2>Programmatic Usage</h2>
+        <pre><code>TikzExporter exporter = new TikzExporter(graph);
+exporter.setTitle("Student Network — Spring 2026");
+exporter.setStandalone(false);  // fragment for \input{}
+exporter.setShowLegend(true);
+exporter.setCanvasWidth(14.0);  // cm
+exporter.export(new File("network.tex"));</code></pre>
+
+        <h2>Configuration</h2>
+        <table>
+            <tr><th>Method</th><th>Default</th><th>Description</th></tr>
+            <tr><td><code>setCanvasWidth(double)</code></td><td>12.0</td><td>TikZ canvas width in cm</td></tr>
+            <tr><td><code>setCanvasHeight(double)</code></td><td>9.0</td><td>TikZ canvas height in cm</td></tr>
+            <tr><td><code>setStandalone(boolean)</code></td><td>true</td><td>Include preamble &amp; document wrapper</td></tr>
+            <tr><td><code>setShowLegend(boolean)</code></td><td>true</td><td>Show edge type legend</td></tr>
+            <tr><td><code>setShowLabels(boolean)</code></td><td>true</td><td>Show node labels</td></tr>
+            <tr><td><code>setScaleNodesByDegree(boolean)</code></td><td>true</td><td>Scale node size by degree</td></tr>
+            <tr><td><code>setScaleEdgesByWeight(boolean)</code></td><td>true</td><td>Scale edge width by weight</td></tr>
+            <tr><td><code>setTitle(String)</code></td><td>null</td><td>Title displayed above the graph</td></tr>
+        </table>
+
+        <h2>Including in a Paper</h2>
+        <p>Set <code>standalone(false)</code> to get just the <code>tikzpicture</code> environment, then include it in your paper:</p>
+        <pre><code>\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+% ...
+\begin{figure}[htbp]
+  \centering
+  \input{network.tex}
+  \caption{Student interaction network.}
+  \label{fig:network}
+\end{figure}</code></pre>
+
+        <h2>Edge Type Colors</h2>
+        <ul>
+            <li><strong>Friend (f)</strong> — green</li>
+            <li><strong>Familiar Stranger (fs)</strong> — blue</li>
+            <li><strong>Classmate (c)</strong> — orange</li>
+            <li><strong>Stranger (s)</strong> — red</li>
+            <li><strong>Study Group (sg)</strong> — violet</li>
+        </ul>
+    </main>
+</body>
+</html>

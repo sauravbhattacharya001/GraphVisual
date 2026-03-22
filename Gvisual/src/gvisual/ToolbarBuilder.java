@@ -74,6 +74,7 @@ public final class ToolbarBuilder {
         addHeatmapButton(toolPanel, owner, ctx);
         addDiffHtmlButton(toolPanel, owner, ctx);
         addLayoutCompareButton(toolPanel, owner, ctx);
+        addTikzExportButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -312,6 +313,26 @@ public final class ToolbarBuilder {
             }
         });
         panel.add(btn);
+    }
+
+    /* ---- TikZ/LaTeX export ---- */
+
+    private static void addTikzExportButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Export TikZ<br/>LaTeX source<br/>for academic<br/>papers &amp;<br/>presentations</center></html>",
+                "Export as TikZ/LaTeX",
+                () -> "graph_" + ctx.getTimestamp() + ".tex",
+                new String[]{".tex"},
+                outFile -> {
+                    TikzExporter tikz = new TikzExporter(ctx.getGraph());
+                    tikz.setTitle("Network Graph \u2014 " + ctx.getTimestamp());
+                    tikz.export(outFile);
+                    return "TikZ/LaTeX exported!\n"
+                            + "Nodes: " + ctx.getGraph().getVertexCount() + "\n"
+                            + "Edges: " + ctx.getGraph().getEdgeCount() + "\n"
+                            + "File: " + outFile.getName() + "\n\n"
+                            + "Compile with: pdflatex " + outFile.getName();
+                });
     }
 
     /* ---- Layout comparison ---- */
