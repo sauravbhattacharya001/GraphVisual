@@ -27,6 +27,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
+          cache: 'maven'
           server-id: github
           settings-path: ${{ github.workspace }}
 
@@ -46,8 +47,8 @@ jobs:
         run: |
           mvn versions:set -DnewVersion="${{ github.event.inputs.version }}" -B
 
-      - name: Build package
-        run: mvn package -B -DskipTests
+      - name: Build package (with sources and javadoc)
+        run: mvn package source:jar javadoc:jar -B -DskipTests
 
       - name: Publish to GitHub Packages
         run: mvn deploy -B -DskipTests -s ${{ github.workspace }}/settings.xml
@@ -63,18 +64,34 @@ jobs:
             !target/original-*.jar
           retention-days: 90
 
-      - name: Attach JAR to release
+      - name: Generate checksums
+        if: github.event_name == 'release'
+        run: |
+          cd target
+          for jar in *.jar; do
+            [ -f "$jar" ] || continue
+            sha256sum "$jar" > "$jar.sha256"
+          done
+
+      - name: Attach JARs to release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Upload the shaded (fat) JAR to the release
+          TAG="${{ github.event.release.tag_name }}"
+          # Upload fat JAR
           FAT_JAR=$(ls target/*-all.jar 2>/dev/null | head -1)
-          if [ -n "$FAT_JAR" ]; then
-            gh release upload "${{ github.event.release.tag_name }}" "$FAT_JAR" --clobber
-          fi
-          # Upload the slim JAR too
+          [ -n "$FAT_JAR" ] && gh release upload "$TAG" "$FAT_JAR" --clobber
+          # Upload slim JAR
           SLIM_JAR=$(ls target/graphvisual-*.jar 2>/dev/null | grep -v all | grep -v sources | grep -v javadoc | grep -v original | head -1)
-          if [ -n "$SLIM_JAR" ]; then
-            gh release upload "${{ github.event.release.tag_name }}" "$SLIM_JAR" --clobber
-          fi
+          [ -n "$SLIM_JAR" ] && gh release upload "$TAG" "$SLIM_JAR" --clobber
+          # Upload sources JAR
+          SRC_JAR=$(ls target/*-sources.jar 2>/dev/null | head -1)
+          [ -n "$SRC_JAR" ] && gh release upload "$TAG" "$SRC_JAR" --clobber
+          # Upload javadoc JAR
+          DOC_JAR=$(ls target/*-javadoc.jar 2>/dev/null | head -1)
+          [ -n "$DOC_JAR" ] && gh release upload "$TAG" "$DOC_JAR" --clobber
+          # Upload checksums
+          for checksum in target/*.sha256; do
+            [ -f "$checksum" ] && gh release upload "$TAG" "$checksum" --clobber
+          done
