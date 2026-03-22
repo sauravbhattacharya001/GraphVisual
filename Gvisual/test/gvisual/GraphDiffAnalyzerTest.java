@@ -10,14 +10,14 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 /**
- * Comprehensive tests for {@link GraphDiffAnalyzer} — node/edge diffs,
+ * Comprehensive tests for {@link GraphDiffAnalyzer} — node/Edge diffs,
  * Jaccard similarity, edit distance, degree changes, EdgeDiff normalization,
  * and DiffResult summary.
  */
 public class GraphDiffAnalyzerTest {
 
-    private Graph<String, edge> graphA;
-    private Graph<String, edge> graphB;
+    private Graph<String, Edge> graphA;
+    private Graph<String, Edge> graphB;
 
     @Before
     public void setUp() {
@@ -25,10 +25,10 @@ public class GraphDiffAnalyzerTest {
         graphB = new UndirectedSparseGraph<>();
     }
 
-    private void addEdge(Graph<String, edge> g, String v1, String v2) {
+    private void addEdge(Graph<String, Edge> g, String v1, String v2) {
         if (!g.containsVertex(v1)) g.addVertex(v1);
         if (!g.containsVertex(v2)) g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         g.addEdge(e, v1, v2);
     }
 
@@ -173,7 +173,7 @@ public class GraphDiffAnalyzerTest {
         assertEquals(1, result.getRemovedEdges().size());
         assertEquals(0.0, result.getNodeJaccard(), 0.001);
         assertEquals(0.0, result.getEdgeJaccard(), 0.001);
-        // edit distance = 2 added nodes + 2 removed nodes + 1 added edge + 1 removed edge = 6
+        // edit distance = 2 added nodes + 2 removed nodes + 1 added Edge + 1 removed Edge = 6
         assertEquals(6, result.getEditDistance());
     }
 
@@ -232,7 +232,7 @@ public class GraphDiffAnalyzerTest {
 
     @Test
     public void testSameNodesNewEdge() {
-        // Same vertices, different edge structure
+        // Same vertices, different Edge structure
         graphA.addVertex("A");
         graphA.addVertex("B");
         addEdge(graphB, "A", "B");
@@ -285,7 +285,7 @@ public class GraphDiffAnalyzerTest {
 
     @Test
     public void testEdgeJaccardPartialOverlap() {
-        // A: A-B, B-C; B: A-B, B-D → common edge = 1, total unique = 3
+        // A: A-B, B-C; B: A-B, B-D → common Edge = 1, total unique = 3
         addEdge(graphA, "A", "B");
         addEdge(graphA, "B", "C");
         addEdge(graphB, "A", "B");
@@ -294,7 +294,7 @@ public class GraphDiffAnalyzerTest {
         GraphDiffAnalyzer.DiffResult result =
                 new GraphDiffAnalyzer(graphA, graphB).computeDiff();
 
-        // edge Jaccard = 1/3 ≈ 0.333
+        // Edge Jaccard = 1/3 ≈ 0.333
         assertEquals(1.0 / 3.0, result.getEdgeJaccard(), 0.001);
     }
 
@@ -316,7 +316,7 @@ public class GraphDiffAnalyzerTest {
         addEdge(graphB, "A", "B");
         addEdge(graphB, "B", "C");
 
-        // 1 added node + 1 added edge = 2
+        // 1 added node + 1 added Edge = 2
         assertEquals(2, new GraphDiffAnalyzer(graphA, graphB).computeEditDistance());
     }
 
@@ -327,7 +327,7 @@ public class GraphDiffAnalyzerTest {
         addEdge(graphB, "A", "B");
         addEdge(graphB, "B", "D");
 
-        // removed C + edge B-C, added D + edge B-D = 4
+        // removed C + Edge B-C, added D + Edge B-D = 4
         assertEquals(4, new GraphDiffAnalyzer(graphA, graphB).computeEditDistance());
     }
 

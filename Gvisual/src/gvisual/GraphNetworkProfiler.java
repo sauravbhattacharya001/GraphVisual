@@ -130,7 +130,7 @@ public class GraphNetworkProfiler {
         public String getInterpretation() { return interpretation; }
     }
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Random random;
     private boolean analyzed;
 
@@ -155,11 +155,11 @@ public class GraphNetworkProfiler {
 
     private static final int SAMPLE_SIZE = 50;
 
-    public GraphNetworkProfiler(Graph<String, edge> graph) {
+    public GraphNetworkProfiler(Graph<String, Edge> graph) {
         this(graph, new Random(42));
     }
 
-    public GraphNetworkProfiler(Graph<String, edge> graph, Random random) {
+    public GraphNetworkProfiler(Graph<String, Edge> graph, Random random) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
         this.random = random;
         this.analyzed = false;
@@ -253,7 +253,7 @@ public class GraphNetworkProfiler {
         if (graph.getEdgeCount() == 0) { assortativity = 0; return; }
         double sumProd = 0, sumI = 0, sumJ = 0, sumISq = 0, sumJSq = 0;
         int m = graph.getEdgeCount();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             int di = graph.degree(v1);

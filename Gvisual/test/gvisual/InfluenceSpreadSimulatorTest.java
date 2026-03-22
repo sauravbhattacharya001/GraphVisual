@@ -15,16 +15,16 @@ import java.util.*;
  */
 public class InfluenceSpreadSimulatorTest {
 
-    private Graph<String, edge> graph;
+    private Graph<String, Edge> graph;
     private InfluenceSpreadSimulator simulator;
 
     @Before
     public void setUp() {
         graph = new UndirectedSparseGraph<>();
-        graph.addEdge(new edge("c", "A", "B"), "A", "B");
-        graph.addEdge(new edge("c", "A", "C"), "A", "C");
-        graph.addEdge(new edge("c", "A", "D"), "A", "D");
-        graph.addEdge(new edge("c", "A", "E"), "A", "E");
+        graph.addEdge(new Edge("c", "A", "B"), "A", "B");
+        graph.addEdge(new Edge("c", "A", "C"), "A", "C");
+        graph.addEdge(new Edge("c", "A", "D"), "A", "D");
+        graph.addEdge(new Edge("c", "A", "E"), "A", "E");
         simulator = new InfluenceSpreadSimulator(graph, 42L);
     }
 
@@ -332,7 +332,7 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testFindTopKSeedsEmptyGraph() {
-        Graph<String, edge> empty = new UndirectedSparseGraph<>();
+        Graph<String, Edge> empty = new UndirectedSparseGraph<>();
         InfluenceSpreadSimulator sim = new InfluenceSpreadSimulator(empty, 42L);
         List<InfluenceSpreadSimulator.SeedCandidate> seeds =
                 sim.findTopKSeeds(3,
@@ -404,10 +404,10 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testEdgeWeightAsInfluenceProbability() {
-        Graph<String, edge> wg = new UndirectedSparseGraph<>();
-        edge e1 = new edge("c", "X", "Y");
+        Graph<String, Edge> wg = new UndirectedSparseGraph<>();
+        Edge e1 = new Edge("c", "X", "Y");
         e1.setWeight(1.0f);
-        edge e2 = new edge("c", "X", "Z");
+        Edge e2 = new Edge("c", "X", "Z");
         e2.setWeight(0.0f);
         wg.addEdge(e1, "X", "Y");
         wg.addEdge(e2, "X", "Z");
@@ -423,9 +423,9 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testDirectedGraphIC() {
-        Graph<String, edge> dg = new DirectedSparseGraph<>();
-        dg.addEdge(new edge("c", "A", "B"), "A", "B");
-        dg.addEdge(new edge("c", "A", "C"), "A", "C");
+        Graph<String, Edge> dg = new DirectedSparseGraph<>();
+        dg.addEdge(new Edge("c", "A", "B"), "A", "B");
+        dg.addEdge(new Edge("c", "A", "C"), "A", "C");
 
         InfluenceSpreadSimulator sim = new InfluenceSpreadSimulator(dg, 42L);
         InfluenceSpreadSimulator.SimulationResult result =
@@ -435,8 +435,8 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testDirectedGraphNoBackPropagation() {
-        Graph<String, edge> dg = new DirectedSparseGraph<>();
-        dg.addEdge(new edge("c", "A", "B"), "A", "B");
+        Graph<String, Edge> dg = new DirectedSparseGraph<>();
+        dg.addEdge(new Edge("c", "A", "B"), "A", "B");
 
         InfluenceSpreadSimulator sim = new InfluenceSpreadSimulator(dg, 42L);
         InfluenceSpreadSimulator.SimulationResult result =
@@ -448,11 +448,11 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testChainGraphPropagation() {
-        Graph<String, edge> chain = new UndirectedSparseGraph<>();
-        chain.addEdge(new edge("c", "1", "2"), "1", "2");
-        chain.addEdge(new edge("c", "2", "3"), "2", "3");
-        chain.addEdge(new edge("c", "3", "4"), "3", "4");
-        chain.addEdge(new edge("c", "4", "5"), "4", "5");
+        Graph<String, Edge> chain = new UndirectedSparseGraph<>();
+        chain.addEdge(new Edge("c", "1", "2"), "1", "2");
+        chain.addEdge(new Edge("c", "2", "3"), "2", "3");
+        chain.addEdge(new Edge("c", "3", "4"), "3", "4");
+        chain.addEdge(new Edge("c", "4", "5"), "4", "5");
 
         InfluenceSpreadSimulator sim = new InfluenceSpreadSimulator(chain, 42L);
         InfluenceSpreadSimulator.SimulationResult result =
@@ -465,8 +465,8 @@ public class InfluenceSpreadSimulatorTest {
 
     @Test
     public void testDisconnectedGraphLimitsSpread() {
-        Graph<String, edge> dg = new UndirectedSparseGraph<>();
-        dg.addEdge(new edge("c", "A", "B"), "A", "B");
+        Graph<String, Edge> dg = new UndirectedSparseGraph<>();
+        dg.addEdge(new Edge("c", "A", "B"), "A", "B");
         dg.addVertex("C");
 
         InfluenceSpreadSimulator sim = new InfluenceSpreadSimulator(dg, 42L);

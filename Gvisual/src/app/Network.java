@@ -16,7 +16,7 @@ public class Network {
 
     /**
      *
-     * Connects to database and writes out the edge-list from the meeting DB table, forming edges of kind:
+     * Connects to database and writes out the Edge-list from the meeting DB table, forming edges of kind:
      * friends, classmates, study-groups, strangers and familiar strangers (depending upon parameters).
      *
      * <p>The output path is validated to prevent directory traversal —

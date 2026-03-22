@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *   <li><b>Steiner ratio:</b> cost(Steiner tree) / cost(MST of terminals)</li>
  *   <li><b>Steiner points:</b> non-terminal vertices used in the optimal tree</li>
  *   <li><b>Terminal reachability:</b> which terminals can be connected</li>
- *   <li><b>Bottleneck edge:</b> heaviest edge in the Steiner tree</li>
+ *   <li><b>Bottleneck Edge:</b> heaviest Edge in the Steiner tree</li>
  *   <li><b>Savings analysis:</b> cost reduction vs direct MST on terminals</li>
  *   <li><b>Vertex importance:</b> how much removing a Steiner point increases cost</li>
  * </ul>
@@ -48,10 +48,10 @@ import java.util.stream.Collectors;
  */
 public class SteinerTreeAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private int syntheticEdgeId = 0;
 
-    public SteinerTreeAnalyzer(Graph<String, edge> graph) {
+    public SteinerTreeAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -415,7 +415,7 @@ public class SteinerTreeAnalyzer {
         for (double[] row : dist) Arrays.fill(row, Double.MAX_VALUE / 2);
         for (int[] row : next) Arrays.fill(row, -1);
         for (int i = 0; i < V; i++) { dist[i][i] = 0; next[i][i] = i; }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> eit = endpoints.iterator();
             String u = eit.next(), v = eit.next();
@@ -523,7 +523,7 @@ public class SteinerTreeAnalyzer {
         if (splitMask < 0) return;
 
         if (splitMask == S) {
-            // Came from edge relaxation: dp[S][v] = dp[S][splitVert] + dist[splitVert][v]
+            // Came from Edge relaxation: dp[S][v] = dp[S][splitVert] + dist[splitVert][v]
             // Add path from splitVert to v
             addShortestPath(next, splitVert, v, vertList, treeEdges, treeVertices);
             reconstructDP(dp, parent, dist, next, S, splitVert, vertList, idx, termList, treeEdges, treeVertices);
@@ -582,7 +582,7 @@ public class SteinerTreeAnalyzer {
     // ── Analysis ──────────────────────────────────────────────────
 
     /**
-     * Finds the bottleneck (heaviest) edge in a Steiner tree.
+     * Finds the bottleneck (heaviest) Edge in a Steiner tree.
      */
     public EdgeInfo bottleneckEdge(SteinerTreeResult result) {
         return result.edges.stream()
@@ -737,7 +737,7 @@ public class SteinerTreeAnalyzer {
     }
 
     private double getEdgeWeight(String u, String v) {
-        edge e = graph.findEdge(u, v);
+        Edge e = graph.findEdge(u, v);
         if (e == null) e = graph.findEdge(v, u);
         if (e == null) return 1.0;
         return e.getWeight() > 0 ? e.getWeight() : 1.0;

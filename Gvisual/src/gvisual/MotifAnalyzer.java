@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class MotifAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Set<String>> neighborCache;
     private boolean computed;
 
@@ -61,7 +61,7 @@ public class MotifAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public MotifAnalyzer(Graph<String, edge> graph) {
+    public MotifAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

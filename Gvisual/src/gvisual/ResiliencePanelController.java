@@ -24,7 +24,7 @@ public class ResiliencePanelController {
     private final JLabel summaryLabel;
     private final JLabel detailsLabel;
 
-    private final Supplier<Graph<String, edge>> graphSupplier;
+    private final Supplier<Graph<String, Edge>> graphSupplier;
     private final JFrame parentFrame;
     private GraphResilienceAnalyzer lastAnalyzer;
 
@@ -32,7 +32,7 @@ public class ResiliencePanelController {
      * @param graphSupplier supplies the current graph (may return null)
      * @param parentFrame   parent frame for dialogs
      */
-    public ResiliencePanelController(Supplier<Graph<String, edge>> graphSupplier,
+    public ResiliencePanelController(Supplier<Graph<String, Edge>> graphSupplier,
                                      JFrame parentFrame) {
         this.graphSupplier = graphSupplier;
         this.parentFrame = parentFrame;
@@ -84,7 +84,7 @@ public class ResiliencePanelController {
     // ---- Analysis ----
 
     private void runAnalysis() {
-        Graph<String, edge> g = graphSupplier.get();
+        Graph<String, Edge> g = graphSupplier.get();
         if (g == null || g.getVertexCount() == 0) {
             summaryLabel.setText("<html>No graph loaded.</html>");
             return;

@@ -33,19 +33,19 @@ public final class ToolbarBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(ToolbarBuilder.class.getName());
 
-    /** Callback interface for the host to supply live graph + edge data. */
+    /** Callback interface for the host to supply live graph + Edge data. */
     public interface GraphContext {
         /** Current graph (may be null before a file is loaded). */
-        Graph<String, edge> getGraph();
+        Graph<String, Edge> getGraph();
 
         /** Current visualization viewer. */
-        VisualizationViewer<String, edge> getVisualizationViewer();
+        VisualizationViewer<String, Edge> getVisualizationViewer();
 
         /** Current timestamp label used in export filenames. */
         String getTimestamp();
 
         /** Collect all edges across every category. */
-        List<edge> collectAllEdges();
+        List<Edge> collectAllEdges();
     }
 
     private ToolbarBuilder() { /* utility */ }
@@ -148,7 +148,7 @@ public final class ToolbarBuilder {
 
     private static void addEdgelistExportButton(JPanel panel) {
         JButton btn = new JButton(
-                "<html><center>Export edgelist<br/>Export the graph<br/> edge list in<br/> CSV format.</center></html>");
+                "<html><center>Export edgelist<br/>Export the graph<br/> Edge list in<br/> CSV format.</center></html>");
         btn.setPreferredSize(new Dimension(140, 100));
         btn.addActionListener(e -> {
             JFileChooser fc;
@@ -280,7 +280,7 @@ public final class ToolbarBuilder {
                 "<html><center>Diff HTML<br/>Compare two<br/>graph snapshots<br/>in interactive<br/>HTML diff view</center></html>");
         btn.setPreferredSize(new Dimension(140, 100));
         btn.addActionListener(e -> {
-            Graph<String, edge> g = ctx.getGraph();
+            Graph<String, Edge> g = ctx.getGraph();
             if (g == null || g.getVertexCount() == 0) {
                 JOptionPane.showMessageDialog(owner, "Load a graph first.", "No Graph",
                         JOptionPane.WARNING_MESSAGE);
@@ -292,7 +292,7 @@ public final class ToolbarBuilder {
             try {
                 GraphFileParser.ParseResult parseResult =
                         GraphFileParser.parse(fc.getSelectedFile().getAbsolutePath());
-                Graph<String, edge> graphB = parseResult.getGraph();
+                Graph<String, Edge> graphB = parseResult.getGraph();
                 GraphDiffHtmlExporter exporter = new GraphDiffHtmlExporter(g, graphB);
                 exporter.setTitle("Graph Diff: current vs " + fc.getSelectedFile().getName());
                 exporter.setLabelA("Current Graph");

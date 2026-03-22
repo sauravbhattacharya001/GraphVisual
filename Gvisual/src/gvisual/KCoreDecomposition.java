@@ -27,7 +27,7 @@ import java.util.*;
  *   <li><b>Degeneracy</b> — the maximum coreness value (also the graph's
  *       degeneracy number).</li>
  *   <li><b>Core shells</b> — grouping of vertices by their coreness value.</li>
- *   <li><b>Core density profile</b> — edge density within each k-core.</li>
+ *   <li><b>Core density profile</b> — Edge density within each k-core.</li>
  *   <li><b>Cohesion score</b> — a 0–100 measure of how "core-heavy" the graph is
  *       (what fraction of vertices are in the innermost core).</li>
  * </ul>
@@ -40,7 +40,7 @@ import java.util.*;
  */
 public class KCoreDecomposition {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Integer> coreness;
     private int degeneracy;
     private boolean computed;
@@ -51,7 +51,7 @@ public class KCoreDecomposition {
      * @param graph the JUNG graph to decompose
      * @throws IllegalArgumentException if graph is null
      */
-    public KCoreDecomposition(Graph<String, edge> graph) {
+    public KCoreDecomposition(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -295,7 +295,7 @@ public class KCoreDecomposition {
     }
 
     /**
-     * Computes edge density for each k-core (from k=0 to degeneracy).
+     * Computes Edge density for each k-core (from k=0 to degeneracy).
      * The density should increase as k grows, since higher cores are
      * progressively denser subgraphs.
      *
@@ -317,7 +317,7 @@ public class KCoreDecomposition {
 
             // Count edges within the k-core
             int edgeCount = 0;
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 String v1 = graph.getEndpoints(e).getFirst();
                 String v2 = graph.getEndpoints(e).getSecond();
                 if (coreVertices.contains(v1) && coreVertices.contains(v2)) {

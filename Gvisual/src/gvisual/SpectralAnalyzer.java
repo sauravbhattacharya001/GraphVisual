@@ -49,7 +49,7 @@ public class SpectralAnalyzer {
     private static final double EPSILON = 1e-10;
     private static final int MAX_SWEEPS = 100;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private boolean computed;
 
     // Ordered vertex list (defines row/column mapping)
@@ -76,7 +76,7 @@ public class SpectralAnalyzer {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public SpectralAnalyzer(Graph<String, edge> graph) {
+    public SpectralAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }

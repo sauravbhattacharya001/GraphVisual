@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
  */
 public class GraphHealthChecker {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
-    public GraphHealthChecker(Graph<String, edge> graph) {
+    public GraphHealthChecker(Graph<String, Edge> graph) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
     }
 
@@ -53,9 +53,9 @@ public class GraphHealthChecker {
                 .collect(Collectors.toList());
     }
 
-    private List<edge> findSelfLoops() {
-        List<edge> loops = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+    private List<Edge> findSelfLoops() {
+        List<Edge> loops = new ArrayList<>();
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints != null && endpoints.size() == 1) {
                 loops.add(e);
@@ -72,7 +72,7 @@ public class GraphHealthChecker {
     private List<String[]> findParallelEdges() {
         Set<String> seen = new HashSet<>();
         List<String[]> duplicates = new ArrayList<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> ep = graph.getEndpoints(e);
             if (ep == null || ep.size() < 2) continue;
             Iterator<String> it = ep.iterator();
@@ -136,9 +136,9 @@ public class GraphHealthChecker {
     }
 
     /** Bridge edges whose removal would increase component count. */
-    private List<edge> findBridges() {
+    private List<Edge> findBridges() {
         // Tarjan's bridge-finding via DFS
-        List<edge> bridges = new ArrayList<>();
+        List<Edge> bridges = new ArrayList<>();
         if (graph.getVertexCount() == 0) return bridges;
 
         Map<String, Integer> disc = new HashMap<>();
@@ -156,7 +156,7 @@ public class GraphHealthChecker {
 
     private void bridgeDfs(String u, String parent,
                            Map<String, Integer> disc, Map<String, Integer> low,
-                           Set<String> visited, int[] timer, List<edge> bridges) {
+                           Set<String> visited, int[] timer, List<Edge> bridges) {
         visited.add(u);
         disc.put(u, timer[0]);
         low.put(u, timer[0]);
@@ -167,7 +167,7 @@ public class GraphHealthChecker {
                 bridgeDfs(v, u, disc, low, visited, timer, bridges);
                 low.put(u, Math.min(low.get(u), low.get(v)));
                 if (low.get(v) > disc.get(u)) {
-                    edge bridgeEdge = graph.findEdge(u, v);
+                    Edge bridgeEdge = graph.findEdge(u, v);
                     if (bridgeEdge != null) bridges.add(bridgeEdge);
                 }
             } else if (!v.equals(parent)) {
@@ -247,7 +247,7 @@ public class GraphHealthChecker {
         if (r.parallelEdgePairs.isEmpty()) {
             sb.append("<div class='issue ok'>✅ No parallel edges</div>");
         } else {
-            sb.append(String.format("<div class='issue'>⚠️ %d parallel edge pair(s)</div>", r.parallelEdgePairs.size()));
+            sb.append(String.format("<div class='issue'>⚠️ %d parallel Edge pair(s)</div>", r.parallelEdgePairs.size()));
         }
         if (r.componentSizes.size() <= 1) {
             sb.append("<div class='issue ok'>✅ Graph is connected</div>");
@@ -257,9 +257,9 @@ public class GraphHealthChecker {
                             .map(Object::toString).collect(Collectors.toList()), 15)));
         }
         if (r.bridges.isEmpty()) {
-            sb.append("<div class='issue ok'>✅ No bridge edges (graph is 2-edge-connected)</div>");
+            sb.append("<div class='issue ok'>✅ No bridge edges (graph is 2-Edge-connected)</div>");
         } else {
-            sb.append(String.format("<div class='issue'>⚠️ %d bridge edge(s) — removing any would disconnect the graph</div>", r.bridges.size()));
+            sb.append(String.format("<div class='issue'>⚠️ %d bridge Edge(s) — removing any would disconnect the graph</div>", r.bridges.size()));
         }
         if (r.degreeOutliers.isEmpty()) {
             sb.append("<div class='issue ok'>✅ No degree outliers</div>");
@@ -284,11 +284,11 @@ public class GraphHealthChecker {
         public int edgeCount;
         public int score;
         public List<String> isolatedNodes = Collections.emptyList();
-        public List<edge> selfLoops = Collections.emptyList();
+        public List<Edge> selfLoops = Collections.emptyList();
         public List<String[]> parallelEdgePairs = Collections.emptyList();
         public List<Integer> componentSizes = Collections.emptyList();
         public List<String> degreeOutliers = Collections.emptyList();
-        public List<edge> bridges = Collections.emptyList();
+        public List<Edge> bridges = Collections.emptyList();
 
         /** Plain text summary. */
         public String toText() {
@@ -299,7 +299,7 @@ public class GraphHealthChecker {
                     nodeCount, edgeCount, componentSizes.size()));
             sb.append(String.format("Isolated nodes: %d\n", isolatedNodes.size()));
             sb.append(String.format("Self-loops: %d\n", selfLoops.size()));
-            sb.append(String.format("Parallel edge pairs: %d\n", parallelEdgePairs.size()));
+            sb.append(String.format("Parallel Edge pairs: %d\n", parallelEdgePairs.size()));
             sb.append(String.format("Bridge edges: %d\n", bridges.size()));
             sb.append(String.format("Degree outliers: %d\n", degreeOutliers.size()));
             if (!isolatedNodes.isEmpty()) {

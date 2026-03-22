@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
  */
 public class StructuralHoleAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> neighborCache;
 
     /**
@@ -59,7 +59,7 @@ public class StructuralHoleAnalyzer {
      * @param graph the JUNG graph to analyze (must not be null)
      * @throws IllegalArgumentException if graph is null
      */
-    public StructuralHoleAnalyzer(Graph<String, edge> graph) {
+    public StructuralHoleAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -180,7 +180,7 @@ public class StructuralHoleAnalyzer {
     }
 
     /**
-     * An edge that bridges structural holes.
+     * An Edge that bridges structural holes.
      */
     public static class BridgingEdge {
         private final String vertex1;
@@ -289,7 +289,7 @@ public class StructuralHoleAnalyzer {
         List<BridgingEdge> bridges = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             if (endpoints == null || endpoints.size() != 2) continue;
 
@@ -555,7 +555,7 @@ public class StructuralHoleAnalyzer {
     }
 
     /**
-     * Bridge score: fraction of ego's edges where removing the edge
+     * Bridge score: fraction of ego's edges where removing the Edge
      * would increase the number of connected components in ego's
      * neighborhood subgraph.
      */

@@ -40,7 +40,7 @@ import java.util.*;
  */
 public class DominatingSetAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> adj;
 
     /**
@@ -49,7 +49,7 @@ public class DominatingSetAnalyzer {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public DominatingSetAnalyzer(Graph<String, edge> graph) {
+    public DominatingSetAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -334,7 +334,7 @@ public class DominatingSetAnalyzer {
      * Checks whether the given set is an independent set (no two members adjacent).
      *
      * @param set the set to check
-     * @return true if no two members share an edge
+     * @return true if no two members share an Edge
      */
     public boolean isIndependentSet(Set<String> set) {
         if (set == null) return true;

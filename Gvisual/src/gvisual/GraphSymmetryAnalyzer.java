@@ -39,16 +39,16 @@ import java.util.*;
  */
 public class GraphSymmetryAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
 
     /** Lazily computed colour-refinement partition (vertex → orbit id). */
     private Map<String, Integer> vertexOrbitMap;
     /** Lazily computed orbit groups. */
     private List<Set<String>> orbits;
-    /** Lazily computed edge orbits. */
-    private List<Set<edge>> edgeOrbits;
+    /** Lazily computed Edge orbits. */
+    private List<Set<Edge>> edgeOrbits;
 
-    public GraphSymmetryAnalyzer(Graph<String, edge> graph) {
+    public GraphSymmetryAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -149,10 +149,10 @@ public class GraphSymmetryAnalyzer {
         }
         orbits = new ArrayList<>(groups.values());
 
-        // Build edge orbits: two edges are equivalent if their endpoint
+        // Build Edge orbits: two edges are equivalent if their endpoint
         // orbit-pair (sorted) is identical
-        Map<List<Integer>, Set<edge>> edgeGroups = new LinkedHashMap<>();
-        for (edge e : graph.getEdges()) {
+        Map<List<Integer>, Set<Edge>> edgeGroups = new LinkedHashMap<>();
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             int o1 = vertexOrbitMap.getOrDefault(v1, -1);
@@ -213,16 +213,16 @@ public class GraphSymmetryAnalyzer {
     // ------------------------------------------------------------------
 
     /**
-     * Returns the list of edge orbits. Edges whose endpoint orbit-pairs
+     * Returns the list of Edge orbits. Edges whose endpoint orbit-pairs
      * match are grouped together.
      */
-    public List<Set<edge>> getEdgeOrbits() {
+    public List<Set<Edge>> getEdgeOrbits() {
         ensureComputed();
         return Collections.unmodifiableList(edgeOrbits);
     }
 
     /**
-     * Returns the number of distinct edge orbits.
+     * Returns the number of distinct Edge orbits.
      */
     public int getEdgeOrbitCount() {
         ensureComputed();
@@ -243,7 +243,7 @@ public class GraphSymmetryAnalyzer {
     }
 
     /**
-     * A graph is edge-transitive if all edges belong to a single orbit.
+     * A graph is Edge-transitive if all edges belong to a single orbit.
      */
     public boolean isEdgeTransitive() {
         if (graph.getEdgeCount() == 0) return true;
@@ -253,7 +253,7 @@ public class GraphSymmetryAnalyzer {
 
     /**
      * A graph is symmetric (arc-transitive) if it is both vertex-transitive
-     * and edge-transitive. This is a necessary (not sufficient) condition —
+     * and Edge-transitive. This is a necessary (not sufficient) condition —
      * colour refinement may over-approximate.
      */
     public boolean isSymmetric() {

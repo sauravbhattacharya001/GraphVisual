@@ -24,7 +24,7 @@ import java.util.Arrays;
  *   <li>Repeat until convergence (L1 norm &lt; tolerance) or max iterations reached</li>
  * </ol>
  *
- * <p>For undirected graphs, each edge counts as a bidirectional link.
+ * <p>For undirected graphs, each Edge counts as a bidirectional link.
  * Dangling nodes (degree 0) distribute their rank uniformly to all nodes.</p>
  *
  * @author zalenix
@@ -40,7 +40,7 @@ public class PageRankAnalyzer {
     /** Default maximum iterations before stopping. */
     public static final int DEFAULT_MAX_ITERATIONS = 100;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final double dampingFactor;
     private final double tolerance;
     private final int maxIterations;
@@ -56,7 +56,7 @@ public class PageRankAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public PageRankAnalyzer(Graph<String, edge> graph) {
+    public PageRankAnalyzer(Graph<String, Edge> graph) {
         this(graph, DEFAULT_DAMPING, DEFAULT_TOLERANCE, DEFAULT_MAX_ITERATIONS);
     }
 
@@ -67,7 +67,7 @@ public class PageRankAnalyzer {
      * @param dampingFactor probability of following a link (typically 0.85)
      * @throws IllegalArgumentException if graph is null or damping factor out of range
      */
-    public PageRankAnalyzer(Graph<String, edge> graph, double dampingFactor) {
+    public PageRankAnalyzer(Graph<String, Edge> graph, double dampingFactor) {
         this(graph, dampingFactor, DEFAULT_TOLERANCE, DEFAULT_MAX_ITERATIONS);
     }
 
@@ -80,7 +80,7 @@ public class PageRankAnalyzer {
      * @param maxIterations maximum number of power iterations
      * @throws IllegalArgumentException if graph is null or parameters out of range
      */
-    public PageRankAnalyzer(Graph<String, edge> graph, double dampingFactor,
+    public PageRankAnalyzer(Graph<String, Edge> graph, double dampingFactor,
                             double tolerance, int maxIterations) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
@@ -217,10 +217,10 @@ public class PageRankAnalyzer {
         boolean[] isDangling = new boolean[n];
         for (int i = 0; i < n; i++) {
             String node = vertexList.get(i);
-            Collection<edge> edges = graph.getIncidentEdges(node);
+            Collection<Edge> edges = graph.getIncidentEdges(node);
             List<Integer> nodeAdj = new ArrayList<Integer>();
             if (edges != null) {
-                for (edge e : edges) {
+                for (Edge e : edges) {
                     String other = getOtherEnd(e, node);
                     if (other != null) {
                         Integer idx = vertexIndex.get(other);
@@ -753,7 +753,7 @@ public class PageRankAnalyzer {
 
     // ──────────────── Private helpers ────────────────
 
-    private String getOtherEnd(edge e, String current) {
+    private String getOtherEnd(Edge e, String current) {
         return GraphUtils.getOtherEnd(e, current);
     }
 }

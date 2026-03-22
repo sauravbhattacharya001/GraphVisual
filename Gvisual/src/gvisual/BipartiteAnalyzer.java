@@ -33,7 +33,7 @@ public class BipartiteAnalyzer {
     private static final String NIL = "__NIL__";
     private static final int INF = Integer.MAX_VALUE;
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private Map<String, Integer> coloring;
     private boolean bipartite;
     private boolean computed;
@@ -45,7 +45,7 @@ public class BipartiteAnalyzer {
      * @param graph the JUNG graph to analyze
      * @throws IllegalArgumentException if graph is null
      */
-    public BipartiteAnalyzer(Graph<String, edge> graph) {
+    public BipartiteAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -224,7 +224,7 @@ public class BipartiteAnalyzer {
     // ── Maximum Matching (Hopcroft–Karp) ───────────────────────────
 
     /**
-     * Represents a matching edge between two vertices.
+     * Represents a matching Edge between two vertices.
      */
     public static class MatchingEdge {
         private final String left;
@@ -427,7 +427,7 @@ public class BipartiteAnalyzer {
         }
 
         // BFS alternating paths from unmatched left vertices
-        // Alternate: unmatched edge to right, matched edge back to left
+        // Alternate: unmatched Edge to right, matched Edge back to left
         Set<String> visitedL = new LinkedHashSet<String>(unmatchedLeft);
         Set<String> visitedR = new LinkedHashSet<String>();
         Queue<String> queue = new LinkedList<String>(unmatchedLeft);
@@ -437,10 +437,10 @@ public class BipartiteAnalyzer {
             // Follow unmatched edges to right side
             for (String n : graph.getNeighbors(l)) {
                 if (coloring.get(n) == RIGHT && !visitedR.contains(n)) {
-                    // Only follow if this edge is NOT in the matching
+                    // Only follow if this Edge is NOT in the matching
                     if (!n.equals(matchL.get(l))) {
                         visitedR.add(n);
-                        // Follow matched edge back to left
+                        // Follow matched Edge back to left
                         String partner = matchR.get(n);
                         if (partner != null && !visitedL.contains(partner)) {
                             visitedL.add(partner);
@@ -519,7 +519,7 @@ public class BipartiteAnalyzer {
     }
 
     /**
-     * Computes edge density of the bipartite graph.
+     * Computes Edge density of the bipartite graph.
      * For bipartite graphs, max edges = |L| × |R|, so density = E / (|L| × |R|).
      *
      * @return density in [0, 1], or 0 for trivial cases

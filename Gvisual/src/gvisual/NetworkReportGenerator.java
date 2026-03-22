@@ -33,26 +33,26 @@ import java.util.*;
  */
 public class NetworkReportGenerator {
 
-    private final Graph<String, edge> graph;
-    private final List<edge> friendEdges;
-    private final List<edge> fsEdges;
-    private final List<edge> classmateEdges;
-    private final List<edge> strangerEdges;
-    private final List<edge> studyGEdges;
+    private final Graph<String, Edge> graph;
+    private final List<Edge> friendEdges;
+    private final List<Edge> fsEdges;
+    private final List<Edge> classmateEdges;
+    private final List<Edge> strangerEdges;
+    private final List<Edge> studyGEdges;
     private String title = "Network Analysis Report";
 
-    public NetworkReportGenerator(Graph<String, edge> graph,
-                                   List<edge> friendEdges,
-                                   List<edge> fsEdges,
-                                   List<edge> classmateEdges,
-                                   List<edge> strangerEdges,
-                                   List<edge> studyGEdges) {
+    public NetworkReportGenerator(Graph<String, Edge> graph,
+                                   List<Edge> friendEdges,
+                                   List<Edge> fsEdges,
+                                   List<Edge> classmateEdges,
+                                   List<Edge> strangerEdges,
+                                   List<Edge> studyGEdges) {
         this.graph = graph;
-        this.friendEdges = friendEdges != null ? friendEdges : Collections.<edge>emptyList();
-        this.fsEdges = fsEdges != null ? fsEdges : Collections.<edge>emptyList();
-        this.classmateEdges = classmateEdges != null ? classmateEdges : Collections.<edge>emptyList();
-        this.strangerEdges = strangerEdges != null ? strangerEdges : Collections.<edge>emptyList();
-        this.studyGEdges = studyGEdges != null ? studyGEdges : Collections.<edge>emptyList();
+        this.friendEdges = friendEdges != null ? friendEdges : Collections.<Edge>emptyList();
+        this.fsEdges = fsEdges != null ? fsEdges : Collections.<Edge>emptyList();
+        this.classmateEdges = classmateEdges != null ? classmateEdges : Collections.<Edge>emptyList();
+        this.strangerEdges = strangerEdges != null ? strangerEdges : Collections.<Edge>emptyList();
+        this.studyGEdges = studyGEdges != null ? studyGEdges : Collections.<Edge>emptyList();
     }
 
     /** Set the report title. */
@@ -329,7 +329,7 @@ public class NetworkReportGenerator {
     }
 
     private String buildPieChart(int[] counts, String[] names, String[] colors, int total) {
-        if (total == 0) return "<p>No edge data</p>";
+        if (total == 0) return "<p>No Edge data</p>";
 
         StringBuilder svg = new StringBuilder();
         int size = 300;

@@ -7,13 +7,13 @@ import java.util.*;
  * Vertex Cover Analyzer — finds and analyses vertex covers in a graph.
  *
  * <blockquote>
- * A <b>vertex cover</b> C is a subset of vertices such that every edge
+ * A <b>vertex cover</b> C is a subset of vertices such that every Edge
  * in E has at least one endpoint in C.
  * </blockquote>
  *
  * <h3>Features</h3>
  * <ul>
- *   <li><b>2-approximation vertex cover</b> — edge-matching heuristic
+ *   <li><b>2-approximation vertex cover</b> — Edge-matching heuristic
  *       guaranteed to produce a cover at most 2× optimal. O(V + E).</li>
  *   <li><b>Greedy vertex cover</b> — degree-based greedy that iteratively
  *       picks the vertex covering the most uncovered edges. O(V·E).</li>
@@ -41,7 +41,7 @@ import java.util.*;
  */
 public class VertexCoverAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final Map<String, Set<String>> adj;
 
     /**
@@ -50,7 +50,7 @@ public class VertexCoverAnalyzer {
      * @param graph the JUNG graph to analyse
      * @throws IllegalArgumentException if graph is null
      */
-    public VertexCoverAnalyzer(Graph<String, edge> graph) {
+    public VertexCoverAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -62,7 +62,7 @@ public class VertexCoverAnalyzer {
 
     /**
      * Finds a vertex cover using the classic 2-approximation algorithm.
-     * Repeatedly picks an arbitrary uncovered edge and adds both endpoints.
+     * Repeatedly picks an arbitrary uncovered Edge and adds both endpoints.
      * Guaranteed to be at most 2× the optimal size.
      *
      * @return an unmodifiable set of vertex IDs forming a vertex cover
@@ -71,7 +71,7 @@ public class VertexCoverAnalyzer {
         Set<String> cover = new LinkedHashSet<String>();
         Set<String> coveredEdgeKeys = new HashSet<String>();
 
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             String key = edgeKey(v1, v2);
@@ -224,14 +224,14 @@ public class VertexCoverAnalyzer {
      * Checks whether a given set of vertices is a valid vertex cover.
      *
      * @param cover the candidate vertex cover
-     * @return true if every edge has at least one endpoint in cover
+     * @return true if every Edge has at least one endpoint in cover
      * @throws IllegalArgumentException if cover is null
      */
     public boolean isVertexCover(Set<String> cover) {
         if (cover == null) {
             throw new IllegalArgumentException("Cover set must not be null");
         }
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (!cover.contains(e.getVertex1()) && !cover.contains(e.getVertex2())) {
                 return false;
             }
@@ -253,7 +253,7 @@ public class VertexCoverAnalyzer {
             throw new IllegalArgumentException("Cover set must not be null");
         }
         List<String[]> uncovered = new ArrayList<String[]>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (!cover.contains(e.getVertex1()) && !cover.contains(e.getVertex2())) {
                 uncovered.add(new String[]{e.getVertex1(), e.getVertex2()});
             }
@@ -325,7 +325,7 @@ public class VertexCoverAnalyzer {
     private int greedyMaxMatchingSize() {
         Set<String> matched = new HashSet<String>();
         int count = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (!matched.contains(v1) && !matched.contains(v2)) {
@@ -422,9 +422,9 @@ public class VertexCoverAnalyzer {
     public int lpRelaxationBound() {
         if (graph.getEdgeCount() == 0) return 0;
         // In the LP relaxation of vertex cover, the optimal fractional
-        // solution assigns 0.5 to every vertex incident to any edge.
+        // solution assigns 0.5 to every vertex incident to any Edge.
         Set<String> incidentVertices = new HashSet<String>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             incidentVertices.add(e.getVertex1());
             incidentVertices.add(e.getVertex2());
         }

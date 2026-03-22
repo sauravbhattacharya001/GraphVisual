@@ -14,26 +14,26 @@ import static org.junit.Assert.*;
  */
 public class SignedGraphAnalyzerTest {
 
-    private Graph<String, edge> emptyGraph;
-    private Graph<String, edge> singleVertex;
-    private Graph<String, edge> allPositive;     // triangle with all + edges
-    private Graph<String, edge> balanced;        // balanced: A-B+, B-C+, A-C- (two groups)
-    private Graph<String, edge> unbalanced;      // triangle with 2+ and 1- (ppn)
-    private Graph<String, edge> allNegative;     // triangle with all - edges
-    private Graph<String, edge> path3;           // A--B--C with mixed signs
-    private Graph<String, edge> square;          // 4-cycle
-    private Graph<String, edge> largeBalanced;   // larger balanced graph
+    private Graph<String, Edge> emptyGraph;
+    private Graph<String, Edge> singleVertex;
+    private Graph<String, Edge> allPositive;     // triangle with all + edges
+    private Graph<String, Edge> balanced;        // balanced: A-B+, B-C+, A-C- (two groups)
+    private Graph<String, Edge> unbalanced;      // triangle with 2+ and 1- (ppn)
+    private Graph<String, Edge> allNegative;     // triangle with all - edges
+    private Graph<String, Edge> path3;           // A--B--C with mixed signs
+    private Graph<String, Edge> square;          // 4-cycle
+    private Graph<String, Edge> largeBalanced;   // larger balanced graph
     private int edgeCounter = 0;
 
-    private edge makeEdge(String v1, String v2, float weight) {
-        edge e = new edge("e", v1, v2);
+    private Edge makeEdge(String v1, String v2, float weight) {
+        Edge e = new Edge("e", v1, v2);
         e.setWeight(weight);
         e.setLabel(weight < 0 ? "-" : "+");
         return e;
     }
 
-    private edge makeLabelEdge(String v1, String v2, String label) {
-        edge e = new edge("e", v1, v2);
+    private Edge makeLabelEdge(String v1, String v2, String label) {
+        Edge e = new Edge("e", v1, v2);
         e.setLabel(label);
         return e;
     }
@@ -115,7 +115,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testIsNegativeByWeight() {
-        edge e = makeEdge("A","B",-1);
+        Edge e = makeEdge("A","B",-1);
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(emptyGraph);
         assertTrue(a.isNegative(e));
         assertFalse(a.isPositive(e));
@@ -123,7 +123,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testIsPositiveByWeight() {
-        edge e = makeEdge("A","B",1);
+        Edge e = makeEdge("A","B",1);
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(emptyGraph);
         assertFalse(a.isNegative(e));
         assertTrue(a.isPositive(e));
@@ -131,21 +131,21 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testIsNegativeByLabel() {
-        edge e = makeLabelEdge("A","B","-");
+        Edge e = makeLabelEdge("A","B","-");
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(emptyGraph);
         assertTrue(a.isNegative(e));
     }
 
     @Test
     public void testIsNegativeByLabelWord() {
-        edge e = makeLabelEdge("A","B","negative");
+        Edge e = makeLabelEdge("A","B","negative");
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(emptyGraph);
         assertTrue(a.isNegative(e));
     }
 
     @Test
     public void testZeroWeightIsPositive() {
-        edge e = makeEdge("A","B",0);
+        Edge e = makeEdge("A","B",0);
         e.setLabel(null);
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(emptyGraph);
         assertTrue(a.isPositive(e));
@@ -352,7 +352,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testWeaklyUnbalancedPPN() {
-        // ++- triangle: NOT weakly balanced (negative edge within positive component)
+        // ++- triangle: NOT weakly balanced (negative Edge within positive component)
         assertFalse(new SignedGraphAnalyzer(unbalanced).isWeaklyBalanced());
     }
 
@@ -423,13 +423,13 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testFrustrationUnbalanced() {
-        // ++- triangle: need to flip 1 edge
+        // ++- triangle: need to flip 1 Edge
         assertEquals(1, new SignedGraphAnalyzer(unbalanced).frustrationIndex());
     }
 
     @Test
     public void testFrustrationAllNegative() {
-        // --- triangle: need to flip 1 edge to get +--
+        // --- triangle: need to flip 1 Edge to get +--
         assertEquals(1, new SignedGraphAnalyzer(allNegative).frustrationIndex());
     }
 
@@ -442,7 +442,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testFrustratedEdgesUnbalanced() {
-        List<edge> frustrated = new SignedGraphAnalyzer(unbalanced).findFrustratedEdges();
+        List<Edge> frustrated = new SignedGraphAnalyzer(unbalanced).findFrustratedEdges();
         assertFalse(frustrated.isEmpty());
     }
 
@@ -460,7 +460,7 @@ public class SignedGraphAnalyzerTest {
     public void testPredictSignPositive() {
         // All-positive triangle: A-C exists, but predict via B
         // Need a graph where A-C doesn't exist but they share neighbors
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
         g.addEdge(makeEdge("A","B",1), "A", "B");
         g.addEdge(makeEdge("B","C",1), "B", "C");
@@ -479,7 +479,7 @@ public class SignedGraphAnalyzerTest {
     @Test
     public void testPredictSignNoEvidence() {
         // Two disconnected vertices
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         assertEquals(0, new SignedGraphAnalyzer(g).predictSign("A", "B"));
     }
@@ -554,7 +554,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testSingleEdgePositive() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         g.addEdge(makeEdge("A","B",1), "A", "B");
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(g);
@@ -565,7 +565,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testSingleEdgeNegative() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B");
         g.addEdge(makeEdge("A","B",-1), "A", "B");
         SignedGraphAnalyzer a = new SignedGraphAnalyzer(g);
@@ -576,7 +576,7 @@ public class SignedGraphAnalyzerTest {
 
     @Test
     public void testDisconnectedComponents() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C"); g.addVertex("D");
         g.addEdge(makeEdge("A","B",1), "A", "B");
         g.addEdge(makeEdge("C","D",-1), "C", "D");

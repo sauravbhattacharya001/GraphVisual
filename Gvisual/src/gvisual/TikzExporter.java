@@ -37,7 +37,7 @@ import java.util.*;
  */
 public class TikzExporter {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private double canvasWidth = 12.0;  // cm
     private double canvasHeight = 9.0;  // cm
     private String title;
@@ -66,7 +66,7 @@ public class TikzExporter {
         TYPE_NAMES.put("sg", "Study Group");
     }
 
-    public TikzExporter(Graph<String, edge> graph) {
+    public TikzExporter(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
     }
@@ -102,7 +102,7 @@ public class TikzExporter {
             maxDegree = Math.max(maxDegree, graph.degree(v));
         }
         float minWeight = Float.MAX_VALUE, maxWeight = Float.MIN_VALUE;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             minWeight = Math.min(minWeight, e.getWeight());
             maxWeight = Math.max(maxWeight, e.getWeight());
         }
@@ -110,7 +110,7 @@ public class TikzExporter {
         if (maxWeight <= minWeight) maxWeight = minWeight + 1;
 
         Set<String> usedTypes = new LinkedHashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             if (e.getType() != null) usedTypes.add(e.getType());
         }
 
@@ -125,7 +125,7 @@ public class TikzExporter {
             // Define colors
             for (String type : usedTypes) {
                 String color = TYPE_COLORS.getOrDefault(type, "gray");
-                sb.append("\\definecolor{edge").append(sanitize(type)).append("}{named}{")
+                sb.append("\\definecolor{Edge").append(sanitize(type)).append("}{named}{")
                   .append(color.contains("!") ? color.split("!")[0] : color).append("}\n");
             }
             // Actually use xcolor mixing syntax
@@ -141,7 +141,7 @@ public class TikzExporter {
 
         sb.append("\\begin{tikzpicture}[\n");
         sb.append("  every node/.style={circle, draw, inner sep=1pt, font=\\tiny},\n");
-        sb.append("  every edge/.style={-}\n");
+        sb.append("  every Edge/.style={-}\n");
         sb.append("]\n\n");
 
         // Title
@@ -174,7 +174,7 @@ public class TikzExporter {
         sb.append("\n");
 
         // Edges
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 == null || v2 == null) continue;
@@ -263,7 +263,7 @@ public class TikzExporter {
             }
 
             // Attractive forces
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 String v1 = e.getVertex1(), v2 = e.getVertex2();
                 if (v1 == null || v2 == null) continue;
                 double[] p1 = positions.get(v1), p2 = positions.get(v2);

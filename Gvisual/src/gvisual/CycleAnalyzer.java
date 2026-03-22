@@ -14,8 +14,8 @@ import java.util.*;
  *
  * <h3>Algorithms</h3>
  * <ul>
- *   <li><b>Cycle detection:</b> DFS with back-edge detection — O(V + E)</li>
- *   <li><b>Girth:</b> BFS from each vertex, shortest back-edge — O(V × (V + E))</li>
+ *   <li><b>Cycle detection:</b> DFS with back-Edge detection — O(V + E)</li>
+ *   <li><b>Girth:</b> BFS from each vertex, shortest back-Edge — O(V × (V + E))</li>
  *   <li><b>Fundamental cycle basis:</b> Spanning tree + back-edges — O(V + E)</li>
  *   <li><b>All simple cycles:</b> Bounded DFS with vertex ordering — exponential
  *       worst case, bounded by configurable limit</li>
@@ -34,7 +34,7 @@ import java.util.*;
  */
 public class CycleAnalyzer {
 
-    private final Graph<String, edge> graph;
+    private final Graph<String, Edge> graph;
     private final boolean isDirected;
 
     /**
@@ -43,7 +43,7 @@ public class CycleAnalyzer {
      * @param graph the JUNG graph to analyze (directed or undirected)
      * @throws IllegalArgumentException if graph is null
      */
-    public CycleAnalyzer(Graph<String, edge> graph) {
+    public CycleAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
@@ -72,12 +72,12 @@ public class CycleAnalyzer {
         public int length() { return vertices.size(); }
 
         /** Total weight of all edges in the cycle (0 if no weights). */
-        public float totalWeight(Graph<String, edge> graph) {
+        public float totalWeight(Graph<String, Edge> graph) {
             float w = 0;
             for (int i = 0; i < vertices.size(); i++) {
                 String from = vertices.get(i);
                 String to = vertices.get((i + 1) % vertices.size());
-                edge e = graph.findEdge(from, to);
+                Edge e = graph.findEdge(from, to);
                 if (e == null) e = graph.findEdge(to, from);
                 if (e != null) w += e.getWeight();
             }
@@ -248,7 +248,7 @@ public class CycleAnalyzer {
         color.put(v, 1);
         for (String neighbor : getSuccessors(v)) {
             int c = color.get(neighbor);
-            if (c == 1) return true;      // back edge → cycle
+            if (c == 1) return true;      // back Edge → cycle
             if (c == 0 && dfsCycleDirected(neighbor, color)) return true;
         }
         color.put(v, 2);
@@ -271,7 +271,7 @@ public class CycleAnalyzer {
             if (!visited.contains(neighbor)) {
                 if (dfsCycleUndirected(neighbor, v, visited)) return true;
             } else if (!neighbor.equals(parent)) {
-                return true;  // back edge to non-parent → cycle
+                return true;  // back Edge to non-parent → cycle
             }
         }
         return false;
@@ -281,7 +281,7 @@ public class CycleAnalyzer {
 
     /**
      * Computes the girth (length of the shortest cycle).
-     * BFS from each vertex; when a back-edge is found, the cycle
+     * BFS from each vertex; when a back-Edge is found, the cycle
      * length is 2 × depth + 1 (undirected) or tracked via distances
      * (directed). O(V × (V + E)).
      *
@@ -336,7 +336,7 @@ public class CycleAnalyzer {
                         if (cycleLen < shortest) shortest = cycleLen;
                     }
                 } else {
-                    // Undirected: non-parent back-edge
+                    // Undirected: non-parent back-Edge
                     if (!w.equals(parent.get(v))) {
                         int cycleLen = d + 1 + dist.get(w);
                         if (cycleLen < shortest) shortest = cycleLen;
@@ -354,9 +354,9 @@ public class CycleAnalyzer {
      *
      * <p>A fundamental cycle basis has exactly M - N + C cycles, where
      * M = edges, N = vertices, C = connected components (the cyclomatic
-     * number). Each non-tree edge creates exactly one fundamental cycle.</p>
+     * number). Each non-tree Edge creates exactly one fundamental cycle.</p>
      *
-     * @return list of fundamental cycles (one per non-tree edge)
+     * @return list of fundamental cycles (one per non-tree Edge)
      */
     public List<Cycle> fundamentalCycleBasis() {
         List<Cycle> basis = new ArrayList<Cycle>();
@@ -389,8 +389,8 @@ public class CycleAnalyzer {
             }
         }
 
-        // Each non-tree edge defines a fundamental cycle
-        for (edge e : graph.getEdges()) {
+        // Each non-tree Edge defines a fundamental cycle
+        for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
             if (v1 == null || v2 == null) continue;
