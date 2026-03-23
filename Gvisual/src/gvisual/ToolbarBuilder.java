@@ -12,9 +12,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
 
@@ -30,8 +27,6 @@ import org.apache.commons.io.FileUtils;
  * @see ExportActions
  */
 public final class ToolbarBuilder {
-
-    private static final Logger LOGGER = Logger.getLogger(ToolbarBuilder.class.getName());
 
     /** Callback interface for the host to supply live graph + Edge data. */
     public interface GraphContext {
@@ -111,71 +106,35 @@ public final class ToolbarBuilder {
     /* ---- Snapshot ---- */
 
     private static void addSnapshotButton(JPanel panel, GraphContext ctx) {
-        JButton btn = new JButton(
-                "<html><center>Take a snapshot<br/>Use this to<br/> take and image<br/> of the current view<br/> of the graph</center></html>");
-        btn.setPreferredSize(new Dimension(140, 100));
-        btn.addActionListener(e -> {
-            JFileChooser fc;
-            int count = 0;
-            do {
-                if (count != 0) {
-                    JOptionPane.showMessageDialog(null,
-                            "File with same name already exists!!!", "Error!!", 1);
-                }
-                count++;
-                fc = new JFileChooser(System.getProperty("user.dir"));
-                fc.showSaveDialog(null);
-            } while (fc.getSelectedFile() != null && fc.getSelectedFile().exists());
-
-            if (fc.getSelectedFile() == null) return;
-            File curFile = new File(fc.getSelectedFile().toString() + ".png");
-            try {
-                curFile.createNewFile();
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
-            }
-            PNGDump dumper = new PNGDump();
-            try {
-                dumper.dumpComponent(curFile, ctx.getVisualizationViewer());
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Snapshot failed", ex);
-            }
-        });
-        panel.add(btn);
+        ExportActions.addExportButton(panel, null,
+                "<html><center>Take a snapshot<br/>Use this to<br/> take an image<br/> of the current view<br/> of the graph</center></html>",
+                "Save Snapshot",
+                () -> "snapshot_" + ctx.getTimestamp() + ".png",
+                new String[]{".png"},
+                outFile -> {
+                    PNGDump dumper = new PNGDump();
+                    dumper.dumpComponent(outFile, ctx.getVisualizationViewer());
+                    return "Snapshot saved!\nFile: " + outFile.getName();
+                });
     }
 
     /* ---- Edge-list CSV export ---- */
 
     private static void addEdgelistExportButton(JPanel panel) {
-        JButton btn = new JButton(
-                "<html><center>Export edgelist<br/>Export the graph<br/> Edge list in<br/> CSV format.</center></html>");
-        btn.setPreferredSize(new Dimension(140, 100));
-        btn.addActionListener(e -> {
-            JFileChooser fc;
-            int count = 0;
-            do {
-                if (count != 0) {
-                    JOptionPane.showMessageDialog(null,
-                            "File with same name already exists!!!", "Error!!", 1);
-                }
-                count++;
-                fc = new JFileChooser(System.getProperty("user.dir"));
-                fc.showSaveDialog(null);
-            } while (fc.getSelectedFile() != null && fc.getSelectedFile().exists());
-
-            if (fc.getSelectedFile() == null) return;
-            try {
-                fc.getSelectedFile().createNewFile();
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
-            }
-            try {
-                FileUtils.copyFile(new File("./graph.txt"), fc.getSelectedFile());
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
-            }
-        });
-        panel.add(btn);
+        ExportActions.addExportButton(panel, null,
+                "<html><center>Export edgelist<br/>Export the graph<br/> Edge list in<br/> CSV format.</center></html>",
+                "Export Edge List",
+                () -> "edgelist.csv",
+                new String[]{".csv"},
+                outFile -> {
+                    File source = new File("./graph.txt");
+                    if (!source.exists()) {
+                        throw new FileNotFoundException(
+                            "Edge-list source file (graph.txt) not found in working directory.");
+                    }
+                    FileUtils.copyFile(source, outFile);
+                    return "Edge list exported!\nFile: " + outFile.getName();
+                });
     }
 
     /* ---- GraphML export ---- */
