@@ -363,7 +363,26 @@ public class GraphDiffHtmlExporter {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
+    /**
+     * Escapes a string for safe embedding inside a JavaScript double-quoted
+     * string literal within an HTML {@code <script>} block.
+     *
+     * <p>Handles: backslash, double-quote, newlines, forward-slash (prevents
+     * {@code </script>} injection — CWE-79), backtick and {@code $} (prevents
+     * template literal injection), and Unicode line/paragraph separators
+     * (U+2028/U+2029) which are valid in JSON but break JS string literals.</p>
+     */
     private static String escapeJs(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("'", "\\'")
+                .replace("/", "\\/")       // prevent </script> breakout
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("`", "\\`")       // prevent template literal injection
+                .replace("$", "\\$")       // prevent ${} interpolation
+                .replace("\u2028", "\\u2028") // Unicode line separator
+                .replace("\u2029", "\\u2029"); // Unicode paragraph separator
     }
 }

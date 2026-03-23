@@ -446,8 +446,7 @@ public class GraphTimelineExporter {
     }
 
     private static String escapeJson(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+        return HtmlExportUtils.escapeJs(s);
     }
 
     private static String escapeHtml(String s) {
