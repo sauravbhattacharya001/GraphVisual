@@ -49,17 +49,7 @@ public class DotExporter {
     private String rankDir = null; // TB, LR, BT, RL
     private final Map<String, String> graphAttributes = new LinkedHashMap<>();
 
-    // Default color palette for Edge types
-    private static final Map<String, String> DEFAULT_TYPE_COLORS = new LinkedHashMap<>();
-    static {
-        DEFAULT_TYPE_COLORS.put("f",  "#4CAF50"); // friend = green
-        DEFAULT_TYPE_COLORS.put("fs", "#2196F3"); // friend-stranger = blue
-        DEFAULT_TYPE_COLORS.put("c",  "#FF9800"); // classmate = orange
-        DEFAULT_TYPE_COLORS.put("s",  "#F44336"); // stranger = red
-        DEFAULT_TYPE_COLORS.put("sg", "#9C27B0"); // study group = purple
-    }
-
-    private final Map<String, String> typeColors = new LinkedHashMap<>(DEFAULT_TYPE_COLORS);
+    private final Map<String, String> typeColors = new LinkedHashMap<>(EdgeTypeRegistry.getAllHexColors());
 
     /**
      * Creates a new DOT exporter for the given graph.
@@ -295,17 +285,10 @@ public class DotExporter {
 
     /**
      * Returns a human-readable name for an Edge type code.
+     * Delegates to the centralized {@link EdgeTypeRegistry}.
      */
     private String getTypeName(String type) {
-        if (type == null) return "unknown";
-        switch (type) {
-            case "f":  return "Friend";
-            case "fs": return "Friend-Stranger";
-            case "c":  return "Classmate";
-            case "s":  return "Stranger";
-            case "sg": return "Study Group";
-            default:   return type;
-        }
+        return EdgeTypeRegistry.getName(type);
     }
 
     /**
