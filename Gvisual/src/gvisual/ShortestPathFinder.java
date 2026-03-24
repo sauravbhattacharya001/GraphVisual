@@ -117,15 +117,19 @@ public class ShortestPathFinder {
         while (!queue.isEmpty()) {
             String current = queue.poll();
 
-            if (current.equals(target)) {
-                return buildPath(source, target, predecessor, predecessorEdge);
-            }
-
             for (Edge e : graph.getIncidentEdges(current)) {
                 String neighbor = getOtherEnd(e, current);
                 if (neighbor != null && !predecessor.containsKey(neighbor)) {
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
+                    // Early termination: return as soon as we discover
+                    // the target instead of waiting until it is dequeued.
+                    // In BFS on unweighted graphs, the first discovery is
+                    // always optimal, so this can skip exploring an entire
+                    // BFS frontier layer.
+                    if (neighbor.equals(target)) {
+                        return buildPath(source, target, predecessor, predecessorEdge);
+                    }
                     queue.add(neighbor);
                 }
             }
