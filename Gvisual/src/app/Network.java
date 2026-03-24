@@ -6,39 +6,43 @@ import java.io.FileWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.List;
+
+import app.MeetingQueryConfig.Comparison;
+import app.MeetingQueryConfig.LocationFilter;
 
 /**
+ * Generates Edge-list files from the meeting database.
  *
+ * <p>Connects to the PostgreSQL meeting database and produces an Edge-list
+ * file for each relationship type (friends, classmates, study-groups,
+ * strangers, familiar strangers) based on configurable duration and
+ * frequency thresholds.</p>
+ *
+ * <p>The output path is validated to prevent directory traversal —
+ * it must resolve to a location within the current working directory.</p>
  *
  * @author zalenix
  */
 public class Network {
 
     /**
+     * Generates the edge-list file from the meeting database.
      *
-     * Connects to database and writes out the Edge-list from the meeting DB table, forming edges of kind:
-     * friends, classmates, study-groups, strangers and familiar strangers (depending upon parameters).
+     * <p>Replaces the previous 13-parameter signature with a structured
+     * parameter object approach.  Each relationship type is described by
+     * a {@link MeetingQueryConfig} that encapsulates the SQL pattern
+     * differences (location filter, comparison direction, thresholds).</p>
      *
-     * <p>The output path is validated to prevent directory traversal —
-     * it must resolve to a location within the current working directory.</p>
-     *
-     * @param path output file path (must be within the working directory)
-     * @param Month
-     * @param Date
-     * @param dThresF
-     * @param CThresF
-     * @param dThresFS
-     * @param CThresFS
-     * @param dThresC
-     * @param CThresC
-     * @param dThresS
-     * @param CThresS
-     * @param dThresSg
-     * @param CThresSg
-     * @throws Exception
+     * @param path   output file path (must be within the working directory)
+     * @param month  month filter (e.g. "03")
+     * @param date   date filter (e.g. "15")
+     * @param configs list of relationship query configurations
+     * @throws Exception if database access or file I/O fails
      */
-    public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
-
+    public static void generateFile(String path, String month, String date,
+                                     List<MeetingQueryConfig> configs) throws Exception {
         // Validate output path — prevent directory traversal attacks
         File outputFile = new File(path).getCanonicalFile();
         File workingDir = new File(".").getCanonicalFile();
@@ -50,67 +54,14 @@ public class Network {
 
         System.out.println("connecting...");
 
-        // Parameterized query template for location-based meeting queries.
-        // Parameters: month, date, location, duration threshold, count threshold.
-
-        // --- Friends query ---
-        String friendSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Study groups query ---
-        String studygSql = " SELECT x.id , y.id , C , d   "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C <= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Classmates query ---
-        String cmateSql = " SELECT x.id , y.id, C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Strangers query ---
-        // Exclude both 'class' and 'unknown' locations so only meetings with
-        // a resolved location (e.g. 'public', 'path') are considered.
-        String strangerSql = " SELECT x.id , y.id , C , d "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C < ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Familiar strangers query ---
-        String famstrangerSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a , deviceID as x, deviceID as y"
-                + " WHERE C > ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
         try (Connection conn = Util.getAppConnection()) {
-
-            // Use StringBuilder instead of String concatenation for performance
             StringBuilder sb = new StringBuilder("edges");
 
-            // Execute each relationship query using the shared helper
-            appendEdges(conn, sb, friendSql,      "f",  Month, Date, dThresF,  CThresF);
-            appendEdges(conn, sb, studygSql,       "sg", Month, Date, dThresSg, CThresSg);
-            appendEdges(conn, sb, cmateSql,        "c",  Month, Date, dThresC,  CThresC);
-            appendEdges(conn, sb, strangerSql,     "s",  Month, Date, dThresS,  CThresS);
-            appendEdges(conn, sb, famstrangerSql,  "fs", Month, Date, dThresFS, CThresFS);
+            for (MeetingQueryConfig config : configs) {
+                appendEdges(conn, sb, config.buildSql(), config.getEdgePrefix(),
+                           month, date, config.getDurationThreshold(),
+                           config.getCountThreshold());
+            }
 
             // Write output file — use validated outputFile, not raw path
             if (outputFile.exists()) {
@@ -120,6 +71,45 @@ public class Network {
                 out.write(sb.toString());
             }
         }
+    }
+
+    /**
+     * Backward-compatible overload preserving the original 13-parameter signature.
+     *
+     * <p>Delegates to {@link #generateFile(String, String, String, List)} by
+     * constructing {@link MeetingQueryConfig} instances from the raw threshold
+     * parameters.</p>
+     *
+     * @deprecated Use {@link #generateFile(String, String, String, List)} with
+     *             explicit {@link MeetingQueryConfig} objects instead.
+     */
+    @Deprecated
+    public static void generateFile(String path, String Month, String Date,
+            int dThresF, int CThresF, int dThresFS, int CThresFS,
+            int dThresC, int CThresC, int dThresS, int CThresS,
+            int dThresSg, int CThresSg) throws Exception {
+
+        String[] excludedLocations = {"class", "unknown", ""};
+
+        List<MeetingQueryConfig> configs = Arrays.asList(
+            new MeetingQueryConfig("f",  LocationFilter.EXACT,
+                new String[]{"public"}, Comparison.GT, Comparison.GTE,
+                dThresF, CThresF),
+            new MeetingQueryConfig("sg", LocationFilter.EXACT,
+                new String[]{"class"}, Comparison.GT, Comparison.LTE,
+                dThresSg, CThresSg),
+            new MeetingQueryConfig("c",  LocationFilter.EXACT,
+                new String[]{"class"}, Comparison.GT, Comparison.GTE,
+                dThresC, CThresC),
+            new MeetingQueryConfig("s",  LocationFilter.EXCLUDE,
+                excludedLocations, Comparison.LT, Comparison.LT,
+                dThresS, CThresS),
+            new MeetingQueryConfig("fs", LocationFilter.EXCLUDE,
+                excludedLocations, Comparison.LT, Comparison.GT,
+                dThresFS, CThresFS)
+        );
+
+        generateFile(path, Month, Date, configs);
     }
 
     /**
