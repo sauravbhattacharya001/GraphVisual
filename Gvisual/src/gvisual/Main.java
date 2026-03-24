@@ -274,8 +274,6 @@ public class Main extends JFrame {
             boolean isFs = false;
             boolean isC = false;
             boolean isS = false;
-            boolean isSg = false;
-            int areaId;
             for (Edge y : g.getOutEdges(x)) {
                 EdgeType type = EdgeType.fromCode(y.getType());
                 if (type != null) {
@@ -284,31 +282,12 @@ public class Main extends JFrame {
                         case FAMILIAR:    isFs = true; break;
                         case CLASSMATE:   isC = true;  break;
                         case STRANGER:    isS = true;  break;
-                        case STUDY_GROUP: isSg = true; break;
+                        case STUDY_GROUP: break; // excluded from clustering
                     }
                 }
             }
-            // To be added study groups
-            if (isF && !isFs && !isC && !isS) {
-                areaId = 0;
-            } else if (isF && isFs && !isC && !isS) {
-                areaId = 3;
-            } else if (isF && !isFs && isC && !isS) {
-                areaId = 1;
-            } else if (!isF && !isFs && isC && !isS) {
-                areaId = 2;
-            } else if (!isF && !isFs && isC && isS) {
-                areaId = 5;
-            } else if (!isF && isFs && !isC && isS) {
-                areaId = 7;
-            } else if (!isF && isFs && !isC && !isS) {
-                areaId = 6;
-            } else if (!isF && !isFs && !isC && isS) {
-                areaId = 8;
-            } else {
-                areaId = 4;
-            }
 
+            int areaId = EdgeType.clusterIdFor(isF, isFs, isC, isS);
             clusters.get(areaId).add(x);
         }
 
@@ -632,70 +611,26 @@ public class Main extends JFrame {
     /**
      * initialize the Legend Space
      */
-    public final void initializeLegendSpace(){
+    /**
+     * Builds the legend panel by iterating over {@link EdgeType} values,
+     * replacing the previous 50-line block of duplicated icon/label code.
+     */
+    public final void initializeLegendSpace() {
         legendPanel = new JPanel();
 
         JLabel legendHeading = new JLabel("Legend for the Graph");
+        Box legendBox = Box.createVerticalBox();
 
-        String blueImgPath = "images/blue.jpg";
-        String redImgPath = "images/red.jpg";
-        String greenImgPath = "images/green.jpg";
-        String yellowImgPath = "images/yellow.jpg";
-        String grayImgPath = "images/gray.jpg";
-
-        Icon blue = new ImageIcon(blueImgPath);
-        Icon red = new ImageIcon(redImgPath);
-        Icon green = new ImageIcon(greenImgPath);
-        Icon yellow = new ImageIcon(yellowImgPath);
-        Icon gray = new ImageIcon(grayImgPath);
-
-        JLabel fLabel = new JLabel("Friend");
-        JLabel fColor= new JLabel(green);
-        JLabel fsLabel= new JLabel("Familiar Stranger");
-        JLabel fsColor= new JLabel(gray);
-        JLabel sLabel= new JLabel("Stranger");
-        JLabel sColor= new JLabel(red);
-        JLabel cLabel= new JLabel("Classmate");
-        JLabel cColor = new JLabel(blue);
-        JLabel sgLabel= new JLabel("Study Group");
-        JLabel sgColor= new JLabel(yellow);
-
-        Box HBox[] = new Box[5];
-        Box VBox[] = new Box[1];
-
-        VBox[0]= Box.createVerticalBox();
-
-        HBox[0]= Box.createHorizontalBox();
-        HBox[1]= Box.createHorizontalBox();
-        HBox[2]= Box.createHorizontalBox();
-        HBox[3]= Box.createHorizontalBox();
-        HBox[4]= Box.createHorizontalBox();
-
-
-        HBox[0].add(fColor);
-        HBox[1].add(fsColor);
-        HBox[2].add(sColor);
-        HBox[3].add(cColor);
-        HBox[4].add(sgColor);
-
-        HBox[0].add(fLabel);
-        HBox[1].add(fsLabel);
-        HBox[2].add(sLabel);
-        HBox[3].add(cLabel);
-        HBox[4].add(sgLabel);
-
-        VBox[0].add(HBox[0]);
-        VBox[0].add(HBox[1]);
-        VBox[0].add(HBox[2]);
-        VBox[0].add(HBox[3]);
-        VBox[0].add(HBox[4]);
+        for (EdgeType type : EdgeType.values()) {
+            Box row = Box.createHorizontalBox();
+            row.add(new JLabel(new ImageIcon(type.getLegendIconPath())));
+            row.add(new JLabel(type.getDisplayLabel()));
+            legendBox.add(row);
+        }
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                legendHeading, VBox[0]);
-
-
+                legendHeading, legendBox);
         legendPanel.add(splitPane);
-
     }
 
     /**
