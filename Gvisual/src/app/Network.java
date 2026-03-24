@@ -105,80 +105,12 @@ public class Network {
             // Use StringBuilder instead of String concatenation for performance
             StringBuilder sb = new StringBuilder("edges");
 
-            // --- Friends ---
-            try (PreparedStatement psFriend = conn.prepareStatement(friendSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psFriend.setString(1, Month);
-                psFriend.setString(2, Date);
-                psFriend.setInt(3, dThresF);
-                psFriend.setInt(4, CThresF);
-                try (ResultSet rs = psFriend.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nf ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Study groups ---
-            try (PreparedStatement psStudyg = conn.prepareStatement(studygSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psStudyg.setString(1, Month);
-                psStudyg.setString(2, Date);
-                psStudyg.setInt(3, dThresSg);
-                psStudyg.setInt(4, CThresSg);
-                try (ResultSet rs = psStudyg.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nsg ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Classmates ---
-            try (PreparedStatement psCmate = conn.prepareStatement(cmateSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psCmate.setString(1, Month);
-                psCmate.setString(2, Date);
-                psCmate.setInt(3, dThresC);
-                psCmate.setInt(4, CThresC);
-                try (ResultSet rs = psCmate.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nc ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Strangers ---
-            try (PreparedStatement psStranger = conn.prepareStatement(strangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psStranger.setString(1, Month);
-                psStranger.setString(2, Date);
-                psStranger.setInt(3, dThresS);
-                psStranger.setInt(4, CThresS);
-                try (ResultSet rs = psStranger.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\ns ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
-
-            // --- Familiar strangers ---
-            try (PreparedStatement psFamstranger = conn.prepareStatement(famstrangerSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                psFamstranger.setString(1, Month);
-                psFamstranger.setString(2, Date);
-                psFamstranger.setInt(3, dThresFS);
-                psFamstranger.setInt(4, CThresFS);
-                try (ResultSet rs = psFamstranger.executeQuery()) {
-                    while (rs.next()) {
-                        double weight = rs.getInt(3) * (double) rs.getFloat(4);
-                        sb.append("\nfs ").append(rs.getString(1)).append(" ")
-                          .append(rs.getString(2)).append(" ").append(weight);
-                    }
-                }
-            }
+            // Execute each relationship query using the shared helper
+            appendEdges(conn, sb, friendSql,      "f",  Month, Date, dThresF,  CThresF);
+            appendEdges(conn, sb, studygSql,       "sg", Month, Date, dThresSg, CThresSg);
+            appendEdges(conn, sb, cmateSql,        "c",  Month, Date, dThresC,  CThresC);
+            appendEdges(conn, sb, strangerSql,     "s",  Month, Date, dThresS,  CThresS);
+            appendEdges(conn, sb, famstrangerSql,  "fs", Month, Date, dThresFS, CThresFS);
 
             // Write output file — use validated outputFile, not raw path
             if (outputFile.exists()) {
@@ -186,6 +118,42 @@ public class Network {
             }
             try (BufferedWriter out = new BufferedWriter(new FileWriter(outputFile))) {
                 out.write(sb.toString());
+            }
+        }
+    }
+
+    /**
+     * Executes a parameterized meeting query and appends edges to the output buffer.
+     *
+     * <p>Each query is expected to return (id1, id2, count, avg_duration).
+     * The edge weight is computed as count * avg_duration.</p>
+     *
+     * @param conn       open database connection
+     * @param sb         output buffer to append edge lines to
+     * @param sql        parameterized SQL query (params: month, date, duration_threshold, count_threshold)
+     * @param edgePrefix edge type prefix (e.g. "f", "sg", "c", "s", "fs")
+     * @param month      month filter value
+     * @param date       date filter value
+     * @param dThreshold duration threshold
+     * @param cThreshold count threshold
+     * @throws Exception if query execution fails
+     */
+    private static void appendEdges(Connection conn, StringBuilder sb, String sql,
+                                     String edgePrefix, String month, String date,
+                                     int dThreshold, int cThreshold) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(sql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+            ps.setString(1, month);
+            ps.setString(2, date);
+            ps.setInt(3, dThreshold);
+            ps.setInt(4, cThreshold);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    double weight = rs.getInt(3) * (double) rs.getFloat(4);
+                    sb.append('\n').append(edgePrefix).append(' ')
+                      .append(rs.getString(1)).append(' ')
+                      .append(rs.getString(2)).append(' ').append(weight);
+                }
             }
         }
     }
