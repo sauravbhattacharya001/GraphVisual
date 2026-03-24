@@ -151,6 +151,49 @@ public class Edge {
         return edgeStart <= end && edgeEnd >= start;
     }
 
+    /**
+     * Two Edges are equal if they connect the same vertices (in either order),
+     * have the same type, and the same weight.
+     */
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Edge other = (Edge) obj;
+        if (Float.compare(weight, other.weight) != 0) return false;
+        if (!java.util.Objects.equals(edgeType, other.edgeType)) return false;
+        // Undirected: (v1,v2) == (v2,v1)
+        boolean sameOrder = java.util.Objects.equals(vertex1, other.vertex1)
+                         && java.util.Objects.equals(vertex2, other.vertex2);
+        boolean reverseOrder = java.util.Objects.equals(vertex1, other.vertex2)
+                            && java.util.Objects.equals(vertex2, other.vertex1);
+        return sameOrder || reverseOrder;
+    }
+
+    /**
+     * Hash code consistent with {@link #equals}: order-independent on vertices.
+     */
+    @Override
+    public int hashCode()
+    {
+        // Use addition so vertex order doesn't matter
+        int vertexHash = (vertex1 == null ? 0 : vertex1.hashCode())
+                       + (vertex2 == null ? 0 : vertex2.hashCode());
+        return 31 * (31 * vertexHash + (edgeType == null ? 0 : edgeType.hashCode()))
+             + Float.floatToIntBits(weight);
+    }
+
+    /**
+     * Human-readable representation: "Edge[v1--v2, type=f, weight=1.0]".
+     */
+    @Override
+    public String toString()
+    {
+        return String.format("Edge[%s--%s, type=%s, weight=%.1f]",
+                vertex1, vertex2, edgeType, weight);
+    }
+
 }
 
 
