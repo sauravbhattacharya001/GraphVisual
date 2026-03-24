@@ -75,6 +75,7 @@ public final class ToolbarBuilder {
         addDiffHtmlButton(toolPanel, owner, ctx);
         addLayoutCompareButton(toolPanel, owner, ctx);
         addTikzExportButton(toolPanel, owner, ctx);
+        addMatrixExportButtons(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -353,6 +354,56 @@ public final class ToolbarBuilder {
                             + "Layouts: Force-Directed, Circular, Grid, Radial\n"
                             + "File: " + outFile.getName() + "\n\n"
                             + "Open in any browser. Hover a node to highlight it across all layouts.";
+                });
+    }
+
+    /* ---- Matrix Export (CSV + LaTeX) ---- */
+
+    private static void addMatrixExportButtons(JPanel panel, JFrame owner, GraphContext ctx) {
+        // Adjacency CSV
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Adjacency<br/>Matrix CSV<br/>Export N\u00d7N<br/>adjacency to<br/>CSV format</center></html>",
+                "Export Adjacency Matrix CSV",
+                () -> "adjacency_" + ctx.getTimestamp() + ".csv",
+                new String[]{".csv"},
+                outFile -> {
+                    GraphMatrixExporter exp = new GraphMatrixExporter(ctx.getGraph(), ctx.collectAllEdges());
+                    exp.exportAdjacencyCsv(outFile);
+                    return "Adjacency matrix CSV exported!\n"
+                            + "Nodes: " + ctx.getGraph().getVertexCount() + "\n"
+                            + "Matrix: " + ctx.getGraph().getVertexCount() + "\u00d7" + ctx.getGraph().getVertexCount() + "\n"
+                            + "File: " + outFile.getName();
+                });
+
+        // Laplacian LaTeX
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Laplacian<br/>Matrix LaTeX<br/>Export L=D\u2212A<br/>as bmatrix<br/>for papers</center></html>",
+                "Export Laplacian Matrix LaTeX",
+                () -> "laplacian_" + ctx.getTimestamp() + ".tex",
+                new String[]{".tex"},
+                outFile -> {
+                    GraphMatrixExporter exp = new GraphMatrixExporter(ctx.getGraph(), ctx.collectAllEdges());
+                    exp.exportLaplacianLatex(outFile);
+                    return "Laplacian matrix LaTeX exported!\n"
+                            + "Nodes: " + ctx.getGraph().getVertexCount() + "\n"
+                            + "Format: amsmath bmatrix\n"
+                            + "File: " + outFile.getName();
+                });
+
+        // Incidence CSV
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Incidence<br/>Matrix CSV<br/>Export N\u00d7M<br/>node\u2013edge<br/>matrix</center></html>",
+                "Export Incidence Matrix CSV",
+                () -> "incidence_" + ctx.getTimestamp() + ".csv",
+                new String[]{".csv"},
+                outFile -> {
+                    GraphMatrixExporter exp = new GraphMatrixExporter(ctx.getGraph(), ctx.collectAllEdges());
+                    exp.exportIncidenceCsv(outFile);
+                    return "Incidence matrix CSV exported!\n"
+                            + "Nodes: " + ctx.getGraph().getVertexCount() + "\n"
+                            + "Edges: " + ctx.getGraph().getEdgeCount() + "\n"
+                            + "Matrix: " + ctx.getGraph().getVertexCount() + "\u00d7" + ctx.getGraph().getEdgeCount() + "\n"
+                            + "File: " + outFile.getName();
                 });
     }
 }
