@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing Quality Analyzer — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">📊 GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>🎨 Drawing Quality Analyzer</h1>
+        <p class="lead">
+            Measure how good your graph layout actually is. Get objective scores
+            for edge crossings, uniformity, angular resolution, stress, and more —
+            all in a single report.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                The <code>GraphDrawingQualityAnalyzer</code> evaluates graph layouts
+                using well-established readability metrics from the graph-drawing
+                literature. Supply a graph and vertex positions, and receive a
+                <strong>0–100 quality score</strong> with a detailed breakdown.
+            </p>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+            <pre><code>Map&lt;String, Point2D&gt; positions = new HashMap&lt;&gt;();
+// ... populate positions from your layout algorithm ...
+
+GraphDrawingQualityAnalyzer qa =
+    new GraphDrawingQualityAnalyzer(graph, positions);
+
+// Print the full report
+System.out.println(qa.generateReport());
+
+// Access individual metrics
+System.out.println("Crossings: " + qa.getEdgeCrossings());
+System.out.println("Quality:   " + qa.getQualityScore());</code></pre>
+        </section>
+
+        <section>
+            <h2>Metrics</h2>
+
+            <h3>Edge Crossings</h3>
+            <p>Counts the number of edge-pair intersections in the drawing.
+               Fewer crossings generally mean a more readable layout.
+               Zero crossings indicates a planar embedding.</p>
+
+            <h3>Edge-Length Uniformity</h3>
+            <p>Reports the coefficient of variation (CV) of edge lengths.
+               Lower CV means edges are more uniform in length, which
+               improves readability.</p>
+
+            <h3>Angular Resolution</h3>
+            <p>The minimum and average angles between adjacent edges at each
+               vertex. Larger minimum angles reduce visual confusion at
+               high-degree vertices.</p>
+
+            <h3>Stress (Kamada-Kawai)</h3>
+            <p>Measures how well Euclidean distances in the drawing correspond
+               to graph-theoretic distances. Lower stress means the layout
+               faithfully represents the graph structure.</p>
+
+            <h3>Neighbourhood Preservation</h3>
+            <p>What fraction of a vertex's graph neighbours are also among
+               its nearest drawing neighbours? High preservation means
+               connected vertices are visually close.</p>
+
+            <h3>Node Overlap</h3>
+            <p>The fraction of vertex pairs that are too close together,
+               indicating visual crowding.</p>
+
+            <h3>Area Utilisation</h3>
+            <p>Ratio of convex-hull area to bounding-box area. Higher
+               values indicate vertices are well spread across the
+               drawing canvas.</p>
+
+            <h3>Aspect Ratio</h3>
+            <p>Width-to-height ratio of the bounding box. Values near 1.0
+               indicate a balanced, square-ish layout.</p>
+        </section>
+
+        <section>
+            <h2>Quality Score</h2>
+            <p>The overall score (0–100) is a weighted composite:</p>
+            <table>
+                <thead><tr><th>Metric</th><th>Weight</th></tr></thead>
+                <tbody>
+                    <tr><td>Edge crossings</td><td>25%</td></tr>
+                    <tr><td>Stress</td><td>15%</td></tr>
+                    <tr><td>Edge-length uniformity</td><td>15%</td></tr>
+                    <tr><td>Angular resolution</td><td>10%</td></tr>
+                    <tr><td>Neighbourhood preservation</td><td>10%</td></tr>
+                    <tr><td>Node overlap</td><td>10%</td></tr>
+                    <tr><td>Area utilisation</td><td>10%</td></tr>
+                    <tr><td>Aspect ratio</td><td>5%</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Grades</h3>
+            <ul>
+                <li>★★★★★ (90+) — Excellent</li>
+                <li>★★★★☆ (75–89) — Good</li>
+                <li>★★★☆☆ (60–74) — Adequate</li>
+                <li>★★☆☆☆ (40–59) — Poor</li>
+                <li>★☆☆☆☆ (&lt;40) — Very Poor</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Use Cases</h2>
+            <ul>
+                <li><strong>Layout comparison:</strong> Run the analyzer on the same
+                    graph with different layout algorithms and compare scores.</li>
+                <li><strong>Iterative improvement:</strong> Use the metric breakdown
+                    to identify what aspect of your layout needs work.</li>
+                <li><strong>Automated quality gates:</strong> Set a minimum quality
+                    score threshold for generated visualizations.</li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>
