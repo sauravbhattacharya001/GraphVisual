@@ -33,6 +33,7 @@ public class CliqueAnalyzer {
     private final Graph<String, Edge> graph;
     private Map<String, Set<String>> neighborCache;
     private List<Set<String>> cliques;
+    private Map<String, List<Integer>> vertexToCliquesIndex;
     private boolean computed;
     private int maxCliques = 100_000;
     private int maxDepth = 1_000;
@@ -51,6 +52,7 @@ public class CliqueAnalyzer {
         this.graph = graph;
         this.neighborCache = new HashMap<String, Set<String>>();
         this.cliques = new ArrayList<Set<String>>();
+        this.vertexToCliquesIndex = null;
         this.computed = false;
     }
 
@@ -66,6 +68,7 @@ public class CliqueAnalyzer {
         if (computed) return this;
 
         cliques = new ArrayList<Set<String>>();
+        vertexToCliquesIndex = null; // invalidate cached index
 
         Collection<String> vertices = graph.getVertices();
         if (vertices.isEmpty()) {
@@ -79,9 +82,9 @@ public class CliqueAnalyzer {
         neighborCache = GraphUtils.buildAdjacencyMap(graph);
 
         // For isolated vertices (no neighbors), each is a trivial maximal clique
-        Set<String> P = new LinkedHashSet<String>(vertices);
-        Set<String> R = new LinkedHashSet<String>();
-        Set<String> X = new LinkedHashSet<String>();
+        Set<String> P = new HashSet<String>(vertices);
+        Set<String> R = new HashSet<String>();
+        Set<String> X = new HashSet<String>();
 
         truncated = false;
         bronKerbosch(R, P, X, 0);
@@ -128,19 +131,19 @@ public class CliqueAnalyzer {
         Set<String> pivotNeighbors = getNeighbors(pivot);
 
         // P \ N(pivot)
-        Set<String> candidates = new LinkedHashSet<String>(P);
+        Set<String> candidates = new HashSet<String>(P);
         candidates.removeAll(pivotNeighbors);
 
         for (String v : candidates) {
             Set<String> neighborsV = getNeighbors(v);
 
-            Set<String> newR = new LinkedHashSet<String>(R);
+            Set<String> newR = new HashSet<String>(R);
             newR.add(v);
 
-            Set<String> newP = new LinkedHashSet<String>(P);
+            Set<String> newP = new HashSet<String>(P);
             newP.retainAll(neighborsV);
 
-            Set<String> newX = new LinkedHashSet<String>(X);
+            Set<String> newX = new HashSet<String>(X);
             newX.retainAll(neighborsV);
 
             bronKerbosch(newR, newP, newX, depth + 1);
@@ -298,6 +301,28 @@ public class CliqueAnalyzer {
     // ── Analytics ───────────────────────────────────────────────────
 
     /**
+     * Lazily builds and caches an inverted index mapping each vertex
+     * to the list of clique indices containing it. Shared by
+     * {@link #getOverlaps} and {@link #getCliqueGraph} to avoid
+     * redundant O(V*C) rebuilds.
+     */
+    private Map<String, List<Integer>> getVertexToCliquesIndex() {
+        if (vertexToCliquesIndex != null) return vertexToCliquesIndex;
+        vertexToCliquesIndex = new HashMap<String, List<Integer>>();
+        for (int i = 0; i < cliques.size(); i++) {
+            for (String v : cliques.get(i)) {
+                List<Integer> indices = vertexToCliquesIndex.get(v);
+                if (indices == null) {
+                    indices = new ArrayList<Integer>();
+                    vertexToCliquesIndex.put(v, indices);
+                }
+                indices.add(i);
+            }
+        }
+        return vertexToCliquesIndex;
+    }
+
+    /**
      * Clique size distribution: size → count.
      */
     public SortedMap<Integer, Integer> getSizeDistribution() {
@@ -358,18 +383,8 @@ public class CliqueAnalyzer {
     public List<CliqueOverlap> getOverlaps(int maxPairs) {
         ensureComputed();
 
-        // Build inverted index: vertex → set of clique indices containing it
-        Map<String, List<Integer>> vertexToCliques = new HashMap<String, List<Integer>>();
-        for (int i = 0; i < cliques.size(); i++) {
-            for (String v : cliques.get(i)) {
-                List<Integer> indices = vertexToCliques.get(v);
-                if (indices == null) {
-                    indices = new ArrayList<Integer>();
-                    vertexToCliques.put(v, indices);
-                }
-                indices.add(i);
-            }
-        }
+        // Use cached inverted index
+        Map<String, List<Integer>> vertexToCliques = getVertexToCliquesIndex();
 
         // Collect candidate pairs — only pairs sharing at least one vertex
         Set<Long> seenPairs = new HashSet<Long>();
@@ -460,18 +475,8 @@ public class CliqueAnalyzer {
             adj.put(i, new LinkedHashSet<Integer>());
         }
 
-        // Build inverted index: vertex → clique indices
-        Map<String, List<Integer>> vertexToCliques = new HashMap<String, List<Integer>>();
-        for (int i = 0; i < cliques.size(); i++) {
-            for (String v : cliques.get(i)) {
-                List<Integer> indices = vertexToCliques.get(v);
-                if (indices == null) {
-                    indices = new ArrayList<Integer>();
-                    vertexToCliques.put(v, indices);
-                }
-                indices.add(i);
-            }
-        }
+        // Use cached inverted index
+        Map<String, List<Integer>> vertexToCliques = getVertexToCliquesIndex();
 
         // Collect candidate pairs and check threshold
         Set<Long> checked = new HashSet<Long>();
