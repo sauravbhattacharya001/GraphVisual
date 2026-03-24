@@ -13,7 +13,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,8 +33,6 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.collections15.Transformer;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.xml.sax.SAXException;
 
 /**
@@ -475,51 +472,52 @@ public class Main extends JFrame {
     }
 
     /**
-     * Creates the next/prev important graph according to the input direction
-     * @param direction next/prev
-     * @throws Exception
+     * Advances (or rewinds) the timeline to the next date whose generated
+     * graph file contains more than {@link #NUM_EDGES_IMP_GRAPH} lines,
+     * indicating a "significant" snapshot worth displaying.
+     *
+     * <p>Bounded to at most 92 iterations (the full timeline range) to
+     * guarantee termination even when no qualifying date exists between
+     * the current position and the timeline boundary.
+     *
+     * @param direction {@code "next"} to advance, {@code "prev"} to rewind
+     * @throws Exception if file generation or graph parsing fails
      */
     public void nextOrPrevGraph(String direction) throws Exception {
-        boolean success = false;
+        final boolean forward = "next".equals(direction);
+        final int maxSteps = 92; // timeline spans days 1–92
 
-        while (!success) {
+        for (int step = 0; step < maxSteps; step++) {
+            // Boundary check — can't go past the ends of the timeline
+            if (forward  && month.equals("05") && date.equals("31")) return;
+            if (!forward && month.equals("03") && date.equals("01")) return;
+
+            // Advance/rewind the slider by one day
+            timeline.setValue(timeline.getValue() + (forward ? 1 : -1));
+            updateTime();
+
+            // Generate the graph file for the new date
             fileName = "./graph.txt";
+            Network.generateFile(fileName, month, date,
+                    friendDurThreshold.getValue(), friendNumMeetThreshold.getValue(),
+                    fsDurThreshold.getValue(), fsNumMeetThreshold.getValue(),
+                    classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue(),
+                    strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue(),
+                    studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue());
 
-            int count = 0;
-            File database;
-            LineIterator lineIterator = null;
-
-            if (month.equals("05") && date.equals("31") && direction.equals("next")) {
+            // Use GraphFileParser to count edges — avoids a redundant manual
+            // line-by-line scan that addGraph() would repeat moments later.
+            GraphFileParser.ParseResult probe = GraphFileParser.parse(fileName, t -> true);
+            if (probe.getGraph().getEdgeCount() > NUM_EDGES_IMP_GRAPH) {
+                addGraph();
                 return;
-            } else if (month.equals("03") && date.equals("01") && direction.equals("prev")) {
-                return;
-            } else if (direction.equals("next")) {
-
-                timeline.setValue(timeline.getValue() + 1);
-                updateTime();
-            } else if (direction.equals("prev")) {
-                timeline.setValue(timeline.getValue() - 1);
-                updateTime();
             }
-
-
-
-            Network.generateFile(fileName, month, date, friendDurThreshold.getValue(), friendNumMeetThreshold.getValue(), fsDurThreshold.getValue(), fsNumMeetThreshold.getValue(), classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue(), strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue(), studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue());
-
-            database = new File(fileName);
-            lineIterator = FileUtils.lineIterator(database);
-
-            while (lineIterator.hasNext()) {
-                lineIterator.next();
-                count++;
-            }
-
-            if (count > NUM_EDGES_IMP_GRAPH) {
-                success = true;
-            }
-            lineIterator.close();
         }
 
+        // No qualifying date found — stay on the current position and
+        // refresh the display so the UI is consistent with the slider.
+        LOGGER.info("nextOrPrevGraph: no important graph found within "
+                + maxSteps + " steps (" + direction + ")");
         addGraph();
     }
 
