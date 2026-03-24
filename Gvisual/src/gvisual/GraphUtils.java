@@ -270,19 +270,21 @@ public final class GraphUtils {
      */
     public static int countEdgesInSubgraph(
             Graph<String, Edge> graph, Set<String> vertices) {
-        int count = 0;
-        Set<Edge> seen = new HashSet<Edge>();
+        // Count internal edges via adjacency: for each vertex in the subset,
+        // count neighbors also in the subset. Each undirected edge is counted
+        // twice (once from each endpoint), so divide by 2.
+        // This avoids allocating a HashSet<Edge> and the O(E) getEndpoints calls.
+        int doubleCount = 0;
         for (String v : vertices) {
-            for (Edge e : graph.getIncidentEdges(v)) {
-                if (seen.contains(e)) continue;
-                boolean allIn = true;
-                for (String ep : graph.getEndpoints(e)) {
-                    if (!vertices.contains(ep)) { allIn = false; break; }
+            Collection<String> nbrs = graph.getNeighbors(v);
+            if (nbrs == null) continue;
+            for (String n : nbrs) {
+                if (vertices.contains(n)) {
+                    doubleCount++;
                 }
-                if (allIn) { seen.add(e); count++; }
             }
         }
-        return count;
+        return doubleCount / 2;
     }
 
     /**
