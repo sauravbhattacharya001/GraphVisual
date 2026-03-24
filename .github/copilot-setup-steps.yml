@@ -18,21 +18,13 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
+          cache: 'maven'
 
-      - name: Install Ant
-        run: sudo apt-get update && sudo apt-get install -y ant
+      - name: Install dependencies
+        run: mvn dependency:resolve -B -q
 
-      - name: Build project
-        working-directory: Gvisual
-        run: |
-          # The project uses Ant with NetBeans build configuration
-          # Compile the main source code
-          ant -f build.xml compile
-        continue-on-error: true
+      - name: Compile project
+        run: mvn compile -B
 
       - name: Run tests
-        working-directory: Gvisual
-        run: |
-          # Run JUnit tests if configured
-          ant -f build.xml test
-        continue-on-error: true
+        run: mvn test -B

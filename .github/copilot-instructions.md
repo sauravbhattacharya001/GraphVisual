@@ -23,10 +23,11 @@ GraphVisual is a Java Swing desktop application for visualizing community evolut
 - `Gvisual/images/` — UI icons and button images.
 
 ### Build System
-- **Ant** (NetBeans-generated): `Gvisual/build.xml` imports `Gvisual/nbproject/build-impl.xml`
-- Build: `cd Gvisual && ant compile`
-- Test: `cd Gvisual && ant test`
-- JAR: `cd Gvisual && ant jar`
+- **Maven** (primary): `pom.xml` at project root
+- Build: `mvn compile`
+- Test: `mvn test`
+- Package: `mvn package` (produces JAR in `target/`)
+- Legacy **Ant** (NetBeans-generated): `Gvisual/build.xml` — still present but Maven is preferred
 
 ### Key Dependencies
 - **JUNG 2.0.1** — Graph algorithms, layout, visualization
@@ -45,9 +46,10 @@ GraphVisual is a Java Swing desktop application for visualizing community evolut
 
 ## How to Test
 
-1. Run `cd Gvisual && ant test` for JUnit tests
-2. Tests are in `Gvisual/test/` mirroring the source package structure
-3. When adding new tests, place them in the corresponding test package
+1. Run `mvn test` for JUnit tests (preferred)
+2. Legacy: `cd Gvisual && ant test`
+3. Tests are in `Gvisual/test/` mirroring the source package structure
+4. When adding new tests, place them in the corresponding test package
 
 ## Common Patterns
 
