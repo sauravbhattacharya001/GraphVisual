@@ -102,22 +102,57 @@ public class Main extends JFrame {
     /**
      * Push current overlay state to the GraphRenderers instance so that
      * transformers see up-to-date values on every render pass.
+     *
+     * <p>Each controller is queried only once per field via local variables,
+     * improving readability and eliminating the repeated null-check chains
+     * that previously made this method hard to read and maintain.</p>
      */
     private void syncRenderers() {
         renderers.setGraph(g);
-        renderers.setPathState(
-                pathController != null ? pathController.getPathEdges() : java.util.Collections.emptySet(),
-                pathController != null ? pathController.getPathVertices() : java.util.Collections.emptySet(),
-                pathController != null ? pathController.getPathSource() : null,
-                pathController != null ? pathController.getPathTarget() : null);
-        renderers.setMstState(
-                mstController != null && mstController.isOverlayActive(),
-                mstController != null ? mstController.getMstEdges() : java.util.Collections.emptySet());
-        renderers.setCommunityState(
-                communityController != null && communityController.isOverlayActive(),
-                communityController != null ? communityController.getNodeCommunityMap() : null);
-        renderers.setArticulationState(articulationController != null && articulationController.isOverlayActive(), articulationController != null ? articulationController.getArticulationPoints() : java.util.Collections.emptySet(), articulationController != null ? articulationController.getBridgeEdges() : java.util.Collections.emptySet());
-        renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
+
+        // Path overlay
+        if (pathController != null) {
+            renderers.setPathState(
+                    pathController.getPathEdges(),
+                    pathController.getPathVertices(),
+                    pathController.getPathSource(),
+                    pathController.getPathTarget());
+        } else {
+            renderers.setPathState(
+                    java.util.Collections.emptySet(),
+                    java.util.Collections.emptySet(),
+                    null, null);
+        }
+
+        // MST overlay
+        boolean mstActive = mstController != null && mstController.isOverlayActive();
+        renderers.setMstState(mstActive,
+                mstController != null ? mstController.getMstEdges()
+                                      : java.util.Collections.emptySet());
+
+        // Community overlay
+        boolean communityActive = communityController != null
+                && communityController.isOverlayActive();
+        renderers.setCommunityState(communityActive,
+                communityController != null ? communityController.getNodeCommunityMap()
+                                            : null);
+
+        // Articulation point overlay
+        boolean artActive = articulationController != null
+                && articulationController.isOverlayActive();
+        renderers.setArticulationState(artActive,
+                articulationController != null ? articulationController.getArticulationPoints()
+                                              : java.util.Collections.emptySet(),
+                articulationController != null ? articulationController.getBridgeEdges()
+                                              : java.util.Collections.emptySet());
+
+        // Ego network overlay
+        renderers.setEgoState(
+                egoController.isOverlayActive(),
+                egoController.getCenter(),
+                egoController.getNeighbors(),
+                egoController.getEdges());
+
         renderers.setOldVertices(OldVertices);
     }
     private List<Edge> friendEdges = new ArrayList<>();
@@ -299,35 +334,31 @@ public class Main extends JFrame {
      * @param y y-position of cluster
      * @param x x-position of cluster
      */
-    public void positionCluster(List<String> vertices, int y, int x) {
-        int delX = 0;
-        int delY = 0;
-        int curX = x * 300 + 150;
-        int curY = y * 200 + 100;
-        int signX = 0; //0  is +ve
-        int signY = 1; // 1 is -ve
+    /**
+     * Positions a cluster of vertices in a random walk within a grid cell.
+     *
+     * <p>Each cluster cell is 300×200 pixels. Vertices are placed via a
+     * deterministic random walk (seed=42) with step sizes in [5, 44] in
+     * each axis, randomly signed.</p>
+     *
+     * @param vertices list of vertices to position
+     * @param row      grid row (0-based)
+     * @param col      grid column (0-based)
+     */
+    public void positionCluster(List<String> vertices, int row, int col) {
+        int curX = col * 300 + 150;
+        int curY = row * 200 + 100;
         Random generator = new Random(42);
-
 
         for (String v : vertices) {
             graphLayout.setLocation(v, new java.awt.Point(curX, curY));
-            delX = 5 + generator.nextInt(40);
-            delY = 5 + generator.nextInt(40);
-            signX = generator.nextInt(2);
-            signY = generator.nextInt(2);
-            if (signX == 0) {
-                curX = curX + delX;
-            } else if (signX == 1) {
-                curX = curX - delX;
-            }
-            if (signY == 0) {
-                curY = curY + delY;
-            } else if (signY == 1) {
-                curY = curY - delY;
-            }
+
+            // Random walk: step ∈ [5, 44], sign ∈ {-1, +1}
+            int stepX = 5 + generator.nextInt(40);
+            int stepY = 5 + generator.nextInt(40);
+            curX += generator.nextBoolean() ? stepX : -stepX;
+            curY += generator.nextBoolean() ? stepY : -stepY;
         }
-
-
     }
 
 
