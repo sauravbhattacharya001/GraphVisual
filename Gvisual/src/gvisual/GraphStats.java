@@ -8,16 +8,17 @@ import java.util.*;
  * Provides node/Edge counts, per-category breakdowns, density,
  * degree statistics, and identifies hub nodes.
  *
+ * <p>Edge categories are stored in a single {@code Map<EdgeType, List<Edge>>}
+ * instead of five separate fields, eliminating repetitive boilerplate and
+ * making it easy to add new categories without modifying the constructor
+ * or adding new getter methods.</p>
+ *
  * @author zalenix
  */
 public class GraphStats {
 
     private final Graph<String, Edge> graph;
-    private final List<Edge> friendEdges;
-    private final List<Edge> fsEdges;
-    private final List<Edge> classmateEdges;
-    private final List<Edge> strangerEdges;
-    private final List<Edge> studyGEdges;
+    private final Map<EdgeType, List<Edge>> edgesByType;
 
     /**
      * @param graph         the current JUNG graph
@@ -34,11 +35,12 @@ public class GraphStats {
                       List<Edge> strangerEdges,
                       List<Edge> studyGEdges) {
         this.graph = graph;
-        this.friendEdges = friendEdges;
-        this.fsEdges = fsEdges;
-        this.classmateEdges = classmateEdges;
-        this.strangerEdges = strangerEdges;
-        this.studyGEdges = studyGEdges;
+        this.edgesByType = new EnumMap<>(EdgeType.class);
+        edgesByType.put(EdgeType.FRIEND, friendEdges != null ? friendEdges : Collections.emptyList());
+        edgesByType.put(EdgeType.FAMILIAR, fsEdges != null ? fsEdges : Collections.emptyList());
+        edgesByType.put(EdgeType.CLASSMATE, classmateEdges != null ? classmateEdges : Collections.emptyList());
+        edgesByType.put(EdgeType.STRANGER, strangerEdges != null ? strangerEdges : Collections.emptyList());
+        edgesByType.put(EdgeType.STUDY_GROUP, studyGEdges != null ? studyGEdges : Collections.emptyList());
     }
 
     /** Total number of nodes in the visible graph. */
@@ -53,33 +55,46 @@ public class GraphStats {
 
     /** Total edges across all categories (including filtered-out). */
     public int getTotalEdgeCount() {
-        return friendEdges.size() + fsEdges.size() + classmateEdges.size()
-                + strangerEdges.size() + studyGEdges.size();
+        int total = 0;
+        for (List<Edge> edges : edgesByType.values()) {
+            total += edges.size();
+        }
+        return total;
+    }
+
+    /**
+     * Returns the number of edges for the given category.
+     * Replaces the individual getFriendCount(), getFsCount(), etc. methods
+     * while remaining backward-compatible via the legacy getters below.
+     */
+    public int getEdgeCount(EdgeType type) {
+        List<Edge> edges = edgesByType.get(type);
+        return edges != null ? edges.size() : 0;
     }
 
     /** Number of friend edges loaded for this timestamp. */
     public int getFriendCount() {
-        return friendEdges.size();
+        return getEdgeCount(EdgeType.FRIEND);
     }
 
     /** Number of familiar stranger edges. */
     public int getFsCount() {
-        return fsEdges.size();
+        return getEdgeCount(EdgeType.FAMILIAR);
     }
 
     /** Number of classmate edges. */
     public int getClassmateCount() {
-        return classmateEdges.size();
+        return getEdgeCount(EdgeType.CLASSMATE);
     }
 
     /** Number of stranger edges. */
     public int getStrangerCount() {
-        return strangerEdges.size();
+        return getEdgeCount(EdgeType.STRANGER);
     }
 
     /** Number of study group edges. */
     public int getStudyGroupCount() {
-        return studyGEdges.size();
+        return getEdgeCount(EdgeType.STUDY_GROUP);
     }
 
     /**
@@ -124,11 +139,11 @@ public class GraphStats {
 
         cachedMaxDegree = 0;
         cachedIsolatedCount = 0;
-        cachedDegreeEntries = new ArrayList<Map.Entry<String, Integer>>();
+        cachedDegreeEntries = new ArrayList<>();
 
         for (String node : graph.getVertices()) {
             int deg = graph.degree(node);
-            cachedDegreeEntries.add(new AbstractMap.SimpleEntry<String, Integer>(node, deg));
+            cachedDegreeEntries.add(new AbstractMap.SimpleEntry<>(node, deg));
             if (deg > cachedMaxDegree) cachedMaxDegree = deg;
             if (deg == 0) cachedIsolatedCount++;
         }
@@ -152,16 +167,12 @@ public class GraphStats {
         ensureVertexStatsComputed();
 
         if (n <= 0 || cachedDegreeEntries.isEmpty()) {
-            return new ArrayList<String>();
+            return new ArrayList<>();
         }
 
         // Use a min-heap of size n for O(V log N) partial sort
         PriorityQueue<Map.Entry<String, Integer>> minHeap =
-                new PriorityQueue<Map.Entry<String, Integer>>(n + 1,
-                        (Map.Entry<String, Integer> a,
-                                               Map.Entry<String, Integer> b) -> {
-                                return a.getValue().compareTo(b.getValue());
-                            });
+                new PriorityQueue<>(n + 1, Comparator.comparingInt(Map.Entry::getValue));
 
         for (Map.Entry<String, Integer> entry : cachedDegreeEntries) {
             minHeap.add(entry);
@@ -171,7 +182,7 @@ public class GraphStats {
         }
 
         // Extract in descending order
-        List<String> result = new ArrayList<String>(minHeap.size());
+        List<String> result = new ArrayList<>(minHeap.size());
         while (!minHeap.isEmpty()) {
             Map.Entry<String, Integer> entry = minHeap.poll();
             result.add(0, "Node " + entry.getKey() + " (" + entry.getValue() + ")");
