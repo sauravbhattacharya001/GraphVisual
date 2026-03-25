@@ -53,6 +53,31 @@ public class Network {
      * @param CThresSg  maximum count threshold for study-group edges
      * @throws Exception if database connection or file I/O fails
      */
+    /**
+     * Generates an edge-list file using a {@link ThresholdConfig} object
+     * instead of 10 individual threshold parameters.
+     *
+     * @param path   output file path (must be within working directory)
+     * @param Month  month filter for meeting records (e.g. "01")
+     * @param Date   date filter for meeting records (e.g. "15")
+     * @param config threshold configuration for all relationship types
+     * @throws Exception if database connection or file I/O fails
+     */
+    public static void generateFile(String path, String Month, String Date,
+                                     ThresholdConfig config) throws Exception {
+        generateFile(path, Month, Date,
+                config.getFriendDuration(), config.getFriendCount(),
+                config.getFamiliarStrangerDuration(), config.getFamiliarStrangerCount(),
+                config.getClassmateDuration(), config.getClassmateCount(),
+                config.getStrangerDuration(), config.getStrangerCount(),
+                config.getStudyGroupDuration(), config.getStudyGroupCount());
+    }
+
+    /**
+     * @deprecated Use {@link #generateFile(String, String, String, ThresholdConfig)}
+     *             for clearer, self-documenting threshold configuration.
+     */
+    @Deprecated
     public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
 
         // Validate output path — prevent directory traversal attacks

@@ -1,6 +1,7 @@
 package gvisual;
 
 import app.Network;
+import app.ThresholdConfig;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.StaticLayout;
 import edu.uci.ics.jung.graph.Graph;
@@ -119,6 +120,22 @@ public class Main extends JFrame {
         renderers.setArticulationState(articulationController != null && articulationController.isOverlayActive(), articulationController != null ? articulationController.getArticulationPoints() : java.util.Collections.emptySet(), articulationController != null ? articulationController.getBridgeEdges() : java.util.Collections.emptySet());
         renderers.setEgoState(egoController.isOverlayActive(), egoController.getCenter(), egoController.getNeighbors(), egoController.getEdges());
         renderers.setOldVertices(OldVertices);
+    }
+
+    /**
+     * Builds a {@link ThresholdConfig} from the current slider values.
+     * Centralises the slider-to-config mapping so that every call site
+     * (addGraph, nextOrPrevGraph, future exports) uses the same source
+     * of truth instead of inlining 10 getValue() calls.
+     */
+    private ThresholdConfig currentThresholds() {
+        return new ThresholdConfig.Builder()
+                .friend(friendDurThreshold.getValue(), friendNumMeetThreshold.getValue())
+                .familiarStranger(fsDurThreshold.getValue(), fsNumMeetThreshold.getValue())
+                .classmate(classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue())
+                .stranger(strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue())
+                .studyGroup(studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue())
+                .build();
     }
     private List<Edge> friendEdges = new ArrayList<>();
     private List<Edge> fsEdges = new ArrayList<>();
@@ -499,11 +516,7 @@ public class Main extends JFrame {
             // Generate the graph file for the new date
             fileName = "./graph.txt";
             Network.generateFile(fileName, month, date,
-                    friendDurThreshold.getValue(), friendNumMeetThreshold.getValue(),
-                    fsDurThreshold.getValue(), fsNumMeetThreshold.getValue(),
-                    classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue(),
-                    strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue(),
-                    studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue());
+                    currentThresholds());
 
             // Use GraphFileParser to count edges — avoids a redundant manual
             // line-by-line scan that addGraph() would repeat moments later.
@@ -535,7 +548,7 @@ public class Main extends JFrame {
             imagePanel.repaint();
 
             timeline.setBorder(BorderFactory.createTitledBorder(timeStamp));
-            Network.generateFile(fileName, month, date, friendDurThreshold.getValue(), friendNumMeetThreshold.getValue(), fsDurThreshold.getValue(), fsNumMeetThreshold.getValue(), classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue(), strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue(), studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue());
+            Network.generateFile(fileName, month, date, currentThresholds());
 
 
         } catch (Exception ex) {
