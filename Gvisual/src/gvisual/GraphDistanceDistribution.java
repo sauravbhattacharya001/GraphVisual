@@ -49,31 +49,16 @@ public class GraphDistanceDistribution {
     /**
      * Computes all-pairs BFS shortest-path distances. Must be called before
      * querying results.
+     *
+     * <p>Delegates per-vertex BFS to {@link GraphUtils#bfsDistances} to avoid
+     * duplicating traversal logic.</p>
      */
     public void compute() {
         distanceMatrix = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
-            distanceMatrix.put(v, bfs(v));
+            distanceMatrix.put(v, GraphUtils.bfsDistances(graph, v));
         }
         computed = true;
-    }
-
-    private Map<String, Integer> bfs(String source) {
-        Map<String, Integer> dist = new LinkedHashMap<>();
-        dist.put(source, 0);
-        Queue<String> queue = new LinkedList<>();
-        queue.add(source);
-        while (!queue.isEmpty()) {
-            String cur = queue.poll();
-            int d = dist.get(cur);
-            for (String neighbor : graph.getSuccessors(cur)) {
-                if (!dist.containsKey(neighbor)) {
-                    dist.put(neighbor, d + 1);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return dist;
     }
 
     private void ensureComputed() {
