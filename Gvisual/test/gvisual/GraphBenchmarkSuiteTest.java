@@ -6,6 +6,12 @@ import org.junit.Before;
 import org.junit.Test;
 import java.util.*;
 
+/**
+ * Tests for {@link GraphBenchmarkSuite} — validates that each built-in
+ * benchmark graph (Zachary Karate Club, Petersen, Florentine Families,
+ * Cube, etc.) has the correct vertex/edge counts, structural invariants,
+ * and metadata properties.
+ */
 public class GraphBenchmarkSuiteTest {
     private GraphBenchmarkSuite suite;
     @Before public void setUp() { suite = new GraphBenchmarkSuite(); }

@@ -7,6 +7,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import java.util.*;
 
+/**
+ * Tests for {@link GraphSparsificationAnalyzer} — validates edge sparsification
+ * strategies (random sampling, weight-based filtering, spectral sparsification)
+ * across various graph topologies including triangles, paths, stars, complete
+ * graphs, disconnected components, and weighted graphs.
+ */
 public class GraphSparsificationAnalyzerTest {
 
     private Graph<String, Edge> triangle, path, star, complete5, disconnected, single, empty, weighted;

@@ -8,6 +8,12 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
+/**
+ * Tests for {@link HierarchicalLayout} — validates Sugiyama-style layered
+ * graph layout across DAGs (linear chains, diamonds, wide trees), cyclic
+ * graphs with back-edge handling, disconnected components, and edge cases
+ * like single-node and empty graphs.
+ */
 public class HierarchicalLayoutTest {
 
     // ── Helpers ──────────────────────────────────────────────────────

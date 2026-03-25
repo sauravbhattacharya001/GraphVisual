@@ -8,7 +8,23 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
+ * Social network edge-list generator — extracts relationship graphs from
+ * WiFi co-location meeting data.
  *
+ * <p>Queries the meeting database to classify observed pairwise interactions
+ * into five relationship categories based on configurable duration and
+ * frequency thresholds:</p>
+ * <ul>
+ *   <li><b>Friends (f)</b> — frequent, long meetings in public spaces</li>
+ *   <li><b>Study groups (sg)</b> — infrequent classroom co-presence</li>
+ *   <li><b>Classmates (c)</b> — frequent classroom co-presence</li>
+ *   <li><b>Strangers (s)</b> — brief, rare encounters in resolved locations</li>
+ *   <li><b>Familiar strangers (fs)</b> — brief but repeated encounters</li>
+ * </ul>
+ *
+ * <p>Output is a weighted edge-list file suitable for import into graph
+ * visualization and analysis tools (e.g., GraphVisual, Gephi, NetworkX).
+ * Edge weight = count × average duration.</p>
  *
  * @author zalenix
  */
@@ -22,20 +38,20 @@ public class Network {
      * <p>The output path is validated to prevent directory traversal —
      * it must resolve to a location within the current working directory.</p>
      *
-     * @param path output file path (must be within the working directory)
-     * @param Month
-     * @param Date
-     * @param dThresF
-     * @param CThresF
-     * @param dThresFS
-     * @param CThresFS
-     * @param dThresC
-     * @param CThresC
-     * @param dThresS
-     * @param CThresS
-     * @param dThresSg
-     * @param CThresSg
-     * @throws Exception
+     * @param path      output file path for the edge-list (must be within the working directory)
+     * @param Month     month filter for meeting records (e.g. "01")
+     * @param Date      date filter for meeting records (e.g. "15")
+     * @param dThresF   minimum average duration threshold for friend edges
+     * @param CThresF   minimum meeting count threshold for friend edges
+     * @param dThresFS  maximum duration threshold for familiar-stranger edges
+     * @param CThresFS  minimum count threshold for familiar-stranger edges
+     * @param dThresC   minimum duration threshold for classmate edges
+     * @param CThresC   minimum count threshold for classmate edges
+     * @param dThresS   maximum duration threshold for stranger edges
+     * @param CThresS   maximum count threshold for stranger edges
+     * @param dThresSg  minimum duration threshold for study-group edges
+     * @param CThresSg  maximum count threshold for study-group edges
+     * @throws Exception if database connection or file I/O fails
      */
     public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
 
