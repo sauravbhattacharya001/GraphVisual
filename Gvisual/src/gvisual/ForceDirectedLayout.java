@@ -514,33 +514,84 @@ public class ForceDirectedLayout {
         int n = vertexList != null ? vertexList.size() : 0;
         if (n < 2) return 0;
 
-        // BFS shortest paths
-        Map<String, Map<String, Integer>> shortestPaths =
-                new HashMap<String, Map<String, Integer>>();
-        for (String v : vertexList) {
-            shortestPaths.put(v, GraphUtils.bfsDistances(graph, v));
+        // Build indexed adjacency for cache-friendly, allocation-free BFS.
+        // The previous implementation created V HashMap<String,Integer>
+        // objects (one per BFS call to GraphUtils.bfsDistances), each
+        // containing V entries with boxed Integer values. For a 1000-node
+        // graph that's ~1M boxed integers and ~1000 HashMaps. The array-
+        // based approach below uses a single reusable int[] per BFS,
+        // eliminating all boxing and HashMap overhead.
+        Map<String, Integer> idxMap = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            idxMap.put(vertexList.get(i), i);
         }
+
+        // Build int[][] adjacency (same pattern as NodeCentralityAnalyzer)
+        @SuppressWarnings("unchecked")
+        List<Integer>[] adjTmp = new List[n];
+        for (int i = 0; i < n; i++) {
+            adjTmp[i] = new ArrayList<Integer>();
+        }
+        for (Edge e : graph.getEdges()) {
+            Integer u = idxMap.get(e.getVertex1());
+            Integer v = idxMap.get(e.getVertex2());
+            if (u != null && v != null && !u.equals(v)) {
+                adjTmp[u].add(v);
+                adjTmp[v].add(u);
+            }
+        }
+        int[][] adj = new int[n][];
+        for (int i = 0; i < n; i++) {
+            List<Integer> nbrs = adjTmp[i];
+            adj[i] = new int[nbrs.size()];
+            for (int j = 0; j < nbrs.size(); j++) {
+                adj[i][j] = nbrs.get(j);
+            }
+        }
+
+        // Pre-extract positions into a flat array for cache-friendly access
+        double[][] pos = new double[n][2];
+        for (int i = 0; i < n; i++) {
+            double[] p = positions.get(vertexList.get(i));
+            pos[i][0] = p[0];
+            pos[i][1] = p[1];
+        }
+
+        // Reusable BFS arrays (allocated once, reset per source)
+        int[] dist = new int[n];
+        int[] queue = new int[n];
 
         double stress = 0;
         double normalizer = 0;
-        // Ideal Edge length: constant for this graph/layout, hoist out of loop
         double k = Math.sqrt(width * height / n);
-        for (int i = 0; i < n; i++) {
-            String vi = vertexList.get(i);
-            double[] pi = positions.get(vi);
-            Map<String, Integer> viPaths = shortestPaths.get(vi);
-            for (int j = i + 1; j < n; j++) {
-                String vj = vertexList.get(j);
-                Integer graphDist = viPaths.get(vj);
-                if (graphDist == null || graphDist == 0) continue;
 
-                double[] pj = positions.get(vj);
-                double dx = pi[0] - pj[0];
-                double dy = pi[1] - pj[1];
+        for (int i = 0; i < n; i++) {
+            // BFS from vertex i using array-based queue
+            Arrays.fill(dist, -1);
+            dist[i] = 0;
+            int qHead = 0, qTail = 0;
+            queue[qTail++] = i;
+
+            while (qHead < qTail) {
+                int cur = queue[qHead++];
+                int curDist = dist[cur];
+                for (int w : adj[cur]) {
+                    if (dist[w] < 0) {
+                        dist[w] = curDist + 1;
+                        queue[qTail++] = w;
+                    }
+                }
+            }
+
+            // Only accumulate for j > i to avoid double-counting
+            for (int j = i + 1; j < n; j++) {
+                if (dist[j] <= 0) continue;
+
+                double dx = pos[i][0] - pos[j][0];
+                double dy = pos[i][1] - pos[j][1];
                 double eucDist = Math.sqrt(dx * dx + dy * dy);
 
-                // Scale graph distance to expected Euclidean distance
-                double expected = graphDist * k;
+                double expected = dist[j] * k;
 
                 stress += ((eucDist - expected) * (eucDist - expected))
                         / (expected * expected);
