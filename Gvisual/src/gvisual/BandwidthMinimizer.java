@@ -179,14 +179,25 @@ public final class BandwidthMinimizer {
 
     /**
      * Full comparison: original (natural iteration order) vs CM vs RCM.
+     *
+     * <p>Computes the Cuthill–McKee ordering once and derives both the CM
+     * and RCM bandwidth results from it, avoiding the redundant BFS
+     * traversal that calling {@code cuthillMcKee()} and
+     * {@code reverseCuthillMcKee()} independently would incur.</p>
      */
     public static <V, E> ComparisonReport compare(Graph<V, E> graph) {
         Objects.requireNonNull(graph, "graph");
 
         List<V> natural = new ArrayList<>(graph.getVertices());
         BandwidthResult orig = computeBandwidth(graph, natural);
-        BandwidthResult cm = cuthillMcKee(graph);
-        BandwidthResult rcm = reverseCuthillMcKee(graph);
+
+        // Compute the CM ordering once and reuse for both CM and RCM results
+        List<V> cmOrdering = cuthillMcKeeOrdering(graph);
+        BandwidthResult cm = computeBandwidth(graph, cmOrdering);
+
+        List<V> rcmOrdering = new ArrayList<>(cmOrdering);
+        Collections.reverse(rcmOrdering);
+        BandwidthResult rcm = computeBandwidth(graph, rcmOrdering);
 
         return new ComparisonReport(orig, cm, rcm);
     }
