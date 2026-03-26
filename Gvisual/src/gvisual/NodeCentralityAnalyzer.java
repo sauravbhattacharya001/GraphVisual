@@ -524,8 +524,4 @@ public class NodeCentralityAnalyzer {
             }
         }
     }
-
-    private String getOtherEnd(Edge e, String current) {
-        return GraphUtils.getOtherEnd(e, current);
-    }
 }

@@ -311,7 +311,7 @@ public class GraphClusterQualityAnalyzer {
                 if (incidents == null) continue;
                 totalDegree += incidents.size();
                 for (Edge e : incidents) {
-                    String neighbor = getOtherEnd(e, node);
+                    String neighbor = GraphUtils.getOtherEnd(e, node);
                     Integer neighborCluster = clustering.get(neighbor);
                     if (neighborCluster != null && neighborCluster.equals(cid)) {
                         clusterIntra++; // counted twice (once per endpoint)
@@ -544,7 +544,7 @@ public class GraphClusterQualityAnalyzer {
                 if (incidents == null) continue;
                 clusterDegreeSum += incidents.size();
                 for (Edge e : incidents) {
-                    String neighbor = getOtherEnd(e, node);
+                    String neighbor = GraphUtils.getOtherEnd(e, node);
                     if (members.contains(neighbor)) {
                         clusterIntra++;
                     }
@@ -582,12 +582,7 @@ public class GraphClusterQualityAnalyzer {
             result.get(cid).add(entry.getKey());
         }
         return result;
-    }
-
-    private String getOtherEnd(Edge e, String node) {
-        return e.getVertex1().equals(node) ? e.getVertex2() : e.getVertex1();
-    }
-
+    }`n
     private static double log2(double x) {
         return Math.log(x) / Math.log(2.0);
     }

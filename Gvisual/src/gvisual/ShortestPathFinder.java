@@ -118,7 +118,7 @@ public class ShortestPathFinder {
             String current = queue.poll();
 
             for (Edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
+                String neighbor = GraphUtils.getOtherEnd(e, current);
                 if (neighbor != null && !predecessor.containsKey(neighbor)) {
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
@@ -189,7 +189,7 @@ public class ShortestPathFinder {
             }
 
             for (Edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
+                String neighbor = GraphUtils.getOtherEnd(e, current);
                 if (neighbor == null || visited.contains(neighbor)) continue;
 
                 double edgeWeight = e.getWeight();
@@ -236,7 +236,7 @@ public class ShortestPathFinder {
         while (!queue.isEmpty()) {
             String current = queue.poll();
             for (Edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
+                String neighbor = GraphUtils.getOtherEnd(e, current);
                 if (neighbor != null && !reachable.contains(neighbor)) {
                     reachable.add(neighbor);
                     queue.add(neighbor);
@@ -270,7 +270,7 @@ public class ShortestPathFinder {
         while (!queue.isEmpty()) {
             String current = queue.poll();
             for (Edge e : graph.getIncidentEdges(current)) {
-                String neighbor = getOtherEnd(e, current);
+                String neighbor = GraphUtils.getOtherEnd(e, current);
                 if (neighbor != null && !visited.contains(neighbor)) {
                     if (neighbor.equals(target)) return true;
                     visited.add(neighbor);
@@ -315,10 +315,6 @@ public class ShortestPathFinder {
             throw new IllegalArgumentException(
                     name + " vertex '" + vertex + "' is not in the graph");
         }
-    }
-
-    private String getOtherEnd(Edge e, String current) {
-        return GraphUtils.getOtherEnd(e, current);
     }
 
     private PathResult buildPath(String source, String target,

@@ -229,7 +229,7 @@ public class CommunityDetector {
                 nodeToCommunity.put(current, communityId);
 
                 for (Edge e : graph.getIncidentEdges(current)) {
-                    String neighbor = getOtherEnd(e, current);
+                    String neighbor = GraphUtils.getOtherEnd(e, current);
                     if (neighbor == null) continue;
 
                     // Count this Edge if both endpoints are in this component
@@ -265,9 +265,5 @@ public class CommunityDetector {
         }
 
         return new DetectionResult(communities, updatedMapping);
-    }
-
-    private String getOtherEnd(Edge e, String current) {
-        return GraphUtils.getOtherEnd(e, current);
     }
 }

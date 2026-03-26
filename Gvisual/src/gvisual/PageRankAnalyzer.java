@@ -221,7 +221,7 @@ public class PageRankAnalyzer {
             List<Integer> nodeAdj = new ArrayList<Integer>();
             if (edges != null) {
                 for (Edge e : edges) {
-                    String other = getOtherEnd(e, node);
+                    String other = GraphUtils.getOtherEnd(e, node);
                     if (other != null) {
                         Integer idx = vertexIndex.get(other);
                         if (idx != null) nodeAdj.add(idx);
@@ -749,11 +749,5 @@ public class PageRankAnalyzer {
             return String.format("Node %s: PR#%d, Degree#%d (%s), rank=%.6f, degree=%d",
                     nodeId, pageRankPosition, degreePosition, arrow, pageRank, degree);
         }
-    }
-
-    // ──────────────── Private helpers ────────────────
-
-    private String getOtherEnd(Edge e, String current) {
-        return GraphUtils.getOtherEnd(e, current);
     }
 }

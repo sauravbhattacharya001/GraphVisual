@@ -216,10 +216,6 @@ public class GraphDiameterAnalyzer {
         return GraphUtils.findLargestComponent(graph);
     }
 
-    private String getOtherEnd(Edge e, String current) {
-        return GraphUtils.getOtherEnd(e, current);
-    }
-
     private String formatSet(Set<String> set, int max) {
         StringBuilder sb = new StringBuilder();
         int count = 0;
