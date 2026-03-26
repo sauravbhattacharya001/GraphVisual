@@ -97,39 +97,27 @@
             <version>1.2.0</version>
         </dependency>
 
-        <!-- Commons IO -->
+        <!-- Commons IO (updated from 1.4 to fix CVE-2021-29425) -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>1.4</version>
+            <version>2.18.0</version>
         </dependency>
 
-        <!-- Concurrent -->
+        <!-- StAX API removed: built into JDK since Java 6 -->
+
+        <!-- Woodstox (relocated from org.codehaus.woodstox:wstx-asl to modern coordinates) -->
         <dependency>
-            <groupId>concurrent</groupId>
-            <artifactId>concurrent</artifactId>
-            <version>1.3.4</version>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
+            <version>7.1.0</version>
         </dependency>
 
-        <!-- StAX API -->
+        <!-- PostgreSQL JDBC (updated from legacy 8.x with multiple CVEs) -->
         <dependency>
-            <groupId>stax</groupId>
-            <artifactId>stax-api</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-
-        <!-- Woodstox -->
-        <dependency>
-            <groupId>org.codehaus.woodstox</groupId>
-            <artifactId>wstx-asl</artifactId>
-            <version>3.2.6</version>
-        </dependency>
-
-        <!-- PostgreSQL JDBC -->
-        <dependency>
-            <groupId>postgresql</groupId>
+            <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>8.3-604.jdbc4</version>
+            <version>42.7.5</version>
         </dependency>
 
         <!-- Java3D vecmath -->
