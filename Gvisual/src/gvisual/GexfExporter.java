@@ -247,13 +247,10 @@ public class GexfExporter {
 
     /**
      * Escapes XML special characters in a string.
+     * Delegates to {@link ExportUtils#escapeXml(String)} for consistent
+     * XML escaping across all exporters.
      */
     private static String escapeXml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return ExportUtils.escapeXml(s);
     }
 }

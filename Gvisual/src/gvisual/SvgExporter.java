@@ -472,12 +472,11 @@ public class SvgExporter {
     /**
      * Escapes special XML characters to prevent SVG injection (CWE-74).
      */
+    /**
+     * Escapes XML special characters.
+     * Delegates to {@link ExportUtils#escapeXml(String)}.
+     */
     private static String escapeXml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return ExportUtils.escapeXml(s);
     }
 }
