@@ -11,8 +11,10 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   packages: write
+  attestations: write
+  id-token: write
 
 jobs:
   publish:
@@ -95,3 +97,27 @@ jobs:
           for checksum in target/*.sha256; do
             [ -f "$checksum" ] && gh release upload "$TAG" "$checksum" --clobber
           done
+
+      - name: Generate SBOM (CycloneDX)
+        run: mvn org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -B
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: target/bom.json
+          retention-days: 90
+
+      - name: Attach SBOM to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          [ -f target/bom.json ] && gh release upload "$TAG" target/bom.json#graphvisual-sbom.json --clobber
+
+      - name: Attest build provenance
+        if: github.event_name == 'release'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: target/graphvisual-*.jar
