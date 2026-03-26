@@ -507,6 +507,13 @@ public class ForceDirectedLayout {
      * stress = Σ_{i<j} [(d_ij - δ_ij)² / δ_ij²]
      * where d_ij is the Euclidean distance and δ_ij is the graph distance.</p>
      *
+     * <p><b>Performance:</b> Uses array-based inline BFS instead of building
+     * a full V×V HashMap of distances. Each source BFS uses a reusable
+     * {@code int[]} distance array (reset per source) and an {@code int[]}
+     * queue, eliminating Integer/String boxing and HashMap overhead.
+     * Stress contributions are accumulated on-the-fly during each BFS,
+     * reducing peak memory from O(V²) to O(V + E).</p>
+     *
      * @return normalized stress value (0 = perfect preservation)
      */
     public double computeStress() {
@@ -514,36 +521,79 @@ public class ForceDirectedLayout {
         int n = vertexList != null ? vertexList.size() : 0;
         if (n < 2) return 0;
 
-        // BFS shortest paths
-        Map<String, Map<String, Integer>> shortestPaths =
-                new HashMap<String, Map<String, Integer>>();
-        for (String v : vertexList) {
-            shortestPaths.put(v, GraphUtils.bfsDistances(graph, v));
+        // Build integer-indexed adjacency for cache-friendly BFS
+        Map<String, Integer> idxMap = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) {
+            idxMap.put(vertexList.get(i), i);
         }
 
+        int[][] adj = new int[n][];
+        {
+            @SuppressWarnings("unchecked")
+            List<Integer>[] tmp = new List[n];
+            for (int i = 0; i < n; i++) tmp[i] = new ArrayList<Integer>();
+            for (Edge e : graph.getEdges()) {
+                Integer u = idxMap.get(e.getVertex1());
+                Integer v = idxMap.get(e.getVertex2());
+                if (u != null && v != null && !u.equals(v)) {
+                    tmp[u].add(v);
+                    tmp[v].add(u);
+                }
+            }
+            for (int i = 0; i < n; i++) {
+                List<Integer> nb = tmp[i];
+                adj[i] = new int[nb.size()];
+                for (int j = 0; j < nb.size(); j++) adj[i][j] = nb.get(j);
+            }
+        }
+
+        // Cache positions in parallel arrays for indexed access
+        double[] px = new double[n];
+        double[] py = new double[n];
+        for (int i = 0; i < n; i++) {
+            double[] p = positions.get(vertexList.get(i));
+            px[i] = p[0];
+            py[i] = p[1];
+        }
+
+        double k = Math.sqrt(width * height / n);
         double stress = 0;
         double normalizer = 0;
-        // Ideal Edge length: constant for this graph/layout, hoist out of loop
-        double k = Math.sqrt(width * height / n);
-        for (int i = 0; i < n; i++) {
-            String vi = vertexList.get(i);
-            double[] pi = positions.get(vi);
-            Map<String, Integer> viPaths = shortestPaths.get(vi);
-            for (int j = i + 1; j < n; j++) {
-                String vj = vertexList.get(j);
-                Integer graphDist = viPaths.get(vj);
-                if (graphDist == null || graphDist == 0) continue;
 
-                double[] pj = positions.get(vj);
-                double dx = pi[0] - pj[0];
-                double dy = pi[1] - pj[1];
+        // Reusable BFS arrays — allocated once, reset per source
+        int[] dist = new int[n];
+        int[] queue = new int[n];
+
+        for (int s = 0; s < n; s++) {
+            // Reset distances (-1 = unvisited)
+            Arrays.fill(dist, -1);
+            dist[s] = 0;
+            int qStart = 0, qEnd = 0;
+            queue[qEnd++] = s;
+
+            while (qStart < qEnd) {
+                int cur = queue[qStart++];
+                int curDist = dist[cur];
+                for (int nb : adj[cur]) {
+                    if (dist[nb] < 0) {
+                        dist[nb] = curDist + 1;
+                        queue[qEnd++] = nb;
+                    }
+                }
+            }
+
+            // Accumulate stress for pairs (s, j) where j > s
+            for (int j = s + 1; j < n; j++) {
+                int graphDist = dist[j];
+                if (graphDist <= 0) continue;
+
+                double dx = px[s] - px[j];
+                double dy = py[s] - py[j];
                 double eucDist = Math.sqrt(dx * dx + dy * dy);
-
-                // Scale graph distance to expected Euclidean distance
                 double expected = graphDist * k;
 
-                stress += ((eucDist - expected) * (eucDist - expected))
-                        / (expected * expected);
+                double diff = eucDist - expected;
+                stress += (diff * diff) / (expected * expected);
                 normalizer++;
             }
         }
