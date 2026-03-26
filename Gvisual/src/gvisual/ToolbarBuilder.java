@@ -76,6 +76,7 @@ public final class ToolbarBuilder {
         addLayoutCompareButton(toolPanel, owner, ctx);
         addTikzExportButton(toolPanel, owner, ctx);
         addMatrixExportButtons(toolPanel, owner, ctx);
+        addDimacsExportButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -404,6 +405,28 @@ public final class ToolbarBuilder {
                             + "Edges: " + ctx.getGraph().getEdgeCount() + "\n"
                             + "Matrix: " + ctx.getGraph().getVertexCount() + "\u00d7" + ctx.getGraph().getEdgeCount() + "\n"
                             + "File: " + outFile.getName();
+                });
+    }
+
+    /* ---- DIMACS export ---- */
+
+    private static void addDimacsExportButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Export DIMACS<br/>Standard format<br/>for coloring,<br/>clique & SAT<br/>solvers</center></html>",
+                "Export as DIMACS",
+                () -> "graph_" + ctx.getTimestamp() + ".col",
+                new String[]{".col", ".dimacs"},
+                outFile -> {
+                    DimacsExporter exporter = new DimacsExporter(ctx.getGraph());
+                    exporter.setTimestamp(ctx.getTimestamp());
+                    exporter.setDescription("GraphVisual network — student community evolution");
+                    exporter.export(outFile);
+                    return "DIMACS exported successfully!\n"
+                            + "Nodes: " + exporter.getVertexCount() + "\n"
+                            + "Edges: " + exporter.getEdgeCount() + "\n"
+                            + "File: " + outFile.getName() + "\n\n"
+                            + "Compatible with DIMACS Challenge solvers,\n"
+                            + "graph coloring tools, and SAT/clique solvers.";
                 });
     }
 }
