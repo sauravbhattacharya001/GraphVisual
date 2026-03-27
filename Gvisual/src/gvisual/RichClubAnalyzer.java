@@ -104,36 +104,27 @@ public class RichClubAnalyzer {
     // -- Normalized rich-club coefficient rho(k) ---------------------------
 
     /**
-     * Computes normalized rich-club coefficients by comparing against
-     * randomized versions of the graph (degree-preserving rewiring).
+     * Computes normalized rich-club coefficients by comparing against the
+     * analytical configuration-model expectation for the same degree sequence.
      *
-     * @param numRandomizations number of random rewirings to average over
-     * @return sorted map of {k -> rho(k) = phi(k) / avg(phi_rand(k))}
+     * <p>rho(k) = phi(k) / phi_rand(k), where phi_rand(k) is the expected
+     * rich-club coefficient under the configuration model.</p>
+     *
+     * @param numRandomizations ignored (kept for API compatibility); the
+     *        analytical formula is deterministic
+     * @return sorted map of {k -> rho(k) = phi(k) / phi_rand(k)}
      */
     public Map<Integer, Double> normalizedCoefficients(int numRandomizations) {
         if (numRandomizations < 1) throw new IllegalArgumentException("Need at least 1 randomization");
 
         Map<Integer, Double> phi = richClubCoefficients();
+        Map<String, Integer> degrees = computeDegrees();
         int maxDeg = maxDegree();
-
-        // Accumulate random coefficients
-        double[][] randPhi = new double[maxDeg][numRandomizations];
-        for (int r = 0; r < numRandomizations; r++) {
-            Map<String, Integer> randomDegrees = generateRandomDegrees();
-            for (int k = 0; k < maxDeg; k++) {
-                randPhi[k][r] = richClubCoefficientFromDegrees(randomDegrees, k);
-            }
-        }
 
         TreeMap<Integer, Double> result = new TreeMap<>();
         for (int k = 0; k < maxDeg; k++) {
-            double avgRand = 0;
-            for (int r = 0; r < numRandomizations; r++) {
-                avgRand += randPhi[k][r];
-            }
-            avgRand /= numRandomizations;
-
-            double rho = (avgRand > 0) ? phi.getOrDefault(k, 0.0) / avgRand : 0.0;
+            double phiRand = richClubCoefficientFromDegrees(degrees, k);
+            double rho = (phiRand > 0) ? phi.getOrDefault(k, 0.0) / phiRand : 0.0;
             result.put(k, rho);
         }
         return result;
@@ -318,18 +309,22 @@ public class RichClubAnalyzer {
     /**
      * Generates a degree-preserving randomized assignment using the
      * configuration model approach (shuffle stub list).
+     *
+     * @deprecated No longer used; normalizedCoefficients now uses the
+     *             analytical formula directly without redundant iterations.
      */
+    @Deprecated
     private Map<String, Integer> generateRandomDegrees() {
-        // For normalization, we compute what phi(k) would be in a random graph
-        // with the same degree sequence. Using the analytical formula:
-        // phi_rand(k) ≈ (Σ_{i>k} d_i)^2 / (2M × N_{>k} × (N_{>k}-1))
-        // But we store actual degrees and compute from them.
         return computeDegrees();
     }
 
     /**
      * Computes rich-club coefficient from a degree map using the
      * analytical approximation for the configuration model.
+     *
+     * <p>Uses E_rand = ((Σd_i)² − Σd_i²) / (4M), which is the expected
+     * number of edges among nodes with degree > k in a random graph with
+     * the same degree sequence, excluding self-loops.</p>
      */
     private double richClubCoefficientFromDegrees(Map<String, Integer> degrees, int k) {
         List<Integer> aboveK = degrees.values().stream()
@@ -339,12 +334,15 @@ public class RichClubAnalyzer {
         if (nk < 2) return 0.0;
 
         // Expected edges in configuration model among nodes with degree > k:
-        // E_rand = (Σ d_i)^2 / (2 × 2M) for the subgroup
+        // E_rand = ((Σd_i)² − Σd_i²) / (4M)
+        // The subtraction of Σd_i² removes self-loop terms that the squared
+        // sum incorrectly includes (pairing a node's stubs with itself).
         double sumD = aboveK.stream().mapToDouble(Integer::doubleValue).sum();
+        double sumD2 = aboveK.stream().mapToDouble(d -> (double) d * d).sum();
         double twoM = 2.0 * graph.getEdgeCount();
         if (twoM == 0) return 0.0;
 
-        double expectedEdges = (sumD * sumD) / (2.0 * twoM);
+        double expectedEdges = (sumD * sumD - sumD2) / (2.0 * twoM);
         double maxEdges = nk * (nk - 1.0) / 2.0;
 
         return maxEdges > 0 ? Math.min(1.0, expectedEdges / maxEdges) : 0.0;
