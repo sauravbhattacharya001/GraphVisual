@@ -438,22 +438,27 @@ public final class ChromaticPolynomialCalculator {
 
     /**
      * Canonical key for memoization — sorted adjacency representation.
+     * Uses packed long encoding to avoid per-edge String allocation:
+     * each edge (a,b) with a&lt;b is packed as (a &lt;&lt; 16) | b, then the
+     * sorted long array is converted to a single String via Arrays.toString.
      */
     private static String canonicalKey(Graph<String, String> g) {
         List<String> vertices = new ArrayList<>(g.getVertices());
         Collections.sort(vertices);
-        Map<String, Integer> index = new HashMap<>();
+        Map<String, Integer> index = new HashMap<>(vertices.size() * 2);
         for (int i = 0; i < vertices.size(); i++) index.put(vertices.get(i), i);
 
-        List<String> edges = new ArrayList<>();
+        int edgeCount = g.getEdgeCount();
+        long[] edgeCodes = new long[edgeCount];
+        int idx = 0;
         for (String e : g.getEdges()) {
             int a = index.get(g.getEndpoints(e).getFirst());
             int b = index.get(g.getEndpoints(e).getSecond());
             if (a > b) { int t = a; a = b; b = t; }
-            edges.add(a + "-" + b);
+            edgeCodes[idx++] = ((long) a << 16) | b;
         }
-        Collections.sort(edges);
-        return vertices.size() + ":" + String.join(",", edges);
+        Arrays.sort(edgeCodes);
+        return vertices.size() + ":" + Arrays.toString(edgeCodes);
     }
 
     // ── Polynomial arithmetic ────────────────────────────────────────
@@ -485,12 +490,16 @@ public final class ChromaticPolynomialCalculator {
         return result;
     }
 
+    /**
+     * Evaluate polynomial using Horner's method — O(n) multiplications
+     * instead of O(n) multiplications + O(n) power accumulations,
+     * with better numerical stability for large coefficients.
+     */
     private static long evaluatePolynomial(long[] coeffs, int k) {
-        long result = 0;
-        long kPower = 1;
-        for (long coeff : coeffs) {
-            result += coeff * kPower;
-            kPower *= k;
+        if (coeffs.length == 0) return 0;
+        long result = coeffs[coeffs.length - 1];
+        for (int i = coeffs.length - 2; i >= 0; i--) {
+            result = result * k + coeffs[i];
         }
         return result;
     }
