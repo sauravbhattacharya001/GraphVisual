@@ -1,7 +1,6 @@
 package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -86,30 +85,13 @@ public class GraphHealthChecker {
     }
 
     private List<Integer> findComponentSizes() {
-        Set<String> visited = new HashSet<>();
-        List<Integer> sizes = new ArrayList<>();
-        for (String v : graph.getVertices()) {
-            if (visited.contains(v)) continue;
-            int size = bfsCount(v, visited);
-            sizes.add(size);
+        // Delegate to GraphUtils.findComponents (already sorted largest-first)
+        List<Set<String>> components = GraphUtils.findComponents(graph);
+        List<Integer> sizes = new ArrayList<>(components.size());
+        for (Set<String> c : components) {
+            sizes.add(c.size());
         }
-        sizes.sort(Collections.reverseOrder());
         return sizes;
-    }
-
-    private int bfsCount(String start, Set<String> visited) {
-        Queue<String> queue = new LinkedList<>();
-        queue.add(start);
-        visited.add(start);
-        int count = 0;
-        while (!queue.isEmpty()) {
-            String v = queue.poll();
-            count++;
-            for (String n : graph.getNeighbors(v)) {
-                if (visited.add(n)) queue.add(n);
-            }
-        }
-        return count;
     }
 
     /** Nodes whose degree is >2 standard deviations from the mean. */
