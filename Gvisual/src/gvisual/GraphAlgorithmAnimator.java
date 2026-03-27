@@ -824,9 +824,7 @@ public class GraphAlgorithmAnimator {
     }
 
     private static String escapeXml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
+        return ExportUtils.escapeXml(s);
     }
 
     private static String escapeJS(String s) {

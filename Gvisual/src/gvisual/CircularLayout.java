@@ -515,8 +515,7 @@ public class CircularLayout {
     }
 
     private String escapeXml(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
+        return ExportUtils.escapeXml(s);
     }
 
     private void ensureComputed() {

@@ -900,9 +900,6 @@ public class HierarchicalLayout {
     }
 
     private static String escapeXml(String s) {
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
+        return ExportUtils.escapeXml(s);
     }
 }
