@@ -33,6 +33,58 @@ public class matchImei {
             "SELECT DISTINCT srcnode FROM event_3 WHERE sndrnode = '' AND rssi >= ?";
 
     /**
+     * Matches event nodes against device records and updates IMEI mappings.
+     *
+     * <p>For each distinct node in the event result set, scans the device
+     * table for a matching node ID and writes the corresponding IMEI back
+     * to the event table via the supplied update statement.</p>
+     *
+     * @param nodeType   human-readable label for logging (e.g. "sndrnode", "srcnode")
+     * @param selectStmt prepared SELECT for distinct nodes (parameter 1 = RSSI threshold)
+     * @param updateStmt prepared UPDATE to write the matched IMEI
+     * @param rsDevice   scrollable device result set (rewound for each event row)
+     * @param threshold  minimum RSSI value
+     * @throws SQLException if a database operation fails
+     */
+    private static void matchNodes(String nodeType,
+                                   PreparedStatement selectStmt,
+                                   PreparedStatement updateStmt,
+                                   ResultSet rsDevice,
+                                   int threshold) throws SQLException {
+        System.out.println("fetching event(" + nodeType + ")...");
+        selectStmt.setInt(1, threshold);
+
+        try (ResultSet rsEvent = selectStmt.executeQuery()) {
+            rsEvent.last();
+            System.out.println("event(" + nodeType + ") fetched..." + rsEvent.getRow() + " entries");
+            rsEvent.first();
+
+            int numDone = 0;
+            while (rsEvent.next()) {
+                numDone++;
+                String nodeId = rsEvent.getString(1);
+                System.out.println("Done = " + numDone);
+                System.out.println("trying match imei with " + nodeType + " " + nodeId);
+
+                rsDevice.first();
+                while (rsDevice.next()) {
+                    if (rsDevice.getString(1).equals(nodeId)) {
+                        String imei = rsDevice.getString(2);
+                        System.out.println(imei);
+                        System.out.println("matched " + nodeType + " " + nodeId + "\n");
+
+                        updateStmt.setString(1, imei);
+                        updateStmt.setString(2, nodeId);
+                        updateStmt.executeUpdate();
+                        break;
+                    }
+                }
+            }
+        }
+        System.out.println("all " + nodeType + "s matched\n");
+    }
+
+    /**
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
@@ -53,72 +105,8 @@ public class matchImei {
             try (ResultSet rs_device = stmt1.executeQuery("SELECT DISTINCT * FROM device_1")) {
                 System.out.println("device fetched...");
 
-                // --- Match by sndrnode ---
-                int numEventsDone;
-                System.out.println("fetching event(sndrnode)...");
-
-                selectSndrnode.setInt(1, Thres);
-                try (ResultSet rs_event = selectSndrnode.executeQuery()) {
-                    rs_event.last();
-                    System.out.println("event(sndrnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
-
-                    numEventsDone = 0;
-                    while (rs_event.next()) {
-                        numEventsDone++;
-                        System.out.println("Done = " + numEventsDone);
-                        System.out.println("trying match imei with sndrnode " + rs_event.getString(1));
-
-                        rs_device.first();
-                        while (rs_device.next()) {
-                            if (rs_device.getString(1).equals(rs_event.getString(1))) {
-                                String imei = rs_device.getString(2);
-                                String sndrnode = rs_event.getString(1);
-                                System.out.println(imei);
-                                System.out.println("matched sndrnode " + sndrnode + "\n");
-
-                                updateBySndrnode.setString(1, imei);
-                                updateBySndrnode.setString(2, sndrnode);
-                                updateBySndrnode.executeUpdate();
-                                break;
-                            }
-                        }
-                    }
-                }
-                System.out.println("all sndrnodes matched\n");
-
-                // --- Match by srcnode ---
-                System.out.println("fetching event(srcnode)...");
-
-                selectSrcnode.setInt(1, Thres);
-                try (ResultSet rs_event = selectSrcnode.executeQuery()) {
-                    rs_event.last();
-                    System.out.println("event(srcnode) fetched..." + rs_event.getRow() + " entries");
-                    rs_event.first();
-
-                    numEventsDone = 0;
-                    while (rs_event.next()) {
-                        numEventsDone++;
-                        System.out.println("Done = " + numEventsDone);
-                        System.out.println("trying match imei with srcnode " + rs_event.getString(1));
-
-                        rs_device.first();
-                        while (rs_device.next()) {
-                            if (rs_device.getString(1).equals(rs_event.getString(1))) {
-                                String imei = rs_device.getString(2);
-                                String srcnode = rs_event.getString(1);
-                                System.out.println(imei);
-                                System.out.println("matched srcnode " + srcnode + "\n");
-
-                                updateBySrcnode.setString(1, imei);
-                                updateBySrcnode.setString(2, srcnode);
-                                updateBySrcnode.executeUpdate();
-                                break;
-                            }
-                        }
-                    }
-                }
-                System.out.println("all srcnodes matched\n");
+                matchNodes("sndrnode", selectSndrnode, updateBySndrnode, rs_device, Thres);
+                matchNodes("srcnode", selectSrcnode, updateBySrcnode, rs_device, Thres);
             }
         }
     }

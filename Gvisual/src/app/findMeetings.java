@@ -27,6 +27,21 @@ public class findMeetings {
     private static double WINDOW_SIZE = 5.00;
 
     /**
+     * Returns a canonical device pair key with the lexicographically smaller
+     * IMEI first, separated by '#'. This ensures consistent ordering
+     * regardless of which device is sender vs receiver.
+     *
+     * @param imei1 first IMEI
+     * @param imei2 second IMEI
+     * @return canonical "smaller#larger" pair key
+     */
+    static String canonicalPair(String imei1, String imei2) {
+        return (imei1.compareTo(imei2) > 0)
+                ? imei2 + "#" + imei1
+                : imei1 + "#" + imei2;
+    }
+
+    /**
      * Validates that a time string has the expected "HH.MM:SS.mmm" format.
      *
      * @param time the time string to validate
@@ -82,14 +97,10 @@ public class findMeetings {
 
     public static void addMeeting(Connection conn, String devicePair, String startTime, String endTime, String month, String date, String locationType) throws Exception {
         String[] imeiArr = devicePair.split("#");
-        String imei1, imei2;
-        if (imeiArr[0].compareTo(imeiArr[1]) > 0) {
-            imei1 = imeiArr[1];
-            imei2 = imeiArr[0];
-        } else {
-            imei2 = imeiArr[1];
-            imei1 = imeiArr[0];
-        }
+        String canonical = canonicalPair(imeiArr[0], imeiArr[1]);
+        String[] ordered = canonical.split("#");
+        String imei1 = ordered[0];
+        String imei2 = ordered[1];
         String apType = (locationType != null && !locationType.isEmpty()) ? locationType : "unknown";
 
         String sql = "INSERT INTO meeting (imei1, imei2, starttime, endtime, location, month, date, duration) "
@@ -144,21 +155,12 @@ public class findMeetings {
                             System.out.println("added " + rs.getRow() + " number of entries to map");
                         }
 
-                        String imei1, imei2;
-                        if (rs.getString(1).compareTo(rs.getString(2)) > 0) {
-                            imei1 = rs.getString(2);
-                            imei2 = rs.getString(1);
-                        } else {
-                            imei1 = rs.getString(1);
-                            imei2 = rs.getString(2);
-                        }
+                        String devicePair = canonicalPair(rs.getString(1), rs.getString(2));
 
                         String curTime = rs.getString(3);
                         if (curTime.length() == 11) {
                             curTime = "0" + curTime;
                         }
-
-                        String devicePair = imei1 + "#" + imei2;
 
                         // computeIfAbsent avoids the redundant remove-then-put
                         // pattern — the SortedSet is a reference type, so adding
