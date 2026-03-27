@@ -37,6 +37,9 @@ public class GraphFileParser {
 
     private static final Logger LOGGER = Logger.getLogger(GraphFileParser.class.getName());
 
+    /** Maximum graph file size (50 MB) to prevent out-of-memory on adversarial input. */
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024;
+
     /**
      * Result of parsing a graph file. Holds the graph, classified Edge
      * lists, and the set of all vertices found.
@@ -88,6 +91,25 @@ public class GraphFileParser {
     public static ParseResult parse(String filePath, Predicate<String> visibleFilter)
             throws IOException {
 
+        // Validate the input path is a regular file that exists and is
+        // readable.  This prevents path-traversal inputs (CWE-22) from
+        // reaching the LineIterator and gives a clear error instead of
+        // an opaque IOException.
+        File database = new File(filePath);
+        if (!database.exists()) {
+            throw new IOException("Graph file does not exist: " + filePath);
+        }
+        if (!database.isFile()) {
+            throw new IOException("Path is not a regular file: " + filePath);
+        }
+        if (!database.canRead()) {
+            throw new IOException("Graph file is not readable: " + filePath);
+        }
+        if (database.length() > MAX_FILE_SIZE) {
+            throw new IOException("Graph file exceeds maximum allowed size ("
+                    + (MAX_FILE_SIZE / (1024 * 1024)) + " MB): " + filePath);
+        }
+
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         Map<EdgeType, List<Edge>> edgesByType = new EnumMap<>(EdgeType.class);
         for (EdgeType t : EdgeType.values()) {
@@ -96,7 +118,6 @@ public class GraphFileParser {
         Set<String> vertices = new LinkedHashSet<>();
         int skipped = 0;
 
-        File database = new File(filePath);
         LineIterator lineIterator = null;
 
         try {
