@@ -584,24 +584,15 @@ public final class GraphUtils {
         Map<String, String> prev = new HashMap<String, String>();
         Set<String> visited = new HashSet<String>();
 
-        // PQ entries: [distance, vertexIndex]
-        final List<String> vertexIndex = new ArrayList<String>();
-        vertexIndex.add(source);
-        final Map<String, Integer> vertexToIdx = new HashMap<String, Integer>();
-        vertexToIdx.put(source, 0);
-
-        PriorityQueue<double[]> pq = new PriorityQueue<double[]>(11,
-                (double[] a, double[] b) -> {
-                        return Double.compare(a[0], b[0]);
-                    });
+        PriorityQueue<DijkstraEntry> pq = new PriorityQueue<DijkstraEntry>();
 
         dist.put(source, 0.0);
-        pq.add(new double[]{0.0, 0});
+        pq.add(new DijkstraEntry(0.0, source));
 
         while (!pq.isEmpty()) {
-            double[] entry = pq.poll();
-            double entryDist = entry[0];
-            String u = vertexIndex.get((int) entry[1]);
+            DijkstraEntry entry = pq.poll();
+            double entryDist = entry.distance;
+            String u = entry.vertex;
 
             if (visited.contains(u)) continue;
             visited.add(u);
@@ -621,18 +612,36 @@ public final class GraphUtils {
                 if (oldDist == null || newDist < oldDist) {
                     dist.put(v, newDist);
                     prev.put(v, u);
-
-                    Integer idx = vertexToIdx.get(v);
-                    if (idx == null) {
-                        idx = vertexIndex.size();
-                        vertexIndex.add(v);
-                        vertexToIdx.put(v, idx);
-                    }
-                    pq.add(new double[]{newDist, idx});
+                    pq.add(new DijkstraEntry(newDist, v));
                 }
             }
         }
         return new DijkstraResult(dist, prev);
+    }
+
+    /**
+     * Typed priority-queue entry for Dijkstra's algorithm. Replaces the
+     * previous {@code double[]} hack that required a parallel
+     * {@code vertexIndex} list and {@code vertexToIdx} map for
+     * int-to-vertex lookups. Eliminates O(V) index bookkeeping and
+     * fragile double-to-int casting on every PQ poll.
+     *
+     * <p>Consistent with the approach already used in
+     * {@link ShortestPathFinder}.</p>
+     */
+    private static final class DijkstraEntry implements Comparable<DijkstraEntry> {
+        final double distance;
+        final String vertex;
+
+        DijkstraEntry(double distance, String vertex) {
+            this.distance = distance;
+            this.vertex = vertex;
+        }
+
+        @Override
+        public int compareTo(DijkstraEntry other) {
+            return Double.compare(this.distance, other.distance);
+        }
     }
 
     /**
