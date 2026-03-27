@@ -39,6 +39,8 @@ import java.util.*;
 public class SignedGraphAnalyzer {
 
     private final Graph<String, Edge> graph;
+    private Map<String, List<String>> cachedAdj;
+    private Map<String, Map<String, Edge>> cachedEdgeMap;
 
     /**
      * Constructs an analyzer for the given graph.
@@ -278,35 +280,19 @@ public class SignedGraphAnalyzer {
     public boolean isStronglyBalanced() {
         if (graph.getVertexCount() == 0) return true;
 
-        // BFS/DFS coloring: try to 2-color vertices such that
-        // positive edges connect same-color and negative edges connect different-color
-        Map<String, Integer> color = new HashMap<>();
-        List<String> vertices = new ArrayList<>(graph.getVertices());
+        // Use the signed 2-coloring partition, then verify no conflicts
+        Map<String, Integer> color = computePartition();
+        Map<String, Map<String, Edge>> edgeMap = edgeMap();
 
-        // Build adjacency
-        Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
-
-        for (String start : vertices) {
-            if (color.containsKey(start)) continue;
-            // BFS
-            Queue<String> queue = new LinkedList<>();
-            queue.add(start);
-            color.put(start, 0);
-            while (!queue.isEmpty()) {
-                String u = queue.poll();
-                int cu = color.get(u);
-                for (String v : adj.getOrDefault(u, Collections.emptyList())) {
-                    Edge e = edgeMap.get(u).get(v);
-                    int expectedColor = isNegative(e) ? (1 - cu) : cu;
-                    if (color.containsKey(v)) {
-                        if (color.get(v) != expectedColor) return false;
-                    } else {
-                        color.put(v, expectedColor);
-                        queue.add(v);
-                    }
-                }
-            }
+        for (Edge e : graph.getEdges()) {
+            Collection<String> eps = graph.getEndpoints(e);
+            Iterator<String> it = eps.iterator();
+            String u = it.next();
+            String v = it.next();
+            boolean sameColor = color.get(u).equals(color.get(v));
+            // Positive edges should connect same-color, negative different-color
+            if (isPositive(e) && !sameColor) return false;
+            if (isNegative(e) && sameColor) return false;
         }
         return true;
     }
@@ -323,46 +309,8 @@ public class SignedGraphAnalyzer {
      */
     public boolean isWeaklyBalanced() {
         if (graph.getVertexCount() == 0) return true;
-        // Weak balance: vertices can be partitioned into k≥2 groups,
-        // positive within, negative between.
-        // Check: the positive-Edge subgraph's connected components must have
-        // only negative edges between them.
-        Map<String, Integer> component = new HashMap<>();
-        Map<String, List<String>> posAdj = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            posAdj.put(v, new ArrayList<>());
-        }
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
 
-        for (Edge e : graph.getEdges()) {
-            if (isPositive(e)) {
-                Collection<String> eps = graph.getEndpoints(e);
-                Iterator<String> it = eps.iterator();
-                String u = it.next();
-                String v = it.next();
-                posAdj.get(u).add(v);
-                posAdj.get(v).add(u);
-            }
-        }
-
-        // Find connected components of positive subgraph
-        int comp = 0;
-        for (String v : graph.getVertices()) {
-            if (component.containsKey(v)) continue;
-            Queue<String> queue = new LinkedList<>();
-            queue.add(v);
-            component.put(v, comp);
-            while (!queue.isEmpty()) {
-                String u = queue.poll();
-                for (String w : posAdj.get(u)) {
-                    if (!component.containsKey(w)) {
-                        component.put(w, comp);
-                        queue.add(w);
-                    }
-                }
-            }
-            comp++;
-        }
+        Map<String, Integer> component = positiveEdgeComponents();
 
         // Check that all negative edges go between different components
         for (Edge e : graph.getEdges()) {
@@ -397,26 +345,7 @@ public class SignedGraphAnalyzer {
     }
 
     private List<Set<String>> findStrongCoalitions() {
-        Map<String, Integer> color = new HashMap<>();
-        Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
-
-        for (String start : graph.getVertices()) {
-            if (color.containsKey(start)) continue;
-            Queue<String> queue = new LinkedList<>();
-            queue.add(start);
-            color.put(start, 0);
-            while (!queue.isEmpty()) {
-                String u = queue.poll();
-                int cu = color.get(u);
-                for (String v : adj.getOrDefault(u, Collections.emptyList())) {
-                    if (color.containsKey(v)) continue;
-                    Edge e = edgeMap.get(u).get(v);
-                    color.put(v, isNegative(e) ? (1 - cu) : cu);
-                    queue.add(v);
-                }
-            }
-        }
+        Map<String, Integer> color = computePartition();
 
         Map<Integer, Set<String>> groups = new LinkedHashMap<>();
         for (Map.Entry<String, Integer> entry : color.entrySet()) {
@@ -426,39 +355,7 @@ public class SignedGraphAnalyzer {
     }
 
     private List<Set<String>> findWeakCoalitions() {
-        // Use positive-Edge connected components
-        Map<String, Integer> component = new HashMap<>();
-        Map<String, List<String>> posAdj = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            posAdj.put(v, new ArrayList<>());
-        }
-        for (Edge e : graph.getEdges()) {
-            if (isPositive(e)) {
-                Collection<String> eps = graph.getEndpoints(e);
-                Iterator<String> it = eps.iterator();
-                String u = it.next();
-                String v = it.next();
-                posAdj.get(u).add(v);
-                posAdj.get(v).add(u);
-            }
-        }
-        int comp = 0;
-        for (String v : graph.getVertices()) {
-            if (component.containsKey(v)) continue;
-            Queue<String> queue = new LinkedList<>();
-            queue.add(v);
-            component.put(v, comp);
-            while (!queue.isEmpty()) {
-                String u = queue.poll();
-                for (String w : posAdj.get(u)) {
-                    if (!component.containsKey(w)) {
-                        component.put(w, comp);
-                        queue.add(w);
-                    }
-                }
-            }
-            comp++;
-        }
+        Map<String, Integer> component = positiveEdgeComponents();
         Map<Integer, Set<String>> groups = new LinkedHashMap<>();
         for (Map.Entry<String, Integer> entry : component.entrySet()) {
             groups.computeIfAbsent(entry.getValue(), k -> new LinkedHashSet<>()).add(entry.getKey());
@@ -495,8 +392,8 @@ public class SignedGraphAnalyzer {
         Map<String, Integer> idx = new HashMap<>();
         for (int i = 0; i < n; i++) idx.put(vertices.get(i), i);
 
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
-        Map<String, List<String>> adj = buildAdjacency();
+        Map<String, Map<String, Edge>> edgeMap = edgeMap();
+        Map<String, List<String>> adj = adjacency();
 
         int bestFrustration = graph.getEdgeCount(); // worst case
 
@@ -530,27 +427,7 @@ public class SignedGraphAnalyzer {
     }
 
     private int greedyFrustration(List<String> vertices) {
-        // Greedy: start with BFS coloring, count frustrated edges
-        Map<String, Integer> color = new HashMap<>();
-        Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
-
-        for (String start : vertices) {
-            if (color.containsKey(start)) continue;
-            Queue<String> queue = new LinkedList<>();
-            queue.add(start);
-            color.put(start, 0);
-            while (!queue.isEmpty()) {
-                String u = queue.poll();
-                int cu = color.get(u);
-                for (String v : adj.getOrDefault(u, Collections.emptyList())) {
-                    if (color.containsKey(v)) continue;
-                    Edge e = edgeMap.get(u).get(v);
-                    color.put(v, isNegative(e) ? (1 - cu) : cu);
-                    queue.add(v);
-                }
-            }
-        }
+        Map<String, Integer> color = computePartition();
 
         int frustration = 0;
         for (Edge e : graph.getEdges()) {
@@ -595,8 +472,8 @@ public class SignedGraphAnalyzer {
 
     private Map<String, Integer> computePartition() {
         Map<String, Integer> color = new HashMap<>();
-        Map<String, List<String>> adj = buildAdjacency();
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
+        Map<String, List<String>> adj = adjacency();
+        Map<String, Map<String, Edge>> edgeMap = edgeMap();
 
         for (String start : graph.getVertices()) {
             if (color.containsKey(start)) continue;
@@ -639,7 +516,7 @@ public class SignedGraphAnalyzer {
             throw new IllegalArgumentException("Vertex not found: " + v);
         }
 
-        Map<String, Map<String, Edge>> edgeMap = buildEdgeMap();
+        Map<String, Map<String, Edge>> edgeMap = edgeMap();
         Set<String> neighborsU = new HashSet<>(edgeMap.getOrDefault(u, Collections.emptyMap()).keySet());
         Set<String> neighborsV = new HashSet<>(edgeMap.getOrDefault(v, Collections.emptyMap()).keySet());
 
@@ -765,6 +642,62 @@ public class SignedGraphAnalyzer {
     }
 
     // ---- Helper Methods ----
+
+    private Map<String, List<String>> adjacency() {
+        if (cachedAdj == null) {
+            cachedAdj = buildAdjacency();
+        }
+        return cachedAdj;
+    }
+
+    private Map<String, Map<String, Edge>> edgeMap() {
+        if (cachedEdgeMap == null) {
+            cachedEdgeMap = buildEdgeMap();
+        }
+        return cachedEdgeMap;
+    }
+
+    /**
+     * Finds connected components of the positive-edge subgraph.
+     * Each vertex is assigned a component ID.
+     *
+     * @return map of vertex → component ID
+     */
+    private Map<String, Integer> positiveEdgeComponents() {
+        Map<String, Integer> component = new HashMap<>();
+        Map<String, List<String>> posAdj = new HashMap<>();
+        for (String v : graph.getVertices()) {
+            posAdj.put(v, new ArrayList<>());
+        }
+        for (Edge e : graph.getEdges()) {
+            if (isPositive(e)) {
+                Collection<String> eps = graph.getEndpoints(e);
+                Iterator<String> it = eps.iterator();
+                String u = it.next();
+                String v = it.next();
+                posAdj.get(u).add(v);
+                posAdj.get(v).add(u);
+            }
+        }
+        int comp = 0;
+        for (String v : graph.getVertices()) {
+            if (component.containsKey(v)) continue;
+            Queue<String> queue = new LinkedList<>();
+            queue.add(v);
+            component.put(v, comp);
+            while (!queue.isEmpty()) {
+                String u = queue.poll();
+                for (String w : posAdj.get(u)) {
+                    if (!component.containsKey(w)) {
+                        component.put(w, comp);
+                        queue.add(w);
+                    }
+                }
+            }
+            comp++;
+        }
+        return component;
+    }
 
     private Map<String, List<String>> buildAdjacency() {
         Map<String, List<String>> adj = new HashMap<>();
