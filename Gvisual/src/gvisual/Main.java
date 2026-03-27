@@ -82,16 +82,7 @@ public class Main extends JFrame {
     private static final Color DEFAULT_BG_COLOR = Color.BLACK;
     private static final Color Vertex_COLOR = Color.WHITE;
     private static int DELAY = 2048;
-    private JSlider friendDurThreshold;
-    private JSlider friendNumMeetThreshold;
-    private JSlider classmateDurThreshold;
-    private JSlider classmateNumMeetThreshold;
-    private JSlider fsDurThreshold;
-    private JSlider fsNumMeetThreshold;
-    private JSlider strangerDurThreshold;
-    private JSlider strangerNumMeetThreshold;
-    private JSlider studyGDurThreshold;
-    private JSlider studyGNumMeetThreshold;
+    // Slider/checkbox state is now accessed through categoryRows[] — see initializeCategoryPanel()
     private String month;
     private String date;
     private String timeStamp;
@@ -130,11 +121,11 @@ public class Main extends JFrame {
      */
     private ThresholdConfig currentThresholds() {
         return new ThresholdConfig.Builder()
-                .friend(friendDurThreshold.getValue(), friendNumMeetThreshold.getValue())
-                .familiarStranger(fsDurThreshold.getValue(), fsNumMeetThreshold.getValue())
-                .classmate(classmateDurThreshold.getValue(), classmateNumMeetThreshold.getValue())
-                .stranger(strangerDurThreshold.getValue(), strangerNumMeetThreshold.getValue())
-                .studyGroup(studyGDurThreshold.getValue(), studyGNumMeetThreshold.getValue())
+                .friend(categoryRows[0].durationSlider.getValue(), categoryRows[0].meetingSlider.getValue())
+                .familiarStranger(categoryRows[2].durationSlider.getValue(), categoryRows[2].meetingSlider.getValue())
+                .classmate(categoryRows[1].durationSlider.getValue(), categoryRows[1].meetingSlider.getValue())
+                .stranger(categoryRows[3].durationSlider.getValue(), categoryRows[3].meetingSlider.getValue())
+                .studyGroup(categoryRows[4].durationSlider.getValue(), categoryRows[4].meetingSlider.getValue())
                 .build();
     }
     private List<Edge> friendEdges = new ArrayList<>();
@@ -150,31 +141,9 @@ public class Main extends JFrame {
     private JSlider timeline;
     private JPanel contentPanel;
     private JPanel toolPanel;
-    private JCheckBox showFriend;
-    private JCheckBox showClassmate;
-    private JCheckBox showFS;
-    private JCheckBox showStranger;
-    private JCheckBox showStudy;
     private Timer timer;
-    private JButton playButton;
-    private JButton stopButton;
-    private JButton pauseButton;
-    private JButton frShowParam;
-    private JButton fsShowParam;
-    private JButton cShowParam;
-    private JButton sShowParam;
-    private JButton sgShowParam;
     private Box[] categoryPanel;
-    private JPanel frHpanel;
-    private JPanel fsHpanel;
-    private JPanel cHpanel;
-    private JPanel sHpanel;
-    private JPanel sgHpanel;
     private int NUM_EDGES_IMP_GRAPH = 20;
-    private JButton prevButton;
-    private JButton nextButton;
-    private JButton slowButton;
-    private JButton fastButton;
     private Collection<String> OldVertices;
     private int prevTimeline;
     private JPanel legendPanel;
@@ -263,11 +232,11 @@ public class Main extends JFrame {
         EdgeType type = EdgeType.fromCode(typeCode);
         if (type == null) return true; // unknown types are visible by default
         switch (type) {
-            case FRIEND:      return showFriend.isSelected();
-            case CLASSMATE:   return showClassmate.isSelected();
-            case FAMILIAR:    return showFS.isSelected();
-            case STRANGER:    return showStranger.isSelected();
-            case STUDY_GROUP: return showStudy.isSelected();
+            case FRIEND:      return categoryRows[0].checkbox.isSelected();
+            case CLASSMATE:   return categoryRows[1].checkbox.isSelected();
+            case FAMILIAR:    return categoryRows[2].checkbox.isSelected();
+            case STRANGER:    return categoryRows[3].checkbox.isSelected();
+            case STUDY_GROUP: return categoryRows[4].checkbox.isSelected();
             default:          return true;
         }
     }
@@ -863,20 +832,20 @@ public class Main extends JFrame {
 
 
 
-        playButton  = createTimelineButton("images/play.png",  "Play",  e -> {
+        JButton playButton  = createTimelineButton("images/play.png",  "Play",  e -> {
             LOGGER.fine("Play pressed");
             timer.start();
         });
-        pauseButton = createTimelineButton("images/pause.png", "Pause", e -> {
+        JButton pauseButton = createTimelineButton("images/pause.png", "Pause", e -> {
             LOGGER.fine("Pause pressed");
             timer.stop();
         });
-        stopButton  = createTimelineButton("images/stop.png",  "Stop",  e -> {
+        JButton stopButton  = createTimelineButton("images/stop.png",  "Stop",  e -> {
             LOGGER.fine("Stop pressed");
             timeline.setValue(1);
             timer.stop();
         });
-        prevButton  = createTimelineButton("images/prev.png",  "Previous important graph", e -> {
+        JButton prevButton  = createTimelineButton("images/prev.png",  "Previous important graph", e -> {
             try {
                 LOGGER.fine("Prev pressed");
                 nextOrPrevGraph("prev");
@@ -885,7 +854,7 @@ public class Main extends JFrame {
                 LOGGER.log(Level.SEVERE, null, ex);
             }
         });
-        nextButton  = createTimelineButton("images/next.png",  "Next important graph", e -> {
+        JButton nextButton  = createTimelineButton("images/next.png",  "Next important graph", e -> {
             try {
                 LOGGER.fine("Next pressed");
                 nextOrPrevGraph("next");
@@ -894,12 +863,12 @@ public class Main extends JFrame {
                 LOGGER.log(Level.SEVERE, null, ex);
             }
         });
-        slowButton  = createTimelineButton("images/slow.png",  "Slow down", e -> {
+        JButton slowButton  = createTimelineButton("images/slow.png",  "Slow down", e -> {
             DELAY = DELAY * 2;
             timer.setDelay(DELAY);
             LOGGER.fine("Slow pressed, delay=" + timer.getDelay());
         });
-        fastButton  = createTimelineButton("images/fast.png",  "Speed up", e -> {
+        JButton fastButton  = createTimelineButton("images/fast.png",  "Speed up", e -> {
             DELAY = DELAY / 2;
             timer.setDelay(DELAY);
             LOGGER.fine("Fast pressed, delay=" + timer.getDelay());
@@ -1028,38 +997,6 @@ public class Main extends JFrame {
                 "STRANGERS (Location : public,pathways)",           25);
         categoryRows[4] = createCategoryRow(EdgeType.STUDY_GROUP, studyGEdges,
                 "STUDY GROUPS (Location : public)",                 50);
-
-        // Alias the sliders/checkboxes/panels to existing fields so that the
-        // rest of Main.java (addGraph, generateFile calls, etc.) still compiles.
-        showFriend              = categoryRows[0].checkbox;
-        friendDurThreshold      = categoryRows[0].durationSlider;
-        friendNumMeetThreshold  = categoryRows[0].meetingSlider;
-        frShowParam             = categoryRows[0].settingsButton;
-        frHpanel                = categoryRows[0].headerPanel;
-
-        showClassmate               = categoryRows[1].checkbox;
-        classmateDurThreshold       = categoryRows[1].durationSlider;
-        classmateNumMeetThreshold   = categoryRows[1].meetingSlider;
-        cShowParam                  = categoryRows[1].settingsButton;
-        cHpanel                     = categoryRows[1].headerPanel;
-
-        showFS              = categoryRows[2].checkbox;
-        fsDurThreshold      = categoryRows[2].durationSlider;
-        fsNumMeetThreshold  = categoryRows[2].meetingSlider;
-        fsShowParam         = categoryRows[2].settingsButton;
-        fsHpanel            = categoryRows[2].headerPanel;
-
-        showStranger              = categoryRows[3].checkbox;
-        strangerDurThreshold      = categoryRows[3].durationSlider;
-        strangerNumMeetThreshold  = categoryRows[3].meetingSlider;
-        sShowParam                = categoryRows[3].settingsButton;
-        sHpanel                   = categoryRows[3].headerPanel;
-
-        showStudy               = categoryRows[4].checkbox;
-        studyGDurThreshold      = categoryRows[4].durationSlider;
-        studyGNumMeetThreshold  = categoryRows[4].meetingSlider;
-        sgShowParam             = categoryRows[4].settingsButton;
-        sgHpanel                = categoryRows[4].headerPanel;
     }
 
     /**
