@@ -137,16 +137,24 @@ public class CliqueAnalyzer {
         for (String v : candidates) {
             Set<String> neighborsV = getNeighbors(v);
 
-            Set<String> newR = new HashSet<String>(R);
-            newR.add(v);
+            // Reuse R with backtracking instead of allocating a copy per branch.
+            R.add(v);
 
-            Set<String> newP = new HashSet<String>(P);
-            newP.retainAll(neighborsV);
+            // Build intersections P ∩ N(v) and X ∩ N(v) without copying
+            // the full sets first — only add elements that pass the filter.
+            Set<String> newP = new HashSet<String>(Math.min(P.size(), neighborsV.size()));
+            for (String u : P) {
+                if (neighborsV.contains(u)) newP.add(u);
+            }
 
-            Set<String> newX = new HashSet<String>(X);
-            newX.retainAll(neighborsV);
+            Set<String> newX = new HashSet<String>(Math.min(X.size(), neighborsV.size()));
+            for (String u : X) {
+                if (neighborsV.contains(u)) newX.add(u);
+            }
 
-            bronKerbosch(newR, newP, newX, depth + 1);
+            bronKerbosch(R, newP, newX, depth + 1);
+
+            R.remove(v);
 
             if (truncated) return;
 
