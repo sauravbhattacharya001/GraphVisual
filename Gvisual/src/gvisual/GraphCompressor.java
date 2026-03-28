@@ -106,12 +106,13 @@ public class GraphCompressor {
             neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
         }
 
+        // Sort vertices by degree to improve pruning effectiveness.
+        // Vertices with similar degrees are more likely to have high Jaccard
+        // similarity, so sorting brings candidate pairs closer together.
         List<String> vertices = new ArrayList<>(graph.getVertices());
+        vertices.sort((a, b) -> Integer.compare(neighborSets.get(a).size(), neighborSets.get(b).size()));
+
         boolean[] merged = new boolean[vertices.size()];
-        Map<String, Integer> indexMap = new HashMap<>();
-        for (int i = 0; i < vertices.size(); i++) {
-            indexMap.put(vertices.get(i), i);
-        }
 
         List<List<String>> groups = new ArrayList<>();
         for (int i = 0; i < vertices.size(); i++) {
@@ -120,11 +121,25 @@ public class GraphCompressor {
             group.add(vertices.get(i));
             merged[i] = true;
             Set<String> refNeighbors = neighborSets.get(vertices.get(i));
+            int refSize = refNeighbors.size();
 
             for (int j = i + 1; j < vertices.size(); j++) {
                 if (merged[j]) continue;
                 Set<String> otherNeighbors = neighborSets.get(vertices.get(j));
-                double jaccard = jaccardSimilarity(refNeighbors, otherNeighbors);
+                int otherSize = otherNeighbors.size();
+
+                // Degree-based upper bound pruning: the maximum possible
+                // Jaccard similarity between two sets is min(|A|,|B|)/max(|A|,|B|).
+                // Since vertices are sorted by degree, refSize <= otherSize.
+                // If this upper bound < threshold, no later vertex can match either
+                // (their degrees only increase), so break early.
+                if (otherSize > 0 && (double) refSize / otherSize < threshold) {
+                    break;
+                }
+
+                // Compute Jaccard without allocating new sets: count intersection
+                // by iterating the smaller set and checking the larger.
+                double jaccard = jaccardFast(refNeighbors, refSize, otherNeighbors, otherSize);
                 if (jaccard >= threshold) {
                     group.add(vertices.get(j));
                     merged[j] = true;
@@ -134,6 +149,31 @@ public class GraphCompressor {
         }
 
         return buildQuotientGraph(groups, "neighborhood_similarity(threshold=" + threshold + ")");
+    }
+
+    /**
+     * Computes Jaccard similarity without allocating intermediate HashSets.
+     * Iterates the smaller set, counting members present in the larger set.
+     * Union size is derived as |A| + |B| - |intersection|.
+     *
+     * @return Jaccard similarity in [0.0, 1.0]
+     */
+    private static double jaccardFast(Set<String> a, int aSize, Set<String> b, int bSize) {
+        if (aSize == 0 && bSize == 0) return 1.0;
+        if (aSize == 0 || bSize == 0) return 0.0;
+
+        // Iterate the smaller set for fewer hash lookups
+        Set<String> smaller = aSize <= bSize ? a : b;
+        Set<String> larger  = aSize <= bSize ? b : a;
+
+        int intersection = 0;
+        for (String v : smaller) {
+            if (larger.contains(v)) {
+                intersection++;
+            }
+        }
+        int union = aSize + bSize - intersection;
+        return union == 0 ? 1.0 : (double) intersection / union;
     }
 
     /**
