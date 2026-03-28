@@ -315,11 +315,19 @@ public class InfluenceSpreadSimulator {
         List<RoundSnapshot> snapshots = new ArrayList<>();
         List<InfectionEvent> timeline = new ArrayList<>();
 
+        // Track currently infected nodes explicitly to avoid iterating
+        // all V vertices each round just to find the infected subset.
+        // For large graphs with low infection rates, this reduces per-round
+        // cost from O(V) to O(|infected| * avg_degree).
+        Set<String> currentlyInfected = new LinkedHashSet<>();
+        for (String seed : seeds) {
+            if (graph.containsVertex(seed)) currentlyInfected.add(seed);
+        }
+
         int round = 0;
         snapshots.add(createSnapshot(round, state));
 
-        boolean hasInfected = true;
-        while (hasInfected) {
+        while (!currentlyInfected.isEmpty()) {
             round++;
             if (maxRounds > 0 && round > maxRounds) break;
 
@@ -327,8 +335,7 @@ public class InfluenceSpreadSimulator {
             Set<String> toInfect = new LinkedHashSet<>();
             Map<String, String> infectedBy = new LinkedHashMap<>();
 
-            for (String node : graph.getVertices()) {
-                if (state.get(node) != NodeState.INFECTED) continue;
+            for (String node : currentlyInfected) {
                 for (String neighbor : getNeighbors(node)) {
                     if (state.get(neighbor) == NodeState.SUSCEPTIBLE &&
                         !toInfect.contains(neighbor)) {
@@ -341,16 +348,15 @@ public class InfluenceSpreadSimulator {
                 }
             }
 
-            for (String node : graph.getVertices()) {
-                if (state.get(node) == NodeState.INFECTED) {
-                    if (random.nextDouble() < recoveryRate) {
-                        toRecover.add(node);
-                    }
+            for (String node : currentlyInfected) {
+                if (random.nextDouble() < recoveryRate) {
+                    toRecover.add(node);
                 }
             }
 
             for (String node : toInfect) {
                 state.put(node, NodeState.INFECTED);
+                currentlyInfected.add(node);
                 String source = infectedBy.get(node);
                 if (source != null) {
                     timeline.add(new InfectionEvent(source, node, round));
@@ -358,14 +364,10 @@ public class InfluenceSpreadSimulator {
             }
             for (String node : toRecover) {
                 state.put(node, NodeState.RECOVERED);
+                currentlyInfected.remove(node);
             }
 
             snapshots.add(createSnapshot(round, state));
-
-            hasInfected = false;
-            for (NodeState s : state.values()) {
-                if (s == NodeState.INFECTED) { hasInfected = true; break; }
-            }
         }
 
         return new SimulationResult(Model.SIR, seeds,
