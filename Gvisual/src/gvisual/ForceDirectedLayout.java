@@ -974,12 +974,8 @@ public class ForceDirectedLayout {
      * Escapes special XML characters.
      */
     private static String escapeXml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
+        return ExportUtils.escapeXml(s);
+    }
     }
 
 }
