@@ -363,7 +363,21 @@ public class GraphDiffHtmlExporter {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
+    /**
+     * Escapes a string for safe embedding inside a JavaScript string literal
+     * within an HTML {@code <script>} block.
+     *
+     * <p>In addition to standard JS escapes (backslash, quote, newlines),
+     * this method encodes {@code <} and {@code >} as hex escapes to prevent
+     * a malicious vertex/label name containing {@code </script>} from
+     * breaking out of the script context (CWE-79 / XSS via script breakout).
+     */
     private static String escapeJs(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "")
+                .replace("<", "\\x3c")
+                .replace(">", "\\x3e");
     }
 }
