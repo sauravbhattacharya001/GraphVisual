@@ -198,10 +198,12 @@ public class CommunityDetector {
      * Each connected component is treated as a community. Communities are
      * ranked by size (largest first) and enriched with Edge-type breakdowns.
      *
-     * <p>Edge metrics are computed during the BFS traversal itself: each Edge
-     * is counted when the second endpoint is discovered (or when revisiting
-     * an already-visited member). This avoids a separate O(V*E) post-pass
-     * and eliminates the per-community HashSet of counted edges.</p>
+     * <p>Edge metrics are computed in a single post-BFS pass over the graph's
+     * edge list. For each edge, both endpoints are looked up in the
+     * nodeToCommunity map (O(1) each), and the edge is attributed to its
+     * community. This replaces the previous approach of maintaining a global
+     * {@code countedEdges} HashSet during BFS, which required O(|E|) extra
+     * memory and a hash lookup per edge per incident vertex.</p>
      *
      * @return detection result with communities and node mappings
      */
@@ -211,10 +213,7 @@ public class CommunityDetector {
         Map<String, Integer> nodeToCommunity = new HashMap<String, Integer>();
         int communityId = 0;
 
-        // Track which edges have been counted globally to avoid double-counting
-        Set<Edge> countedEdges = new HashSet<Edge>();
-
-        // Find connected components via BFS, computing Edge metrics inline
+        // Find connected components via BFS
         for (String vertex : graph.getVertices()) {
             if (visited.contains(vertex)) continue;
 
@@ -230,20 +229,7 @@ public class CommunityDetector {
 
                 for (Edge e : graph.getIncidentEdges(current)) {
                     String neighbor = GraphUtils.getOtherEnd(e, current);
-                    if (neighbor == null) continue;
-
-                    // Count this Edge if both endpoints are in this component
-                    // and we haven't counted it yet
-                    if (visited.contains(neighbor) && !countedEdges.contains(e)) {
-                        countedEdges.add(e);
-                        community.internalEdges++;
-                        community.totalWeight += e.getWeight();
-                        String type = e.getType();
-                        Integer count = community.edgeTypeCounts.get(type);
-                        community.edgeTypeCounts.put(type, count == null ? 1 : count + 1);
-                    }
-
-                    if (!visited.contains(neighbor)) {
+                    if (neighbor != null && !visited.contains(neighbor)) {
                         visited.add(neighbor);
                         queue.add(neighbor);
                     }
@@ -252,6 +238,23 @@ public class CommunityDetector {
 
             communities.add(community);
             communityId++;
+        }
+
+        // Compute edge metrics in a single pass over all edges.
+        // Since every edge belongs to exactly one connected component,
+        // we just look up the community of one endpoint and attribute
+        // the edge there. No HashSet of counted edges needed.
+        for (Edge e : graph.getEdges()) {
+            edu.uci.ics.jung.graph.util.Pair<String> endpoints = graph.getEndpoints(e);
+            if (endpoints == null) continue;
+            Integer cid = nodeToCommunity.get(endpoints.getFirst());
+            if (cid == null) continue;
+            Community community = communities.get(cid);
+            community.internalEdges++;
+            community.totalWeight += e.getWeight();
+            String type = e.getType();
+            Integer count = community.edgeTypeCounts.get(type);
+            community.edgeTypeCounts.put(type, count == null ? 1 : count + 1);
         }
 
         // Sort by size (largest first) and reassign IDs in-place
