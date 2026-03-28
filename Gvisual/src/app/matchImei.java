@@ -33,55 +33,70 @@ public class matchImei {
             "SELECT DISTINCT srcnode FROM event_3 WHERE sndrnode = '' AND rssi >= ?";
 
     /**
-     * Matches event nodes against device records and updates IMEI mappings.
+     * Matches event nodes against a pre-built device lookup map and updates
+     * IMEI mappings via batch UPDATE.
      *
-     * <p>For each distinct node in the event result set, scans the device
-     * table for a matching node ID and writes the corresponding IMEI back
-     * to the event table via the supplied update statement.</p>
+     * <p>Previous implementation re-scanned the device ResultSet (O(D)) for
+     * every event row, giving O(N×D) total work. This version uses a
+     * HashMap for O(1) lookups per event row, reducing the match phase to
+     * O(N+D). Updates are batched for reduced round-trip overhead.</p>
      *
      * @param nodeType   human-readable label for logging (e.g. "sndrnode", "srcnode")
      * @param selectStmt prepared SELECT for distinct nodes (parameter 1 = RSSI threshold)
      * @param updateStmt prepared UPDATE to write the matched IMEI
-     * @param rsDevice   scrollable device result set (rewound for each event row)
+     * @param deviceMap  pre-built map from node ID to IMEI
      * @param threshold  minimum RSSI value
      * @throws SQLException if a database operation fails
      */
     private static void matchNodes(String nodeType,
                                    PreparedStatement selectStmt,
                                    PreparedStatement updateStmt,
-                                   ResultSet rsDevice,
+                                   java.util.Map<String, String> deviceMap,
                                    int threshold) throws SQLException {
         System.out.println("fetching event(" + nodeType + ")...");
         selectStmt.setInt(1, threshold);
 
         try (ResultSet rsEvent = selectStmt.executeQuery()) {
-            rsEvent.last();
-            System.out.println("event(" + nodeType + ") fetched..." + rsEvent.getRow() + " entries");
-            rsEvent.first();
-
             int numDone = 0;
+            int matched = 0;
             while (rsEvent.next()) {
                 numDone++;
                 String nodeId = rsEvent.getString(1);
-                System.out.println("Done = " + numDone);
-                System.out.println("trying match imei with " + nodeType + " " + nodeId);
+                String imei = deviceMap.get(nodeId);
 
-                rsDevice.first();
-                while (rsDevice.next()) {
-                    if (rsDevice.getString(1).equals(nodeId)) {
-                        String imei = rsDevice.getString(2);
-                        System.out.println(imei);
-                        System.out.println("matched " + nodeType + " " + nodeId + "\n");
-
-                        updateStmt.setString(1, imei);
-                        updateStmt.setString(2, nodeId);
-                        updateStmt.executeUpdate();
-                        break;
-                    }
+                if (imei != null) {
+                    matched++;
+                    System.out.println("matched " + nodeType + " " + nodeId + " -> " + imei);
+                    updateStmt.setString(1, imei);
+                    updateStmt.setString(2, nodeId);
+                    updateStmt.addBatch();
                 }
             }
+            if (matched > 0) {
+                updateStmt.executeBatch();
+            }
+            System.out.println(nodeType + ": " + matched + "/" + numDone + " matched");
         }
         System.out.println("all " + nodeType + "s matched\n");
+    }
+
+    /**
+     * Builds a node-ID to IMEI lookup map from a device ResultSet.
+     *
+     * @param rsDevice scrollable device result set with columns (nodeId, imei)
+     * @return map from node ID to IMEI
+     * @throws SQLException if a database operation fails
+     */
+    private static java.util.Map<String, String> buildDeviceMap(
+            ResultSet rsDevice) throws SQLException {
+        java.util.Map<String, String> map = new java.util.HashMap<>();
+        while (rsDevice.next()) {
+            String nodeId = rsDevice.getString(1);
+            String imei = rsDevice.getString(2);
+            map.put(nodeId, imei);
+        }
+        System.out.println("device map built: " + map.size() + " entries");
+        return map;
     }
 
     /**
@@ -102,12 +117,13 @@ public class matchImei {
                      ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
 
             System.out.println("fetching device...");
+            java.util.Map<String, String> deviceMap;
             try (ResultSet rs_device = stmt1.executeQuery("SELECT DISTINCT * FROM device_1")) {
-                System.out.println("device fetched...");
-
-                matchNodes("sndrnode", selectSndrnode, updateBySndrnode, rs_device, Thres);
-                matchNodes("srcnode", selectSrcnode, updateBySrcnode, rs_device, Thres);
+                deviceMap = buildDeviceMap(rs_device);
             }
+
+            matchNodes("sndrnode", selectSndrnode, updateBySndrnode, deviceMap, Thres);
+            matchNodes("srcnode", selectSrcnode, updateBySrcnode, deviceMap, Thres);
         }
     }
 }
