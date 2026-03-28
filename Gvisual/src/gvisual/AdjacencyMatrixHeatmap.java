@@ -206,14 +206,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
 
     private String getEdgeTypeName(String type) {
         if (type == null) return "unknown";
-        switch (type) {
-            case "f": return "Friend";
-            case "c": return "Classmate";
-            case "fs": return "Familiar Stranger";
-            case "s": return "Stranger";
-            case "sg": return "Study Group";
-            default: return type;
-        }
+        return EdgeTypeRegistry.getName(type);
     }
 
     private Color getEdgeColor(Edge e) {
