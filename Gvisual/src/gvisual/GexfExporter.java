@@ -49,15 +49,9 @@ public class GexfExporter {
     private String description = "";
     private boolean includeVizData = true;
 
-    // Edge-type → RGB colour mapping (matches the app's colour scheme)
-    private static final Map<String, int[]> TYPE_COLORS = new LinkedHashMap<>();
-    static {
-        TYPE_COLORS.put("f",  new int[]{0, 200, 0});     // friend — green
-        TYPE_COLORS.put("fs", new int[]{255, 165, 0});    // family/sibling — orange
-        TYPE_COLORS.put("c",  new int[]{0, 150, 255});    // classmate — blue
-        TYPE_COLORS.put("s",  new int[]{180, 180, 180});  // stranger — gray
-        TYPE_COLORS.put("sg", new int[]{255, 80, 80});    // study group — red
-    }
+    // Edge-type → RGB colour mapping — delegates to EdgeTypeRegistry for consistency
+    // across all exporters. Local reference kept for backward compatibility of
+    // the getEdgeColor() method.
 
     /**
      * Creates a new GEXF exporter for the given graph.
@@ -207,7 +201,7 @@ public class GexfExporter {
 
             // Viz colour by Edge type
             if (includeVizData && type.length() > 0) {
-                int[] rgb = TYPE_COLORS.getOrDefault(type, new int[]{128, 128, 128});
+                int[] rgb = EdgeTypeRegistry.getRgbColor(type);
                 sb.append("        <viz:color r=\"").append(rgb[0])
                   .append("\" g=\"").append(rgb[1])
                   .append("\" b=\"").append(rgb[2])
