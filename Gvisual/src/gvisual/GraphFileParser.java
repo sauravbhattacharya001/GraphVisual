@@ -185,6 +185,11 @@ public class GraphFileParser {
                         typeList.add(curEdge);
                     }
 
+                    // Ensure edge endpoints are tracked in the vertex set
+                    // (they may not appear in the "nodes" section)
+                    if (vertices.add(parts[1])) g.addVertex(parts[1]);
+                    if (vertices.add(parts[2])) g.addVertex(parts[2]);
+
                     // Only add to graph if this type is visible
                     if (visibleFilter.test(parts[0])) {
                         g.addEdge(curEdge, parts[1], parts[2]);
