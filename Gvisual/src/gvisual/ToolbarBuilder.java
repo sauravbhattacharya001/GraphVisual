@@ -75,6 +75,7 @@ public final class ToolbarBuilder {
         addAdjacencyListExportButton(toolPanel, owner, ctx);
         addEdgeBetweennessButton(toolPanel, owner, ctx);
         addStatsDashboardButton(toolPanel, owner, ctx);
+        addStorytellerButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -439,6 +440,23 @@ public final class ToolbarBuilder {
                     dashboard.export(outFile);
                     return "Stats dashboard exported to " + outFile.getName()
                             + "\nOpen in any browser to view interactive charts.";
+                });
+    }
+
+    /* ---- Graph Storyteller ---- */
+
+    private static void addStorytellerButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Graph Story<br/>Natural-language<br/>narrative about<br/>your network's<br/>structure</center></html>",
+                "Export Graph Story",
+                () -> "graph_story_" + ctx.getTimestamp() + ".html",
+                new String[]{".html"},
+                outFile -> {
+                    GraphStorytellerExporter storyteller = new GraphStorytellerExporter(ctx.getGraph());
+                    storyteller.setTitle("The Story of Your Network");
+                    storyteller.export(outFile);
+                    return "Graph story exported to " + outFile.getName()
+                            + "\nOpen in a browser to read the narrative.";
                 });
     }
 }
