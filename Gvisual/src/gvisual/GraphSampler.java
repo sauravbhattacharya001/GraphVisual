@@ -349,6 +349,12 @@ public class GraphSampler {
 
     /**
      * Build a SampleResult by inducing the subgraph on the sampled nodes.
+     *
+     * <p>Uses incident-edge iteration instead of scanning all edges in the
+     * original graph. When the sample is much smaller than the original
+     * (the common case), this reduces edge-induction from O(|E_original|)
+     * to O(sum of degrees of sampled nodes), which can be orders of
+     * magnitude faster for large, sparse graphs.</p>
      */
     private SampleResult buildResult(Set<String> sampledNodes, String strategy) {
         Graph<String, Edge> sample = new UndirectedSparseGraph<String, Edge>();
@@ -356,19 +362,28 @@ public class GraphSampler {
             sample.addVertex(v);
         }
 
-        for (Edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            if (endpoints == null || endpoints.size() < 2) continue;
-            Iterator<String> it = endpoints.iterator();
-            String v1 = it.next();
-            String v2 = it.next();
-            if (sampledNodes.contains(v1) && sampledNodes.contains(v2)) {
-                Edge copy = new Edge(e.getType(), v1, v2);
-                copy.setWeight(e.getWeight());
-                copy.setLabel(e.getLabel());
-                if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
-                if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
-                sample.addEdge(copy, v1, v2);
+        // Track edges already added to avoid duplicates (each undirected
+        // edge is incident to both endpoints).
+        Set<Edge> added = new HashSet<Edge>();
+        for (String v : sampledNodes) {
+            Collection<Edge> incident = graph.getIncidentEdges(v);
+            if (incident == null) continue;
+            for (Edge e : incident) {
+                if (added.contains(e)) continue;
+                Collection<String> endpoints = graph.getEndpoints(e);
+                if (endpoints == null || endpoints.size() < 2) continue;
+                Iterator<String> it = endpoints.iterator();
+                String v1 = it.next();
+                String v2 = it.next();
+                if (sampledNodes.contains(v1) && sampledNodes.contains(v2)) {
+                    added.add(e);
+                    Edge copy = new Edge(e.getType(), v1, v2);
+                    copy.setWeight(e.getWeight());
+                    copy.setLabel(e.getLabel());
+                    if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
+                    if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
+                    sample.addEdge(copy, v1, v2);
+                }
             }
         }
 
@@ -402,22 +417,30 @@ public class GraphSampler {
         }
 
         // Also add any induced edges between sampled nodes that weren't
-        // directly selected (edges between endpoints of sampled edges)
-        for (Edge e : graph.getEdges()) {
-            if (sampledEdges.contains(e)) continue;
-            Collection<String> endpoints = graph.getEndpoints(e);
-            if (endpoints == null || endpoints.size() < 2) continue;
-            Iterator<String> it = endpoints.iterator();
-            String v1 = it.next();
-            String v2 = it.next();
-            if (sampledNodes.contains(v1) && sampledNodes.contains(v2)
-                    && sample.findEdge(v1, v2) == null) {
-                Edge copy = new Edge(e.getType(), v1, v2);
-                copy.setWeight(e.getWeight());
-                copy.setLabel(e.getLabel());
-                if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
-                if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
-                sample.addEdge(copy, v1, v2);
+        // directly selected. Use incident-edge iteration on sampled nodes
+        // instead of scanning all edges in the original graph (faster when
+        // the sample is small relative to the graph).
+        Set<Edge> seenEdges = new HashSet<Edge>(sampledEdges);
+        for (String v : sampledNodes) {
+            Collection<Edge> incident = graph.getIncidentEdges(v);
+            if (incident == null) continue;
+            for (Edge e : incident) {
+                if (seenEdges.contains(e)) continue;
+                Collection<String> endpoints = graph.getEndpoints(e);
+                if (endpoints == null || endpoints.size() < 2) continue;
+                Iterator<String> it = endpoints.iterator();
+                String v1 = it.next();
+                String v2 = it.next();
+                if (sampledNodes.contains(v1) && sampledNodes.contains(v2)
+                        && sample.findEdge(v1, v2) == null) {
+                    seenEdges.add(e);
+                    Edge copy = new Edge(e.getType(), v1, v2);
+                    copy.setWeight(e.getWeight());
+                    copy.setLabel(e.getLabel());
+                    if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
+                    if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
+                    sample.addEdge(copy, v1, v2);
+                }
             }
         }
 
