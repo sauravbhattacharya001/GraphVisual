@@ -374,15 +374,24 @@ public class CommunityEvolutionTracker {
     /**
      * Computes the Jaccard similarity coefficient between two sets.
      *
+     * <p>Avoids allocating temporary HashSets by iterating over the smaller
+     * set and counting membership in the larger one. This is called O(P×C)
+     * times during similarity matrix construction, so eliminating the two
+     * HashSet copies per call significantly reduces GC pressure.</p>
+     *
      * @return |A ∩ B| / |A ∪ B|, or 0 if both sets are empty
      */
     static double jaccard(Set<String> a, Set<String> b) {
         if (a.isEmpty() && b.isEmpty()) return 0.0;
-        Set<String> intersection = new HashSet<>(a);
-        intersection.retainAll(b);
-        Set<String> union = new HashSet<>(a);
-        union.addAll(b);
-        return (double) intersection.size() / union.size();
+        // Iterate over the smaller set for O(min(|A|,|B|)) lookups
+        Set<String> smaller = a.size() <= b.size() ? a : b;
+        Set<String> larger  = a.size() <= b.size() ? b : a;
+        int intersectionSize = 0;
+        for (String s : smaller) {
+            if (larger.contains(s)) intersectionSize++;
+        }
+        int unionSize = a.size() + b.size() - intersectionSize;
+        return (double) intersectionSize / unionSize;
     }
 
     // ── Inner Classes ──────────────────────────────────────────────
