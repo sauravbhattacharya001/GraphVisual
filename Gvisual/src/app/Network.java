@@ -15,7 +15,7 @@ import java.sql.ResultSet;
  * into five relationship categories based on configurable duration and
  * frequency thresholds:</p>
  * <ul>
- *   <li><b>Friends (f)</b> — frequent, long meetings in public spaces</li>
+ *   <li><b>Friends (f)</b> — frequent, long meetings in resolved non-class locations</li>
  *   <li><b>Study groups (sg)</b> — infrequent classroom co-presence</li>
  *   <li><b>Classmates (c)</b> — frequent classroom co-presence</li>
  *   <li><b>Strangers (s)</b> — brief, rare encounters in resolved locations</li>
@@ -95,11 +95,16 @@ public class Network {
         // Parameters: month, date, location, duration threshold, count threshold.
 
         // --- Friends query ---
+        // Use NOT IN to capture all resolved non-class locations (public,
+        // cafe, library, path, etc.) instead of only 'public'.  This mirrors
+        // the stranger/familiar-stranger queries and fixes under-counting of
+        // friend edges for meetings that happen in non-public resolved venues.
+        // See: https://github.com/sauravbhattacharya001/GraphVisual/issues/134
         String friendSql = " SELECT x.id , y.id , C , d  "
                 + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
                 + "       FROM ( SELECT imei1, imei2, duration"
                 + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
+                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration > ?) as b"
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
