@@ -324,10 +324,9 @@ public class LouvainCommunityDetector {
             cmap.get(cid).members.add(e.getKey());
         }
 
-        Set<Edge> counted = new HashSet<Edge>();
+        // graph.getEdges() returns each edge exactly once — no need for
+        // a HashSet<Edge> to track counted edges (saves O(E) memory + hashing)
         for (Edge e : graph.getEdges()) {
-            if (counted.contains(e)) continue;
-            counted.add(e);
             Integer c1 = finalAssign.get(e.getVertex1());
             Integer c2 = finalAssign.get(e.getVertex2());
             if (c1 == null || c2 == null) continue;
@@ -468,14 +467,29 @@ public class LouvainCommunityDetector {
     private double computeModularity(List<Map<Integer, Double>> adj, double[] degree,
                                      int[] community, double m2, int n) {
         if (m2 == 0.0) return 0.0;
-        double q = 0.0;
+
+        // Accumulate sum of weights and sum of degree products per community
+        // in a single pass, avoiding the O(E) inner loop over all edges.
+        // Community degree sums are maintained in an array for O(1) access.
+        Map<Integer, Integer> cRemap = normalizeIds(community, n);
+        int numC = cRemap.size();
+        double[] cDeg = new double[numC];          // sum of degrees per community
+        double[] cInternalW = new double[numC];    // sum of internal edge weights (double-counted)
+
         for (int i = 0; i < n; i++) {
+            int ci = cRemap.get(community[i]);
+            cDeg[ci] += degree[i];
             for (Map.Entry<Integer, Double> e : adj.get(i).entrySet()) {
-                int j = e.getKey();
-                if (community[i] == community[j])
-                    q += e.getValue() - resolution * degree[i] * degree[j] / m2;
+                if (community[e.getKey()] == community[i]) {
+                    cInternalW[ci] += e.getValue();
+                }
             }
         }
-        return q / m2;
+
+        double q = 0.0;
+        for (int c = 0; c < numC; c++) {
+            q += cInternalW[c] / m2 - resolution * (cDeg[c] * cDeg[c]) / (m2 * m2);
+        }
+        return q;
     }
 }
