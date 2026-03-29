@@ -507,12 +507,11 @@ public class ForceDirectedLayout {
      * stress = Σ_{i<j} [(d_ij - δ_ij)² / δ_ij²]
      * where d_ij is the Euclidean distance and δ_ij is the graph distance.</p>
      *
-     * <p><b>Performance:</b> Uses array-based inline BFS instead of building
-     * a full V×V HashMap of distances. Each source BFS uses a reusable
-     * {@code int[]} distance array (reset per source) and an {@code int[]}
-     * queue, eliminating Integer/String boxing and HashMap overhead.
-     * Stress contributions are accumulated on-the-fly during each BFS,
-     * reducing peak memory from O(V²) to O(V + E).</p>
+     * <p><b>Performance:</b> Reuses {@link GraphUtils.IndexedGraph} for
+     * array-based adjacency instead of rebuilding it locally. Each source
+     * BFS uses a reusable {@code int[]} distance array and queue,
+     * eliminating boxing and HashMap overhead. Stress contributions are
+     * accumulated on-the-fly, keeping peak memory at O(V + E).</p>
      *
      * @return normalized stress value (0 = perfect preservation)
      */
@@ -521,37 +520,15 @@ public class ForceDirectedLayout {
         int n = vertexList != null ? vertexList.size() : 0;
         if (n < 2) return 0;
 
-        // Build integer-indexed adjacency for cache-friendly BFS
-        Map<String, Integer> idxMap = new HashMap<String, Integer>(n * 2);
-        for (int i = 0; i < n; i++) {
-            idxMap.put(vertexList.get(i), i);
-        }
-
-        int[][] adj = new int[n][];
-        {
-            @SuppressWarnings("unchecked")
-            List<Integer>[] tmp = new List[n];
-            for (int i = 0; i < n; i++) tmp[i] = new ArrayList<Integer>();
-            for (Edge e : graph.getEdges()) {
-                Integer u = idxMap.get(e.getVertex1());
-                Integer v = idxMap.get(e.getVertex2());
-                if (u != null && v != null && !u.equals(v)) {
-                    tmp[u].add(v);
-                    tmp[v].add(u);
-                }
-            }
-            for (int i = 0; i < n; i++) {
-                List<Integer> nb = tmp[i];
-                adj[i] = new int[nb.size()];
-                for (int j = 0; j < nb.size(); j++) adj[i][j] = nb.get(j);
-            }
-        }
+        // Reuse the shared IndexedGraph instead of rebuilding adjacency
+        GraphUtils.IndexedGraph ig = new GraphUtils.IndexedGraph(graph);
+        int[][] adj = ig.adjLists;
 
         // Cache positions in parallel arrays for indexed access
         double[] px = new double[n];
         double[] py = new double[n];
         for (int i = 0; i < n; i++) {
-            double[] p = positions.get(vertexList.get(i));
+            double[] p = positions.get(ig.vertexList.get(i));
             px[i] = p[0];
             py[i] = p[1];
         }
