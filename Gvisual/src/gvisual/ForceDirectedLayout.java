@@ -831,6 +831,4 @@ public class ForceDirectedLayout {
     private static String escapeXml(String s) {
         return ExportUtils.escapeXml(s);
     }
-    }
-
 }

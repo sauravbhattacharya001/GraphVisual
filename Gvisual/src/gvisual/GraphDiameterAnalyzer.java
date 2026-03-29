@@ -94,7 +94,7 @@ public class GraphDiameterAnalyzer {
             @SuppressWarnings("unchecked")
             List<Integer>[] tmp = new List[compN];
             for (int i = 0; i < compN; i++) tmp[i] = new ArrayList<Integer>();
-            for (edge e : graph.getEdges()) {
+            for (Edge e : graph.getEdges()) {
                 Integer ui = idxMap.get(e.getVertex1());
                 Integer vi = idxMap.get(e.getVertex2());
                 if (ui != null && vi != null && !ui.equals(vi)) {
