@@ -284,8 +284,22 @@ public final class ChromaticPolynomialCalculator {
             return memo.get(key).clone();
         }
 
-        // Pick an edge
-        String edge = g.getEdges().iterator().next();
+        // Pick an edge incident to the minimum-degree vertex.
+        // This heuristic reduces the branching factor of the recursion
+        // tree: contracting a low-degree vertex produces a smaller graph
+        // more quickly, and the deletion side keeps the graph sparser.
+        String minVertex = null;
+        int minDeg = Integer.MAX_VALUE;
+        for (String vertex : g.getVertices()) {
+            int deg = g.degree(vertex);
+            if (deg > 0 && deg < minDeg) {
+                minDeg = deg;
+                minVertex = vertex;
+                if (deg == 1) break; // can't do better than degree 1
+            }
+        }
+
+        String edge = g.getIncidentEdges(minVertex).iterator().next();
         String u = g.getEndpoints(edge).getFirst();
         String v = g.getEndpoints(edge).getSecond();
 
