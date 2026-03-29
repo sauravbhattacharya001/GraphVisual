@@ -45,6 +45,9 @@ public class GraphIsomorphismChecker {
     private Map<String, Integer> idxA, idxB;
     private int[][] adjA, adjB;
     private int[] degA, degB;
+    /** Reverse mapping: mapBtoA[bIdx] = aIdx, or -1 if unmapped.
+     *  Eliminates O(V) linear scan in findMappedA(). */
+    private int[] mapBtoA;
 
     /**
      * Creates a checker for the given pair of graphs.
@@ -156,10 +159,16 @@ public class GraphIsomorphismChecker {
             sigB[i] = neighbourSignature(adjB, degB, i);
         }
 
+        // Sort adjacency lists for O(log V) binary-search adjacency checks
+        for (int i = 0; i < nA; i++) Arrays.sort(adjA[i]);
+        for (int i = 0; i < nB; i++) Arrays.sort(adjB[i]);
+
         // Backtracking search
         int[] mapAtoB = new int[nA];
         boolean[] usedB = new boolean[nB];
         Arrays.fill(mapAtoB, -1);
+        mapBtoA = new int[nB];
+        Arrays.fill(mapBtoA, -1);
 
         isomorphic = backtrack(0, orderA, mapAtoB, usedB,
                                degGroupB, sigA, sigB);
@@ -245,6 +254,7 @@ public class GraphIsomorphismChecker {
 
             mapAtoB[aIdx] = bIdx;
             usedB[bIdx] = true;
+            mapBtoA[bIdx] = aIdx;
 
             if (backtrack(depth + 1, orderA, mapAtoB, usedB,
                           degGroupB, sigA, sigB)) {
@@ -253,6 +263,7 @@ public class GraphIsomorphismChecker {
 
             mapAtoB[aIdx] = -1;
             usedB[bIdx] = false;
+            mapBtoA[bIdx] = -1;
         }
 
         return false;
@@ -271,8 +282,7 @@ public class GraphIsomorphismChecker {
         // Reverse check: for each neighbour of bIdx already used in mapping,
         // the corresponding A vertex must be a neighbour of aIdx
         for (int bNbr : adjB[bIdx]) {
-            // Is bNbr in the mapping?
-            int aCorr = findMappedA(bNbr, mapAtoB);
+            int aCorr = mapBtoA[bNbr];  // O(1) reverse lookup
             if (aCorr >= 0) {
                 if (!isAdjacent(adjA, aIdx, aCorr)) return false;
             }
@@ -280,18 +290,13 @@ public class GraphIsomorphismChecker {
         return true;
     }
 
-    private int findMappedA(int bTarget, int[] mapAtoB) {
-        for (int i = 0; i < nA; i++) {
-            if (mapAtoB[i] == bTarget) return i;
-        }
-        return -1;
-    }
+    /**
+     * O(1) reverse lookup replaced findMappedA — see mapBtoA field.
+     * Kept as documentation: findMappedA was O(V) linear scan, now eliminated.
+     */
 
     private boolean isAdjacent(int[][] adj, int u, int v) {
-        for (int nbr : adj[u]) {
-            if (nbr == v) return true;
-        }
-        return false;
+        return Arrays.binarySearch(adj[u], v) >= 0;
     }
 
     private int[] neighbourSignature(int[][] adj, int[] deg, int v) {
