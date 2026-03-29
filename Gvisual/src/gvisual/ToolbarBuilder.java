@@ -72,6 +72,7 @@ public final class ToolbarBuilder {
         addTikzExportButton(toolPanel, owner, ctx);
         addMatrixExportButtons(toolPanel, owner, ctx);
         addDimacsExportButton(toolPanel, owner, ctx);
+        addAdjacencyListExportButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -386,6 +387,20 @@ public final class ToolbarBuilder {
                             + "File: " + outFile.getName() + "\n\n"
                             + "Compatible with DIMACS Challenge solvers,\n"
                             + "graph coloring tools, and SAT/clique solvers.";
+                });
+    }
+
+    /* ---- Adjacency List export (multi-format) ---- */
+
+    private static void addAdjacencyListExportButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Export Adj. List<br/>Plain text, Python,<br/>MATLAB, Mathematica<br/>adjacency lists</center></html>",
+                "Export Adjacency Lists",
+                () -> "graph_adj_" + ctx.getTimestamp() + ".txt",
+                new String[]{".txt"},
+                outFile -> {
+                    AdjacencyListExporter exporter = new AdjacencyListExporter(ctx.getGraph());
+                    return exporter.exportAll(outFile);
                 });
     }
 }
