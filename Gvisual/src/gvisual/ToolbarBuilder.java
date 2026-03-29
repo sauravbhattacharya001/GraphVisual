@@ -73,6 +73,7 @@ public final class ToolbarBuilder {
         addMatrixExportButtons(toolPanel, owner, ctx);
         addDimacsExportButton(toolPanel, owner, ctx);
         addAdjacencyListExportButton(toolPanel, owner, ctx);
+        addEdgeBetweennessButton(toolPanel, owner, ctx);
         addStatsDashboardButton(toolPanel, owner, ctx);
 
         if (legend != null) {
@@ -402,6 +403,26 @@ public final class ToolbarBuilder {
                 outFile -> {
                     AdjacencyListExporter exporter = new AdjacencyListExporter(ctx.getGraph());
                     return exporter.exportAll(outFile);
+                });
+    }
+
+    /* ---- Edge Betweenness ---- */
+
+    private static void addEdgeBetweennessButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Edge Betweenness<br/>Interactive HTML<br/>report with ranking,<br/>bridges & distribution</center></html>",
+                "Export Edge Betweenness Report",
+                () -> "edge_betweenness_" + ctx.getTimestamp() + ".html",
+                new String[]{".html"},
+                outFile -> {
+                    EdgeBetweennessAnalyzer analyzer = new EdgeBetweennessAnalyzer(ctx.getGraph());
+                    analyzer.compute();
+                    analyzer.exportHtml(outFile);
+                    int bridges = analyzer.getBridges().size();
+                    return "Edge betweenness report exported to " + outFile.getName()
+                            + "\n" + analyzer.getRanking().size() + " edges analyzed, "
+                            + bridges + " bridge(s) detected."
+                            + "\nOpen in any browser to view the interactive report.";
                 });
     }
 

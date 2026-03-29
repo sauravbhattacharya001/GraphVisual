@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge Betweenness Analyzer – GraphVisual</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+<h1>Edge Betweenness Analyzer</h1>
+<p>Computes edge betweenness centrality for every edge in the graph and generates an interactive HTML report with ranking tables, distribution histograms, and bridge detection.</p>
+
+<h2>What is Edge Betweenness?</h2>
+<p>Edge betweenness centrality measures how often an edge lies on the shortest path between all pairs of vertices. High-betweenness edges act as bridges between densely connected communities — their removal can fragment the network.</p>
+
+<h2>Features</h2>
+<ul>
+<li><strong>Brandes algorithm (edge variant)</strong> — O(V·E) BFS-based computation</li>
+<li><strong>Bridge detection</strong> — identifies edges whose removal disconnects the graph</li>
+<li><strong>Interactive HTML report</strong> — summary cards, distribution histogram, sortable ranking table</li>
+<li><strong>Visual indicators</strong> — gradient bars show relative betweenness, bridge rows highlighted in red</li>
+<li><strong>Statistics</strong> — max, min, average, and median betweenness</li>
+</ul>
+
+<h2>Usage</h2>
+<h3>GUI</h3>
+<p>Click the <strong>"Edge Betweenness"</strong> button in the export toolbar to generate and save an HTML report.</p>
+
+<h3>Programmatic</h3>
+<pre><code>EdgeBetweennessAnalyzer analyzer = new EdgeBetweennessAnalyzer(graph);
+analyzer.compute();
+
+// Get ranking
+List&lt;EdgeBetweennessAnalyzer.EdgeScore&gt; ranking = analyzer.getRanking();
+for (EdgeBetweennessAnalyzer.EdgeScore es : ranking) {
+    System.out.println(es); // "A — B : 12.5000 [BRIDGE]"
+}
+
+// Top-10 critical edges
+List&lt;EdgeBetweennessAnalyzer.EdgeScore&gt; top10 = analyzer.getTopK(10);
+
+// Summary statistics
+Map&lt;String, Object&gt; summary = analyzer.getSummary();
+
+// Export HTML report
+analyzer.exportHtml(new File("edge-betweenness.html"));</code></pre>
+
+<h2>Applications</h2>
+<ul>
+<li><strong>Community detection</strong> — Girvan-Newman algorithm iteratively removes the highest-betweenness edge</li>
+<li><strong>Network vulnerability</strong> — identify single points of failure</li>
+<li><strong>Telecom/IMEI analysis</strong> — find critical communication links</li>
+<li><strong>Social network analysis</strong> — discover connections bridging different groups</li>
+</ul>
+
+<h2>Report Contents</h2>
+<table>
+<tr><th>Section</th><th>Description</th></tr>
+<tr><td>Summary Cards</td><td>Edge count, vertex count, bridge count, max/avg/median betweenness</td></tr>
+<tr><td>Distribution</td><td>10-bin histogram of betweenness values</td></tr>
+<tr><td>Edge Ranking</td><td>All edges sorted by betweenness with relative bars (top 200 shown)</td></tr>
+<tr><td>Bridge List</td><td>All bridge edges with their betweenness scores</td></tr>
+</table>
+
+<p><a href="index.html">← Back to Documentation</a></p>
+</div>
+</body>
+</html>
