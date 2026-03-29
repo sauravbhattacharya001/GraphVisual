@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eigenvalue Spectrum - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="spectrum.html" class="sidebar-link active"><span class="icon">🌈</span>Spectrum</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+</nav>
+<main class="content">
+    <h1>🌈 Graph Eigenvalue Spectrum Analyzer</h1>
+    <p>The <code>GraphSpectrumAnalyzer</code> computes eigenvalues of the adjacency and Laplacian matrices, providing key spectral graph theory metrics without any external dependencies.</p>
+
+    <h2>Computed Metrics</h2>
+    <table>
+        <thead><tr><th>Metric</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Spectral Radius (λ₁)</strong></td><td>Largest adjacency eigenvalue — bounds chromatic number, counts walks, measures graph energy contribution.</td></tr>
+            <tr><td><strong>Spectral Gap (λ₁ − λ₂)</strong></td><td>Difference between the two largest adjacency eigenvalues. Larger gaps indicate better expansion properties.</td></tr>
+            <tr><td><strong>Algebraic Connectivity (a)</strong></td><td>Second smallest Laplacian eigenvalue (Fiedler value). Zero iff the graph is disconnected. Measures connectivity robustness.</td></tr>
+            <tr><td><strong>Graph Energy</strong></td><td>Sum of absolute adjacency eigenvalues, Σ|λᵢ|. A measure from mathematical chemistry for molecular stability.</td></tr>
+            <tr><td><strong>Connected Components</strong></td><td>Count of zero Laplacian eigenvalues (multiplicity of 0 in the Laplacian spectrum).</td></tr>
+            <tr><td><strong>Spectral Radius Ratio (ρ/√Δ)</strong></td><td>Spectral radius divided by square root of maximum degree. Indicates deviation from regularity.</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Usage</h2>
+    <pre><code>GraphSpectrumAnalyzer analyzer = new GraphSpectrumAnalyzer(graph);
+analyzer.compute();
+
+System.out.println(analyzer.getSummary());
+System.out.printf("Spectral radius: %.4f%n", analyzer.getSpectralRadius());
+System.out.printf("Algebraic connectivity: %.4f%n", analyzer.getAlgebraicConnectivity());
+System.out.printf("Graph energy: %.4f%n", analyzer.getGraphEnergy());
+System.out.printf("Components: %d%n", analyzer.getComponentCount());
+
+double[] adjEigs = analyzer.getAdjacencyEigenvalues();
+double[] lapEigs = analyzer.getLaplacianEigenvalues();</code></pre>
+
+    <h2>Interpretation Guide</h2>
+    <ul>
+        <li><strong>High spectral gap →</strong> Good expander graph (mixes quickly, robust connectivity)</li>
+        <li><strong>Low algebraic connectivity →</strong> Bottleneck in the graph (nearly disconnected components)</li>
+        <li><strong>Spectral radius ≈ average degree →</strong> Graph is close to regular</li>
+        <li><strong>High graph energy →</strong> Rich edge structure, commonly seen in dense molecular graphs</li>
+    </ul>
+
+    <h2>Algorithm</h2>
+    <p>Uses Householder tridiagonalization followed by the implicit QR algorithm with Wilkinson shifts. This is a standard O(n³) approach suitable for graphs up to several hundred vertices. No external linear algebra libraries are required.</p>
+
+    <h2>Output Example</h2>
+    <pre>=== Graph Eigenvalue Spectrum ===
+Vertices: 8
+Connected components: 1
+Spectral radius (λ₁):       2.828427
+Spectral gap (λ₁ − λ₂):     1.414214
+Algebraic connectivity (a):  0.585786
+Graph energy:                11.313708
+Spectral radius ratio (ρ/√Δ): 1.632993
+
+Top 10 adjacency eigenvalues:
+  λ_1 = 2.828427
+  λ_2 = 1.414214
+  λ_3 = 0.000000
+  ...
+
+Spectral classification: Moderate expansion</pre>
+</main>
+</body>
+</html>
