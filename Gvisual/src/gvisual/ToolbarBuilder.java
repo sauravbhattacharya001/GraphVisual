@@ -73,6 +73,7 @@ public final class ToolbarBuilder {
         addMatrixExportButtons(toolPanel, owner, ctx);
         addDimacsExportButton(toolPanel, owner, ctx);
         addAdjacencyListExportButton(toolPanel, owner, ctx);
+        addStatsDashboardButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -401,6 +402,22 @@ public final class ToolbarBuilder {
                 outFile -> {
                     AdjacencyListExporter exporter = new AdjacencyListExporter(ctx.getGraph());
                     return exporter.exportAll(outFile);
+                });
+    }
+
+    /* ---- Stats Dashboard ---- */
+
+    private static void addStatsDashboardButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>Stats Dashboard<br/>Interactive HTML<br/>with charts for<br/>degree, clustering,<br/>edge types & more</center></html>",
+                "Export Stats Dashboard",
+                () -> "graph_dashboard_" + ctx.getTimestamp() + ".html",
+                new String[]{".html"},
+                outFile -> {
+                    GraphStatsDashboard dashboard = new GraphStatsDashboard(ctx.getGraph());
+                    dashboard.export(outFile);
+                    return "Stats dashboard exported to " + outFile.getName()
+                            + "\nOpen in any browser to view interactive charts.";
                 });
     }
 }
