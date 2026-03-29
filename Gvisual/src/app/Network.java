@@ -8,18 +8,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
- * Social network edge-list generator — extracts relationship graphs from
+ * Social network edge-list generator - extracts relationship graphs from
  * WiFi co-location meeting data.
  *
  * <p>Queries the meeting database to classify observed pairwise interactions
  * into five relationship categories based on configurable duration and
  * frequency thresholds:</p>
  * <ul>
- *   <li><b>Friends (f)</b> — frequent, long meetings in public spaces</li>
- *   <li><b>Study groups (sg)</b> — infrequent classroom co-presence</li>
- *   <li><b>Classmates (c)</b> — frequent classroom co-presence</li>
- *   <li><b>Strangers (s)</b> — brief, rare encounters in resolved locations</li>
- *   <li><b>Familiar strangers (fs)</b> — brief but repeated encounters</li>
+ *   <li><b>Friends (f)</b> - frequent, long meetings in resolved non-class locations</li>
+ *   <li><b>Study groups (sg)</b> - infrequent classroom co-presence</li>
+ *   <li><b>Classmates (c)</b> - frequent classroom co-presence</li>
+ *   <li><b>Strangers (s)</b> - brief, rare encounters in resolved locations</li>
+ *   <li><b>Familiar strangers (fs)</b> - brief but repeated encounters</li>
  * </ul>
  *
  * <p>Output is a weighted edge-list file suitable for import into graph
@@ -35,7 +35,7 @@ public class Network {
      * Connects to database and writes out the Edge-list from the meeting DB table, forming edges of kind:
      * friends, classmates, study-groups, strangers and familiar strangers (depending upon parameters).
      *
-     * <p>The output path is validated to prevent directory traversal —
+     * <p>The output path is validated to prevent directory traversal -
      * it must resolve to a location within the current working directory.</p>
      *
      * @param path      output file path for the edge-list (must be within the working directory)
@@ -80,7 +80,7 @@ public class Network {
     @Deprecated
     public static void generateFile(String path, String Month, String Date, int dThresF, int CThresF, int dThresFS, int CThresFS, int dThresC, int CThresC, int dThresS, int CThresS, int dThresSg, int CThresSg) throws Exception {
 
-        // Validate output path — prevent directory traversal attacks
+        // Validate output path - prevent directory traversal attacks
         File outputFile = new File(path).getCanonicalFile();
         File workingDir = new File(".").getCanonicalFile();
         if (!outputFile.toPath().startsWith(workingDir.toPath())) {
@@ -95,11 +95,16 @@ public class Network {
         // Parameters: month, date, location, duration threshold, count threshold.
 
         // --- Friends query ---
+        // Use the same inclusive location filter as stranger/familiar-stranger
+        // queries: any resolved, non-class location counts. The previous
+        // "location = 'public'" filter silently dropped long meetings at
+        // cafés, libraries, paths, etc., under-counting friend edges.
+        // See: https://github.com/sauravbhattacharya001/GraphVisual/issues/134
         String friendSql = " SELECT x.id , y.id , C , d  "
                 + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
                 + "       FROM ( SELECT imei1, imei2, duration"
                 + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
+                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration > ?) as b"
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
@@ -153,7 +158,7 @@ public class Network {
             appendEdges(conn, sb, strangerSql,     "s",  Month, Date, dThresS,  CThresS);
             appendEdges(conn, sb, famstrangerSql,  "fs", Month, Date, dThresFS, CThresFS);
 
-            // Write output file — use validated outputFile, not raw path
+            // Write output file - use validated outputFile, not raw path
             if (outputFile.exists()) {
                 outputFile.delete();
             }
