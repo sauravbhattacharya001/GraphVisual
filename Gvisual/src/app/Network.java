@@ -99,7 +99,7 @@ public class Network {
                 + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
                 + "       FROM ( SELECT imei1, imei2, duration"
                 + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
+                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration > ?) as b"
                 + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
                 + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
 
