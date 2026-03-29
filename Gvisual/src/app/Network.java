@@ -91,67 +91,21 @@ public class Network {
 
         System.out.println("connecting...");
 
-        // Parameterized query template for location-based meeting queries.
-        // Parameters: month, date, location, duration threshold, count threshold.
-
-        // --- Friends query ---
-        String friendSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1 , imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'public' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Study groups query ---
-        String studygSql = " SELECT x.id , y.id , C , d   "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C <= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Classmates query ---
-        String cmateSql = " SELECT x.id , y.id, C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location= 'class' AND duration > ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C >= ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Strangers query ---
-        // Exclude both 'class' and 'unknown' locations so only meetings with
-        // a resolved location (e.g. 'public', 'path') are considered.
-        String strangerSql = " SELECT x.id , y.id , C , d "
-                + " FROM ( SELECT imei1, imei2, count(*) as C,avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a, deviceID as x, deviceID as y"
-                + " WHERE C < ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
-        // --- Familiar strangers query ---
-        String famstrangerSql = " SELECT x.id , y.id , C , d  "
-                + " FROM ( SELECT imei1, imei2, count(*) as C, avg(duration) as d"
-                + "       FROM ( SELECT imei1, imei2, duration"
-                + "              FROM meeting"
-                + "              WHERE month = ? AND date = ? AND location NOT IN ('class', 'unknown', '') AND duration < ?) as b"
-                + "       GROUP BY imei1, imei2) as a , deviceID as x, deviceID as y"
-                + " WHERE C > ? AND a.imei1= x.imei AND a.imei2 = y.imei";
-
         try (Connection conn = Util.getAppConnection()) {
 
             // Use StringBuilder instead of String concatenation for performance
             StringBuilder sb = new StringBuilder("edges");
 
-            // Execute each relationship query using the shared helper
-            appendEdges(conn, sb, friendSql,      "f",  Month, Date, dThresF,  CThresF);
-            appendEdges(conn, sb, studygSql,       "sg", Month, Date, dThresSg, CThresSg);
-            appendEdges(conn, sb, cmateSql,        "c",  Month, Date, dThresC,  CThresC);
-            appendEdges(conn, sb, strangerSql,     "s",  Month, Date, dThresS,  CThresS);
-            appendEdges(conn, sb, famstrangerSql,  "fs", Month, Date, dThresFS, CThresFS);
+            // All relationship queries follow the same structure, differing only in:
+            //   - location filter (inclusive vs exclusive)
+            //   - duration comparison (> vs <)
+            //   - count comparison (>=, <=, <, >)
+            // buildMeetingQuery() eliminates the duplicated SQL templates.
+            appendEdges(conn, sb, buildMeetingQuery("= 'public'",                         ">", ">="), "f",  Month, Date, dThresF,  CThresF);
+            appendEdges(conn, sb, buildMeetingQuery("= 'class'",                          ">", "<="), "sg", Month, Date, dThresSg, CThresSg);
+            appendEdges(conn, sb, buildMeetingQuery("= 'class'",                          ">", ">="), "c",  Month, Date, dThresC,  CThresC);
+            appendEdges(conn, sb, buildMeetingQuery("NOT IN ('class', 'unknown', '')", "<", "<"),  "s",  Month, Date, dThresS,  CThresS);
+            appendEdges(conn, sb, buildMeetingQuery("NOT IN ('class', 'unknown', '')", "<", ">"),  "fs", Month, Date, dThresFS, CThresFS);
 
             // Write output file — use validated outputFile, not raw path
             if (outputFile.exists()) {
@@ -161,6 +115,29 @@ public class Network {
                 out.write(sb.toString());
             }
         }
+    }
+
+    /**
+     * Builds a parameterized meeting query with the specified filters.
+     *
+     * <p>All five relationship queries follow the same structure, differing only
+     * in the location filter, duration comparison operator, and count comparison
+     * operator. This method eliminates that duplication.</p>
+     *
+     * @param locationFilter SQL predicate for location (e.g. "= 'public'", "NOT IN ('class', 'unknown', '')")
+     * @param durationOp     comparison operator for duration threshold (">" or "<")
+     * @param countOp        comparison operator for count threshold (">=", "<=", "<", or ">")
+     * @return parameterized SQL string with 4 parameters: month, date, duration_threshold, count_threshold
+     */
+    private static String buildMeetingQuery(String locationFilter, String durationOp, String countOp) {
+        return "SELECT x.id, y.id, C, d"
+             + " FROM (SELECT imei1, imei2, count(*) AS C, avg(duration) AS d"
+             + "       FROM (SELECT imei1, imei2, duration"
+             + "             FROM meeting"
+             + "             WHERE month = ? AND date = ? AND location " + locationFilter
+             + "               AND duration " + durationOp + " ?) AS b"
+             + "       GROUP BY imei1, imei2) AS a, deviceID AS x, deviceID AS y"
+             + " WHERE C " + countOp + " ? AND a.imei1 = x.imei AND a.imei2 = y.imei";
     }
 
     /**
