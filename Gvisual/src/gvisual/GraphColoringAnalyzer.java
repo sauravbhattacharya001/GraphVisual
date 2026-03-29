@@ -595,30 +595,76 @@ public class GraphColoringAnalyzer {
     /**
      * Computes the smallest-last ordering: iteratively remove the
      * minimum-degree vertex from the remaining graph, then reverse.
+     *
+     * <p>Uses a bucket-queue (array of lists indexed by current degree)
+     * so the total cost is O(V + E) instead of the naive O(V² + V·E)
+     * approach that rescans every remaining vertex each iteration.</p>
      */
     private List<String> smallestLastOrder() {
-        Set<String> remaining = new HashSet<>(graph.getVertices());
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        int n = adj.size();
+        if (n == 0) return new ArrayList<>();
 
-        List<String> order = new ArrayList<>();
-        while (!remaining.isEmpty()) {
-            // Find min degree vertex
-            String minV = null;
-            int minDeg = Integer.MAX_VALUE;
-            for (String v : remaining) {
-                int deg = 0;
-                for (String nb : adj.get(v)) {
-                    if (remaining.contains(nb)) {
-                        deg++;
-                    }
-                }
-                if (deg < minDeg || (deg == minDeg && (minV == null || v.compareTo(minV) < 0))) {
-                    minV = v;
-                    minDeg = deg;
+        // Map vertices to integer indices for array-based operations
+        List<String> vertexList = new ArrayList<>(adj.keySet());
+        Collections.sort(vertexList); // deterministic order for tie-breaking
+        Map<String, Integer> idxMap = new HashMap<>(n * 2);
+        for (int i = 0; i < n; i++) idxMap.put(vertexList.get(i), i);
+
+        // Compute initial degrees and find max degree for bucket sizing
+        int[] degree = new int[n];
+        int maxDeg = 0;
+        for (int i = 0; i < n; i++) {
+            degree[i] = adj.get(vertexList.get(i)).size();
+            if (degree[i] > maxDeg) maxDeg = degree[i];
+        }
+
+        // Bucket queue: buckets[d] holds vertex indices with current degree d
+        @SuppressWarnings("unchecked")
+        List<Integer>[] buckets = new List[maxDeg + 1];
+        for (int d = 0; d <= maxDeg; d++) buckets[d] = new ArrayList<>();
+        for (int i = 0; i < n; i++) buckets[degree[i]].add(i);
+
+        boolean[] removed = new boolean[n];
+        List<String> order = new ArrayList<>(n);
+
+        for (int step = 0; step < n; step++) {
+            // Find the lowest non-empty bucket
+            int d = 0;
+            while (d <= maxDeg && buckets[d].isEmpty()) d++;
+
+            // Pick the last element from the bucket (O(1) removal)
+            int vi = buckets[d].remove(buckets[d].size() - 1);
+
+            // Skip stale entries (vertex was moved to a lower bucket)
+            // Re-check: if vertex already removed or degree changed, scan again
+            while (removed[vi] || degree[vi] != d) {
+                if (removed[vi]) {
+                    // stale, grab another
+                    while (d <= maxDeg && buckets[d].isEmpty()) d++;
+                    if (d > maxDeg) break;
+                    vi = buckets[d].remove(buckets[d].size() - 1);
+                } else {
+                    // degree changed, put back in correct bucket and retry
+                    buckets[degree[vi]].add(vi);
+                    while (d <= maxDeg && buckets[d].isEmpty()) d++;
+                    vi = buckets[d].remove(buckets[d].size() - 1);
                 }
             }
-            order.add(minV);
-            remaining.remove(minV);
+
+            order.add(vertexList.get(vi));
+            removed[vi] = true;
+
+            // Decrement degree of live neighbours and move them down
+            for (String nb : adj.get(vertexList.get(vi))) {
+                int ni = idxMap.get(nb);
+                if (!removed[ni]) {
+                    degree[ni]--;
+                    // Lazy update: neighbour stays in its old bucket until
+                    // it is popped; the stale-check above handles mismatches.
+                    buckets[degree[ni]].add(ni);
+                }
+            }
         }
 
         // Reverse to get smallest-last order
@@ -630,23 +676,42 @@ public class GraphColoringAnalyzer {
         Map<String, Integer> colorAssignment = new HashMap<>();
         int maxColor = -1;
 
+        // Upper bound on colors needed is max-degree + 1; pre-allocate a
+        // boolean array instead of a HashSet<Integer> per vertex to avoid
+        // boxing and hashing overhead in the inner loop.
+        int maxDeg = maxDegree();
+        boolean[] usedColors = new boolean[maxDeg + 2];
+
         for (String vertex : vertexOrder) {
-            Set<Integer> usedColors = new HashSet<>();
+            // Reset only the slots we dirtied (cheaper than Arrays.fill
+            // when the graph is sparse and most vertices have low degree)
             Collection<String> neighbors = GraphUtils.neighborsOf(graph, vertex);
+            int dirtyCount = 0;
             for (String neighbor : neighbors) {
                 Integer neighborColor = colorAssignment.get(neighbor);
                 if (neighborColor != null) {
-                    usedColors.add(neighborColor);
+                    usedColors[neighborColor] = true;
+                    dirtyCount++;
                 }
             }
 
             int color = 0;
-            while (usedColors.contains(color)) {
+            while (usedColors[color]) {
                 color++;
             }
             colorAssignment.put(vertex, color);
             if (color > maxColor) {
                 maxColor = color;
+            }
+
+            // Clean up dirtied slots
+            if (dirtyCount > 0) {
+                for (String neighbor : neighbors) {
+                    Integer neighborColor = colorAssignment.get(neighbor);
+                    if (neighborColor != null) {
+                        usedColors[neighborColor] = false;
+                    }
+                }
             }
         }
 
