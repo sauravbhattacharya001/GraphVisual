@@ -17,32 +17,13 @@ import java.sql.ResultSet;
 public class addLocation {
 
     /**
-     * Validates that a time component string matches the expected
-     * format of "HH.MM:SS.mmm" (two dot-separated parts on each
-     * side of the colon).
+     * Delegates to {@link Util#getTimeStamp(String, String, String)}.
      *
-     * @param time the raw time string from the database
-     * @return formatted timestamp string "2011-MM-DD HH:MM:SS.mmm"
-     * @throws IllegalArgumentException if the format is invalid
+     * @deprecated Use {@link Util#getTimeStamp(String, String, String)} directly.
      */
+    @Deprecated
     public static String getTimeStamp(String month, String date, String time) {
-        if (time == null || time.isEmpty()) {
-            throw new IllegalArgumentException("Time string must not be null or empty");
-        }
-        String[] timeArr = time.split(":");
-        if (timeArr.length != 2) {
-            throw new IllegalArgumentException(
-                "Invalid time format (expected one colon separator): " + time);
-        }
-        String[] timeArr1 = timeArr[0].split("\\.");
-        String[] timeArr2 = timeArr[1].split("\\.");
-        if (timeArr1.length < 2 || timeArr2.length < 2) {
-            throw new IllegalArgumentException(
-                "Invalid time format (expected dot-separated components): " + time);
-        }
-
-        String result = "2011-" + month + "-" + date + " " + timeArr1[0] + ":" + timeArr1[1] + ":" + timeArr2[0] + "." + timeArr2[1];
-        return result;
+        return Util.getTimeStamp(month, date, time);
     }
 
     // SQL: find common access points between two IMEIs in a time window (intersection)
