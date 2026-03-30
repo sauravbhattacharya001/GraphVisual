@@ -21,7 +21,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Release](https://img.shields.io/github/v/release/sauravbhattacharya001/GraphVisual?logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/releases/latest)
 [![Open Issues](https://img.shields.io/github/issues/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/issues)
 [![Contributors](https://img.shields.io/github/contributors/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/graphs/contributors)
-[![43 Analyzers](https://img.shields.io/badge/Analyzers-43-blueviolet)](ALGORITHMS.md)
+[![57 Analyzers](https://img.shields.io/badge/Analyzers-57-blueviolet)](ALGORITHMS.md)
 [![Publish](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/.github/dependabot.yml)
 [![2500+ Tests](https://img.shields.io/badge/Tests-2500%2B-brightgreen)](Gvisual/test/)
@@ -57,11 +57,11 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 67 source classes (~30,000+ lines), 43 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
+GraphVisual consists of 145 source classes (~55,000+ lines of production code, 100,000+ total with tests), 57 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
 
 ```
 Gvisual/src/
-├── gvisual/           # 62 classes — GUI, edge model, 43 analyzers, utilities
+├── gvisual/           # 145 classes — GUI, edge model, 57 analyzers, utilities
 │   ├── Main.java                       # Swing GUI — graph panel, timeline, controls
 │   ├── edge.java                       # Edge model (type, vertices, weight, label)
 │   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
@@ -82,8 +82,14 @@ Gvisual/src/
 │   ├── CliqueAnalyzer.java             # Maximal cliques (Bron-Kerbosch)
 │   ├── CycleAnalyzer.java             # Cycle detection and enumeration
 │   ├── EulerianPathAnalyzer.java       # Euler path/circuit (Hierholzer's)
+│   ├── GraphComplementAnalyzer.java    # Graph complement computation
 │   ├── GraphIsomorphismAnalyzer.java   # Graph isomorphism testing
+│   ├── GraphIsomorphismChecker.java    # VF2-inspired isomorphism (backtracking)
+│   ├── GraphMinorAnalyzer.java         # Graph minor detection
+│   ├── GraphRegularityAnalyzer.java    # Regularity testing
+│   ├── GraphSymmetryAnalyzer.java      # Automorphism & symmetry analysis
 │   ├── LineGraphAnalyzer.java          # Line graph construction + analysis
+│   ├── PerfectGraphAnalyzer.java       # Perfect graph recognition
 │   ├── PlanarGraphAnalyzer.java        # Planarity testing
 │   ├── TreeAnalyzer.java               # Tree properties, LCA, diameter
 │   ├── TopologicalSortAnalyzer.java    # Topo sort + cycle detection
@@ -91,16 +97,25 @@ Gvisual/src/
 │   │
 │   │── # ─── Centrality & Ranking ──────────────────
 │   ├── NodeCentralityAnalyzer.java     # Degree/betweenness/closeness
+│   ├── EdgeBetweennessAnalyzer.java    # Edge betweenness centrality
 │   ├── PageRankAnalyzer.java           # PageRank (power iteration)
 │   ├── DegreeDistributionAnalyzer.java # Degree stats + power-law fitting
+│   ├── RichClubAnalyzer.java           # Rich-club coefficient
 │   │
 │   │── # ─── Community & Clustering ────────────────
 │   ├── CommunityDetector.java          # Connected component communities
+│   ├── LouvainCommunityDetector.java   # Louvain modularity optimization
+│   ├── CliqueCoverAnalyzer.java        # Clique cover computation
+│   ├── GraphClusterQualityAnalyzer.java # Cluster quality metrics
+│   ├── KTrussAnalyzer.java             # K-truss decomposition
 │   ├── MotifAnalyzer.java              # Network motif detection
+│   ├── NodeSimilarityAnalyzer.java     # Jaccard/cosine node similarity
 │   ├── SignedGraphAnalyzer.java        # Signed graph balance theory
 │   ├── StructuralHoleAnalyzer.java     # Burt's structural holes
 │   │
 │   │── # ─── Optimization & NP-hard ────────────────
+│   ├── BandwidthMinimizer.java         # Graph bandwidth minimization
+│   ├── ChromaticPolynomialCalculator.java # Chromatic polynomial (deletion-contraction)
 │   ├── DominatingSetAnalyzer.java      # Minimum dominating set
 │   ├── FeedbackVertexSetAnalyzer.java  # Feedback vertex set
 │   ├── GraphColoringAnalyzer.java      # Welsh-Powell vertex coloring
@@ -114,6 +129,8 @@ Gvisual/src/
 │   ├── VertexCoverAnalyzer.java        # Minimum vertex cover
 │   │
 │   │── # ─── Network Analysis ──────────────────────
+│   ├── GraphAnomalyDetector.java       # Network anomaly detection
+│   ├── GraphNeighborhoodAnalyzer.java  # k-hop neighborhood analysis
 │   ├── LinkPredictionAnalyzer.java     # Edge prediction metrics
 │   ├── NetworkFlowAnalyzer.java        # Max-flow/min-cut (Ford-Fulkerson)
 │   ├── GraphResilienceAnalyzer.java    # Attack/failure resilience
@@ -128,10 +145,13 @@ Gvisual/src/
 │   ├── GraphEntropyAnalyzer.java       # 9 entropy measures
 │   ├── GraphSimilarityAnalyzer.java    # Entropy-based graph comparison
 │   ├── GraphDiffAnalyzer.java          # Structural diff between graphs
+│   ├── GraphDrawingQualityAnalyzer.java # Layout quality metrics
 │   ├── EdgePersistenceAnalyzer.java    # Edge stability over time
 │   ├── GrowthRateAnalyzer.java         # Network growth modeling
 │   ├── LaplacianBuilder.java           # Laplacian matrix construction
 │   ├── SpectralAnalyzer.java           # Eigenvalue spectral analysis
+│   ├── GraphSpectrumAnalyzer.java      # Full spectrum analysis
+│   ├── TournamentAnalyzer.java         # Tournament graph analysis
 │   │
 │   │── # ─── Algorithms ────────────────────────────
 │   ├── KCoreDecomposition.java         # K-core peeling
@@ -143,7 +163,7 @@ Gvisual/src/
     ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
 
-60 test classes with **2,500+ tests** cover all analyzers and utilities.
+100 test classes with **2,500+ tests** cover all analyzers and utilities.
 
 ## Requirements
 
