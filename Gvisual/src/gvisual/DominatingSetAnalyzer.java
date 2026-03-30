@@ -195,6 +195,9 @@ public class DominatingSetAnalyzer {
      * subgraph is connected. Uses a BFS-tree approach starting from the
      * highest-degree vertex.
      *
+     * <p>Maintains a frontier set of vertices adjacent to the current CDS
+     * so the connectivity check is O(1) instead of O(|CDS|) per candidate.</p>
+     *
      * @return an unmodifiable connected dominating set, or empty if graph
      *         is disconnected or empty
      */
@@ -213,23 +216,21 @@ public class DominatingSetAnalyzer {
 
         Set<String> cds = new LinkedHashSet<String>();
         Set<String> dominated = new HashSet<String>();
+        // Frontier: non-CDS vertices adjacent to at least one CDS member
+        Set<String> frontier = new HashSet<String>();
+
         cds.add(start);
         dominated.add(start);
         dominated.addAll(adj.get(start));
+        for (String n : adj.get(start)) {
+            if (!cds.contains(n)) frontier.add(n);
+        }
 
         // Grow the CDS by adding connector vertices
         while (dominated.size() < adj.size()) {
             String best = null;
             int bestScore = -1;
-            for (String v : adj.keySet()) {
-                if (cds.contains(v)) continue;
-                // Must be adjacent to at least one CDS member (connectivity)
-                boolean connects = false;
-                for (String m : cds) {
-                    if (adj.get(v).contains(m)) { connects = true; break; }
-                }
-                if (!connects) continue;
-
+            for (String v : frontier) {
                 int score = 0;
                 for (String n : adj.get(v)) {
                     if (!dominated.contains(n)) score++;
@@ -242,8 +243,12 @@ public class DominatingSetAnalyzer {
             }
             if (best == null) break; // disconnected graph
             cds.add(best);
+            frontier.remove(best);
             dominated.add(best);
-            dominated.addAll(adj.get(best));
+            for (String n : adj.get(best)) {
+                dominated.add(n);
+                if (!cds.contains(n)) frontier.add(n);
+            }
         }
 
         if (dominated.size() < adj.size()) return Collections.emptySet();
@@ -311,23 +316,22 @@ public class DominatingSetAnalyzer {
     /**
      * Checks whether the given set is a valid dominating set.
      *
+     * <p>Instead of checking every non-member vertex against every candidate
+     * member (O(V·D)), we build the dominated set in O(D·avg_degree) by
+     * collecting the closed neighborhoods of all candidates, then verify
+     * full coverage in O(1).</p>
+     *
      * @param candidate the set to verify
      * @return true if every vertex is in the set or adjacent to a member
      */
     public boolean isDominatingSet(Set<String> candidate) {
         if (candidate == null) return false;
-        for (String v : adj.keySet()) {
-            if (candidate.contains(v)) continue;
-            boolean covered = false;
-            for (String m : candidate) {
-                if (adj.containsKey(v) && adj.get(v).contains(m)) {
-                    covered = true;
-                    break;
-                }
-            }
-            if (!covered) return false;
+        Set<String> dominated = new HashSet<String>(candidate);
+        for (String m : candidate) {
+            Set<String> neighbors = adj.get(m);
+            if (neighbors != null) dominated.addAll(neighbors);
         }
-        return true;
+        return dominated.size() >= adj.size();
     }
 
     /**
@@ -386,20 +390,30 @@ public class DominatingSetAnalyzer {
     /**
      * For a given dominating set, returns how many members dominate each vertex.
      *
+     * <p>Instead of iterating all dominators for each vertex (O(V·D)),
+     * iterates each dominator's neighborhood once (O(D·avg_degree)),
+     * incrementing coverage counters via the adjacency structure.</p>
+     *
      * @param dominatingSet the dominating set
      * @return map from vertex to number of covering dominators
      */
     public Map<String, Integer> coverageMap(Set<String> dominatingSet) {
         Map<String, Integer> coverage = new LinkedHashMap<String, Integer>();
         for (String v : adj.keySet()) {
-            int count = 0;
-            if (dominatingSet.contains(v)) count++; // self-domination
-            for (String m : dominatingSet) {
-                if (!m.equals(v) && adj.get(v) != null && adj.get(v).contains(m)) {
-                    count++;
+            coverage.put(v, 0);
+        }
+        for (String m : dominatingSet) {
+            // Self-domination
+            Integer selfCount = coverage.get(m);
+            if (selfCount != null) coverage.put(m, selfCount + 1);
+            // Neighbor domination
+            Set<String> neighbors = adj.get(m);
+            if (neighbors != null) {
+                for (String n : neighbors) {
+                    Integer count = coverage.get(n);
+                    if (count != null) coverage.put(n, count + 1);
                 }
             }
-            coverage.put(v, count);
         }
         return coverage;
     }
