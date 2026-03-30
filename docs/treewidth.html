@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treewidth Analyzer - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="treewidth.html" class="sidebar-link active"><span class="icon">🌲</span>Treewidth</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+</nav>
+<main class="content">
+    <h1>🌲 Treewidth Analyzer</h1>
+    <p>The <code>TreewidthAnalyzer</code> computes upper and lower bounds on the treewidth of a graph and produces a tree decomposition. Treewidth is a fundamental graph parameter that measures how "tree-like" a graph is.</p>
+
+    <h2>Why Treewidth Matters</h2>
+    <ul>
+        <li><strong>Algorithm design:</strong> Many NP-hard problems (vertex cover, independent set, graph coloring, Hamiltonian path) can be solved in linear time on graphs of bounded treewidth via dynamic programming on tree decompositions.</li>
+        <li><strong>Structure insight:</strong> Low treewidth reveals that a graph has a recursive, tree-like structure that can be exploited.</li>
+        <li><strong>Parameterized complexity:</strong> Treewidth is the most studied structural parameter in parameterized algorithms.</li>
+    </ul>
+
+    <h2>Computed Metrics</h2>
+    <table>
+        <thead><tr><th>Metric</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Upper Bound</strong></td><td>Width of the best tree decomposition found via greedy elimination (min-degree and min-fill heuristics).</td></tr>
+            <tr><td><strong>Lower Bound</strong></td><td>Maximum of degeneracy (k-core number) and minor-min-width heuristic.</td></tr>
+            <tr><td><strong>Tree Decomposition</strong></td><td>Set of bags (vertex subsets) connected by tree edges, satisfying the tree decomposition properties.</td></tr>
+            <tr><td><strong>Classification</strong></td><td>tw=0 → independent set, tw=1 → forest, tw=2 → series-parallel, tw=3 → many problems linear-time.</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Usage</h2>
+    <pre><code>// Full analysis with bounds
+TreewidthAnalyzer.TreewidthResult result = TreewidthAnalyzer.analyze(graph);
+System.out.printf("Treewidth bounds: [%d, %d]%n",
+    result.getLowerBound(), result.getUpperBound());
+System.out.printf("Exact? %s%n", result.isExact());
+
+// Access the tree decomposition
+TreewidthAnalyzer.TreeDecomposition decomp = result.getDecomposition();
+for (TreewidthAnalyzer.Bag bag : decomp.getBags()) {
+    System.out.println(bag);
+}
+
+// Or get a formatted report
+System.out.println(TreewidthAnalyzer.report(graph));</code></pre>
+
+    <h2>Algorithms</h2>
+    <h3>Upper Bounds (Greedy Elimination)</h3>
+    <p>Two heuristics are used, and the best result is kept:</p>
+    <ul>
+        <li><strong>Min-degree:</strong> Always eliminates the vertex with the fewest remaining neighbors. Fast and often effective.</li>
+        <li><strong>Min-fill:</strong> Eliminates the vertex whose elimination adds the fewest new edges. Usually produces tighter bounds but is slower.</li>
+    </ul>
+    <p>Each elimination ordering produces a valid tree decomposition. The width is the size of the largest bag minus one.</p>
+
+    <h3>Lower Bounds</h3>
+    <ul>
+        <li><strong>Degeneracy:</strong> The maximum k-core number. Always ≤ treewidth.</li>
+        <li><strong>Minor-min-width:</strong> Iteratively contracts edges of minimum-degree vertices, tracking the maximum minimum degree seen. Often tighter than degeneracy alone.</li>
+    </ul>
+
+    <h2>Known Treewidths</h2>
+    <table>
+        <thead><tr><th>Graph Family</th><th>Treewidth</th></tr></thead>
+        <tbody>
+            <tr><td>Trees, forests</td><td>1</td></tr>
+            <tr><td>Series-parallel graphs</td><td>≤ 2</td></tr>
+            <tr><td>Outerplanar graphs</td><td>≤ 2</td></tr>
+            <tr><td>Halin graphs</td><td>3</td></tr>
+            <tr><td>Planar graphs</td><td>O(√n)</td></tr>
+            <tr><td>Complete graph K<sub>n</sub></td><td>n − 1</td></tr>
+            <tr><td>Grid graph √n × √n</td><td>√n</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Output Example</h2>
+    <pre><code>=== Treewidth Analysis Report ===
+
+Vertices: 8    Edges: 10
+
+--- Bounds ---
+Lower bound: 2 (degeneracy)
+Upper bound: 3 (min-fill elimination)
+
+--- Classification ---
+Treewidth ≤ 3: many NP-hard problems solvable in linear time.
+
+--- Tree Decomposition (8 bags, 7 tree edges) ---
+Bag sizes: min=1, max=4, avg=2.5
+
+First 8 bags:
+  Bag 0: {A, B, C}
+  Bag 1: {B, C, D}
+  Bag 2: {C, D, E, F}
+  ...</code></pre>
+</main>
+</body>
+</html>
