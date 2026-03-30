@@ -115,6 +115,9 @@ public class GraphFileParser {
         for (EdgeType t : EdgeType.values()) {
             edgesByType.put(t, new ArrayList<>());
         }
+        // Track which EdgeTypes already have a labelled edge, replacing
+        // the per-edge stream().noneMatch() call with an O(1) lookup.
+        Set<EdgeType> labelledTypes = EnumSet.noneOf(EdgeType.class);
         Set<String> vertices = new LinkedHashSet<>();
         int skipped = 0;
 
@@ -179,7 +182,7 @@ public class GraphFileParser {
                     if (edgeType != null) {
                         List<Edge> typeList = edgesByType.get(edgeType);
                         // Set label on first Edge of each type for the legend
-                        if (typeList.stream().noneMatch(e -> e.getLabel() != null)) {
+                        if (labelledTypes.add(edgeType)) {
                             curEdge.setLabel(edgeType.getDisplayLabel());
                         }
                         typeList.add(curEdge);
