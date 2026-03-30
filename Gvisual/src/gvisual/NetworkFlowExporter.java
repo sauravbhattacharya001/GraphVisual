@@ -139,6 +139,8 @@ public class NetworkFlowExporter {
 
         // Read the HTML template and inject data
         // For simplicity, write a redirect to the docs page with data encoded
+        // Validate output path to prevent directory traversal (CWE-22)
+        ExportUtils.validateOutputPath(new java.io.File(filePath));
         try (PrintWriter pw = new PrintWriter(new FileWriter(filePath))) {
             pw.println("<!DOCTYPE html>");
             pw.println("<html><head><meta charset='UTF-8'><title>Network Flow — GraphVisual</title></head>");

@@ -52,6 +52,7 @@ public class GraphStorytellerExporter {
      * @throws IOException if writing fails
      */
     public void export(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         String html = buildHtml();
         try (Writer w = new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8)) {
             w.write(html);

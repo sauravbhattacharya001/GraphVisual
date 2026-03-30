@@ -91,6 +91,7 @@ public class AdjacencyListExporter {
      * Format: {@code node: neighbor1 neighbor2 neighbor3}
      */
     public void exportPlainText(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         try (PrintWriter pw = new PrintWriter(
                 new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8))) {
             pw.println("# Adjacency List — GraphVisual Export");
@@ -109,6 +110,7 @@ public class AdjacencyListExporter {
      * The output can be loaded with {@code nx.from_dict_of_lists(eval(open(...).read()))}.
      */
     public void exportPython(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         try (PrintWriter pw = new PrintWriter(
                 new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8))) {
             pw.println("# Adjacency list — GraphVisual Export");
@@ -134,6 +136,7 @@ public class AdjacencyListExporter {
      * Exports as a MATLAB script that builds a sparse adjacency matrix.
      */
     public void exportMatlab(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         // Map node names to 1-based indices
         List<String> nodes = new ArrayList<>(adjacencyMap.keySet());
         Map<String, Integer> indexMap = new HashMap<>();
@@ -179,6 +182,7 @@ public class AdjacencyListExporter {
      * Exports as a Mathematica Graph expression.
      */
     public void exportMathematica(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         Set<String> seen = new HashSet<>();
         List<String> edges = new ArrayList<>();
 

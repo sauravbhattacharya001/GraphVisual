@@ -212,6 +212,7 @@ public class GraphMatrixExporter {
     }
 
     private void writeMatrixCsv(File file, int[][] matrix, List<String> rowLabels, List<String> colLabels) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             pw.print(",");
             pw.println(String.join(",", colLabels));
@@ -247,6 +248,7 @@ public class GraphMatrixExporter {
     }
 
     private void writeLatex(File file, int[][] matrix, List<String> labels, String caption) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             pw.println(squareMatrixLatexToString(matrix, labels, caption));
         }
@@ -274,6 +276,7 @@ public class GraphMatrixExporter {
 
     private void writeRectLatex(File file, int[][] matrix, List<String> rowLabels,
                                  List<String> colLabels, String caption) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             pw.println("% " + caption);
             pw.println("% Rows (nodes): " + String.join(", ", rowLabels));

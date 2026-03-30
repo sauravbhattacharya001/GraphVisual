@@ -80,6 +80,7 @@ public class DimacsExporter {
      * @throws IOException if writing fails
      */
     public void export(File outFile) throws IOException {
+        ExportUtils.validateOutputPath(outFile);
         // Build sorted vertex list and 1-based ID mapping
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
