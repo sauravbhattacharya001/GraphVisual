@@ -182,10 +182,9 @@ public class GraphNetworkProfiler {
         computeDensity(n, m);
         computeDegreeStats(n);
         computeClustering();
-        computeDiameter(n);
+        computeDiameterAndAvgPathLength(n);
         computeAssortativity();
         computeComponents(n);
-        computeAvgPathLength(n);
         computePowerLawExponent();
         computeSmallWorldQuotient(n, m);
         computeHubDominance();
@@ -235,18 +234,26 @@ public class GraphNetworkProfiler {
         globalClustering = counted == 0 ? 0.0 : totalCoeff / counted;
     }
 
-    private void computeDiameter(int n) {
+    /**
+     * Compute approximate diameter and average path length in a single BFS pass
+     * over sampled vertices, avoiding redundant graph traversals.
+     */
+    private void computeDiameterAndAvgPathLength(int n) {
         List<String> vertices = new ArrayList<>(graph.getVertices());
         int samples = Math.min(SAMPLE_SIZE, n);
         Collections.shuffle(vertices, random);
         int maxDist = 0;
+        long totalDist = 0;
+        long pairCount = 0;
         for (int i = 0; i < samples; i++) {
             Map<String, Integer> dist = GraphUtils.bfsDistances(graph, vertices.get(i));
             for (int d : dist.values()) {
                 if (d > maxDist) maxDist = d;
+                if (d > 0) { totalDist += d; pairCount++; }
             }
         }
         approxDiameter = maxDist;
+        avgPathLength = pairCount == 0 ? 0.0 : (double) totalDist / pairCount;
     }
 
     private void computeAssortativity() {
@@ -284,21 +291,6 @@ public class GraphNetworkProfiler {
         }
         componentCount = count;
         largestComponentFraction = n == 0 ? 0.0 : (double) largestSize / n;
-    }
-
-    private void computeAvgPathLength(int n) {
-        List<String> vertices = new ArrayList<>(graph.getVertices());
-        int samples = Math.min(SAMPLE_SIZE, n);
-        Collections.shuffle(vertices, random);
-        long totalDist = 0;
-        long pairCount = 0;
-        for (int i = 0; i < samples; i++) {
-            Map<String, Integer> dist = GraphUtils.bfsDistances(graph, vertices.get(i));
-            for (int d : dist.values()) {
-                if (d > 0) { totalDist += d; pairCount++; }
-            }
-        }
-        avgPathLength = pairCount == 0 ? 0.0 : (double) totalDist / pairCount;
     }
 
     private void computePowerLawExponent() {
