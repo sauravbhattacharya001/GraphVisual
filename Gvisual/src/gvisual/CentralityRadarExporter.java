@@ -84,17 +84,18 @@ public class CentralityRadarExporter {
     }
 
     private String buildHtml(String nodesJson, int totalNodes) {
+        String safeTitle = ExportUtils.escapeXml(title);
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         sb.append("<meta charset=\"UTF-8\">\n");
         sb.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-        sb.append("<title>").append(title).append("</title>\n");
+        sb.append("<title>").append(safeTitle).append("</title>\n");
         sb.append("<style>\n");
         sb.append(getCSS());
         sb.append("</style>\n</head>\n<body>\n");
         sb.append("<div class=\"container\">\n");
         sb.append("<header>\n");
-        sb.append("<h1>🎯 ").append(title).append("</h1>\n");
+        sb.append("<h1>🎯 ").append(safeTitle).append("</h1>\n");
         sb.append("<p class=\"subtitle\">Compare node centrality profiles across degree, betweenness, and closeness metrics</p>\n");
         sb.append("<div class=\"controls\">\n");
         sb.append("<select id=\"topN\"><option value=\"5\">Top 5</option><option value=\"10\" selected>Top 10</option>");
@@ -159,13 +160,14 @@ public class CentralityRadarExporter {
 
     private String getJS() {
         return "const COLORS=['#6366f1','#ec4899','#14b8a6','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16'];\n"
+            + "function escHtml(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}\n"
             + "let selected=[],dark=false,sortKey='combined',sortAsc=false,topN=10;\n"
             + "function toggleTheme(){dark=!dark;document.body.classList.toggle('dark');document.getElementById('themeBtn').textContent=dark?'☀️ Light':'🌙 Dark';drawChart()}\n"
             + "function getFiltered(){let d=[...DATA];d.sort((a,b)=>sortAsc?a[sortKey]-b[sortKey]:b[sortKey]-a[sortKey]);if(topN>0)d=d.slice(0,topN);let q=document.getElementById('search').value.toLowerCase();if(q)d=d.filter(n=>n.id.toLowerCase().includes(q));return d}\n"
             + "function renderTable(){let tb=document.querySelector('#rankTable tbody');tb.innerHTML='';let d=getFiltered();\n"
             + "d.forEach((n,i)=>{let tr=document.createElement('tr');let si=selected.indexOf(n.id);\n"
             + "if(si>=0){tr.classList.add('selected');tr.innerHTML=`<td><span class=\"color-dot\" style=\"background:${COLORS[si%8]}\"></span>${i+1}</td>`}else{tr.innerHTML=`<td>${i+1}</td>`}\n"
-            + "tr.innerHTML+=`<td>${n.id}</td><td>${n.degree}</td><td>${n.dc.toFixed(4)}</td><td>${n.bc.toFixed(4)}</td><td>${n.cc.toFixed(4)}</td><td>${n.combined.toFixed(4)}</td>`;\n"
+            + "tr.innerHTML+=`<td>${escHtml(n.id)}</td><td>${n.degree}</td><td>${n.dc.toFixed(4)}</td><td>${n.bc.toFixed(4)}</td><td>${n.cc.toFixed(4)}</td><td>${n.combined.toFixed(4)}</td>`;\n"
             + "tr.style.cursor='pointer';tr.onclick=()=>toggleNode(n.id);tb.appendChild(tr)})}\n"
             + "function toggleNode(id){let i=selected.indexOf(id);if(i>=0)selected.splice(i,1);else if(selected.length<8)selected.push(id);renderTable();drawChart()}\n"
             + "function clearSelection(){selected=[];renderTable();drawChart()}\n"
@@ -187,10 +189,10 @@ public class CentralityRadarExporter {
             + "let avgDeg=(DATA.reduce((s,n)=>s+n.degree,0)/DATA.length).toFixed(1);\n"
             + "s.innerHTML=`<div class=\"stat\"><div class=\"val\">${DATA.length}</div><div class=\"lbl\">Nodes</div></div>`\n"
             + "+`<div class=\"stat\"><div class=\"val\">${avgDeg}</div><div class=\"lbl\">Avg Degree</div></div>`\n"
-            + "+`<div class=\"stat\"><div class=\"val\">${maxDC.id}</div><div class=\"lbl\">Highest Degree C.</div></div>`\n"
-            + "+`<div class=\"stat\"><div class=\"val\">${maxBC.id}</div><div class=\"lbl\">Highest Betweenness</div></div>`\n"
-            + "+`<div class=\"stat\"><div class=\"val\">${maxCC.id}</div><div class=\"lbl\">Highest Closeness</div></div>`\n"
-            + "+`<div class=\"stat\"><div class=\"val\">${maxC.id}</div><div class=\"lbl\">Most Central Overall</div></div>`}\n"
+            + "+`<div class=\"stat\"><div class=\"val\">${escHtml(maxDC.id)}</div><div class=\"lbl\">Highest Degree C.</div></div>`\n"
+            + "+`<div class=\"stat\"><div class=\"val\">${escHtml(maxBC.id)}</div><div class=\"lbl\">Highest Betweenness</div></div>`\n"
+            + "+`<div class=\"stat\"><div class=\"val\">${escHtml(maxCC.id)}</div><div class=\"lbl\">Highest Closeness</div></div>`\n"
+            + "+`<div class=\"stat\"><div class=\"val\">${escHtml(maxC.id)}</div><div class=\"lbl\">Most Central Overall</div></div>`}\n"
             + "function exportJson(){let d=selected.length?DATA.filter(n=>selected.includes(n.id)):DATA;\n"
             + "let blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='centrality-data.json';a.click()}\n"
             + "document.getElementById('topN').onchange=e=>{topN=+e.target.value;renderTable();drawChart()};\n"
