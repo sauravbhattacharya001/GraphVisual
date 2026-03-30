@@ -19,6 +19,7 @@ package gvisual;
 final class QuadTree {
 
     private static final double MIN_DIST = 0.01;
+    private static final double MIN_DIST_SQ = MIN_DIST * MIN_DIST;
 
     private double cx, cy;       // center of mass
     private int mass;            // number of bodies
@@ -108,42 +109,45 @@ final class QuadTree {
      * Computes repulsive force on body {@code i} at (px, py) from this
      * quadtree node, accumulating into disp[0] (dx) and disp[1] (dy).
      *
-     * @param i     index of the body (skip self)
-     * @param px    x-position of body i
-     * @param py    y-position of body i
-     * @param k     optimal distance constant
-     * @param disp  displacement array to accumulate into [dx, dy]
-     * @param theta Barnes-Hut opening angle (lower = more accurate)
+     * @param i       index of the body (skip self)
+     * @param px      x-position of body i
+     * @param py      y-position of body i
+     * @param kSq     pre-computed k² (optimal distance squared)
+     * @param disp    displacement array to accumulate into [dx, dy]
+     * @param thetaSq pre-computed theta² for the Barnes-Hut opening angle
      */
     void applyRepulsion(int i, double px, double py,
-                        double k, double[] disp, double theta) {
+                        double kSq, double[] disp, double thetaSq) {
         if (mass == 0) return;
 
         double dx = px - cx;
         double dy = py - cy;
         double distSq = dx * dx + dy * dy;
-        double dist = Math.sqrt(distSq);
 
         if (mass == 1 && bodyIndex >= 0) {
             if (bodyIndex == i) return;
-            if (dist < MIN_DIST) dist = MIN_DIST;
-            double force = (k * k) / dist;
-            disp[0] += (dx / dist) * force;
-            disp[1] += (dy / dist) * force;
+            if (distSq < MIN_DIST_SQ) distSq = MIN_DIST_SQ;
+            // force = k² / dist; fx = (dx/dist)*force = dx * k² / dist²
+            double f = kSq / distSq;
+            disp[0] += dx * f;
+            disp[1] += dy * f;
             return;
         }
 
-        if (size / dist < theta) {
-            if (dist < MIN_DIST) dist = MIN_DIST;
-            double force = (k * k) * mass / dist;
-            disp[0] += (dx / dist) * force;
-            disp[1] += (dy / dist) * force;
+        // Barnes-Hut check: size/dist < theta  ⟺  size²/distSq < theta²
+        // Avoids Math.sqrt in the common "far enough" case.
+        double sizeSq = size * size;
+        if (sizeSq < thetaSq * distSq) {
+            if (distSq < MIN_DIST_SQ) distSq = MIN_DIST_SQ;
+            double f = kSq * mass / distSq;
+            disp[0] += dx * f;
+            disp[1] += dy * f;
             return;
         }
 
-        if (nw != null) nw.applyRepulsion(i, px, py, k, disp, theta);
-        if (ne != null) ne.applyRepulsion(i, px, py, k, disp, theta);
-        if (sw != null) sw.applyRepulsion(i, px, py, k, disp, theta);
-        if (se != null) se.applyRepulsion(i, px, py, k, disp, theta);
+        if (nw != null) nw.applyRepulsion(i, px, py, kSq, disp, thetaSq);
+        if (ne != null) ne.applyRepulsion(i, px, py, kSq, disp, thetaSq);
+        if (sw != null) sw.applyRepulsion(i, px, py, kSq, disp, thetaSq);
+        if (se != null) se.applyRepulsion(i, px, py, kSq, disp, thetaSq);
     }
 }
