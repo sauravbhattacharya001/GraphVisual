@@ -839,6 +839,10 @@ public final class PlanarGraphAnalyzer {
      * Uses a DFS-based approach to compute a consistent planar embedding.
      * Assigns virtual coordinates via a simple spring layout, then orders
      * neighbors by angle.
+     *
+     * <p>Performance: positions and forces use flat arrays indexed by vertex
+     * ordinal, eliminating HashMap lookups from the O(V² × 50) force loop.
+     * Neighbor indices for the attraction phase are pre-resolved once.</p>
      */
     private static Map<String, List<String>> buildPlanarEmbedding(
             Graph<String, Edge> graph) {
@@ -848,70 +852,98 @@ public final class PlanarGraphAnalyzer {
 
         if (vertices.isEmpty()) return embedding;
 
-        // Assign positions using a simple circular/force layout
-        Map<String, double[]> pos = new HashMap<String, double[]>();
         int n = vertices.size();
+
+        // Map vertex name → index for O(1) lookups in the hot loop
+        Map<String, Integer> vertexIndex = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) vertexIndex.put(vertices.get(i), i);
+
+        // Flat arrays: posX[i], posY[i] for vertex i
+        double[] posX = new double[n];
+        double[] posY = new double[n];
 
         // Initial layout: place on a circle
         for (int i = 0; i < n; i++) {
             double angle = 2.0 * Math.PI * i / n;
-            pos.put(vertices.get(i), new double[]{Math.cos(angle), Math.sin(angle)});
+            posX[i] = Math.cos(angle);
+            posY[i] = Math.sin(angle);
         }
 
-        // Simple force-directed refinement (few iterations)
-        for (int iter = 0; iter < 50; iter++) {
-            Map<String, double[]> forces = new HashMap<String, double[]>();
-            for (String v : vertices) forces.put(v, new double[]{0, 0});
+        // Pre-resolve neighbor indices for the attraction phase.
+        // neighborIdx[v] = array of integer indices of v's neighbors.
+        int[][] neighborIdx = new int[n][];
+        for (int i = 0; i < n; i++) {
+            Set<String> nbrs = adj.get(vertices.get(i));
+            if (nbrs == null || nbrs.isEmpty()) {
+                neighborIdx[i] = new int[0];
+            } else {
+                int[] idx = new int[nbrs.size()];
+                int k = 0;
+                for (String nb : nbrs) {
+                    idx[k++] = vertexIndex.get(nb);
+                }
+                neighborIdx[i] = idx;
+            }
+        }
 
-            // Repulsion between all pairs
+        // Force-directed refinement using flat arrays (no HashMap in hot loop)
+        double[] fx = new double[n];
+        double[] fy = new double[n];
+
+        for (int iter = 0; iter < 50; iter++) {
+            // Zero forces
+            Arrays.fill(fx, 0.0);
+            Arrays.fill(fy, 0.0);
+
+            // Repulsion between all pairs — pure array arithmetic
             for (int i = 0; i < n; i++) {
+                double pix = posX[i], piy = posY[i];
                 for (int j = i + 1; j < n; j++) {
-                    String vi = vertices.get(i), vj = vertices.get(j);
-                    double[] pi = pos.get(vi), pj = pos.get(vj);
-                    double dx = pi[0] - pj[0], dy = pi[1] - pj[1];
+                    double dx = pix - posX[j], dy = piy - posY[j];
                     double dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
                     double force = 0.1 / (dist * dist);
-                    forces.get(vi)[0] += dx / dist * force;
-                    forces.get(vi)[1] += dy / dist * force;
-                    forces.get(vj)[0] -= dx / dist * force;
-                    forces.get(vj)[1] -= dy / dist * force;
+                    double fdx = dx / dist * force;
+                    double fdy = dy / dist * force;
+                    fx[i] += fdx;
+                    fy[i] += fdy;
+                    fx[j] -= fdx;
+                    fy[j] -= fdy;
                 }
             }
 
-            // Attraction along edges
-            for (String v : vertices) {
-                Set<String> nbrs = adj.get(v);
-                if (nbrs == null) continue;
-                for (String u : nbrs) {
-                    double[] pv = pos.get(v), pu = pos.get(u);
-                    double dx = pu[0] - pv[0], dy = pu[1] - pv[1];
+            // Attraction along edges — uses pre-resolved indices
+            for (int i = 0; i < n; i++) {
+                double pix = posX[i], piy = posY[i];
+                for (int ni : neighborIdx[i]) {
+                    double dx = posX[ni] - pix, dy = posY[ni] - piy;
                     double dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
                     double force = dist * 0.05;
-                    forces.get(v)[0] += dx / dist * force;
-                    forces.get(v)[1] += dy / dist * force;
+                    fx[i] += dx / dist * force;
+                    fy[i] += dy / dist * force;
                 }
             }
 
             // Apply forces
-            for (String v : vertices) {
-                double[] p = pos.get(v), f = forces.get(v);
-                p[0] += f[0] * 0.1;
-                p[1] += f[1] * 0.1;
+            for (int i = 0; i < n; i++) {
+                posX[i] += fx[i] * 0.1;
+                posY[i] += fy[i] * 0.1;
             }
         }
 
         // Order neighbors by angle from each vertex
-        for (String v : vertices) {
-            final double[] pv = pos.get(v);
-            final Map<String, double[]> finalPos = pos;
+        for (int vi = 0; vi < n; vi++) {
+            final double pvx = posX[vi], pvy = posY[vi];
+            final double[] fpx = posX, fpy = posY;
+            final Map<String, Integer> fvi = vertexIndex;
+            String v = vertices.get(vi);
             List<String> neighbors = new ArrayList<String>();
             Set<String> nbrs = adj.get(v);
             if (nbrs != null) neighbors.addAll(nbrs);
 
             Collections.sort(neighbors, (String a, String b) -> {
-                    double[] pa = finalPos.get(a), pb = finalPos.get(b);
-                    double angA = Math.atan2(pa[1] - pv[1], pa[0] - pv[0]);
-                    double angB = Math.atan2(pb[1] - pv[1], pb[0] - pv[0]);
+                    int ai = fvi.get(a), bi = fvi.get(b);
+                    double angA = Math.atan2(fpy[ai] - pvy, fpx[ai] - pvx);
+                    double angB = Math.atan2(fpy[bi] - pvy, fpx[bi] - pvx);
                     return Double.compare(angA, angB);
                 });
 
