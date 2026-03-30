@@ -401,28 +401,15 @@ public class InteractiveHtmlExporter {
 
     /** Maps Edge type codes to human-readable names. */
     private static String typeName(String type) {
-        if (type == null) return "Unknown";
-        switch (type) {
-            case "f":  return "Friend";
-            case "fs": return "Facebook";
-            case "c":  return "Classmate";
-            case "s":  return "Stranger";
-            case "sg": return "Study Group";
-            default:   return type;
-        }
+        return EdgeTypeRegistry.getName(type);
     }
 
     /** Maps Edge type codes to CSS colors. */
     private static String typeColor(String type) {
         if (type == null) return "#999";
-        switch (type) {
-            case "f":  return "#4CAF50";
-            case "fs": return "#2196F3";
-            case "c":  return "#FF9800";
-            case "s":  return "#9E9E9E";
-            case "sg": return "#9C27B0";
-            default:   return "#607D8B";
-        }
+        String hex = EdgeTypeRegistry.getHexColor(type);
+        // EdgeTypeRegistry returns "#CCCCCC" for unknowns; remap to our default
+        return "#CCCCCC".equals(hex) ? "#607D8B" : hex;
     }
 
     /**

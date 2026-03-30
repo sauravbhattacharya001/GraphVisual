@@ -56,22 +56,14 @@ public class SvgExporter {
     private boolean colorByEdgeType = true;
     private int layoutIterations = 300;
 
-    private static final Map<String, String> TYPE_COLORS = new LinkedHashMap<>();
-    static {
-        TYPE_COLORS.put("f",  "#4CAF50"); // Friend — green
-        TYPE_COLORS.put("fs", "#2196F3"); // Familiar Stranger — blue
-        TYPE_COLORS.put("c",  "#FF9800"); // Classmate — orange
-        TYPE_COLORS.put("s",  "#F44336"); // Stranger — red
-        TYPE_COLORS.put("sg", "#9C27B0"); // Study Group — purple
-    }
+    private static final Map<String, String> TYPE_COLORS = EdgeTypeRegistry.getAllHexColors();
 
-    private static final Map<String, String> TYPE_NAMES = new LinkedHashMap<>();
+    private static final Map<String, String> TYPE_NAMES;
     static {
-        TYPE_NAMES.put("f",  "Friend");
-        TYPE_NAMES.put("fs", "Familiar Stranger");
-        TYPE_NAMES.put("c",  "Classmate");
-        TYPE_NAMES.put("s",  "Stranger");
-        TYPE_NAMES.put("sg", "Study Group");
+        TYPE_NAMES = new LinkedHashMap<>();
+        for (String code : EdgeTypeRegistry.getAllTypeCodes()) {
+            TYPE_NAMES.put(code, EdgeTypeRegistry.getName(code));
+        }
     }
 
     private final Map<String, String> customColors = new LinkedHashMap<>();

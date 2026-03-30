@@ -111,8 +111,13 @@ public class NetworkReportGenerator {
             friendEdges.size(), fsEdges.size(), classmateEdges.size(),
             strangerEdges.size(), studyGEdges.size()
         };
-        String[] edgeTypeNames = {"Friend", "Familiar Stranger", "Classmate", "Stranger", "Study Group"};
-        String[] edgeTypeColors = {"#4CAF50", "#2196F3", "#FF9800", "#F44336", "#9C27B0"};
+        java.util.List<String> typeCodes = EdgeTypeRegistry.getAllTypeCodes();
+        String[] edgeTypeNames = new String[typeCodes.size()];
+        String[] edgeTypeColors = new String[typeCodes.size()];
+        for (int i = 0; i < typeCodes.size(); i++) {
+            edgeTypeNames[i] = EdgeTypeRegistry.getName(typeCodes.get(i));
+            edgeTypeColors[i] = EdgeTypeRegistry.getHexColor(typeCodes.get(i));
+        }
         int totalEdgeTypes = 0;
         for (int c : edgeTypeCounts) totalEdgeTypes += c;
 
