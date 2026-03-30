@@ -134,6 +134,11 @@ public class GraphColoringAnalyzer {
      * <p>DSatur typically produces better results than static orderings
      * and is optimal for bipartite and cycle graphs.</p>
      *
+     * <p><b>Performance:</b> Uses a {@link TreeSet} as a priority queue
+     * keyed by (saturation, degree, name) to select the next vertex in
+     * O(log V) instead of the naive O(V) linear scan. Total complexity
+     * improves from O(V² + E) to O((V + E) log V).</p>
+     *
      * @return a ColoringResult with the assignment
      */
     public ColoringResult computeDSatur() {
@@ -150,33 +155,35 @@ public class GraphColoringAnalyzer {
 
         Map<String, Integer> colorAssignment = new HashMap<>();
         Map<String, Set<Integer>> saturation = new HashMap<>();
-        Set<String> uncolored = new HashSet<>(vertices);
 
+        // Cache degree per vertex to avoid repeated graph.degree() calls
+        Map<String, Integer> degreeCache = new HashMap<>();
         for (String v : vertices) {
             saturation.put(v, new HashSet<>());
+            degreeCache.put(v, graph.degree(v));
         }
+
+        // Priority queue ordered by: saturation desc, degree desc, name asc.
+        // Using a TreeSet with a Comparator gives O(log V) removal of the
+        // max-priority element and O(log V) re-insertion on saturation updates,
+        // replacing the previous O(V) linear scan per iteration.
+        TreeSet<String> pq = new TreeSet<>((a, b) -> {
+            int satA = saturation.get(a).size();
+            int satB = saturation.get(b).size();
+            if (satA != satB) return Integer.compare(satB, satA); // desc
+            int degA = degreeCache.get(a);
+            int degB = degreeCache.get(b);
+            if (degA != degB) return Integer.compare(degB, degA); // desc
+            return a.compareTo(b); // asc (tiebreaker for TreeSet uniqueness)
+        });
+        pq.addAll(vertices);
 
         int maxColor = -1;
 
-        while (!uncolored.isEmpty()) {
-            // Pick vertex with max saturation degree, tie-break by
-            // graph degree descending, then alphabetically
-            String best = null;
-            int bestSat = -1;
-            int bestDeg = -1;
-
-            for (String v : uncolored) {
-                int sat = saturation.get(v).size();
-                int deg = graph.degree(v);
-                if (sat > bestSat
-                    || (sat == bestSat && deg > bestDeg)
-                    || (sat == bestSat && deg == bestDeg
-                        && (best == null || v.compareTo(best) < 0))) {
-                    best = v;
-                    bestSat = sat;
-                    bestDeg = deg;
-                }
-            }
+        while (!pq.isEmpty()) {
+            // O(log V) extraction of highest-priority vertex
+            String best = pq.first();
+            pq.remove(best);
 
             // Assign smallest available color
             Set<Integer> usedColors = new HashSet<>();
@@ -197,13 +204,18 @@ public class GraphColoringAnalyzer {
                 maxColor = color;
             }
 
-            uncolored.remove(best);
-
-            // Update saturation of uncolored neighbors
+            // Update saturation of uncolored neighbors.
+            // Remove-then-re-add to maintain TreeSet ordering after
+            // the saturation key changes.
             if (neighbors != null) {
                 for (String neighbor : neighbors) {
-                    if (uncolored.contains(neighbor)) {
-                        saturation.get(neighbor).add(color);
+                    if (pq.contains(neighbor)) {
+                        Set<Integer> nsat = saturation.get(neighbor);
+                        if (!nsat.contains(color)) {
+                            pq.remove(neighbor);   // O(log V)
+                            nsat.add(color);
+                            pq.add(neighbor);       // O(log V)
+                        }
                     }
                 }
             }
