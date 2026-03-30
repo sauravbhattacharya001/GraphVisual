@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motif Finder - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="motif.html" class="sidebar-link active"><span class="icon">🔬</span>Motif Finder</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+</nav>
+<main class="content">
+    <h1>🔬 Graph Motif Finder</h1>
+    <p>The <code>GraphMotifFinder</code> detects and counts common subgraph motifs — the
+    fundamental building blocks that reveal local structural patterns in a network.</p>
+
+    <h2>Why Motifs Matter</h2>
+    <ul>
+        <li><strong>Network characterization:</strong> Motif frequency profiles act as a
+            fingerprint that distinguishes network types (social, biological, technological).</li>
+        <li><strong>Role discovery:</strong> Nodes participating in many triangles are tightly
+            embedded; hub-star nodes are broadcasters or authorities.</li>
+        <li><strong>Clustering insight:</strong> The ratio of closed to open triplets gives the
+            global clustering coefficient directly from motif counts.</li>
+        <li><strong>Anomaly detection:</strong> Unusual motif distributions can indicate fraud
+            rings, bot networks, or structural irregularities.</li>
+    </ul>
+
+    <h2>Detected Motifs</h2>
+    <table>
+        <thead><tr><th>Motif</th><th>Symbol</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Triangle (3-clique)</td><td>△</td>
+                <td>Three mutually connected nodes — tight-knit group</td></tr>
+            <tr><td>Star (k ≥ 3)</td><td>★</td>
+                <td>Hub connected to k leaves — centralized pattern</td></tr>
+            <tr><td>Open Path (P3)</td><td>─○─</td>
+                <td>Middle node bridges two unconnected endpoints — brokerage</td></tr>
+            <tr><td>Square (C4)</td><td>□</td>
+                <td>Four-node cycle — redundancy / alternative routing</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Additional Metrics</h2>
+    <ul>
+        <li><strong>Global clustering coefficient:</strong> 3 × triangles / (3 × triangles + open paths)</li>
+        <li><strong>Local clustering coefficient:</strong> Per-node ratio of neighbor links to possible neighbor links</li>
+        <li><strong>Top triangle participants:</strong> Nodes embedded in the most triangles</li>
+    </ul>
+
+    <h2>Usage</h2>
+    <pre><code>GraphMotifFinder finder = new GraphMotifFinder(graph);
+finder.analyze();
+
+// Print motif census
+System.out.println(finder.getCensus());
+
+// Get clustering coefficient
+double cc = finder.getClusteringCoefficient();
+
+// Full report
+System.out.println(finder.generateReport());
+
+// Per-node clustering
+Map&lt;String, Double&gt; local = finder.getLocalClustering();
+
+// Top 5 triangle participants
+List&lt;Map.Entry&lt;String, Integer&gt;&gt; top = finder.getTopTriangleNodes(5);</code></pre>
+
+    <h2>Report Output</h2>
+    <p>The <code>generateReport()</code> method produces a formatted text report including:</p>
+    <ul>
+        <li>Motif census with counts</li>
+        <li>Global clustering coefficient</li>
+        <li>Sample triangles, stars, and squares</li>
+        <li>Top triangle participants</li>
+    </ul>
+
+    <h2>Performance</h2>
+    <ul>
+        <li><strong>Triangles:</strong> O(V² × max-degree) with sorted vertex iteration</li>
+        <li><strong>Stars:</strong> O(V) single pass</li>
+        <li><strong>Open Paths:</strong> O(Σ deg²) over all vertices</li>
+        <li><strong>Squares:</strong> Bounded to 50,000 results for large graphs</li>
+    </ul>
+</main>
+</body>
+</html>
