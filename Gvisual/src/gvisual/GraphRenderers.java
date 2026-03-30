@@ -115,21 +115,32 @@ public class GraphRenderers {
 
     public Transformer<Edge, Paint> edgePaintTransformer() {
         return (Edge e) -> {
+                // Priority 1: shortest-path highlight (always on top)
                 if (pathEdges != null && pathEdges.contains(e)) {
                     return Color.YELLOW;
                 }
-                if (mstOverlayActive && mstEdges != null && mstEdges.contains(e)) {
-                    return new Color(0, 255, 100);
+
+                // Priority 2: ego network (dims everything outside)
+                if (egoOverlayActive && egoEdges != null) {
+                    return egoEdges.contains(e)
+                            ? new Color(0, 200, 255)
+                            : new Color(60, 60, 60, 50);
                 }
-                if (articulationOverlayActive && bridgeEdges != null && bridgeEdges.contains(e)) {
+
+                // Priority 3: MST overlay — highlight MST edges, dim the rest
+                if (mstOverlayActive && mstEdges != null) {
+                    return mstEdges.contains(e)
+                            ? new Color(0, 255, 100)
+                            : new Color(80, 80, 80, 60);
+                }
+
+                // Priority 4: articulation/bridge highlight
+                if (articulationOverlayActive && bridgeEdges != null
+                        && bridgeEdges.contains(e)) {
                     return new Color(255, 80, 40);
                 }
-                if (egoOverlayActive && egoEdges != null) {
-                    if (egoEdges.contains(e)) {
-                        return new Color(0, 200, 255);
-                    }
-                    return new Color(60, 60, 60, 50);
-                }
+
+                // Priority 5: community colouring
                 if (communityOverlayActive && nodeCommunityMap != null) {
                     Integer c1 = nodeCommunityMap.get(e.getVertex1());
                     Integer c2 = nodeCommunityMap.get(e.getVertex2());
@@ -139,9 +150,8 @@ public class GraphRenderers {
                     }
                     return new Color(100, 100, 100, 80);
                 }
-                if (mstOverlayActive && mstEdges != null && !mstEdges.contains(e)) {
-                    return new Color(80, 80, 80, 60);
-                }
+
+                // Default: edge-type colour
                 return EdgeType.colorForCode(e.getType());
             };
     }
@@ -195,37 +205,40 @@ public class GraphRenderers {
             };
     }
 
+    // Reusable shape constants to reduce per-render allocation
+    private static final Shape SHAPE_DEFAULT = new Ellipse2D.Double(-5, -5, 10, 10);
+    private static final Shape SHAPE_NEW_VERTEX = new Ellipse2D.Double(-5, -5, 20, 20);
+    private static final Shape SHAPE_PATH_ENDPOINT = new Ellipse2D.Double(-8, -8, 16, 16);
+    private static final Shape SHAPE_PATH_WAYPOINT = new Ellipse2D.Double(-6, -6, 12, 12);
+    private static final Shape SHAPE_EGO_CENTER = new Ellipse2D.Double(-10, -10, 20, 20);
+    private static final Shape SHAPE_EGO_NEIGHBOR = new Ellipse2D.Double(-7, -7, 14, 14);
+
     public Transformer<String, Shape> vertexShapeTransformer() {
         return (String vertex) -> {
-                if (pathSource != null && vertex.equals(pathSource)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
-                }
-                if (pathTarget != null && vertex.equals(pathTarget)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
+                // Path endpoints (source & target) get the same enlarged shape
+                if ((pathSource != null && vertex.equals(pathSource))
+                        || (pathTarget != null && vertex.equals(pathTarget))) {
+                    return SHAPE_PATH_ENDPOINT;
                 }
                 if (pathVertices != null && pathVertices.contains(vertex)) {
-                    return new Ellipse2D.Double(-6, -6, 12, 12);
+                    return SHAPE_PATH_WAYPOINT;
                 }
                 if (articulationOverlayActive && articulationPoints != null
                         && articulationPoints.contains(vertex)) {
-                    return new Ellipse2D.Double(-8, -8, 16, 16);
+                    return SHAPE_PATH_ENDPOINT;
                 }
                 if (egoOverlayActive && egoCenter != null) {
                     if (vertex.equals(egoCenter)) {
-                        return new Ellipse2D.Double(-10, -10, 20, 20);
+                        return SHAPE_EGO_CENTER;
                     }
                     if (egoNeighbors != null && egoNeighbors.contains(vertex)) {
-                        return new Ellipse2D.Double(-7, -7, 14, 14);
+                        return SHAPE_EGO_NEIGHBOR;
                     }
                 }
                 if (oldVertices != null) {
-                    if (oldVertices.contains(vertex)) {
-                        return new Ellipse2D.Double(-5, -5, 10, 10);
-                    } else {
-                        return new Ellipse2D.Double(-5, -5, 20, 20);
-                    }
+                    return oldVertices.contains(vertex) ? SHAPE_DEFAULT : SHAPE_NEW_VERTEX;
                 }
-                return new Ellipse2D.Double(-5, -5, 10, 10);
+                return SHAPE_DEFAULT;
             };
     }
 
