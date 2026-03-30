@@ -78,22 +78,44 @@ public class GraphMotifFinder {
 
     /* ── Triangle detection ─────────────────────────────────────────── */
 
+    /**
+     * Edge-iterator triangle detection: O(E · √E) instead of O(V³).
+     *
+     * <p>For each edge (u, v) where u &lt; v in sorted order, intersects
+     * u's and v's neighbour sets to find common neighbours w &gt; v.
+     * The lower-degree endpoint's neighbour set is probed against a
+     * HashSet of the higher-degree endpoint's neighbours, bounding
+     * the inner work by O(min(deg(u), deg(v))) per edge.</p>
+     *
+     * <p>Neighbour sets are pre-computed once in O(V + E) and reused
+     * across all edges, eliminating the per-vertex HashSet allocation
+     * that dominated the old O(V³) approach.</p>
+     */
     private void findTriangles() {
         triangles = new ArrayList<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-        Set<String> vertexSet = new HashSet<>(vertices);
 
+        // Pre-compute neighbour sets once — O(V + E)
+        Map<String, Set<String>> neighborSets = new HashMap<>(vertices.size() * 2);
+        for (String v : vertices) {
+            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+        }
+
+        // For each edge (u, v) with u < v, find common neighbours w > v
         for (int i = 0; i < vertices.size(); i++) {
             String u = vertices.get(i);
-            Set<String> uNeighbors = new HashSet<>(graph.getNeighbors(u));
-            for (int j = i + 1; j < vertices.size(); j++) {
-                String v = vertices.get(j);
-                if (!uNeighbors.contains(v)) continue;
-                Set<String> vNeighbors = new HashSet<>(graph.getNeighbors(v));
-                for (int k = j + 1; k < vertices.size(); k++) {
-                    String w = vertices.get(k);
-                    if (uNeighbors.contains(w) && vNeighbors.contains(w)) {
+            Set<String> uNbrs = neighborSets.get(u);
+            for (String v : uNbrs) {
+                if (v.compareTo(u) <= 0) continue; // ensure u < v
+                Set<String> vNbrs = neighborSets.get(v);
+
+                // Intersect the smaller set against the larger for efficiency
+                Set<String> smaller = uNbrs.size() <= vNbrs.size() ? uNbrs : vNbrs;
+                Set<String> larger  = smaller == uNbrs ? vNbrs : uNbrs;
+
+                for (String w : smaller) {
+                    if (w.compareTo(v) > 0 && larger.contains(w)) {
                         triangles.add(Arrays.asList(u, v, w));
                     }
                 }
@@ -137,28 +159,44 @@ public class GraphMotifFinder {
 
     /* ── Square (C4) detection ──────────────────────────────────────── */
 
+    /**
+     * Square (C4) detection with pre-computed neighbour sets.
+     *
+     * <p>The previous implementation allocated a new {@code HashSet} for
+     * v's neighbours inside the innermost loop (once per (u, v, w) triple),
+     * causing O(E · deg²) transient allocations and heavy GC pressure on
+     * dense graphs. Neighbour sets are now built once in O(V + E) and
+     * reused throughout.</p>
+     */
     private void findSquares() {
         squares = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
 
+        // Pre-compute neighbour sets — O(V + E), reused for all probes
+        Map<String, Set<String>> neighborSets = new HashMap<>(vertices.size() * 2);
+        for (String v : vertices) {
+            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+        }
+
         outer:
         for (String u : vertices) {
-            List<String> uNeighbors = new ArrayList<>(graph.getNeighbors(u));
+            Set<String> uNbrs = neighborSets.get(u);
+            List<String> uNeighbors = new ArrayList<>(uNbrs);
             Collections.sort(uNeighbors);
             for (int i = 0; i < uNeighbors.size(); i++) {
                 String v = uNeighbors.get(i);
                 if (v.compareTo(u) <= 0) continue;
+                Set<String> vNbrs = neighborSets.get(v);
                 for (int j = i + 1; j < uNeighbors.size(); j++) {
                     String w = uNeighbors.get(j);
                     if (w.compareTo(u) <= 0) continue;
-                    if (graph.isNeighbor(v, w)) continue; // would be a triangle
+                    if (vNbrs.contains(w)) continue; // would be a triangle
                     // Find common neighbor x of v and w (x != u)
-                    Set<String> vNeighbors = new HashSet<>(graph.getNeighbors(v));
                     for (String x : graph.getNeighbors(w)) {
                         if (x.equals(u) || x.compareTo(u) <= 0) continue;
-                        if (vNeighbors.contains(x) && !graph.isNeighbor(x, u)) {
+                        if (vNbrs.contains(x) && !uNbrs.contains(x)) {
                             List<String> sq = Arrays.asList(u, v, x, w);
                             Collections.sort(sq);
                             String key = String.join(",", sq);
