@@ -57,11 +57,42 @@ public class findMeetings {
         return Util.getTimeStamp(month, date, time);
     }
 
+    /** SQL for meeting inserts — shared by all addMeeting overloads. */
+    private static final String INSERT_MEETING_SQL =
+            "INSERT INTO meeting (imei1, imei2, starttime, endtime, location, month, date, duration) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
     public static void addMeeting(Connection conn, String devicePair, String startTime, String endTime, String month, String date) throws Exception {
         addMeeting(conn, devicePair, startTime, endTime, month, date, "unknown");
     }
 
     public static void addMeeting(Connection conn, String devicePair, String startTime, String endTime, String month, String date, String locationType) throws Exception {
+        try (PreparedStatement pstmt = conn.prepareStatement(INSERT_MEETING_SQL)) {
+            addMeetingBatch(pstmt, devicePair, startTime, endTime, month, date, locationType);
+            pstmt.executeBatch();
+        }
+    }
+
+    /**
+     * Adds a meeting to the batch without executing. Call
+     * {@code pstmt.executeBatch()} after accumulating entries.
+     *
+     * <p>This avoids creating a new PreparedStatement per meeting —
+     * the caller can reuse a single statement across thousands of
+     * inserts, reducing connection overhead dramatically.</p>
+     *
+     * @param pstmt       a PreparedStatement for {@link #INSERT_MEETING_SQL}
+     * @param devicePair  canonical "imei1#imei2" pair key
+     * @param startTime   meeting start time
+     * @param endTime     meeting end time
+     * @param month       month filter
+     * @param date        date filter
+     * @param locationType location type (defaults to "unknown" if null/empty)
+     */
+    public static void addMeetingBatch(PreparedStatement pstmt, String devicePair,
+                                        String startTime, String endTime,
+                                        String month, String date,
+                                        String locationType) throws Exception {
         String[] imeiArr = devicePair.split("#");
         String canonical = canonicalPair(imeiArr[0], imeiArr[1]);
         String[] ordered = canonical.split("#");
@@ -69,20 +100,15 @@ public class findMeetings {
         String imei2 = ordered[1];
         String apType = (locationType != null && !locationType.isEmpty()) ? locationType : "unknown";
 
-        String sql = "INSERT INTO meeting (imei1, imei2, starttime, endtime, location, month, date, duration) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, imei1);
-            pstmt.setString(2, imei2);
-            pstmt.setString(3, startTime);
-            pstmt.setString(4, endTime);
-            pstmt.setString(5, apType);
-            pstmt.setString(6, month);
-            pstmt.setString(7, date);
-            pstmt.setInt(8, (int) getTimeDifference(endTime, startTime));
-            pstmt.executeUpdate();
-        }
+        pstmt.setString(1, imei1);
+        pstmt.setString(2, imei2);
+        pstmt.setString(3, startTime);
+        pstmt.setString(4, endTime);
+        pstmt.setString(5, apType);
+        pstmt.setString(6, month);
+        pstmt.setString(7, date);
+        pstmt.setInt(8, (int) getTimeDifference(endTime, startTime));
+        pstmt.addBatch();
     }
 
     public static void main(String[] args) throws Exception {
@@ -97,7 +123,11 @@ public class findMeetings {
 
         try (Connection appConn = Util.getAppConnection();
              PreparedStatement selectStmt = appConn.prepareStatement(
-                     selectSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                     selectSql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+             // Reuse a single PreparedStatement for all inserts instead of
+             // creating one per meeting — reduces connection overhead from
+             // O(meetings) round-trips to O(days) batch executions.
+             PreparedStatement insertStmt = appConn.prepareStatement(INSERT_MEETING_SQL)) {
 
             for (; monthInt <= 5; monthInt++) {
                 for (dateInt = 1; dateInt <= 31; dateInt++) {
@@ -140,6 +170,7 @@ public class findMeetings {
 
                     System.out.println("Total different pairs detected = " + deviceInteraction.size());
 
+                    int batchCount = 0;
                     for (String x : deviceInteraction.keySet()) {
                         SortedSet<String> curSet = deviceInteraction.get(x);
 
@@ -151,8 +182,8 @@ public class findMeetings {
                                 lastTime = y;
                                 meetingStartTime = y;
                             } else if (getTimeDifference(y, lastTime) > WINDOW_SIZE) {
-                                addMeeting(appConn, x, meetingStartTime, lastTime, month, date);
-                                System.out.println("found a meeting and inserted successfully");
+                                addMeetingBatch(insertStmt, x, meetingStartTime, lastTime, month, date, "unknown");
+                                batchCount++;
                                 lastTime = y;
                                 meetingStartTime = y;
                             } else {
@@ -165,9 +196,15 @@ public class findMeetings {
                         // meeting (from meetingStartTime to lastTime) would be
                         // silently dropped without this.
                         if (meetingStartTime != null && lastTime != null) {
-                            addMeeting(appConn, x, meetingStartTime, lastTime, month, date);
-                            System.out.println("found a meeting and inserted successfully");
+                            addMeetingBatch(insertStmt, x, meetingStartTime, lastTime, month, date, "unknown");
+                            batchCount++;
                         }
+                    }
+
+                    // Execute all meetings for this day in one batch
+                    if (batchCount > 0) {
+                        insertStmt.executeBatch();
+                        System.out.println("inserted " + batchCount + " meetings for " + month + "-" + date);
                     }
                 }
             }
