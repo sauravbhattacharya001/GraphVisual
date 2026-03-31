@@ -223,8 +223,14 @@ public final class PlanarGraphAnalyzer {
      */
     public static List<Face> enumerateFaces(Graph<String, Edge> graph) {
         PlanarityResult pr = testPlanarity(graph);
-        if (!pr.isPlanar()) return null;
+        return pr.isPlanar() ? enumerateFacesInternal(graph) : null;
+    }
 
+    /**
+     * Internal face enumeration — skips the planarity test.
+     * Caller must ensure the graph is planar before calling.
+     */
+    private static List<Face> enumerateFacesInternal(Graph<String, Edge> graph) {
         Map<String, List<String>> embedding = buildPlanarEmbedding(graph);
         if (embedding == null || embedding.isEmpty()) {
             // Single vertex or empty graph
@@ -295,8 +301,17 @@ public final class PlanarGraphAnalyzer {
      * share an Edge.
      */
     public static DualGraph buildDualGraph(Graph<String, Edge> graph) {
-        List<Face> faces = enumerateFaces(graph);
-        if (faces == null) return null;
+        PlanarityResult pr = testPlanarity(graph);
+        if (!pr.isPlanar()) return null;
+        List<Face> faces = enumerateFacesInternal(graph);
+        return buildDualGraphFromFaces(faces);
+    }
+
+    /**
+     * Internal dual graph construction from pre-computed faces.
+     * Caller must ensure faces are valid (non-null).
+     */
+    private static DualGraph buildDualGraphFromFaces(List<Face> faces) {
 
         // Build Edge → face mapping
         Map<String, List<Integer>> edgeToFaces = new HashMap<String, List<Integer>>();
@@ -368,8 +383,12 @@ public final class PlanarGraphAnalyzer {
         KuratowskiSubgraph kuratowski = null;
 
         if (result.isPlanar()) {
-            faces = enumerateFaces(graph);
-            dual = buildDualGraph(graph);
+            // Use internal methods to avoid redundant planarity re-tests.
+            // Previously, enumerateFaces() and buildDualGraph() each called
+            // testPlanarity() again, causing 3 total planarity tests per
+            // analyze() call. Now we test once and reuse the result.
+            faces = enumerateFacesInternal(graph);
+            dual = buildDualGraphFromFaces(faces);
         } else {
             kuratowski = findKuratowskiSubgraph(graph);
         }
