@@ -47,6 +47,7 @@ public class GraphStatsDashboard {
      * Exports the dashboard to a file.
      */
     public void export(File file) throws IOException {
+        ExportUtils.validateOutputPath(file);
         try (Writer w = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(file), StandardCharsets.UTF_8))) {
             w.write(buildHtml());
@@ -274,8 +275,24 @@ public class GraphStatsDashboard {
     }
 
     private static String jsonArray(List<String> items) {
-        return "[" + items.stream().map(s -> "\"" + s.replace("\"", "\\\"") + "\"")
+        return "[" + items.stream().map(s -> "\"" + escJs(s) + "\"")
                 .collect(Collectors.joining(",")) + "]";
+    }
+
+    /**
+     * Escapes a string for safe embedding in a JavaScript string literal
+     * inside a {@code <script>} block. Prevents {@code </script>} breakout
+     * (CWE-79) and handles special characters.
+     */
+    private static String escJs(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("'", "\\'")
+                .replace("\n", "\\n")
+                .replace("\r", "")
+                .replace("<", "\\x3c")
+                .replace(">", "\\x3e");
     }
 
     private static String jsonIntArray(Collection<Integer> values) {
