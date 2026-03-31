@@ -218,7 +218,7 @@ public class CommunityDetector {
             if (visited.contains(vertex)) continue;
 
             Community community = new Community(communityId);
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(vertex);
             visited.add(vertex);
 

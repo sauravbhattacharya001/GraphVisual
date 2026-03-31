@@ -96,7 +96,7 @@ public final class GraphUtils {
     public static Map<String, Integer> bfsDistances(
             Graph<String, Edge> graph, String source) {
         Map<String, Integer> distances = new HashMap<String, Integer>();
-        Queue<String> queue = new LinkedList<String>();
+        ArrayDeque<String> queue = new ArrayDeque<String>();
         distances.put(source, 0);
         queue.add(source);
 
@@ -126,7 +126,7 @@ public final class GraphUtils {
     public static Set<String> bfsComponent(
             Graph<String, Edge> graph, String source) {
         Set<String> component = new LinkedHashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        ArrayDeque<String> queue = new ArrayDeque<String>();
         component.add(source);
         queue.add(source);
 
@@ -301,7 +301,7 @@ public final class GraphUtils {
         for (String v : vertices) {
             if (!visited.contains(v)) {
                 components++;
-                Queue<String> queue = new LinkedList<String>();
+                ArrayDeque<String> queue = new ArrayDeque<String>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {

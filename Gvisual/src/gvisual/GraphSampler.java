@@ -141,7 +141,7 @@ public class GraphSampler {
         int target = Math.max(1, (int) Math.ceil(n * fraction));
 
         Set<String> sampled = new LinkedHashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         if (seeds == null || seeds.isEmpty()) {
             String seed = randomVertex();
