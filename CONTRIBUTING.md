@@ -20,7 +20,26 @@ Thanks for your interest in contributing to GraphVisual! This document covers ev
 
 - **Java JDK 8** or later (JDK 11 or 17 recommended for CI parity)
 - **Git**
+- **Maven 3.6+** (for dependency management via `pom.xml`)
 - **PostgreSQL** (optional — only needed for data pipeline; visualization and tests work without it)
+
+### IDE Setup
+
+**IntelliJ IDEA (recommended):**
+1. Open → select the repo root (it will detect `pom.xml` automatically)
+2. Mark `Gvisual/src` as Sources Root and `Gvisual/test` as Test Sources Root
+3. Add all JARs in `Gvisual/lib/` as project libraries (File → Project Structure → Libraries)
+4. Set Project SDK to JDK 11 or 17
+
+**Eclipse:**
+1. Import → Existing Maven Project → select repo root
+2. Right-click `Gvisual/lib/*.jar` → Build Path → Add to Build Path
+3. Ensure `Gvisual/test` is on the test classpath
+
+**VS Code:**
+1. Install the "Extension Pack for Java" extension
+2. Open the repo root — the Java extension will detect `pom.xml`
+3. If library resolution fails, add `Gvisual/lib/*.jar` to `.classpath` manually
 
 ### Quick Start
 
@@ -277,3 +296,14 @@ Include:
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+
+## Code of Conduct
+
+We follow the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). In short:
+
+- Be respectful and inclusive
+- Give and accept constructive feedback gracefully
+- Focus on what's best for the community
+- Show empathy toward other contributors
+
+Violations can be reported by opening an issue or contacting the maintainer directly.
