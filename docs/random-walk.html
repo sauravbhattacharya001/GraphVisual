@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Walk Simulator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .rw-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 300px; }
+        #graph-canvas {
+            width: 100%; height: 500px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .rw-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .rw-btn:hover { background: var(--surface-hover); }
+        .rw-btn.active { border-color: var(--accent); color: var(--accent); }
+        .rw-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .rw-btn.primary:hover { background: var(--accent-hover); }
+        .rw-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .heatmap-bar {
+            height: 18px; border-radius: 4px; margin: 3px 0;
+            display: flex; align-items: center; padding: 0 6px;
+            font-size: 0.75rem; color: #fff; font-weight: 600;
+            transition: width 0.3s;
+        }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .walk-log {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 200px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .freq-table { width: 100%; font-size: 0.8rem; }
+        .freq-table td { padding: 2px 6px; }
+        .freq-table .bar-cell { width: 60%; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link active"><span class="icon">🚶</span>Random Walk</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="page-header">
+        <h1>🚶 Random Walk Simulator</h1>
+        <p>Simulate random walks on a graph and visualize visit frequency, cover time, and convergence to stationary distribution.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Default node</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div> Current walker</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div> Hot (many visits)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Start node</div>
+    </div>
+
+    <div class="toolbar">
+        <button class="rw-btn active" id="btn-add-node" onclick="setMode('node')">➕ Add Node</button>
+        <button class="rw-btn" id="btn-add-edge" onclick="setMode('edge')">🔗 Add Edge</button>
+        <button class="rw-btn" id="btn-move" onclick="setMode('move')">✋ Move</button>
+        <button class="rw-btn danger" onclick="clearGraph()">🗑️ Clear</button>
+    </div>
+
+    <div class="presets">
+        <button class="rw-btn" onclick="loadPreset('cycle')">⭕ Cycle</button>
+        <button class="rw-btn" onclick="loadPreset('complete')">🔶 Complete</button>
+        <button class="rw-btn" onclick="loadPreset('star')">⭐ Star</button>
+        <button class="rw-btn" onclick="loadPreset('grid')">▦ Grid</button>
+        <button class="rw-btn" onclick="loadPreset('barbell')">🏋️ Barbell</button>
+        <button class="rw-btn" onclick="loadPreset('random')">🎲 Random</button>
+    </div>
+
+    <div class="rw-container">
+        <div class="canvas-panel">
+            <canvas id="graph-canvas"></canvas>
+        </div>
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>⚡ Walk Controls</h3>
+                <div style="margin-bottom:0.5rem">
+                    <label style="font-size:0.8rem;color:var(--text-muted)">Start Node:</label>
+                    <select id="start-node" style="width:100%;padding:4px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;margin-top:2px"></select>
+                </div>
+                <div style="margin-bottom:0.5rem">
+                    <label style="font-size:0.8rem;color:var(--text-muted)">Max Steps:</label>
+                    <input type="number" id="max-steps" value="200" min="1" max="10000" style="width:100%;padding:4px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;margin-top:2px">
+                </div>
+                <div class="speed-control">
+                    <span style="font-size:0.8rem">🐢</span>
+                    <input type="range" id="speed" min="1" max="20" value="8">
+                    <span style="font-size:0.8rem">🐇</span>
+                </div>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="rw-btn primary" id="btn-start" onclick="startWalk()">▶ Start</button>
+                    <button class="rw-btn" id="btn-pause" onclick="pauseWalk()" disabled>⏸ Pause</button>
+                    <button class="rw-btn" id="btn-reset" onclick="resetWalk()">↺ Reset</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📊 Statistics</h3>
+                <table style="width:100%;font-size:0.85rem">
+                    <tr><td style="color:var(--text-muted)">Steps:</td><td id="stat-steps" class="stat-value" style="font-size:1rem">0</td></tr>
+                    <tr><td style="color:var(--text-muted)">Nodes visited:</td><td id="stat-coverage" class="stat-value" style="font-size:1rem">0</td></tr>
+                    <tr><td style="color:var(--text-muted)">Cover time:</td><td id="stat-cover" class="stat-value" style="font-size:1rem">—</td></tr>
+                    <tr><td style="color:var(--text-muted)">Current node:</td><td id="stat-current" class="stat-value" style="font-size:1rem">—</td></tr>
+                </table>
+            </div>
+
+            <div class="info-card">
+                <h3>🔥 Visit Frequency</h3>
+                <div id="heatmap-container"></div>
+            </div>
+
+            <div class="info-card">
+                <h3>📜 Walk Path (last 50)</h3>
+                <div class="walk-log" id="walk-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-card" style="margin-top:1.5rem">
+        <h3>📖 About Random Walks</h3>
+        <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6">
+            A <strong>random walk</strong> on a graph starts at a node and repeatedly moves to a uniformly random neighbor.
+            Key concepts: <strong>Cover time</strong> is the number of steps to visit every node at least once.
+            On connected, undirected graphs, the <strong>stationary distribution</strong> converges to π(v) = deg(v) / 2|E| —
+            nodes with more connections are visited more often. The heatmap above shows empirical visit frequency,
+            which should approach the stationary distribution as the number of steps grows.
+        </p>
+    </div>
+</main>
+
+<script>
+// ─── State ───
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let nodes = [], edges = [], mode = 'node', nextId = 0;
+let visitCount = {}, walkPath = [], walkStep = 0, walkTimer = null;
+let currentNode = null, startNodeId = null, paused = false;
+let dragging = null, edgeStart = null, coverTime = null;
+
+const RADIUS = 20;
+const COLORS = { default: '#58a6ff', walker: '#f0883e', start: '#3fb950', edge: '#444c56' };
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = 500;
+    draw();
+}
+window.addEventListener('resize', resize);
+
+function setMode(m) {
+    mode = m; edgeStart = null;
+    document.querySelectorAll('.toolbar .rw-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + (m === 'node' ? 'add-node' : m === 'edge' ? 'add-edge' : 'move')).classList.add('active');
+}
+
+function nodeAt(x, y) {
+    return nodes.find(n => Math.hypot(n.x - x, n.y - y) < RADIUS);
+}
+
+function getHeat(id) {
+    if (walkStep === 0) return 0;
+    return (visitCount[id] || 0) / walkStep;
+}
+
+function heatColor(heat) {
+    // blue → yellow → red
+    const r = Math.min(255, Math.floor(heat * 3 * 255));
+    const g = Math.min(255, Math.floor((1 - heat) * 200));
+    const b = Math.max(0, Math.floor((1 - heat * 4) * 255));
+    return `rgb(${r},${g},${b})`;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Edges
+    edges.forEach(([a, b]) => {
+        const na = nodes.find(n => n.id === a), nb = nodes.find(n => n.id === b);
+        if (!na || !nb) return;
+        ctx.beginPath(); ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y);
+        ctx.strokeStyle = COLORS.edge; ctx.lineWidth = 2; ctx.stroke();
+    });
+    // Nodes
+    nodes.forEach(n => {
+        const heat = getHeat(n.id);
+        let color = heat > 0 ? heatColor(heat) : COLORS.default;
+        if (n.id === startNodeId && walkStep === 0) color = COLORS.start;
+        if (n.id === currentNode) color = COLORS.walker;
+
+        ctx.beginPath(); ctx.arc(n.x, n.y, RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = n.id === currentNode ? '#fff' : 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = n.id === currentNode ? 3 : 1; ctx.stroke();
+
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+    });
+    // Edge being drawn
+    if (edgeStart && mode === 'edge') {
+        const n = nodes.find(nd => nd.id === edgeStart);
+        if (n && lastMouse) {
+            ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(lastMouse.x, lastMouse.y);
+            ctx.strokeStyle = 'rgba(88,166,255,0.4)'; ctx.lineWidth = 2; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+        }
+    }
+}
+
+let lastMouse = null;
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    lastMouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    if (mode === 'move' && dragging !== null) {
+        const n = nodes.find(nd => nd.id === dragging);
+        if (n) { n.x = lastMouse.x; n.y = lastMouse.y; draw(); }
+    }
+    if (mode === 'edge' && edgeStart !== null) draw();
+});
+
+canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const hit = nodeAt(x, y);
+
+    if (mode === 'node' && !hit) {
+        const id = nextId++;
+        nodes.push({ id, label: String.fromCharCode(65 + (id % 26)) + (id >= 26 ? Math.floor(id/26) : ''), x, y });
+        updateStartSelect(); draw();
+    } else if (mode === 'edge') {
+        if (hit) {
+            if (edgeStart === null) { edgeStart = hit.id; }
+            else if (edgeStart !== hit.id) {
+                if (!edges.some(([a,b]) => (a===edgeStart&&b===hit.id)||(b===edgeStart&&a===hit.id))) {
+                    edges.push([edgeStart, hit.id]);
+                }
+                edgeStart = null; draw();
+            }
+        }
+    } else if (mode === 'move' && hit) {
+        dragging = hit.id;
+    }
+});
+
+canvas.addEventListener('mouseup', () => { dragging = null; });
+
+function clearGraph() {
+    nodes = []; edges = []; nextId = 0; resetWalk(); updateStartSelect(); draw();
+}
+
+function updateStartSelect() {
+    const sel = document.getElementById('start-node');
+    sel.innerHTML = nodes.map(n => `<option value="${n.id}">${n.label}</option>`).join('');
+}
+
+function neighbors(id) {
+    const nb = [];
+    edges.forEach(([a, b]) => { if (a === id) nb.push(b); if (b === id) nb.push(a); });
+    return nb;
+}
+
+// ─── Walk Logic ───
+function startWalk() {
+    if (nodes.length === 0) return;
+    if (paused) { paused = false; document.getElementById('btn-pause').textContent = '⏸ Pause'; runWalk(); return; }
+    resetWalk();
+    const sel = document.getElementById('start-node');
+    startNodeId = parseInt(sel.value);
+    if (isNaN(startNodeId) && nodes.length > 0) startNodeId = nodes[0].id;
+    currentNode = startNodeId;
+    visitCount = {}; nodes.forEach(n => visitCount[n.id] = 0);
+    visitCount[currentNode] = 1;
+    walkPath = [currentNode]; walkStep = 1; coverTime = null;
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-pause').disabled = false;
+    updateStats(); runWalk();
+}
+
+function runWalk() {
+    const maxSteps = parseInt(document.getElementById('max-steps').value) || 200;
+    const speed = parseInt(document.getElementById('speed').value);
+    const delay = Math.max(20, 600 - speed * 30);
+
+    walkTimer = setInterval(() => {
+        if (walkStep >= maxSteps) { stopWalk(); return; }
+        const nb = neighbors(currentNode);
+        if (nb.length === 0) { stopWalk(); return; }
+        currentNode = nb[Math.floor(Math.random() * nb.length)];
+        visitCount[currentNode] = (visitCount[currentNode] || 0) + 1;
+        walkStep++;
+        walkPath.push(currentNode);
+
+        // Check cover time
+        if (coverTime === null && nodes.every(n => (visitCount[n.id] || 0) > 0)) {
+            coverTime = walkStep;
+        }
+
+        updateStats(); draw();
+    }, delay);
+}
+
+function pauseWalk() {
+    if (!paused) { clearInterval(walkTimer); paused = true; document.getElementById('btn-pause').textContent = '▶ Resume'; }
+    else { paused = false; document.getElementById('btn-pause').textContent = '⏸ Pause'; runWalk(); }
+}
+
+function stopWalk() {
+    clearInterval(walkTimer); walkTimer = null;
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+    draw();
+}
+
+function resetWalk() {
+    stopWalk();
+    visitCount = {}; walkPath = []; walkStep = 0; currentNode = null; coverTime = null; paused = false;
+    document.getElementById('btn-pause').textContent = '⏸ Pause';
+    updateStats(); draw();
+}
+
+function updateStats() {
+    document.getElementById('stat-steps').textContent = walkStep;
+    const visited = nodes.filter(n => (visitCount[n.id] || 0) > 0).length;
+    document.getElementById('stat-coverage').textContent = `${visited} / ${nodes.length}`;
+    document.getElementById('stat-cover').textContent = coverTime !== null ? coverTime : '—';
+    const cur = nodes.find(n => n.id === currentNode);
+    document.getElementById('stat-current').textContent = cur ? cur.label : '—';
+
+    // Heatmap
+    const container = document.getElementById('heatmap-container');
+    const maxV = Math.max(1, ...nodes.map(n => visitCount[n.id] || 0));
+    container.innerHTML = nodes.map(n => {
+        const v = visitCount[n.id] || 0;
+        const pct = Math.max(2, (v / maxV) * 100);
+        const heat = walkStep > 0 ? v / walkStep : 0;
+        return `<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+            <span style="width:28px;font-size:0.8rem;font-weight:600">${n.label}</span>
+            <div class="heatmap-bar" style="width:${pct}%;background:${heatColor(heat)}">${v}</div>
+            <span style="font-size:0.7rem;color:var(--text-muted)">${(heat*100).toFixed(1)}%</span>
+        </div>`;
+    }).join('');
+
+    // Walk log (last 50)
+    const log = document.getElementById('walk-log');
+    const recent = walkPath.slice(-50);
+    log.innerHTML = recent.map((id, i) => {
+        const n = nodes.find(nd => nd.id === id);
+        return n ? n.label : '?';
+    }).join(' → ');
+    log.scrollTop = log.scrollHeight;
+}
+
+// ─── Presets ───
+function loadPreset(type) {
+    clearGraph();
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    if (type === 'cycle') {
+        const N = 8;
+        for (let i = 0; i < N; i++) {
+            const a = (2 * Math.PI * i) / N - Math.PI/2;
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx + 160*Math.cos(a), y: cy + 160*Math.sin(a) });
+            nextId++;
+        }
+        for (let i = 0; i < N; i++) edges.push([i, (i+1)%N]);
+    } else if (type === 'complete') {
+        const N = 6;
+        for (let i = 0; i < N; i++) {
+            const a = (2 * Math.PI * i) / N - Math.PI/2;
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx + 140*Math.cos(a), y: cy + 140*Math.sin(a) });
+            nextId++;
+        }
+        for (let i = 0; i < N; i++) for (let j = i+1; j < N; j++) edges.push([i, j]);
+    } else if (type === 'star') {
+        nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx, y: cy }); nextId++;
+        const N = 7;
+        for (let i = 0; i < N; i++) {
+            const a = (2 * Math.PI * i) / N - Math.PI/2;
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx + 170*Math.cos(a), y: cy + 170*Math.sin(a) });
+            edges.push([0, nextId]); nextId++;
+        }
+    } else if (type === 'grid') {
+        const R = 3, C = 4;
+        for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx - 120 + c*80, y: cy - 80 + r*80 });
+            if (c > 0) edges.push([nextId, nextId-1]);
+            if (r > 0) edges.push([nextId, nextId-C]);
+            nextId++;
+        }
+    } else if (type === 'barbell') {
+        // Two K4 connected by a path
+        for (let i = 0; i < 4; i++) {
+            const a = (2*Math.PI*i)/4 - Math.PI/2;
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx - 180 + 60*Math.cos(a), y: cy + 60*Math.sin(a) }); nextId++;
+        }
+        for (let i = 0; i < 4; i++) for (let j = i+1; j < 4; j++) edges.push([i,j]);
+        // Bridge
+        nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx - 60, y: cy }); nextId++;
+        nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx + 60, y: cy }); nextId++;
+        edges.push([1, 4]); edges.push([4, 5]); edges.push([5, 6]);
+        // Right K4
+        for (let i = 0; i < 4; i++) {
+            const a = (2*Math.PI*i)/4 - Math.PI/2;
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: cx + 180 + 60*Math.cos(a), y: cy + 60*Math.sin(a) }); nextId++;
+        }
+        for (let i = 6; i < 10; i++) for (let j = i+1; j < 10; j++) edges.push([i,j]);
+        edges.push([5, 6]);
+    } else if (type === 'random') {
+        const N = 10;
+        for (let i = 0; i < N; i++) {
+            nodes.push({ id: nextId, label: String.fromCharCode(65+nextId), x: 60 + Math.random()*(canvas.width-120), y: 60 + Math.random()*(canvas.height-120) });
+            nextId++;
+        }
+        // Ensure connected: random spanning tree then extra edges
+        const shuffled = [...Array(N).keys()].sort(() => Math.random()-0.5);
+        for (let i = 1; i < N; i++) {
+            const j = Math.floor(Math.random() * i);
+            edges.push([shuffled[i], shuffled[j]]);
+        }
+        for (let k = 0; k < N; k++) {
+            const a = Math.floor(Math.random()*N), b = Math.floor(Math.random()*N);
+            if (a !== b && !edges.some(([x,y]) => (x===a&&y===b)||(x===b&&y===a))) edges.push([a,b]);
+        }
+    }
+    updateStartSelect(); draw();
+}
+
+// ─── Init ───
+window.addEventListener('load', () => { resize(); loadPreset('cycle'); });
+</script>
+
+</body>
+</html>
