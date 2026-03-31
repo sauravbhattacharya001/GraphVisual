@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isomorphism Checker — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .iso-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        .graph-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .graph-panel h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+        canvas.graph-canvas { width: 100%; aspect-ratio: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: crosshair; display: block; }
+        .controls { margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red, #e74c3c); color: #fff; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .result-box { margin-top: 16px; padding: 16px; border-radius: 8px; font-size: 14px; display: none; }
+        .result-yes { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4); color: #2ecc71; }
+        .result-no { background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.4); color: #e74c3c; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+        .info-card { background: var(--bg); padding: 12px; border-radius: 6px; font-size: 13px; }
+        .info-card .label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+        .mapping-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+        .mapping-table th, .mapping-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: center; }
+        .mapping-table th { color: var(--accent); font-size: 11px; text-transform: uppercase; }
+        textarea.edge-input { width: 100%; height: 60px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; resize: vertical; }
+        .mode-toggle { display: flex; gap: 4px; background: var(--bg); border-radius: 6px; padding: 3px; }
+        .mode-btn { padding: 6px 12px; border: none; background: transparent; color: var(--text-muted); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .mode-btn.active { background: var(--accent); color: #000; }
+        .help-text { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+        .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .preset-btn { padding: 4px 10px; font-size: 11px; border: 1px solid var(--border); background: var(--surface-hover); color: var(--text); border-radius: 4px; cursor: pointer; }
+        .preset-btn:hover { border-color: var(--accent); }
+        @media (max-width: 768px) { .iso-layout { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Spectrum</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">🎯</span>Centrality Radar</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link active"><span class="icon">🔄</span>Isomorphism</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🔄 Graph Isomorphism Checker
+    <span class="subtitle">Determine if two graphs are structurally identical</span>
+</h1>
+
+<p>Draw or type two graphs and check whether they are <strong>isomorphic</strong> — structurally identical up to vertex relabeling. If isomorphic, the tool shows a valid vertex mapping between them.</p>
+
+<div class="controls">
+    <div class="btn-row">
+        <div class="mode-toggle">
+            <button class="mode-btn active" onclick="setMode('draw')">✏️ Draw</button>
+            <button class="mode-btn" onclick="setMode('text')">⌨️ Edge List</button>
+        </div>
+        <button class="btn btn-primary" onclick="checkIsomorphism()">🔄 Check Isomorphism</button>
+        <button class="btn btn-secondary" onclick="clearAll()">🗑️ Clear All</button>
+    </div>
+    <div class="preset-row">
+        <span style="font-size:12px;color:var(--text-muted);margin-right:4px;">Presets:</span>
+        <button class="preset-btn" onclick="loadPreset('iso-pair')">Isomorphic Pair</button>
+        <button class="preset-btn" onclick="loadPreset('non-iso')">Non-Isomorphic</button>
+        <button class="preset-btn" onclick="loadPreset('petersen')">Petersen vs K₃,₃</button>
+        <button class="preset-btn" onclick="loadPreset('cubes')">Cube vs Prism</button>
+    </div>
+    <div class="help-text" id="drawHelp">
+        <strong>Draw mode:</strong> Click canvas to add nodes. Click two nodes sequentially to add an edge. Right-click a node to delete it.
+    </div>
+    <div class="help-text" id="textHelp" style="display:none;">
+        <strong>Edge list mode:</strong> Enter edges as pairs like <code>0-1, 1-2, 2-3</code> (one graph per box).
+    </div>
+</div>
+
+<div class="iso-layout">
+    <div class="graph-panel">
+        <h3>Graph A</h3>
+        <canvas class="graph-canvas" id="canvasA" width="500" height="500"></canvas>
+        <textarea class="edge-input" id="edgesA" style="display:none;" placeholder="0-1, 1-2, 2-0, ..."></textarea>
+    </div>
+    <div class="graph-panel">
+        <h3>Graph B</h3>
+        <canvas class="graph-canvas" id="canvasB" width="500" height="500"></canvas>
+        <textarea class="edge-input" id="edgesB" style="display:none;" placeholder="0-1, 1-2, 2-0, ..."></textarea>
+    </div>
+</div>
+
+<div class="info-grid">
+    <div class="info-card"><div class="label">Graph A</div><div class="value" id="statsA">0V / 0E</div></div>
+    <div class="info-card"><div class="label">Graph B</div><div class="value" id="statsB">0V / 0E</div></div>
+    <div class="info-card"><div class="label">Degree Sequence A</div><div class="value" id="degA" style="font-size:14px;">—</div></div>
+    <div class="info-card"><div class="label">Degree Sequence B</div><div class="value" id="degB" style="font-size:14px;">—</div></div>
+</div>
+
+<div class="result-box" id="resultBox">
+    <div id="resultText"></div>
+    <div id="mappingArea"></div>
+</div>
+
+</div>
+</div>
+
+<script>
+// --- Graph data ---
+const graphs = {
+    A: { nodes: [], edges: [] },
+    B: { nodes: [], edges: [] }
+};
+let mode = 'draw';
+let selectedNode = { A: null, B: null };
+let nodeIdCounter = { A: 0, B: 0 };
+const COLORS = ['#3498db','#e74c3c','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#e91e63','#00bcd4','#8bc34a'];
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.mode-btn[onclick="setMode('${m}')"]`).classList.add('active');
+    document.getElementById('drawHelp').style.display = m === 'draw' ? 'block' : 'none';
+    document.getElementById('textHelp').style.display = m === 'text' ? 'block' : 'none';
+    ['A','B'].forEach(g => {
+        document.getElementById('canvas'+g).style.display = m === 'draw' ? 'block' : 'none';
+        document.getElementById('edges'+g).style.display = m === 'text' ? 'block' : 'none';
+    });
+    if (m === 'text') syncGraphsToText();
+}
+
+function syncGraphsToText() {
+    ['A','B'].forEach(g => {
+        const edgeStrs = graphs[g].edges.map(e => `${e[0]}-${e[1]}`);
+        document.getElementById('edges'+g).value = edgeStrs.join(', ');
+    });
+}
+
+function parseEdgeList(text) {
+    const nodes = new Set();
+    const edges = [];
+    text.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).forEach(s => {
+        const m = s.match(/^(\w+)\s*[-–—]\s*(\w+)$/);
+        if (m) {
+            nodes.add(m[1]); nodes.add(m[2]);
+            edges.push([m[1], m[2]]);
+        }
+    });
+    return { nodeIds: [...nodes], edges };
+}
+
+// --- Canvas interaction ---
+function getCanvasPos(canvas, e) {
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
+    return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+
+function findNode(g, x, y) {
+    return graphs[g].nodes.find(n => Math.hypot(n.x - x, n.y - y) < 18);
+}
+
+function setupCanvas(gId) {
+    const canvas = document.getElementById('canvas' + gId);
+    canvas.addEventListener('click', e => {
+        if (mode !== 'draw') return;
+        const pos = getCanvasPos(canvas, e);
+        const hit = findNode(gId, pos.x, pos.y);
+        if (hit) {
+            if (selectedNode[gId] === null) {
+                selectedNode[gId] = hit.id;
+                hit.selected = true;
+            } else if (selectedNode[gId] !== hit.id) {
+                const a = selectedNode[gId], b = hit.id;
+                if (!graphs[gId].edges.some(e => (e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a))) {
+                    graphs[gId].edges.push([a, b]);
+                }
+                graphs[gId].nodes.forEach(n => n.selected = false);
+                selectedNode[gId] = null;
+            } else {
+                hit.selected = false;
+                selectedNode[gId] = null;
+            }
+        } else {
+            graphs[gId].nodes.forEach(n => n.selected = false);
+            selectedNode[gId] = null;
+            const id = String(nodeIdCounter[gId]++);
+            graphs[gId].nodes.push({ id, x: pos.x, y: pos.y, selected: false });
+        }
+        drawGraph(gId);
+        updateStats();
+    });
+    canvas.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (mode !== 'draw') return;
+        const pos = getCanvasPos(canvas, e);
+        const hit = findNode(gId, pos.x, pos.y);
+        if (hit) {
+            graphs[gId].nodes = graphs[gId].nodes.filter(n => n.id !== hit.id);
+            graphs[gId].edges = graphs[gId].edges.filter(e => e[0] !== hit.id && e[1] !== hit.id);
+            if (selectedNode[gId] === hit.id) selectedNode[gId] = null;
+            drawGraph(gId);
+            updateStats();
+        }
+    });
+    // Drag support
+    let dragging = null;
+    canvas.addEventListener('mousedown', e => {
+        if (mode !== 'draw' || e.button !== 0) return;
+        const pos = getCanvasPos(canvas, e);
+        dragging = findNode(gId, pos.x, pos.y);
+    });
+    canvas.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        const pos = getCanvasPos(canvas, e);
+        dragging.x = pos.x; dragging.y = pos.y;
+        drawGraph(gId);
+    });
+    canvas.addEventListener('mouseup', () => { dragging = null; });
+}
+
+function drawGraph(gId) {
+    const canvas = document.getElementById('canvas' + gId);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Edges
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    graphs[gId].edges.forEach(([a, b]) => {
+        const na = graphs[gId].nodes.find(n => n.id === a);
+        const nb = graphs[gId].nodes.find(n => n.id === b);
+        if (na && nb) {
+            ctx.beginPath(); ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y); ctx.stroke();
+        }
+    });
+    // Nodes
+    graphs[gId].nodes.forEach((n, i) => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+        ctx.fillStyle = n.mappedColor || COLORS[i % COLORS.length];
+        ctx.fill();
+        if (n.selected) {
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+        }
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n.id, n.x, n.y);
+    });
+}
+
+function updateStats() {
+    ['A','B'].forEach(g => {
+        const nV = graphs[g].nodes.length, nE = graphs[g].edges.length;
+        document.getElementById('stats'+g).textContent = `${nV}V / ${nE}E`;
+        const deg = getDegreeSequence(g);
+        document.getElementById('deg'+g).textContent = deg.length ? deg.join(', ') : '—';
+    });
+}
+
+function getDegreeSequence(gId) {
+    const degMap = {};
+    graphs[gId].nodes.forEach(n => degMap[n.id] = 0);
+    graphs[gId].edges.forEach(([a,b]) => { degMap[a] = (degMap[a]||0)+1; degMap[b] = (degMap[b]||0)+1; });
+    return Object.values(degMap).sort((a,b) => a-b);
+}
+
+// --- Isomorphism check (backtracking with degree pruning) ---
+function checkIsomorphism() {
+    // If text mode, parse edge lists first
+    if (mode === 'text') {
+        ['A','B'].forEach(gId => {
+            const parsed = parseEdgeList(document.getElementById('edges'+gId).value);
+            graphs[gId].nodes = parsed.nodeIds.map((id, i) => {
+                const angle = (2 * Math.PI * i) / parsed.nodeIds.length;
+                return { id, x: 250 + 150 * Math.cos(angle), y: 250 + 150 * Math.sin(angle), selected: false };
+            });
+            graphs[gId].edges = parsed.edges;
+        });
+        drawGraph('A'); drawGraph('B'); updateStats();
+    }
+
+    const nodesA = graphs.A.nodes.map(n => n.id);
+    const nodesB = graphs.B.nodes.map(n => n.id);
+    const box = document.getElementById('resultBox');
+    const txt = document.getElementById('resultText');
+    const mapArea = document.getElementById('mappingArea');
+
+    if (nodesA.length !== nodesB.length || graphs.A.edges.length !== graphs.B.edges.length) {
+        box.style.display = 'block'; box.className = 'result-box result-no';
+        txt.innerHTML = '<strong>❌ Not Isomorphic</strong> — Different vertex/edge counts.';
+        mapArea.innerHTML = ''; clearMappingColors(); return;
+    }
+    if (nodesA.length === 0) {
+        box.style.display = 'block'; box.className = 'result-box result-yes';
+        txt.innerHTML = '<strong>✅ Isomorphic</strong> — Both graphs are empty.';
+        mapArea.innerHTML = ''; return;
+    }
+
+    const degA = getDegreeSequence('A'), degB = getDegreeSequence('B');
+    if (degA.join(',') !== degB.join(',')) {
+        box.style.display = 'block'; box.className = 'result-box result-no';
+        txt.innerHTML = '<strong>❌ Not Isomorphic</strong> — Different degree sequences.';
+        mapArea.innerHTML = ''; clearMappingColors(); return;
+    }
+
+    // Build adjacency sets
+    const adjA = {}, adjB = {};
+    nodesA.forEach(n => adjA[n] = new Set());
+    nodesB.forEach(n => adjB[n] = new Set());
+    graphs.A.edges.forEach(([a,b]) => { adjA[a].add(b); adjA[b].add(a); });
+    graphs.B.edges.forEach(([a,b]) => { adjB[a].add(b); adjB[b].add(a); });
+
+    // Degree map for pruning
+    const degMapA = {}, degMapB = {};
+    nodesA.forEach(n => degMapA[n] = adjA[n].size);
+    nodesB.forEach(n => degMapB[n] = adjB[n].size);
+
+    // Sort A nodes by degree descending for better pruning
+    const sortedA = [...nodesA].sort((a,b) => degMapA[b] - degMapA[a]);
+
+    // Backtracking
+    const mapping = {}; // A -> B
+    const usedB = new Set();
+
+    function backtrack(idx) {
+        if (idx === sortedA.length) return true;
+        const aNode = sortedA[idx];
+        const aDeg = degMapA[aNode];
+        for (const bNode of nodesB) {
+            if (usedB.has(bNode)) continue;
+            if (degMapB[bNode] !== aDeg) continue;
+            // Check edge consistency with already-mapped nodes
+            let ok = true;
+            for (let i = 0; i < idx; i++) {
+                const prevA = sortedA[i];
+                const prevB = mapping[prevA];
+                const edgeInA = adjA[aNode].has(prevA);
+                const edgeInB = adjB[bNode].has(prevB);
+                if (edgeInA !== edgeInB) { ok = false; break; }
+            }
+            if (!ok) continue;
+            mapping[aNode] = bNode;
+            usedB.add(bNode);
+            if (backtrack(idx + 1)) return true;
+            delete mapping[aNode];
+            usedB.delete(bNode);
+        }
+        return false;
+    }
+
+    const isIso = backtrack(0);
+    box.style.display = 'block';
+
+    if (isIso) {
+        box.className = 'result-box result-yes';
+        txt.innerHTML = '<strong>✅ Isomorphic!</strong> A valid vertex mapping exists:';
+        let tableHtml = '<table class="mapping-table"><tr><th>Graph A</th><th>→</th><th>Graph B</th></tr>';
+        // Color matched pairs
+        const entries = Object.entries(mapping);
+        entries.forEach(([a, b], i) => {
+            const color = COLORS[i % COLORS.length];
+            tableHtml += `<tr><td style="color:${color};font-weight:700">${a}</td><td>→</td><td style="color:${color};font-weight:700">${b}</td></tr>`;
+            const nodeA = graphs.A.nodes.find(n => n.id === a);
+            const nodeB = graphs.B.nodes.find(n => n.id === b);
+            if (nodeA) nodeA.mappedColor = color;
+            if (nodeB) nodeB.mappedColor = color;
+        });
+        tableHtml += '</table>';
+        mapArea.innerHTML = tableHtml;
+        drawGraph('A'); drawGraph('B');
+    } else {
+        box.className = 'result-box result-no';
+        txt.innerHTML = '<strong>❌ Not Isomorphic</strong> — No valid vertex mapping found.';
+        mapArea.innerHTML = '';
+        clearMappingColors();
+    }
+}
+
+function clearMappingColors() {
+    ['A','B'].forEach(g => graphs[g].nodes.forEach(n => delete n.mappedColor));
+    drawGraph('A'); drawGraph('B');
+}
+
+function clearAll() {
+    ['A','B'].forEach(g => { graphs[g].nodes = []; graphs[g].edges = []; nodeIdCounter[g] = 0; selectedNode[g] = null; });
+    document.getElementById('edgesA').value = '';
+    document.getElementById('edgesB').value = '';
+    document.getElementById('resultBox').style.display = 'none';
+    drawGraph('A'); drawGraph('B'); updateStats();
+}
+
+// --- Presets ---
+function loadPreset(name) {
+    clearAll();
+    const presets = {
+        'iso-pair': {
+            A: { edges: '0-1, 1-2, 2-3, 3-0, 0-2' },
+            B: { edges: 'a-b, b-c, c-d, d-a, a-c' }
+        },
+        'non-iso': {
+            A: { edges: '0-1, 1-2, 2-3, 3-0' },
+            B: { edges: '0-1, 1-2, 2-0' }
+        },
+        'petersen': {
+            A: { edges: '0-1,1-2,2-3,3-4,4-0,0-5,1-6,2-7,3-8,4-9,5-7,7-9,9-6,6-8,8-5' },
+            B: { edges: '0-1,0-2,0-3,1-4,1-5,2-4,2-6,3-5,3-6' }
+        },
+        'cubes': {
+            A: { edges: '0-1,1-2,2-3,3-0,4-5,5-6,6-7,7-4,0-4,1-5,2-6,3-7' },
+            B: { edges: '0-1,1-2,2-3,3-4,4-5,5-0,0-6,1-7,2-8,3-6,4-7,5-8' }
+        }
+    };
+    const p = presets[name]; if (!p) return;
+    ['A','B'].forEach(gId => {
+        const parsed = parseEdgeList(p[gId].edges);
+        graphs[gId].nodes = parsed.nodeIds.map((id, i) => {
+            const angle = (2 * Math.PI * i) / parsed.nodeIds.length - Math.PI/2;
+            return { id, x: 250 + 160 * Math.cos(angle), y: 250 + 160 * Math.sin(angle), selected: false };
+        });
+        graphs[gId].edges = parsed.edges;
+    });
+    if (mode === 'text') syncGraphsToText();
+    drawGraph('A'); drawGraph('B'); updateStats();
+}
+
+// --- Init ---
+setupCanvas('A'); setupCanvas('B');
+drawGraph('A'); drawGraph('B');
+</script>
+
+</body>
+</html>
