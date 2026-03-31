@@ -39,20 +39,61 @@ public class NetworkReportGenerator {
     private final List<Edge> classmateEdges;
     private final List<Edge> strangerEdges;
     private final List<Edge> studyGEdges;
+    private final Map<String, List<Edge>> edgesByType;
     private String title = "Network Analysis Report";
 
+    /**
+     * Creates a report generator using a map of edge type code → edge list.
+     * This is the preferred constructor — it decouples the generator from any
+     * fixed set of edge types and automatically adapts when new types are added
+     * to {@link EdgeTypeRegistry}.
+     *
+     * @param graph       the JUNG graph to analyze
+     * @param edgesByType map from type code (e.g. "f", "fs") to edge list; null entries are treated as empty
+     */
+    public NetworkReportGenerator(Graph<String, Edge> graph,
+                                   Map<String, List<Edge>> edgesByType) {
+        this.graph = graph;
+        this.edgesByType = new LinkedHashMap<String, List<Edge>>();
+        if (edgesByType != null) {
+            for (Map.Entry<String, List<Edge>> e : edgesByType.entrySet()) {
+                this.edgesByType.put(e.getKey(), e.getValue() != null ? e.getValue() : Collections.<Edge>emptyList());
+            }
+        }
+        // Maintain backward-compatible field access for subclasses/tests
+        this.friendEdges = this.edgesByType.containsKey("f") ? this.edgesByType.get("f") : Collections.<Edge>emptyList();
+        this.fsEdges = this.edgesByType.containsKey("fs") ? this.edgesByType.get("fs") : Collections.<Edge>emptyList();
+        this.classmateEdges = this.edgesByType.containsKey("c") ? this.edgesByType.get("c") : Collections.<Edge>emptyList();
+        this.strangerEdges = this.edgesByType.containsKey("s") ? this.edgesByType.get("s") : Collections.<Edge>emptyList();
+        this.studyGEdges = this.edgesByType.containsKey("sg") ? this.edgesByType.get("sg") : Collections.<Edge>emptyList();
+    }
+
+    /**
+     * Legacy constructor — delegates to the map-based constructor.
+     *
+     * @deprecated Use {@link #NetworkReportGenerator(Graph, Map)} instead.
+     */
+    @Deprecated
     public NetworkReportGenerator(Graph<String, Edge> graph,
                                    List<Edge> friendEdges,
                                    List<Edge> fsEdges,
                                    List<Edge> classmateEdges,
                                    List<Edge> strangerEdges,
                                    List<Edge> studyGEdges) {
-        this.graph = graph;
-        this.friendEdges = friendEdges != null ? friendEdges : Collections.<Edge>emptyList();
-        this.fsEdges = fsEdges != null ? fsEdges : Collections.<Edge>emptyList();
-        this.classmateEdges = classmateEdges != null ? classmateEdges : Collections.<Edge>emptyList();
-        this.strangerEdges = strangerEdges != null ? strangerEdges : Collections.<Edge>emptyList();
-        this.studyGEdges = studyGEdges != null ? studyGEdges : Collections.<Edge>emptyList();
+        this(graph, buildLegacyMap(friendEdges, fsEdges, classmateEdges, strangerEdges, studyGEdges));
+    }
+
+    private static Map<String, List<Edge>> buildLegacyMap(
+            List<Edge> friendEdges, List<Edge> fsEdges,
+            List<Edge> classmateEdges, List<Edge> strangerEdges,
+            List<Edge> studyGEdges) {
+        Map<String, List<Edge>> m = new LinkedHashMap<String, List<Edge>>();
+        m.put("f", friendEdges);
+        m.put("fs", fsEdges);
+        m.put("c", classmateEdges);
+        m.put("s", strangerEdges);
+        m.put("sg", studyGEdges);
+        return m;
     }
 
     /** Set the report title. */
@@ -106,17 +147,17 @@ public class NetworkReportGenerator {
         });
         List<Map.Entry<String, Integer>> top10 = sortedNodes.subList(0, Math.min(10, sortedNodes.size()));
 
-        // Edge type counts
-        int[] edgeTypeCounts = {
-            friendEdges.size(), fsEdges.size(), classmateEdges.size(),
-            strangerEdges.size(), studyGEdges.size()
-        };
+        // Edge type counts — driven by edgesByType map so new types are included automatically
         java.util.List<String> typeCodes = EdgeTypeRegistry.getAllTypeCodes();
+        int[] edgeTypeCounts = new int[typeCodes.size()];
         String[] edgeTypeNames = new String[typeCodes.size()];
         String[] edgeTypeColors = new String[typeCodes.size()];
         for (int i = 0; i < typeCodes.size(); i++) {
-            edgeTypeNames[i] = EdgeTypeRegistry.getName(typeCodes.get(i));
-            edgeTypeColors[i] = EdgeTypeRegistry.getHexColor(typeCodes.get(i));
+            String code = typeCodes.get(i);
+            edgeTypeNames[i] = EdgeTypeRegistry.getName(code);
+            edgeTypeColors[i] = EdgeTypeRegistry.getHexColor(code);
+            List<Edge> edges = edgesByType.get(code);
+            edgeTypeCounts[i] = edges != null ? edges.size() : 0;
         }
         int totalEdgeTypes = 0;
         for (int c : edgeTypeCounts) totalEdgeTypes += c;

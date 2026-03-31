@@ -468,27 +468,35 @@ public class LouvainCommunityDetector {
                                      int[] community, double m2, int n) {
         if (m2 == 0.0) return 0.0;
 
-        // Accumulate sum of weights and sum of degree products per community
-        // in a single pass, avoiding the O(E) inner loop over all edges.
-        // Community degree sums are maintained in an array for O(1) access.
-        Map<Integer, Integer> cRemap = normalizeIds(community, n);
-        int numC = cRemap.size();
-        double[] cDeg = new double[numC];          // sum of degrees per community
-        double[] cInternalW = new double[numC];    // sum of internal edge weights (double-counted)
+        // Find max community id to size arrays directly, avoiding the O(n)
+        // HashMap allocation from normalizeIds.  Community ids are always
+        // non-negative integers in [0, n), so we can use a compact array.
+        int maxC = 0;
+        for (int i = 0; i < n; i++) {
+            if (community[i] > maxC) maxC = community[i];
+        }
+        int arrLen = maxC + 1;
+        double[] cDeg = new double[arrLen];          // sum of degrees per community
+        double[] cInternalW = new double[arrLen];    // sum of internal edge weights (double-counted)
+        boolean[] used = new boolean[arrLen];         // track which community slots are populated
 
         for (int i = 0; i < n; i++) {
-            int ci = cRemap.get(community[i]);
+            int ci = community[i];
             cDeg[ci] += degree[i];
+            used[ci] = true;
             for (Map.Entry<Integer, Double> e : adj.get(i).entrySet()) {
-                if (community[e.getKey()] == community[i]) {
+                if (community[e.getKey()] == ci) {
                     cInternalW[ci] += e.getValue();
                 }
             }
         }
 
+        double invM2 = 1.0 / m2;
+        double invM2Sq = invM2 * invM2;
         double q = 0.0;
-        for (int c = 0; c < numC; c++) {
-            q += cInternalW[c] / m2 - resolution * (cDeg[c] * cDeg[c]) / (m2 * m2);
+        for (int c = 0; c < arrLen; c++) {
+            if (!used[c]) continue;
+            q += cInternalW[c] * invM2 - resolution * (cDeg[c] * cDeg[c]) * invM2Sq;
         }
         return q;
     }
