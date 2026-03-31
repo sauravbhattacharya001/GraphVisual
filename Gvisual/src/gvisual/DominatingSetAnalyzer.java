@@ -99,6 +99,15 @@ public class DominatingSetAnalyzer {
      * Finds an exact minimum dominating set by exhaustive search.
      * Only practical for graphs with ≤ 20 vertices.
      *
+     * <p><b>Optimization:</b> Uses bitmask-based enumeration with precomputed
+     * closed-neighborhood masks. Each vertex {@code i} has a mask
+     * {@code closedNbr[i]} with bit {@code j} set iff {@code j == i} or
+     * {@code j} is a neighbor of {@code i}. A candidate set's domination
+     * coverage is computed by OR-ing the masks of its members — O(1) per
+     * member instead of O(degree) HashSet operations. This eliminates all
+     * object allocation in the inner loop (no LinkedHashSet per combination)
+     * and reduces the domination check from O(V·D) to O(D) bit-ops.</p>
+     *
      * @return the smallest dominating set, or empty set for empty graphs
      * @throws IllegalStateException if graph has more than 20 vertices
      */
@@ -111,31 +120,73 @@ public class DominatingSetAnalyzer {
                 "Exact search only supported for graphs with <= 20 vertices (has " + n + ")");
         }
 
-        // Try increasing subset sizes
+        // Build index map: vertex name → bit position
+        Map<String, Integer> indexOf = new HashMap<String, Integer>(n * 2);
+        for (int i = 0; i < n; i++) indexOf.put(vertices.get(i), i);
+
+        // Precompute closed-neighborhood bitmasks.
+        // closedNbr[i] has bit j set iff j == i or j is adjacent to i.
+        int[] closedNbr = new int[n];
+        for (int i = 0; i < n; i++) {
+            int mask = 1 << i; // self
+            Set<String> neighbors = adj.get(vertices.get(i));
+            if (neighbors != null) {
+                for (String nb : neighbors) {
+                    Integer idx = indexOf.get(nb);
+                    if (idx != null) mask |= (1 << idx);
+                }
+            }
+            closedNbr[i] = mask;
+        }
+
+        int fullMask = (1 << n) - 1;
+
+        // Try increasing subset sizes using Gosper's hack for
+        // enumerating k-subsets in bitmask order.
         for (int size = 1; size <= n; size++) {
-            Set<String> result = findDominatingSetOfSize(vertices, size, n);
-            if (result != null) return Collections.unmodifiableSet(result);
+            int result = _findDominatingMask(size, n, closedNbr, fullMask);
+            if (result >= 0) {
+                Set<String> domSet = new LinkedHashSet<String>();
+                for (int i = 0; i < n; i++) {
+                    if ((result & (1 << i)) != 0) domSet.add(vertices.get(i));
+                }
+                return Collections.unmodifiableSet(domSet);
+            }
         }
         // Full set always dominates
         return Collections.unmodifiableSet(new LinkedHashSet<String>(vertices));
     }
 
-    private Set<String> findDominatingSetOfSize(List<String> vertices, int size, int n) {
-        int[] indices = new int[size];
-        for (int i = 0; i < size; i++) indices[i] = i;
+    /**
+     * Enumerates all k-subsets of {0..n-1} using Gosper's hack and
+     * checks domination via precomputed bitmasks.
+     *
+     * @return the first dominating bitmask found, or -1 if none exists
+     */
+    private static int _findDominatingMask(int k, int n, int[] closedNbr, int fullMask) {
+        if (k == 0) return fullMask == 0 ? 0 : -1;
+        // Start: lowest k bits set
+        int set = (1 << k) - 1;
+        int limit = 1 << n;
 
-        while (true) {
-            Set<String> candidate = new LinkedHashSet<String>();
-            for (int idx : indices) candidate.add(vertices.get(idx));
-            if (isDominatingSet(candidate)) return candidate;
+        while (set < limit) {
+            // Compute coverage by OR-ing closed neighborhoods
+            int coverage = 0;
+            int tmp = set;
+            while (tmp != 0) {
+                int lowest = tmp & (-tmp);           // isolate lowest set bit
+                int idx = Integer.numberOfTrailingZeros(lowest);
+                coverage |= closedNbr[idx];
+                tmp ^= lowest;                       // clear lowest set bit
+            }
+            if (coverage == fullMask) return set;
 
-            // Next combination
-            int i = size - 1;
-            while (i >= 0 && indices[i] == n - size + i) i--;
-            if (i < 0) return null;
-            indices[i]++;
-            for (int j = i + 1; j < size; j++) indices[j] = indices[j - 1] + 1;
+            // Gosper's hack: advance to next k-subset
+            int c = set & (-set);
+            int r = set + c;
+            set = (((r ^ set) >> 2) / c) | r;
         }
+        return -1;
     }
 
     // ── Independent dominating set ──────────────────────────────────────
