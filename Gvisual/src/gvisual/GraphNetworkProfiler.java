@@ -138,6 +138,7 @@ public class GraphNetworkProfiler {
     private double density;
     private double avgDegree;
     private double degreeVariance;
+    private double degreeCV;  // coefficient of variation — used by classify() and buildMetricResults()
     private double globalClustering;
     private int approxDiameter;
     private double assortativity;
@@ -182,9 +183,8 @@ public class GraphNetworkProfiler {
         computeDensity(n, m);
         computeDegreeStats(n);
         computeClustering();
-        computeDiameterAndAvgPathLength(n);
+        computeComponentsAndPaths(n);  // single BFS pass for components + diameter + avg path
         computeAssortativity();
-        computeComponents(n);
         computePowerLawExponent();
         computeSmallWorldQuotient(n, m);
         computeHubDominance();
@@ -210,6 +210,7 @@ public class GraphNetworkProfiler {
         }
         avgDegree = sum / n;
         degreeVariance = (sumSq / n) - (avgDegree * avgDegree);
+        degreeCV = avgDegree < 1e-10 ? 0 : Math.sqrt(degreeVariance) / avgDegree;
     }
 
     private void computeClustering() {
@@ -235,25 +236,67 @@ public class GraphNetworkProfiler {
     }
 
     /**
-     * Compute approximate diameter and average path length in a single BFS pass
-     * over sampled vertices, avoiding redundant graph traversals.
+     * Compute connected components, approximate diameter, and average path length
+     * in a single BFS pass over all vertices. This eliminates redundant BFS
+     * traversals that previously happened in separate computeComponents() and
+     * computeDiameterAndAvgPathLength() methods.
+     *
+     * <p>BFS from every vertex in the sampled set computes distances for
+     * diameter/path length estimation. Component detection piggybacks on
+     * BFS from unvisited vertices (which happen naturally as samples
+     * include vertices across components). For vertices not covered by
+     * samples, a final sweep finds remaining components.</p>
      */
-    private void computeDiameterAndAvgPathLength(int n) {
+    private void computeComponentsAndPaths(int n) {
         List<String> vertices = new ArrayList<>(graph.getVertices());
-        int samples = Math.min(SAMPLE_SIZE, n);
         Collections.shuffle(vertices, random);
+        int samples = Math.min(SAMPLE_SIZE, n);
+
         int maxDist = 0;
         long totalDist = 0;
         long pairCount = 0;
+
+        // Track visited vertices for component detection
+        Set<String> visited = new HashSet<>();
+        int compCount = 0;
+        int largestSize = 0;
+
+        // Phase 1: BFS from sampled vertices — compute path stats AND discover components
         for (int i = 0; i < samples; i++) {
-            Map<String, Integer> dist = GraphUtils.bfsDistances(graph, vertices.get(i));
+            String root = vertices.get(i);
+            Map<String, Integer> dist = GraphUtils.bfsDistances(graph, root);
+
+            // Path length stats
             for (int d : dist.values()) {
                 if (d > maxDist) maxDist = d;
                 if (d > 0) { totalDist += d; pairCount++; }
             }
+
+            // Component detection: if root wasn't visited, this BFS discovered a new component
+            if (!visited.contains(root)) {
+                compCount++;
+                int compSize = dist.size();
+                if (compSize > largestSize) largestSize = compSize;
+                visited.addAll(dist.keySet());
+            }
         }
+
+        // Phase 2: sweep remaining unvisited vertices to find components not
+        // touched by any sample (possible in highly fragmented graphs)
+        for (String v : vertices) {
+            if (!visited.contains(v)) {
+                Map<String, Integer> dist = GraphUtils.bfsDistances(graph, v);
+                compCount++;
+                int compSize = dist.size();
+                if (compSize > largestSize) largestSize = compSize;
+                visited.addAll(dist.keySet());
+            }
+        }
+
         approxDiameter = maxDist;
         avgPathLength = pairCount == 0 ? 0.0 : (double) totalDist / pairCount;
+        componentCount = compCount;
+        largestComponentFraction = n == 0 ? 0.0 : (double) largestSize / n;
     }
 
     private void computeAssortativity() {
@@ -275,22 +318,6 @@ public class GraphNetworkProfiler {
         double den = 0.5 * ((sumISq / m) + (sumJSq / m))
                    - Math.pow((sumI + sumJ) / (2.0 * m), 2);
         assortativity = Math.abs(den) < 1e-10 ? 0.0 : num / den;
-    }
-
-    private void computeComponents(int n) {
-        Set<String> visited = new HashSet<>();
-        int count = 0;
-        int largestSize = 0;
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                Map<String, Integer> dist = GraphUtils.bfsDistances(graph, v);
-                visited.addAll(dist.keySet());
-                count++;
-                if (dist.size() > largestSize) largestSize = dist.size();
-            }
-        }
-        componentCount = count;
-        largestComponentFraction = n == 0 ? 0.0 : (double) largestSize / n;
     }
 
     private void computePowerLawExponent() {
@@ -354,7 +381,6 @@ public class GraphNetworkProfiler {
         scores.put(NetworkType.TREE_LIKE, treeScore);
 
         // LATTICE: regular degree, high clustering, high diameter
-        double degCV = avgDegree < 1e-10 ? 0 : Math.sqrt(degreeVariance) / avgDegree;
         double latticeScore = 0;
         if (degCV < 0.3) latticeScore += 35;
         if (globalClustering > 0.3) latticeScore += 25;
@@ -433,11 +459,10 @@ public class GraphNetworkProfiler {
                 avgDegree < 2 ? "Under-connected" :
                 avgDegree < 10 ? "Well-connected" : "Highly connected"));
 
-        double degCV = avgDegree < 1e-10 ? 0 : Math.sqrt(degreeVariance) / avgDegree;
         metricResults.add(new MetricResult("Degree Heterogeneity (CV)", "Degree",
-                degCV, scoreDegreeCV(degCV),
-                degCV < 0.3 ? "Homogeneous" :
-                degCV < 1.0 ? "Moderate variation" : "Highly heterogeneous"));
+                degreeCV, scoreDegreeCV(degreeCV),
+                degreeCV < 0.3 ? "Homogeneous" :
+                degreeCV < 1.0 ? "Moderate variation" : "Highly heterogeneous"));
 
         metricResults.add(new MetricResult("Clustering Coefficient", "Clustering",
                 globalClustering, globalClustering * 100,
@@ -552,7 +577,7 @@ public class GraphNetworkProfiler {
     }
 
     private void setEmptyDefaults() {
-        density = avgDegree = degreeVariance = globalClustering = 0;
+        density = avgDegree = degreeVariance = degreeCV = globalClustering = 0;
         approxDiameter = 0;
         assortativity = avgPathLength = powerLawExponent = smallWorldQuotient = hubDominance = 0;
         componentCount = 0;
