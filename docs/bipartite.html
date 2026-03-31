@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bipartite Checker — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .bp-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 300px; }
+        #graph-canvas {
+            width: 100%; height: 520px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+            position: relative;
+        }
+        .bp-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .bp-btn:hover { background: var(--surface-hover); }
+        .bp-btn.active { border-color: var(--accent); color: var(--accent); }
+        .bp-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .bp-btn.primary:hover { background: var(--accent-hover); }
+        .bp-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-value.yes { color: #22c55e; }
+        .stat-value.no { color: #ef4444; }
+        .stat-value.pending { color: var(--text-muted); }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .partition-info { font-size: 0.85rem; margin-top: 0.5rem; }
+        .partition-info .set-a { color: #3b82f6; font-weight: 600; }
+        .partition-info .set-b { color: #f97316; font-weight: 600; }
+        .odd-cycle-info { color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 600; }
+        .edge-list {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 160px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .result-banner {
+            padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600;
+            font-size: 0.95rem; margin-bottom: 1rem; text-align: center;
+        }
+        .result-banner.bipartite { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e40; }
+        .result-banner.not-bipartite { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+        .result-banner.empty { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link active"><span class="icon">⚖️</span>Bipartite Checker</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="page-header">
+        <h1>⚖️ Bipartite Graph Checker</h1>
+        <p class="subtitle">Test if a graph is bipartite, visualize the 2-coloring partition, or find the odd cycle that proves it isn't.</p>
+    </div>
+
+    <div class="bp-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <button class="bp-btn active" id="btn-node" onclick="setMode('node')">➕ Add Node</button>
+                <button class="bp-btn" id="btn-edge" onclick="setMode('edge')">🔗 Add Edge</button>
+                <button class="bp-btn" id="btn-move" onclick="setMode('move')">✋ Move</button>
+                <button class="bp-btn" id="btn-delete" onclick="setMode('delete')">🗑️ Delete</button>
+                <button class="bp-btn primary" onclick="checkBipartite()">⚖️ Check</button>
+                <button class="bp-btn danger" onclick="clearGraph()">Clear</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Set A</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Set B</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Odd Cycle</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div>Uncolored</div>
+            </div>
+            <canvas id="graph-canvas"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div id="result-banner" class="result-banner empty">Draw a graph and click Check</div>
+
+            <div class="info-card">
+                <h3>Graph Stats</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                    <div><div style="font-size:0.75rem;color:var(--text-muted)">Nodes</div><div class="stat-value pending" id="stat-nodes">0</div></div>
+                    <div><div style="font-size:0.75rem;color:var(--text-muted)">Edges</div><div class="stat-value pending" id="stat-edges">0</div></div>
+                </div>
+            </div>
+
+            <div class="info-card" id="partition-card" style="display:none">
+                <h3>Partition</h3>
+                <div class="partition-info">
+                    <div><span class="set-a">Set A:</span> <span id="set-a-nodes">—</span></div>
+                    <div><span class="set-b">Set B:</span> <span id="set-b-nodes">—</span></div>
+                </div>
+            </div>
+
+            <div class="info-card" id="cycle-card" style="display:none">
+                <h3>Odd Cycle Found</h3>
+                <div class="odd-cycle-info" id="odd-cycle-path"></div>
+            </div>
+
+            <div class="info-card">
+                <h3>Presets</h3>
+                <div class="presets">
+                    <button class="bp-btn" onclick="loadPreset('complete-bipartite')">K₃,₃</button>
+                    <button class="bp-btn" onclick="loadPreset('tree')">Tree</button>
+                    <button class="bp-btn" onclick="loadPreset('even-cycle')">C₆</button>
+                    <button class="bp-btn" onclick="loadPreset('odd-cycle')">C₅ (odd)</button>
+                    <button class="bp-btn" onclick="loadPreset('petersen')">Petersen</button>
+                    <button class="bp-btn" onclick="loadPreset('grid')">Grid 3×3</button>
+                    <button class="bp-btn" onclick="loadPreset('cube')">Cube Q₃</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Edge List</h3>
+                <div class="edge-list" id="edge-list">No edges yet</div>
+            </div>
+
+            <div class="info-card">
+                <h3>Import / Export</h3>
+                <textarea id="import-text" rows="3" style="width:100%;font-family:monospace;font-size:0.8rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.5rem;resize:vertical" placeholder="Paste edge list: A-B, one per line"></textarea>
+                <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+                    <button class="bp-btn" onclick="importEdges()">Import</button>
+                    <button class="bp-btn" onclick="exportEdges()">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+
+let nodes = []; // {id, x, y, label, color: null|0|1, inCycle: false}
+let edges = []; // {from, to, inCycle: false}
+let mode = 'node';
+let nextId = 0;
+let edgeStart = null;
+let dragNode = null;
+let dragOffset = {x:0, y:0};
+let checked = false;
+
+const COLORS = {0: '#3b82f6', 1: '#f97316'};
+const CYCLE_COLOR = '#ef4444';
+const DEFAULT_COLOR = '#94a3b8';
+const NODE_RADIUS = 22;
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = canvas.clientWidth * devicePixelRatio;
+    canvas.height = canvas.clientHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    draw();
+}
+window.addEventListener('resize', resize);
+
+function setMode(m) {
+    mode = m; edgeStart = null;
+    document.querySelectorAll('.toolbar .bp-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('btn-' + m);
+    if (btn) btn.classList.add('active');
+}
+
+function nodeAt(x, y) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (Math.hypot(n.x - x, n.y - y) <= NODE_RADIUS) return n;
+    }
+    return null;
+}
+
+function canvasXY(e) {
+    const r = canvas.getBoundingClientRect();
+    return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+
+canvas.addEventListener('mousedown', e => {
+    const {x, y} = canvasXY(e);
+    const hit = nodeAt(x, y);
+
+    if (mode === 'node' && !hit) {
+        const label = String.fromCharCode(65 + (nextId % 26)) + (nextId >= 26 ? Math.floor(nextId/26) : '');
+        nodes.push({id: nextId++, x, y, label, color: null, inCycle: false});
+        resetCheck(); updateStats(); draw();
+    } else if (mode === 'edge') {
+        if (hit) {
+            if (!edgeStart) { edgeStart = hit; }
+            else if (edgeStart.id !== hit.id) {
+                if (!edges.some(e => (e.from===edgeStart.id && e.to===hit.id)||(e.from===hit.id && e.to===edgeStart.id))) {
+                    edges.push({from: edgeStart.id, to: hit.id, inCycle: false});
+                    resetCheck(); updateStats(); draw();
+                }
+                edgeStart = null;
+            }
+        }
+    } else if (mode === 'delete') {
+        if (hit) {
+            edges = edges.filter(e => e.from !== hit.id && e.to !== hit.id);
+            nodes = nodes.filter(n => n.id !== hit.id);
+            resetCheck(); updateStats(); draw();
+        } else {
+            // Try deleting an edge near click
+            for (let i = edges.length - 1; i >= 0; i--) {
+                const e = edges[i];
+                const a = nodes.find(n => n.id === e.from);
+                const b = nodes.find(n => n.id === e.to);
+                if (a && b && distToSegment(x, y, a.x, a.y, b.x, b.y) < 8) {
+                    edges.splice(i, 1); resetCheck(); updateStats(); draw(); break;
+                }
+            }
+        }
+    } else if (mode === 'move' && hit) {
+        dragNode = hit;
+        dragOffset = {x: x - hit.x, y: y - hit.y};
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (dragNode) {
+        const {x, y} = canvasXY(e);
+        dragNode.x = x - dragOffset.x;
+        dragNode.y = y - dragOffset.y;
+        draw();
+    }
+});
+
+canvas.addEventListener('mouseup', () => { dragNode = null; });
+
+function distToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx-ax, dy = by-ay, len2 = dx*dx+dy*dy;
+    if (len2 === 0) return Math.hypot(px-ax, py-ay);
+    let t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/len2));
+    return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+}
+
+function resetCheck() {
+    checked = false;
+    nodes.forEach(n => { n.color = null; n.inCycle = false; });
+    edges.forEach(e => { e.inCycle = false; });
+    document.getElementById('result-banner').className = 'result-banner empty';
+    document.getElementById('result-banner').textContent = 'Draw a graph and click Check';
+    document.getElementById('partition-card').style.display = 'none';
+    document.getElementById('cycle-card').style.display = 'none';
+}
+
+function updateStats() {
+    document.getElementById('stat-nodes').textContent = nodes.length;
+    document.getElementById('stat-edges').textContent = edges.length;
+    const el = document.getElementById('edge-list');
+    if (edges.length === 0) { el.textContent = 'No edges yet'; return; }
+    el.textContent = edges.map(e => {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        return (a?.label||'?') + ' — ' + (b?.label||'?');
+    }).join('\n');
+}
+
+function adj() {
+    const m = {};
+    nodes.forEach(n => m[n.id] = []);
+    edges.forEach(e => { m[e.from].push(e.to); m[e.to].push(e.from); });
+    return m;
+}
+
+function checkBipartite() {
+    if (nodes.length === 0) return;
+    resetCheck();
+    const a = adj();
+    const colorMap = {};
+    const parent = {};
+    let oddCycle = null;
+
+    for (const start of nodes) {
+        if (colorMap[start.id] !== undefined) continue;
+        colorMap[start.id] = 0;
+        parent[start.id] = -1;
+        const queue = [start.id];
+        while (queue.length > 0 && !oddCycle) {
+            const u = queue.shift();
+            for (const v of a[u]) {
+                if (colorMap[v] === undefined) {
+                    colorMap[v] = 1 - colorMap[u];
+                    parent[v] = u;
+                    queue.push(v);
+                } else if (colorMap[v] === colorMap[u]) {
+                    // Found odd cycle — trace back
+                    oddCycle = traceOddCycle(u, v, parent, a);
+                    break;
+                }
+            }
+        }
+        if (oddCycle) break;
+    }
+
+    checked = true;
+    const banner = document.getElementById('result-banner');
+
+    if (!oddCycle) {
+        // Bipartite!
+        nodes.forEach(n => n.color = colorMap[n.id] ?? null);
+        banner.className = 'result-banner bipartite';
+        banner.textContent = '✅ Graph is Bipartite!';
+        const setA = nodes.filter(n => n.color === 0).map(n => n.label);
+        const setB = nodes.filter(n => n.color === 1).map(n => n.label);
+        document.getElementById('set-a-nodes').textContent = setA.join(', ') || '(empty)';
+        document.getElementById('set-b-nodes').textContent = setB.join(', ') || '(empty)';
+        document.getElementById('partition-card').style.display = 'block';
+        // Animate to bipartite layout
+        animateBipartiteLayout();
+    } else {
+        // Not bipartite — highlight odd cycle
+        banner.className = 'result-banner not-bipartite';
+        banner.textContent = '❌ Not Bipartite — Odd Cycle Found';
+        const cycleSet = new Set(oddCycle);
+        nodes.forEach(n => { n.inCycle = cycleSet.has(n.id); n.color = null; });
+        for (let i = 0; i < oddCycle.length; i++) {
+            const u = oddCycle[i], v = oddCycle[(i+1) % oddCycle.length];
+            edges.forEach(e => {
+                if ((e.from===u && e.to===v)||(e.from===v && e.to===u)) e.inCycle = true;
+            });
+        }
+        const labels = oddCycle.map(id => nodes.find(n=>n.id===id)?.label||'?');
+        document.getElementById('odd-cycle-path').textContent = 'Cycle: ' + labels.join(' → ') + ' → ' + labels[0] + ' (length ' + oddCycle.length + ')';
+        document.getElementById('cycle-card').style.display = 'block';
+    }
+    draw();
+}
+
+function traceOddCycle(u, v, parent, a) {
+    // BFS paths from u and v back to common ancestor
+    const pathU = [], pathV = [];
+    let cu = u, cv = v;
+    const depthU = {}, depthV = {};
+    let d = 0;
+    while (cu !== -1) { depthU[cu] = d++; pathU.push(cu); cu = parent[cu]; }
+    d = 0;
+    while (cv !== -1) { depthV[cv] = d++; pathV.push(cv); cv = parent[cv]; }
+    // Find LCA
+    const setU = new Set(pathU);
+    let lca = pathV.find(n => setU.has(n));
+    if (lca === undefined) lca = pathU[pathU.length-1]; // fallback
+    const cycleA = [], cycleB = [];
+    for (const n of pathU) { cycleA.push(n); if (n === lca) break; }
+    for (const n of pathV) { cycleB.push(n); if (n === lca) break; }
+    cycleB.reverse();
+    cycleB.pop(); // remove duplicate lca
+    return cycleA.concat(cycleB);
+}
+
+function animateBipartiteLayout() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const setA = nodes.filter(n => n.color === 0);
+    const setB = nodes.filter(n => n.color === 1);
+    const targets = {};
+    setA.forEach((n, i) => {
+        targets[n.id] = {x: w * 0.25, y: (h / (setA.length + 1)) * (i + 1)};
+    });
+    setB.forEach((n, i) => {
+        targets[n.id] = {x: w * 0.75, y: (h / (setB.length + 1)) * (i + 1)};
+    });
+    let frame = 0;
+    const totalFrames = 30;
+    const startPos = {};
+    nodes.forEach(n => startPos[n.id] = {x: n.x, y: n.y});
+
+    function step() {
+        frame++;
+        const t = frame / totalFrames;
+        const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        nodes.forEach(n => {
+            if (targets[n.id]) {
+                n.x = startPos[n.id].x + (targets[n.id].x - startPos[n.id].x) * ease;
+                n.y = startPos[n.id].y + (targets[n.id].y - startPos[n.id].y) * ease;
+            }
+        });
+        draw();
+        if (frame < totalFrames) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function draw() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw edges
+    edges.forEach(e => {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        if (!a || !b) return;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = e.inCycle ? CYCLE_COLOR : '#64748b';
+        ctx.lineWidth = e.inCycle ? 3 : 1.5;
+        ctx.stroke();
+    });
+
+    // Draw nodes
+    nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
+        let fill = DEFAULT_COLOR;
+        if (n.inCycle) fill = CYCLE_COLOR;
+        else if (n.color !== null) fill = COLORS[n.color];
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+    });
+
+    // Edge start indicator
+    if (mode === 'edge' && edgeStart) {
+        ctx.beginPath();
+        ctx.arc(edgeStart.x, edgeStart.y, NODE_RADIUS + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+}
+
+function clearGraph() {
+    nodes = []; edges = []; nextId = 0;
+    resetCheck(); updateStats(); draw();
+}
+
+// Presets
+function loadPreset(name) {
+    clearGraph();
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const presets = {
+        'complete-bipartite': () => {
+            // K3,3
+            for (let i = 0; i < 3; i++) nodes.push({id: nextId++, x: w*0.25, y: h*(i+1)/4, label: String.fromCharCode(65+i), color: null, inCycle: false});
+            for (let i = 0; i < 3; i++) nodes.push({id: nextId++, x: w*0.75, y: h*(i+1)/4, label: String.fromCharCode(68+i), color: null, inCycle: false});
+            for (let i = 0; i < 3; i++) for (let j = 3; j < 6; j++) edges.push({from: i, to: j, inCycle: false});
+        },
+        'tree': () => {
+            const pos = [{x:w/2,y:60},{x:w/3,y:180},{x:2*w/3,y:180},{x:w/5,y:300},{x:2*w/5,y:300},{x:3*w/5,y:300},{x:4*w/5,y:300}];
+            pos.forEach((p,i) => nodes.push({id: nextId++, x:p.x, y:p.y, label:String.fromCharCode(65+i), color:null, inCycle:false}));
+            [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]].forEach(([a,b]) => edges.push({from:a,to:b,inCycle:false}));
+        },
+        'even-cycle': () => {
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI*2*i/6) - Math.PI/2;
+                nodes.push({id:nextId++, x:w/2+150*Math.cos(angle), y:h/2+150*Math.sin(angle), label:String.fromCharCode(65+i), color:null, inCycle:false});
+            }
+            for (let i = 0; i < 6; i++) edges.push({from:i, to:(i+1)%6, inCycle:false});
+        },
+        'odd-cycle': () => {
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI*2*i/5) - Math.PI/2;
+                nodes.push({id:nextId++, x:w/2+150*Math.cos(angle), y:h/2+150*Math.sin(angle), label:String.fromCharCode(65+i), color:null, inCycle:false});
+            }
+            for (let i = 0; i < 5; i++) edges.push({from:i, to:(i+1)%5, inCycle:false});
+        },
+        'petersen': () => {
+            // Outer ring + inner star
+            for (let i = 0; i < 5; i++) {
+                const a = (Math.PI*2*i/5) - Math.PI/2;
+                nodes.push({id:nextId++, x:w/2+180*Math.cos(a), y:h/2+180*Math.sin(a), label:String.fromCharCode(65+i), color:null, inCycle:false});
+            }
+            for (let i = 0; i < 5; i++) {
+                const a = (Math.PI*2*i/5) - Math.PI/2;
+                nodes.push({id:nextId++, x:w/2+80*Math.cos(a), y:h/2+80*Math.sin(a), label:String.fromCharCode(70+i), color:null, inCycle:false});
+            }
+            for (let i = 0; i < 5; i++) edges.push({from:i, to:(i+1)%5, inCycle:false}); // outer
+            for (let i = 0; i < 5; i++) edges.push({from:5+i, to:5+(i+2)%5, inCycle:false}); // inner star
+            for (let i = 0; i < 5; i++) edges.push({from:i, to:5+i, inCycle:false}); // spokes
+        },
+        'grid': () => {
+            for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+                nodes.push({id:nextId++, x:w*0.25+c*w*0.25, y:h*0.2+r*h*0.25, label:String.fromCharCode(65+r*3+c), color:null, inCycle:false});
+            }
+            for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+                const i = r*3+c;
+                if (c < 2) edges.push({from:i, to:i+1, inCycle:false});
+                if (r < 2) edges.push({from:i, to:i+3, inCycle:false});
+            }
+        },
+        'cube': () => {
+            const off = 80;
+            const cx = w/2, cy = h/2;
+            const outer = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([dx,dy],i) => {
+                nodes.push({id:nextId++, x:cx+dx*140, y:cy+dy*140, label:String.fromCharCode(65+i), color:null, inCycle:false});
+                return i;
+            });
+            const inner = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([dx,dy],i) => {
+                nodes.push({id:nextId++, x:cx+dx*70, y:cy+dy*70, label:String.fromCharCode(69+i), color:null, inCycle:false});
+                return i+4;
+            });
+            [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([a,b]) => edges.push({from:a,to:b,inCycle:false}));
+        }
+    };
+    if (presets[name]) presets[name]();
+    updateStats(); draw();
+}
+
+function importEdges() {
+    const text = document.getElementById('import-text').value.trim();
+    if (!text) return;
+    clearGraph();
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const labelMap = {};
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    lines.forEach(line => {
+        const parts = line.split(/[-—–\s]+/).filter(Boolean);
+        if (parts.length >= 2) {
+            [parts[0], parts[1]].forEach(p => {
+                if (!(p in labelMap)) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = 100 + Math.random() * 120;
+                    labelMap[p] = nextId;
+                    nodes.push({id:nextId++, x:w/2+r*Math.cos(angle), y:h/2+r*Math.sin(angle), label:p, color:null, inCycle:false});
+                }
+            });
+            edges.push({from:labelMap[parts[0]], to:labelMap[parts[1]], inCycle:false});
+        }
+    });
+    updateStats(); draw();
+}
+
+function exportEdges() {
+    const text = edges.map(e => {
+        const a = nodes.find(n=>n.id===e.from);
+        const b = nodes.find(n=>n.id===e.to);
+        return (a?.label||'?') + ' - ' + (b?.label||'?');
+    }).join('\n');
+    document.getElementById('import-text').value = text;
+}
+
+// Init
+resize();
+</script>
+</body>
+</html>
