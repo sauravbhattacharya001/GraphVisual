@@ -274,6 +274,12 @@ public class GraphPartitioner {
 
     /**
      * Try KL swaps between two partitions. Returns true if any swap was made.
+     *
+     * <p>Uses precomputed D-values (external cost − internal cost for each vertex
+     * within the two-partition subproblem) so that each candidate swap gain is
+     * O(1) instead of O(degree). D-values are recomputed in O(n·avg_degree)
+     * once per pass, giving an overall complexity of O(passes · (n·d + |A|·|B|))
+     * instead of O(passes · |A|·|B|·d).</p>
      */
     private boolean refineKLPair(Map<String, Integer> assignment, int partA, int partB) {
         List<String> nodesA = new ArrayList<>();
@@ -291,14 +297,50 @@ public class GraphPartitioner {
         int passes = Math.min(nodesA.size(), nodesB.size());
 
         for (int pass = 0; pass < passes; pass++) {
-            String bestU = null, bestV = null;
-            int bestGain = 0;
+            // Precompute D-values: D[v] = external_cost - internal_cost
+            // where "internal" means edges to same partition, "external" to other.
+            // For vertex u in partA: D[u] = |neighbors in partB| - |neighbors in partA|
+            Map<String, Integer> dValues = new HashMap<>(
+                    (nodesA.size() + nodesB.size()) * 2);
 
             for (String u : nodesA) {
                 if (locked.contains(u)) continue;
+                int ext = 0, intn = 0;
+                for (String n : graph.getNeighbors(u)) {
+                    int nPart = assignment.getOrDefault(n, -1);
+                    if (nPart == partB) ext++;
+                    else if (nPart == partA) intn++;
+                }
+                dValues.put(u, ext - intn);
+            }
+            for (String v : nodesB) {
+                if (locked.contains(v)) continue;
+                int ext = 0, intn = 0;
+                for (String n : graph.getNeighbors(v)) {
+                    int nPart = assignment.getOrDefault(n, -1);
+                    if (nPart == partA) ext++;
+                    else if (nPart == partB) intn++;
+                }
+                dValues.put(v, ext - intn);
+            }
+
+            // Find best swap: gain(u,v) = D[u] + D[v] - 2*connected(u,v)
+            String bestU = null, bestV = null;
+            int bestGain = 0;
+
+            // Build neighbor set for O(1) connectivity check
+            for (String u : nodesA) {
+                if (locked.contains(u)) continue;
+                int du = dValues.get(u);
+
+                // Early prune: even if D[v] were maximal, skip if du too low
+                Set<String> uNeighbors = new HashSet<>(graph.getNeighbors(u));
+
                 for (String v : nodesB) {
                     if (locked.contains(v)) continue;
-                    int gain = computeSwapGain(assignment, u, v, partA, partB);
+                    int dv = dValues.get(v);
+                    int connected = uNeighbors.contains(v) ? 1 : 0;
+                    int gain = du + dv - 2 * connected;
                     if (gain > bestGain) {
                         bestGain = gain;
                         bestU = u;
@@ -312,6 +354,7 @@ public class GraphPartitioner {
                 assignment.put(bestV, partA);
                 locked.add(bestU);
                 locked.add(bestV);
+                // Swap membership in the lists
                 nodesA.remove(bestU);
                 nodesA.add(bestV);
                 nodesB.remove(bestV);
@@ -323,39 +366,6 @@ public class GraphPartitioner {
         }
 
         return anyImproved;
-    }
-
-    /**
-     * Compute the gain from swapping u (in partA) with v (in partB).
-     * Gain = reduction in Edge cuts after the swap.
-     */
-    private int computeSwapGain(Map<String, Integer> assignment, String u, String v,
-                                int partA, int partB) {
-        int cutsBefore = 0;
-        int cutsAfter = 0;
-
-        // Count u's external edges before/after swap
-        for (String n : graph.getNeighbors(u)) {
-            int nPart = assignment.getOrDefault(n, -1);
-            if (n.equals(v)) {
-                // u and v are neighbors — connected regardless of swap
-                cutsBefore++; // currently in different partitions
-                cutsAfter++;  // still in different partitions after swap
-                continue;
-            }
-            if (nPart != partA) cutsBefore++;
-            if (nPart != partB) cutsAfter++;
-        }
-
-        // Count v's external edges before/after swap
-        for (String n : graph.getNeighbors(v)) {
-            if (n.equals(u)) continue; // already counted
-            int nPart = assignment.getOrDefault(n, -1);
-            if (nPart != partB) cutsBefore++;
-            if (nPart != partA) cutsAfter++;
-        }
-
-        return cutsBefore - cutsAfter;
     }
 
     // -------------------------------------------------------------------------
