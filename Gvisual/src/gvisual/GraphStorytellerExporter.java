@@ -6,6 +6,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+// BFS and component-finding delegated to GraphUtils — see helper methods below.
 
 /**
  * Generates a natural-language narrative report describing a graph's structure,
@@ -264,29 +265,10 @@ public class GraphStorytellerExporter {
     }
 
     // ---- Helper methods ----
+    // Component finding and BFS delegate to GraphUtils to avoid duplication.
 
     private List<Set<String>> findComponents() {
-        List<Set<String>> components = new ArrayList<>();
-        Set<String> visited = new HashSet<>();
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                Set<String> comp = new HashSet<>();
-                Queue<String> queue = new LinkedList<>();
-                queue.add(v);
-                visited.add(v);
-                while (!queue.isEmpty()) {
-                    String cur = queue.poll();
-                    comp.add(cur);
-                    for (String nb : graph.getNeighbors(cur)) {
-                        if (visited.add(nb)) {
-                            queue.add(nb);
-                        }
-                    }
-                }
-                components.add(comp);
-            }
-        }
-        return components;
+        return GraphUtils.findComponents(graph);
     }
 
     private double computeAvgClustering() {
@@ -324,41 +306,15 @@ public class GraphStorytellerExporter {
     }
 
     private int estimateDiameter(Set<String> component) {
-        // Double BFS heuristic
+        // Double BFS heuristic: BFS from arbitrary start, then BFS from farthest
         String start = component.iterator().next();
-        String farthest = bfsFarthest(start);
-        return bfsMaxDist(farthest);
-    }
-
-    private String bfsFarthest(String start) {
-        Map<String, Integer> dist = bfs(start);
-        return dist.entrySet().stream()
+        Map<String, Integer> dist1 = GraphUtils.bfsDistances(graph, start);
+        String farthest = dist1.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
                 .orElse(start);
-    }
-
-    private int bfsMaxDist(String start) {
-        Map<String, Integer> dist = bfs(start);
-        return dist.values().stream().mapToInt(Integer::intValue).max().orElse(0);
-    }
-
-    private Map<String, Integer> bfs(String start) {
-        Map<String, Integer> dist = new HashMap<>();
-        Queue<String> queue = new LinkedList<>();
-        dist.put(start, 0);
-        queue.add(start);
-        while (!queue.isEmpty()) {
-            String cur = queue.poll();
-            int d = dist.get(cur);
-            for (String nb : graph.getNeighbors(cur)) {
-                if (!dist.containsKey(nb)) {
-                    dist.put(nb, d + 1);
-                    queue.add(nb);
-                }
-            }
-        }
-        return dist;
+        Map<String, Integer> dist2 = GraphUtils.bfsDistances(graph, farthest);
+        return dist2.values().stream().mapToInt(Integer::intValue).max().orElse(0);
     }
 
     private double computeStdDev(Collection<Integer> values) {
