@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCC Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .scc-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 500px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .scc-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .scc-btn:hover { background: var(--surface-hover); }
+        .scc-btn.active { border-color: var(--accent); color: var(--accent); }
+        .scc-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .scc-btn.primary:hover { background: var(--accent-hover); }
+        .scc-btn.danger { border-color: var(--red); color: var(--red); }
+        .scc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .stack-display {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 180px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .scc-list { max-height: 200px; overflow-y: auto; }
+        .scc-chip {
+            display: inline-block; padding: 2px 8px; border-radius: 12px; margin: 2px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+        .step-info {
+            padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem;
+            font-size: 0.85rem; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3);
+            color: #58a6ff; min-height: 2.5em;
+        }
+        .toggle-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.85rem; }
+        .toggle-row input[type=checkbox] { accent-color: var(--accent); }
+        .condensation-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 6px;
+            font-size: 0.8rem; font-weight: 600; margin: 2px;
+            background: rgba(139,148,158,0.15); border: 1px solid var(--border);
+        }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="euler.html" class="sidebar-link"><span class="icon">🔄</span>Euler Paths</a>
+        <a href="scc.html" class="sidebar-link active"><span class="icon">🔗</span>SCC Finder</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">📡</span>Centrality Radar</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Graph Spectrum</a>
+        <a href="motif.html" class="sidebar-link"><span class="icon">🧬</span>Motif Finder</a>
+        <a href="treewidth.html" class="sidebar-link"><span class="icon">🌳</span>Treewidth</a>
+        <a href="edge-betweenness.html" class="sidebar-link"><span class="icon">🔀</span>Edge Betweenness</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔁</span>Isomorphism</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="page-header">
+        <h1>🔗 Strongly Connected Components</h1>
+        <p>Build a directed graph, find SCCs with Tarjan's algorithm, and watch the DFS exploration step by step with stack visualization.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div> Unvisited</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> On stack</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div> Current node</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> SCC found</div>
+    </div>
+
+    <div class="scc-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <button class="scc-btn active" id="btn-node" onclick="setMode('node')">➕ Add Node</button>
+                <button class="scc-btn" id="btn-edge" onclick="setMode('edge')">↗️ Add Edge</button>
+                <button class="scc-btn" id="btn-move" onclick="setMode('move')">✋ Move</button>
+                <button class="scc-btn" id="btn-delete" onclick="setMode('delete')">🗑️ Delete</button>
+                <button class="scc-btn danger" onclick="clearGraph()">Clear All</button>
+            </div>
+            <canvas id="graph-canvas"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>Presets</h3>
+                <div class="presets">
+                    <button class="scc-btn" onclick="loadPreset('simple')">Simple</button>
+                    <button class="scc-btn" onclick="loadPreset('two-scc')">Two SCCs</button>
+                    <button class="scc-btn" onclick="loadPreset('dag')">DAG</button>
+                    <button class="scc-btn" onclick="loadPreset('complex')">Complex</button>
+                    <button class="scc-btn" onclick="loadPreset('single')">Single SCC</button>
+                    <button class="scc-btn" onclick="loadPreset('chain')">Chain</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Algorithm</h3>
+                <div class="speed-control">
+                    <span class="stat-label">Speed</span>
+                    <input type="range" id="speed" min="1" max="10" value="5">
+                    <span class="stat-label" id="speed-label">5</span>
+                </div>
+                <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+                    <button class="scc-btn primary" id="btn-run" onclick="runTarjan()">▶ Run Tarjan's</button>
+                    <button class="scc-btn" id="btn-step" onclick="stepTarjan()">⏭ Step</button>
+                    <button class="scc-btn danger" id="btn-reset" onclick="resetAlgo()">⏹ Reset</button>
+                </div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="show-indices" checked onchange="draw()">
+                    <label for="show-indices">Show disc/low values</label>
+                </div>
+            </div>
+
+            <div class="step-info" id="step-info">Draw a directed graph or load a preset, then run Tarjan's algorithm.</div>
+
+            <div class="info-card">
+                <h3>Stack</h3>
+                <div class="stack-display" id="stack-display">—</div>
+            </div>
+
+            <div class="info-card">
+                <h3>Statistics</h3>
+                <div class="stat-row"><span class="stat-label">Nodes</span><span class="stat-value" id="stat-nodes">0</span></div>
+                <div class="stat-row"><span class="stat-label">Edges</span><span class="stat-value" id="stat-edges">0</span></div>
+                <div class="stat-row"><span class="stat-label">SCCs Found</span><span class="stat-value" id="stat-sccs">0</span></div>
+            </div>
+
+            <div class="info-card">
+                <h3>SCCs</h3>
+                <div class="scc-list" id="scc-list"><span class="stat-label">Run the algorithm to find SCCs</span></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+
+const SCC_COLORS = [
+    '#3fb950','#d2a8ff','#f0883e','#58a6ff','#ff6b6b',
+    '#79c0ff','#ffa657','#7ee787','#e6edf3','#f778ba'
+];
+
+let nodes = [], edges = [];
+let mode = 'node', nextId = 0;
+let dragging = null, edgeStart = null;
+let hoverNode = null;
+
+// Algorithm state
+let algo = null, animating = false, animTimer = null;
+
+function resize() {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width * devicePixelRatio;
+    canvas.height = r.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    draw();
+}
+window.addEventListener('resize', resize);
+setTimeout(resize, 50);
+
+function setMode(m) {
+    mode = m; edgeStart = null;
+    document.querySelectorAll('.toolbar .scc-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('btn-' + m);
+    if (btn) btn.classList.add('active');
+    canvas.style.cursor = m === 'move' ? 'grab' : m === 'delete' ? 'pointer' : 'crosshair';
+}
+
+function nodeAt(x, y) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (Math.hypot(n.x - x, n.y - y) < 20) return n;
+    }
+    return null;
+}
+
+function canvasXY(e) {
+    const r = canvas.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+}
+
+canvas.addEventListener('mousedown', e => {
+    const [x, y] = canvasXY(e);
+    const n = nodeAt(x, y);
+    if (mode === 'node' && !n) {
+        nodes.push({ id: nextId++, x, y, label: String.fromCharCode(65 + (nodes.length % 26)) });
+        updateStats(); draw();
+    } else if (mode === 'edge') {
+        if (!edgeStart && n) { edgeStart = n; draw(); }
+        else if (edgeStart && n && n !== edgeStart) {
+            if (!edges.find(e => e.from === edgeStart.id && e.to === n.id)) {
+                edges.push({ from: edgeStart.id, to: n.id });
+            }
+            edgeStart = null; updateStats(); draw();
+        }
+    } else if (mode === 'move' && n) {
+        dragging = n;
+        canvas.style.cursor = 'grabbing';
+    } else if (mode === 'delete' && n) {
+        edges = edges.filter(e => e.from !== n.id && e.to !== n.id);
+        nodes = nodes.filter(nd => nd !== n);
+        updateStats(); draw();
+    } else if (mode === 'delete' && !n) {
+        // try delete edge
+        const ei = edgeAt(x, y);
+        if (ei >= 0) { edges.splice(ei, 1); updateStats(); draw(); }
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    const [x, y] = canvasXY(e);
+    if (dragging) { dragging.x = x; dragging.y = y; draw(); return; }
+    hoverNode = nodeAt(x, y);
+    draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragging = null; if (mode === 'move') canvas.style.cursor = 'grab'; });
+
+function edgeAt(x, y) {
+    for (let i = 0; i < edges.length; i++) {
+        const from = nodes.find(n => n.id === edges[i].from);
+        const to = nodes.find(n => n.id === edges[i].to);
+        if (!from || !to) continue;
+        const d = distToSegment(x, y, from.x, from.y, to.x, to.y);
+        if (d < 8) return i;
+    }
+    return -1;
+}
+
+function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return Math.hypot(px-x1, py-y1);
+    let t = ((px-x1)*dx + (py-y1)*dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1+t*dx), py - (y1+t*dy));
+}
+
+function draw() {
+    const w = canvas.width / devicePixelRatio;
+    const h = canvas.height / devicePixelRatio;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw edges
+    for (const e of edges) {
+        const from = nodes.find(n => n.id === e.from);
+        const to = nodes.find(n => n.id === e.to);
+        if (!from || !to) continue;
+        drawArrow(from.x, from.y, to.x, to.y, edgeColor(e));
+    }
+
+    // Draw nodes
+    const showIdx = document.getElementById('show-indices').checked;
+    for (const n of nodes) {
+        const col = nodeColor(n);
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 18, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+        ctx.strokeStyle = (n === hoverNode || n === edgeStart) ? '#fff' : 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = (n === hoverNode || n === edgeStart) ? 2.5 : 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+
+        if (showIdx && algo && algo.disc[n.id] !== undefined) {
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#e6edf3';
+            ctx.fillText(`${algo.disc[n.id]}/${algo.low[n.id]}`, n.x, n.y - 26);
+        }
+    }
+}
+
+function nodeColor(n) {
+    if (!algo) return '#8b949e';
+    if (algo.sccOf[n.id] !== undefined) return SCC_COLORS[algo.sccOf[n.id] % SCC_COLORS.length];
+    if (algo.current === n.id) return '#ff6b6b';
+    if (algo.onStack.has(n.id)) return '#58a6ff';
+    if (algo.visited.has(n.id)) return '#6e7681';
+    return '#8b949e';
+}
+
+function edgeColor(e) {
+    if (!algo) return '#484f58';
+    if (algo.sccOf[e.from] !== undefined && algo.sccOf[e.from] === algo.sccOf[e.to])
+        return SCC_COLORS[algo.sccOf[e.from] % SCC_COLORS.length];
+    if (algo.treeEdges && algo.treeEdges.has(e.from + '->' + e.to)) return '#58a6ff';
+    return '#484f58';
+}
+
+function drawArrow(x1, y1, x2, y2, color) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    const shortenFrom = 20, shortenTo = 22;
+    const sx = x1 + Math.cos(angle) * shortenFrom;
+    const sy = y1 + Math.sin(angle) * shortenFrom;
+    const ex = x2 - Math.cos(angle) * shortenTo;
+    const ey = y2 - Math.sin(angle) * shortenTo;
+
+    ctx.beginPath();
+    ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+    // Arrowhead
+    const hs = 10;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - hs * Math.cos(angle - 0.4), ey - hs * Math.sin(angle - 0.4));
+    ctx.lineTo(ex - hs * Math.cos(angle + 0.4), ey - hs * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color; ctx.fill();
+}
+
+function updateStats() {
+    document.getElementById('stat-nodes').textContent = nodes.length;
+    document.getElementById('stat-edges').textContent = edges.length;
+}
+
+// ========== Tarjan's Algorithm ==========
+
+function initAlgo() {
+    algo = {
+        disc: {}, low: {}, visited: new Set(), onStack: new Set(),
+        stack: [], sccOf: {}, sccs: [], sccCount: 0,
+        timer: 0, current: null, treeEdges: new Set(),
+        steps: [], stepIdx: 0
+    };
+}
+
+function buildSteps() {
+    // Pre-compute all steps of Tarjan's
+    const adj = {};
+    for (const n of nodes) adj[n.id] = [];
+    for (const e of edges) adj[e.from].push(e.to);
+
+    const disc = {}, low = {}, onStack = new Set(), stack = [], visited = new Set();
+    let timer = 0;
+    const steps = [];
+    const sccs = [];
+    const sccOf = {};
+    const treeEdges = new Set();
+
+    function dfs(u) {
+        disc[u] = low[u] = timer++;
+        visited.add(u); onStack.add(u); stack.push(u);
+        steps.push({ type: 'visit', node: u, disc: disc[u], low: low[u], stack: [...stack], msg: `Visit ${label(u)}: disc=${disc[u]}, low=${low[u]}` });
+
+        for (const v of adj[u]) {
+            if (disc[v] === undefined) {
+                treeEdges.add(u + '->' + v);
+                steps.push({ type: 'explore', from: u, to: v, msg: `${label(u)} → ${label(v)}: tree edge, recurse` });
+                dfs(v);
+                low[u] = Math.min(low[u], low[v]);
+                steps.push({ type: 'update', node: u, low: low[u], msg: `Back to ${label(u)}: low = min(${low[u]}, low[${label(v)}]=${low[v]}) = ${low[u]}` });
+            } else if (onStack.has(v)) {
+                low[u] = Math.min(low[u], disc[v]);
+                steps.push({ type: 'back-edge', from: u, to: v, low: low[u], msg: `${label(u)} → ${label(v)}: back edge, low[${label(u)}] = min(${low[u]}, disc[${label(v)}]=${disc[v]}) = ${low[u]}` });
+            } else {
+                steps.push({ type: 'cross-edge', from: u, to: v, msg: `${label(u)} → ${label(v)}: cross edge (already in SCC), skip` });
+            }
+        }
+
+        if (low[u] === disc[u]) {
+            const scc = [];
+            let w;
+            do {
+                w = stack.pop(); onStack.delete(w);
+                scc.push(w); sccOf[w] = sccs.length;
+            } while (w !== u);
+            sccs.push(scc);
+            steps.push({ type: 'scc-found', scc: [...scc], sccIdx: sccs.length - 1, stack: [...stack], sccOf: {...sccOf}, msg: `SCC found: {${scc.map(label).join(', ')}}` });
+        }
+    }
+
+    for (const n of nodes) {
+        if (disc[n.id] === undefined) {
+            steps.push({ type: 'new-root', node: n.id, msg: `Starting DFS from root ${label(n.id)}` });
+            dfs(n.id);
+        }
+    }
+
+    steps.push({ type: 'done', sccs, sccOf, msg: `Done! Found ${sccs.length} SCC${sccs.length !== 1 ? 's' : ''}.` });
+    return { steps, finalSccs: sccs, finalSccOf: sccOf, treeEdges };
+}
+
+function label(id) {
+    const n = nodes.find(n => n.id === id);
+    return n ? n.label : '?';
+}
+
+function runTarjan() {
+    if (animating) return;
+    if (nodes.length === 0) { setInfo('Add some nodes first!'); return; }
+    resetAlgo();
+    initAlgo();
+    const result = buildSteps();
+    algo.steps = result.steps;
+    algo.treeEdges = result.treeEdges;
+    animating = true;
+    animateSteps();
+}
+
+function stepTarjan() {
+    if (animating) return;
+    if (!algo) {
+        if (nodes.length === 0) { setInfo('Add some nodes first!'); return; }
+        initAlgo();
+        const result = buildSteps();
+        algo.steps = result.steps;
+        algo.treeEdges = result.treeEdges;
+    }
+    applyStep();
+}
+
+function animateSteps() {
+    if (!animating || !algo || algo.stepIdx >= algo.steps.length) {
+        animating = false; return;
+    }
+    applyStep();
+    const speed = document.getElementById('speed').value;
+    const delay = 1200 - speed * 100;
+    animTimer = setTimeout(animateSteps, delay);
+}
+
+function applyStep() {
+    if (!algo || algo.stepIdx >= algo.steps.length) return;
+    const s = algo.steps[algo.stepIdx++];
+    setInfo(s.msg);
+
+    if (s.type === 'visit') {
+        algo.disc[s.node] = s.disc;
+        algo.low[s.node] = s.low;
+        algo.visited.add(s.node);
+        algo.onStack.add(s.node);
+        algo.stack = s.stack;
+        algo.current = s.node;
+    } else if (s.type === 'explore') {
+        algo.current = s.from;
+    } else if (s.type === 'update') {
+        algo.low[s.node] = s.low;
+        algo.current = s.node;
+    } else if (s.type === 'back-edge' || s.type === 'cross-edge') {
+        if (s.low !== undefined) algo.low[s.from] = s.low;
+        algo.current = s.from;
+    } else if (s.type === 'scc-found') {
+        for (const id of s.scc) {
+            algo.onStack.delete(id);
+            algo.sccOf[id] = s.sccIdx;
+        }
+        algo.sccs.push(s.scc);
+        algo.sccCount++;
+        algo.stack = s.stack;
+        algo.current = null;
+        document.getElementById('stat-sccs').textContent = algo.sccCount;
+        updateSccList();
+    } else if (s.type === 'new-root') {
+        algo.current = s.node;
+    } else if (s.type === 'done') {
+        algo.current = null;
+        animating = false;
+        if (animTimer) clearTimeout(animTimer);
+    }
+
+    updateStackDisplay();
+    draw();
+}
+
+function resetAlgo() {
+    animating = false;
+    if (animTimer) clearTimeout(animTimer);
+    algo = null;
+    document.getElementById('stat-sccs').textContent = '0';
+    document.getElementById('stack-display').textContent = '—';
+    document.getElementById('scc-list').innerHTML = '<span class="stat-label">Run the algorithm to find SCCs</span>';
+    setInfo('Draw a directed graph or load a preset, then run Tarjan\'s algorithm.');
+    draw();
+}
+
+function setInfo(msg) {
+    document.getElementById('step-info').textContent = msg;
+}
+
+function updateStackDisplay() {
+    if (!algo) return;
+    const el = document.getElementById('stack-display');
+    if (algo.stack.length === 0) { el.textContent = '(empty)'; return; }
+    el.textContent = '→ ' + algo.stack.map(id => label(id)).join(' → ') + ' ← top';
+}
+
+function updateSccList() {
+    if (!algo) return;
+    const el = document.getElementById('scc-list');
+    el.innerHTML = '';
+    for (let i = 0; i < algo.sccs.length; i++) {
+        const scc = algo.sccs[i];
+        const chip = document.createElement('div');
+        chip.className = 'scc-chip';
+        chip.style.background = SCC_COLORS[i % SCC_COLORS.length] + '33';
+        chip.style.color = SCC_COLORS[i % SCC_COLORS.length];
+        chip.style.border = '1px solid ' + SCC_COLORS[i % SCC_COLORS.length];
+        chip.textContent = '{' + scc.map(label).join(', ') + '}';
+        el.appendChild(chip);
+    }
+}
+
+// ========== Presets ==========
+
+function loadPreset(name) {
+    resetAlgo();
+    nodes = []; edges = []; nextId = 0;
+    const cx = canvas.width / devicePixelRatio / 2;
+    const cy = canvas.height / devicePixelRatio / 2;
+
+    const presets = {
+        'simple': {
+            nodes: [{x:-80,y:-60,l:'A'},{x:80,y:-60,l:'B'},{x:0,y:60,l:'C'}],
+            edges: [[0,1],[1,2],[2,0]]
+        },
+        'two-scc': {
+            nodes: [{x:-120,y:-40,l:'A'},{x:-40,y:-80,l:'B'},{x:-40,y:0,l:'C'},{x:80,y:-40,l:'D'},{x:160,y:-80,l:'E'},{x:160,y:0,l:'F'}],
+            edges: [[0,1],[1,2],[2,0],[2,3],[3,4],[4,5],[5,3]]
+        },
+        'dag': {
+            nodes: [{x:-100,y:-80,l:'A'},{x:0,y:-80,l:'B'},{x:100,y:-80,l:'C'},{x:-50,y:40,l:'D'},{x:50,y:40,l:'E'}],
+            edges: [[0,1],[1,2],[0,3],[1,4],[3,4]]
+        },
+        'complex': {
+            nodes: [{x:-140,y:-60,l:'A'},{x:-60,y:-100,l:'B'},{x:-60,y:-20,l:'C'},{x:40,y:-60,l:'D'},{x:120,y:-100,l:'E'},{x:120,y:-20,l:'F'},{x:40,y:60,l:'G'},{x:120,y:60,l:'H'}],
+            edges: [[0,1],[1,2],[2,0],[1,3],[3,4],[4,5],[5,3],[5,6],[6,7],[7,6]]
+        },
+        'single': {
+            nodes: [{x:-80,y:-80,l:'A'},{x:80,y:-80,l:'B'},{x:80,y:60,l:'C'},{x:-80,y:60,l:'D'}],
+            edges: [[0,1],[1,2],[2,3],[3,0],[0,2],[2,0]]
+        },
+        'chain': {
+            nodes: [{x:-150,y:0,l:'A'},{x:-75,y:0,l:'B'},{x:0,y:0,l:'C'},{x:75,y:0,l:'D'},{x:150,y:0,l:'E'}],
+            edges: [[0,1],[1,2],[2,3],[3,4]]
+        }
+    };
+
+    const p = presets[name];
+    if (!p) return;
+    for (const nd of p.nodes) {
+        nodes.push({ id: nextId++, x: cx + nd.x, y: cy + nd.y, label: nd.l });
+    }
+    for (const [f, t] of p.edges) {
+        edges.push({ from: f, to: t });
+    }
+    updateStats(); draw();
+}
+
+// Speed label
+document.getElementById('speed').addEventListener('input', e => {
+    document.getElementById('speed-label').textContent = e.target.value;
+});
+
+function clearGraph() {
+    resetAlgo();
+    nodes = []; edges = []; nextId = 0;
+    updateStats(); draw();
+}
+
+// Init
+loadPreset('two-scc');
+</script>
+
+</body>
+</html>
