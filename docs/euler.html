@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler Path &amp; Circuit Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .eu-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 500px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .eu-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .eu-btn:hover { background: var(--surface-hover); }
+        .eu-btn.active { border-color: var(--accent); color: var(--accent); }
+        .eu-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .eu-btn.primary:hover { background: var(--accent-hover); }
+        .eu-btn.danger { border-color: var(--red); color: var(--red); }
+        .eu-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+        .verdict { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; text-align: center; }
+        .verdict.has-circuit { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid #3fb950; }
+        .verdict.has-path { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid #58a6ff; }
+        .verdict.none { background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .verdict.empty { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .path-display {
+            font-family: 'Courier New', monospace; font-size: 0.85rem;
+            max-height: 150px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+            word-wrap: break-word;
+        }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .degree-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+        .degree-table td, .degree-table th { padding: 3px 8px; text-align: left; }
+        .degree-table th { color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .odd-degree { color: #f0883e; font-weight: 700; }
+        .even-degree { color: #3fb950; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .toggle-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.85rem; }
+        .toggle-row input[type=checkbox] { accent-color: var(--accent); }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="euler.html" class="sidebar-link active"><span class="icon">🔄</span>Euler Paths</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">📡</span>Centrality Radar</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Graph Spectrum</a>
+        <a href="motif.html" class="sidebar-link"><span class="icon">🧬</span>Motif Finder</a>
+        <a href="treewidth.html" class="sidebar-link"><span class="icon">🌳</span>Treewidth</a>
+        <a href="edge-betweenness.html" class="sidebar-link"><span class="icon">🔀</span>Edge Betweenness</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔁</span>Isomorphism</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="page-header">
+        <h1>🔄 Euler Path &amp; Circuit Finder</h1>
+        <p>Build a graph, check for Eulerian paths and circuits, and watch Hierholzer's algorithm animate the traversal edge by edge.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Default node</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div> Odd-degree node</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Traversed edge</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div> Current position</div>
+    </div>
+
+    <div class="toolbar">
+        <button class="eu-btn active" id="btn-add-node" onclick="setMode('node')">➕ Add Node</button>
+        <button class="eu-btn" id="btn-add-edge" onclick="setMode('edge')">🔗 Add Edge</button>
+        <button class="eu-btn" id="btn-move" onclick="setMode('move')">✋ Move</button>
+        <button class="eu-btn danger" onclick="clearGraph()">🗑️ Clear</button>
+    </div>
+
+    <div class="presets">
+        <button class="eu-btn" onclick="loadPreset('konigsberg')">🌉 Königsberg</button>
+        <button class="eu-btn" onclick="loadPreset('triangle')">🔺 Triangle</button>
+        <button class="eu-btn" onclick="loadPreset('rectangle')">▬ Rectangle + Diagonal</button>
+        <button class="eu-btn" onclick="loadPreset('house')">🏠 House</button>
+        <button class="eu-btn" onclick="loadPreset('petersen')">⭐ Petersen</button>
+        <button class="eu-btn" onclick="loadPreset('complete5')">🔶 K₅</button>
+    </div>
+
+    <div class="toggle-row">
+        <input type="checkbox" id="directed-toggle" onchange="toggleDirected()">
+        <label for="directed-toggle">Directed graph (find Eulerian circuit/path in digraph)</label>
+    </div>
+
+    <div class="eu-container">
+        <div class="canvas-panel">
+            <canvas id="graph-canvas"></canvas>
+        </div>
+        <div class="control-panel">
+            <div id="verdict" class="verdict empty">Draw a graph or load a preset</div>
+
+            <div class="info-card">
+                <h3>📊 Degree Summary</h3>
+                <div class="stat-row"><span class="stat-label">Nodes</span><span class="stat-value" id="node-count">0</span></div>
+                <div class="stat-row"><span class="stat-label">Edges</span><span class="stat-value" id="edge-count">0</span></div>
+                <div class="stat-row"><span class="stat-label">Odd-degree nodes</span><span class="stat-value" id="odd-count">0</span></div>
+                <div style="max-height:180px;overflow-y:auto;margin-top:8px">
+                    <table class="degree-table" id="degree-table">
+                        <thead><tr><th>Node</th><th>Degree</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>⚡ Animation</h3>
+                <div class="speed-control">
+                    <span style="font-size:0.8rem">🐢</span>
+                    <input type="range" id="speed" min="1" max="10" value="5">
+                    <span style="font-size:0.8rem">🐇</span>
+                </div>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="eu-btn primary" id="btn-find" onclick="findAndAnimate()">▶ Find &amp; Animate</button>
+                    <button class="eu-btn" id="btn-step" onclick="stepOnce()" disabled>⏭ Step</button>
+                    <button class="eu-btn danger" id="btn-stop" onclick="stopAnimation()" disabled>⏹ Stop</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🛤️ Euler Path/Circuit</h3>
+                <div class="path-display" id="path-display">—</div>
+                <div style="margin-top:8px;font-size:0.75rem;color:var(--text-muted)" id="path-stats"></div>
+            </div>
+
+            <div class="info-card">
+                <h3>📚 Theory</h3>
+                <div style="font-size:0.8rem;line-height:1.5;color:var(--text-muted)">
+                    <p><strong>Euler Circuit:</strong> A closed walk visiting every edge exactly once. Exists iff all vertices have even degree and the graph is connected.</p>
+                    <p><strong>Euler Path:</strong> An open walk visiting every edge exactly once. Exists iff exactly 2 vertices have odd degree.</p>
+                    <p><strong>Hierholzer's Algorithm:</strong> Builds the circuit/path by following edges, removing them, and splicing sub-tours at stuck vertices.</p>
+                    <p><strong>Königsberg Bridges:</strong> The classic problem that started graph theory — Euler proved no walk crosses all 7 bridges exactly once (all 4 nodes have odd degree).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ═══════════════════════════ STATE ═══════════════════════════
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let nodes = [], edges = [];
+let nodeId = 0;
+let mode = 'node'; // node | edge | move
+let edgeStart = null, dragNode = null, dragOff = {x:0,y:0};
+let directed = false;
+
+// Animation state
+let animPath = [], animIdx = -1, animTimer = null, animPaused = false;
+
+// Colors
+const C = {
+    bg: '#0d1117', surface: '#161b22', border: '#30363d',
+    text: '#e6edf3', muted: '#8b949e',
+    accent: '#58a6ff', green: '#3fb950', orange: '#f0883e', red: '#ff6b6b',
+    purple: '#bc8cff', traversed: '#3fb950'
+};
+
+// ═══════════════════════════ CANVAS SETUP ═══════════════════════════
+function resizeCanvas() {
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width * devicePixelRatio;
+    canvas.height = r.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    draw();
+}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 50);
+
+// ═══════════════════════════ DRAWING ═══════════════════════════
+function draw() {
+    const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = C.surface; ctx.fillRect(0, 0, w, h);
+
+    // Draw edges
+    edges.forEach((e, i) => {
+        const a = nodes[e.from], b = nodes[e.to];
+        if (!a || !b) return;
+        const traversed = animIdx >= 0 && isEdgeTraversed(i);
+        const isCurrent = animIdx >= 0 && isEdgeCurrent(i);
+        ctx.beginPath();
+        ctx.strokeStyle = isCurrent ? C.red : traversed ? C.traversed : C.border;
+        ctx.lineWidth = isCurrent ? 3.5 : traversed ? 2.5 : 1.5;
+
+        // Handle multi-edges: curve if parallel
+        const parallel = edges.filter((ee, j) => j < i &&
+            ((ee.from === e.from && ee.to === e.to) || (!directed && ee.from === e.to && ee.to === e.from)));
+        const curve = parallel.length * 25;
+
+        if (curve) {
+            const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const nx = -dy, ny = dx;
+            const len = Math.sqrt(nx*nx + ny*ny) || 1;
+            const cx = mx + (nx/len) * curve, cy = my + (ny/len) * curve;
+            ctx.moveTo(a.x, a.y);
+            ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+        } else {
+            ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
+
+        // Arrow for directed
+        if (directed) {
+            const angle = Math.atan2(b.y - a.y, b.x - a.x);
+            const r = 18;
+            const tx = b.x - Math.cos(angle) * r, ty = b.y - Math.sin(angle) * r;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx - 10*Math.cos(angle - 0.4), ty - 10*Math.sin(angle - 0.4));
+            ctx.lineTo(tx - 10*Math.cos(angle + 0.4), ty - 10*Math.sin(angle + 0.4));
+            ctx.closePath();
+            ctx.fillStyle = isCurrent ? C.red : traversed ? C.traversed : C.muted;
+            ctx.fill();
+        }
+
+        // Edge index label
+        ctx.fillStyle = C.muted; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+        const lx = curve ? (a.x + b.x)/2 + (-( b.y-a.y)/Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2||1))*curve*0.5
+                         : (a.x + b.x) / 2;
+        const ly = curve ? (a.y + b.y)/2 + ((b.x-a.x)/Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2||1))*curve*0.5
+                         : (a.y + b.y) / 2;
+        ctx.fillText('e' + i, lx, ly - 6);
+    });
+
+    // Draw nodes
+    nodes.forEach((n, i) => {
+        if (!n) return;
+        const deg = getDegree(i);
+        const isOdd = deg % 2 !== 0;
+        const isCurrent = animIdx >= 0 && animPath[animIdx] === i;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+        ctx.fillStyle = isCurrent ? C.red : isOdd ? C.orange : C.accent;
+        ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+    });
+
+    // Edge-start highlight
+    if (mode === 'edge' && edgeStart !== null && nodes[edgeStart]) {
+        const n = nodes[edgeStart];
+        ctx.beginPath(); ctx.arc(n.x, n.y, 20, 0, Math.PI * 2);
+        ctx.strokeStyle = C.green; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+}
+
+function isEdgeTraversed(ei) {
+    for (let k = 0; k < animIdx; k++) {
+        const a = animPath[k], b = animPath[k+1];
+        const e = edges[ei];
+        if (!e) continue;
+        if (directed) { if (e.from === a && e.to === b) return true; }
+        else { if ((e.from === a && e.to === b) || (e.from === b && e.to === a)) return true; }
+    }
+    return false;
+}
+
+function isEdgeCurrent(ei) {
+    if (animIdx <= 0) return false;
+    const a = animPath[animIdx - 1], b = animPath[animIdx];
+    const e = edges[ei];
+    if (!e) return false;
+    if (directed) return e.from === a && e.to === b;
+    return (e.from === a && e.to === b) || (e.from === b && e.to === a);
+}
+
+// ═══════════════════════════ GRAPH OPS ═══════════════════════════
+function addNode(x, y) {
+    const id = nodeId++;
+    nodes[id] = { x, y, label: String.fromCharCode(65 + (id % 26)) + (id >= 26 ? Math.floor(id/26) : '') };
+    updateAnalysis(); draw();
+}
+
+function addEdge(from, to) {
+    if (from === to && !directed) return; // no self-loops for undirected
+    edges.push({ from, to });
+    updateAnalysis(); draw();
+}
+
+function getDegree(nodeIdx) {
+    if (directed) {
+        let inD = 0, outD = 0;
+        edges.forEach(e => { if (e.from === nodeIdx) outD++; if (e.to === nodeIdx) inD++; });
+        return inD + outD; // total degree for display; in/out checked separately for Euler
+    }
+    let d = 0;
+    edges.forEach(e => { if (e.from === nodeIdx) d++; if (e.to === nodeIdx) d++; });
+    return d;
+}
+
+function getInDeg(n) { return edges.filter(e => e.to === n).length; }
+function getOutDeg(n) { return edges.filter(e => e.from === n).length; }
+
+function clearGraph() {
+    nodes = []; edges = []; nodeId = 0; edgeStart = null;
+    stopAnimation(); animPath = []; animIdx = -1;
+    updateAnalysis(); draw();
+}
+
+function toggleDirected() {
+    directed = document.getElementById('directed-toggle').checked;
+    stopAnimation(); animPath = []; animIdx = -1;
+    updateAnalysis(); draw();
+}
+
+// ═══════════════════════════ ANALYSIS ═══════════════════════════
+function getActiveNodes() { return nodes.map((n,i) => n ? i : -1).filter(i => i >= 0); }
+
+function isConnected() {
+    const active = getActiveNodes();
+    if (active.length <= 1) return true;
+    // Only consider nodes with edges
+    const withEdges = active.filter(n => getDegree(n) > 0);
+    if (withEdges.length <= 1) return true;
+    const visited = new Set();
+    const q = [withEdges[0]];
+    visited.add(withEdges[0]);
+    while (q.length) {
+        const cur = q.shift();
+        edges.forEach(e => {
+            let nb = -1;
+            if (e.from === cur) nb = e.to;
+            if (!directed && e.to === cur) nb = e.from;
+            if (directed && e.to === cur) nb = e.from; // weakly connected
+            if (nb >= 0 && !visited.has(nb)) { visited.add(nb); q.push(nb); }
+        });
+    }
+    return withEdges.every(n => visited.has(n));
+}
+
+function analyzeEuler() {
+    const active = getActiveNodes().filter(n => getDegree(n) > 0);
+    if (active.length === 0 || edges.length === 0) return { type: 'empty', msg: 'Draw a graph or load a preset' };
+    if (!isConnected()) return { type: 'none', msg: 'Graph is not connected — no Euler path/circuit possible' };
+
+    if (directed) {
+        let startCand = -1, endCand = -1, ok = true;
+        let extraStart = 0, extraEnd = 0;
+        for (const n of active) {
+            const diff = getOutDeg(n) - getInDeg(n);
+            if (diff === 1) { startCand = n; extraStart++; }
+            else if (diff === -1) { endCand = n; extraEnd++; }
+            else if (diff !== 0) { ok = false; break; }
+        }
+        if (!ok) return { type: 'none', msg: 'In/out degree imbalance — no Euler path/circuit' };
+        if (extraStart === 0 && extraEnd === 0) return { type: 'circuit', msg: '✅ Euler Circuit exists! All vertices have equal in/out degree.', start: active[0] };
+        if (extraStart === 1 && extraEnd === 1) return { type: 'path', msg: '🛤️ Euler Path exists! Start at ' + nodes[startCand].label + ', end at ' + nodes[endCand].label + '.', start: startCand };
+        return { type: 'none', msg: 'In/out degree imbalance — no Euler path/circuit' };
+    } else {
+        const oddNodes = active.filter(n => getDegree(n) % 2 !== 0);
+        if (oddNodes.length === 0) return { type: 'circuit', msg: '✅ Euler Circuit exists! All vertices have even degree.', start: active[0] };
+        if (oddNodes.length === 2) return { type: 'path', msg: '🛤️ Euler Path exists! Start at ' + nodes[oddNodes[0]].label + ' or ' + nodes[oddNodes[1]].label + '.', start: oddNodes[0] };
+        return { type: 'none', msg: '❌ No Euler path/circuit — ' + oddNodes.length + ' vertices have odd degree (need 0 or 2).' };
+    }
+}
+
+function updateAnalysis() {
+    const active = getActiveNodes();
+    document.getElementById('node-count').textContent = active.length;
+    document.getElementById('edge-count').textContent = edges.length;
+
+    const tbody = document.querySelector('#degree-table tbody');
+    tbody.innerHTML = '';
+    const oddCount = active.filter(n => {
+        const d = getDegree(n);
+        const tr = document.createElement('tr');
+        const isOdd = d % 2 !== 0;
+        tr.innerHTML = `<td>${nodes[n].label}</td><td class="${isOdd ? 'odd-degree' : 'even-degree'}">${d}${directed ? ' (in:'+getInDeg(n)+' out:'+getOutDeg(n)+')' : ''}${isOdd ? ' ⚠' : ''}</td>`;
+        tbody.appendChild(tr);
+        return isOdd;
+    }).length;
+    document.getElementById('odd-count').textContent = oddCount;
+
+    const analysis = analyzeEuler();
+    const v = document.getElementById('verdict');
+    v.textContent = analysis.msg;
+    v.className = 'verdict ' + (analysis.type === 'circuit' ? 'has-circuit' : analysis.type === 'path' ? 'has-path' : analysis.type === 'none' ? 'none' : 'empty');
+
+    const canFind = analysis.type === 'circuit' || analysis.type === 'path';
+    document.getElementById('btn-find').disabled = !canFind;
+}
+
+// ═══════════════════════════ HIERHOLZER'S ═══════════════════════════
+function hierholzer(startNode) {
+    // Build adjacency with edge indices
+    const adj = {};
+    const used = new Array(edges.length).fill(false);
+    edges.forEach((e, i) => {
+        if (!adj[e.from]) adj[e.from] = [];
+        adj[e.from].push({ to: e.to, ei: i });
+        if (!directed) {
+            if (!adj[e.to]) adj[e.to] = [];
+            adj[e.to].push({ to: e.from, ei: i });
+        }
+    });
+
+    const stack = [startNode];
+    const circuit = [];
+    while (stack.length) {
+        const v = stack[stack.length - 1];
+        let found = false;
+        if (adj[v]) {
+            while (adj[v].length) {
+                const { to, ei } = adj[v].shift();
+                if (!used[ei]) {
+                    used[ei] = true;
+                    stack.push(to);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) circuit.push(stack.pop());
+    }
+    circuit.reverse();
+    return circuit;
+}
+
+// ═══════════════════════════ ANIMATION ═══════════════════════════
+function findAndAnimate() {
+    stopAnimation();
+    const analysis = analyzeEuler();
+    if (analysis.type !== 'circuit' && analysis.type !== 'path') return;
+
+    animPath = hierholzer(analysis.start);
+    animIdx = 0;
+    document.getElementById('btn-step').disabled = false;
+    document.getElementById('btn-stop').disabled = false;
+    document.getElementById('btn-find').disabled = true;
+    updatePathDisplay();
+    draw();
+
+    const speed = parseInt(document.getElementById('speed').value);
+    const ms = 1200 - speed * 100;
+    animTimer = setInterval(() => {
+        if (animIdx < animPath.length - 1) {
+            animIdx++;
+            updatePathDisplay();
+            draw();
+        } else {
+            stopAnimation();
+        }
+    }, ms);
+}
+
+function stepOnce() {
+    if (animTimer) { clearInterval(animTimer); animTimer = null; }
+    if (animIdx < animPath.length - 1) {
+        animIdx++;
+        updatePathDisplay();
+        draw();
+    }
+    if (animIdx >= animPath.length - 1) {
+        document.getElementById('btn-step').disabled = true;
+    }
+}
+
+function stopAnimation() {
+    if (animTimer) { clearInterval(animTimer); animTimer = null; }
+    document.getElementById('btn-step').disabled = true;
+    document.getElementById('btn-stop').disabled = true;
+    document.getElementById('btn-find').disabled = false;
+    updateAnalysis();
+}
+
+function updatePathDisplay() {
+    const disp = document.getElementById('path-display');
+    const stats = document.getElementById('path-stats');
+    if (animPath.length === 0) { disp.textContent = '—'; stats.textContent = ''; return; }
+    const labels = animPath.map((n, i) => {
+        const lbl = nodes[n] ? nodes[n].label : '?';
+        return i <= animIdx ? `<span style="color:${i === animIdx ? C.red : C.green};font-weight:700">${lbl}</span>` : `<span style="color:${C.muted}">${lbl}</span>`;
+    });
+    disp.innerHTML = labels.join(' → ');
+    stats.textContent = `Step ${animIdx} / ${animPath.length - 1} edges | ${animPath.length} nodes visited`;
+}
+
+// ═══════════════════════════ INTERACTION ═══════════════════════════
+function setMode(m) {
+    mode = m; edgeStart = null;
+    document.querySelectorAll('.toolbar .eu-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + (m === 'node' ? 'add-node' : m === 'edge' ? 'add-edge' : 'move')).classList.add('active');
+}
+
+function nodeAt(x, y) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        if (!nodes[i]) continue;
+        const dx = nodes[i].x - x, dy = nodes[i].y - y;
+        if (dx*dx + dy*dy < 20*20) return i;
+    }
+    return -1;
+}
+
+canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const hit = nodeAt(x, y);
+
+    if (mode === 'node') {
+        if (hit < 0) addNode(x, y);
+    } else if (mode === 'edge') {
+        if (hit >= 0) {
+            if (edgeStart === null) { edgeStart = hit; draw(); }
+            else { addEdge(edgeStart, hit); edgeStart = null; }
+        }
+    } else if (mode === 'move') {
+        if (hit >= 0) {
+            dragNode = hit;
+            dragOff = { x: nodes[hit].x - x, y: nodes[hit].y - y };
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (dragNode === null) return;
+    const rect = canvas.getBoundingClientRect();
+    nodes[dragNode].x = e.clientX - rect.left + dragOff.x;
+    nodes[dragNode].y = e.clientY - rect.top + dragOff.y;
+    draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragNode = null; });
+
+// Right-click delete
+canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const hit = nodeAt(x, y);
+    if (hit >= 0) {
+        edges = edges.filter(edge => edge.from !== hit && edge.to !== hit);
+        nodes[hit] = null;
+        stopAnimation(); animPath = []; animIdx = -1;
+        updateAnalysis(); draw();
+    }
+});
+
+// ═══════════════════════════ PRESETS ═══════════════════════════
+function loadPreset(name) {
+    clearGraph();
+    const cx = canvas.width / devicePixelRatio / 2, cy = canvas.height / devicePixelRatio / 2;
+    const presets = {
+        konigsberg() {
+            // 4 land masses, 7 bridges (multi-edges) — all odd degree, no Euler path
+            [[cx-120,cy-80],[cx+120,cy-80],[cx,cy+80],[cx,cy-20]].forEach(([x,y]) => addNode(x,y));
+            // 7 bridges: 0-3, 0-3, 1-3, 1-3, 0-2, 1-2, 2-3
+            addEdge(0,3); addEdge(0,3); addEdge(1,3); addEdge(1,3);
+            addEdge(0,2); addEdge(1,2); addEdge(2,3);
+        },
+        triangle() {
+            // Simple triangle — Euler circuit (all even degree 2)
+            const r = 100;
+            for (let i = 0; i < 3; i++) addNode(cx + r*Math.cos(i*2*Math.PI/3 - Math.PI/2), cy + r*Math.sin(i*2*Math.PI/3 - Math.PI/2));
+            addEdge(0,1); addEdge(1,2); addEdge(2,0);
+        },
+        rectangle() {
+            // Rectangle with one diagonal — Euler path (2 odd vertices)
+            addNode(cx-100,cy-80); addNode(cx+100,cy-80);
+            addNode(cx+100,cy+80); addNode(cx-100,cy+80);
+            addEdge(0,1); addEdge(1,2); addEdge(2,3); addEdge(3,0); addEdge(0,2);
+        },
+        house() {
+            // House shape (square + triangle roof) — all even → circuit
+            addNode(cx-100,cy+80); addNode(cx+100,cy+80);
+            addNode(cx+100,cy-40); addNode(cx-100,cy-40);
+            addNode(cx,cy-120);
+            addEdge(0,1); addEdge(1,2); addEdge(2,3); addEdge(3,0);
+            addEdge(2,4); addEdge(4,3); addEdge(0,2); addEdge(3,1);
+        },
+        petersen() {
+            // Petersen graph — all degree 3 (odd), no Euler path
+            const outer = 140, inner = 60;
+            for (let i = 0; i < 5; i++) addNode(cx + outer*Math.cos(i*2*Math.PI/5 - Math.PI/2), cy + outer*Math.sin(i*2*Math.PI/5 - Math.PI/2));
+            for (let i = 0; i < 5; i++) addNode(cx + inner*Math.cos(i*2*Math.PI/5 - Math.PI/2), cy + inner*Math.sin(i*2*Math.PI/5 - Math.PI/2));
+            // Outer cycle
+            for (let i = 0; i < 5; i++) addEdge(i, (i+1)%5);
+            // Inner pentagram
+            for (let i = 0; i < 5; i++) addEdge(5+i, 5+(i+2)%5);
+            // Spokes
+            for (let i = 0; i < 5; i++) addEdge(i, 5+i);
+        },
+        complete5() {
+            // K5 — all degree 4 (even) → Euler circuit
+            const r = 110;
+            for (let i = 0; i < 5; i++) addNode(cx + r*Math.cos(i*2*Math.PI/5 - Math.PI/2), cy + r*Math.sin(i*2*Math.PI/5 - Math.PI/2));
+            for (let i = 0; i < 5; i++) for (let j = i+1; j < 5; j++) addEdge(i, j);
+        }
+    };
+    if (presets[name]) presets[name]();
+}
+
+// Init
+updateAnalysis();
+</script>
+</body>
+</html>
