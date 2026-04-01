@@ -193,21 +193,25 @@ public class ForceDirectedLayout {
             if (n > BARNES_HUT_THRESHOLD) {
                 // Barnes-Hut: O(V log V) approximation via quadtree
                 QuadTree qt = QuadTree.build(pos, n);
+                double kSq = k * k;
+                double thetaSq = BH_THETA * BH_THETA;
                 for (int i = 0; i < n; i++) {
-                    qt.applyRepulsion(i, pos[i][0], pos[i][1], k, disp[i], BH_THETA);
+                    qt.applyRepulsion(i, pos[i][0], pos[i][1], kSq, disp[i], thetaSq);
                 }
             } else {
                 // Brute-force: O(V^2) all-pairs (fine for small graphs)
+                double kSqBF = k * k;
                 for (int i = 0; i < n; i++) {
                     for (int j = i + 1; j < n; j++) {
                         double dx = pos[i][0] - pos[j][0];
                         double dy = pos[i][1] - pos[j][1];
-                        double dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < MIN_DIST) dist = MIN_DIST;
+                        double distSq = dx * dx + dy * dy;
+                        if (distSq < MIN_DIST * MIN_DIST) distSq = MIN_DIST * MIN_DIST;
 
-                        double force = (k * k) / dist;
-                        double fx = (dx / dist) * force;
-                        double fy = (dy / dist) * force;
+                        // force = k²/dist; fx = dx/dist * force = dx * k²/distSq
+                        double f = kSqBF / distSq;
+                        double fx = dx * f;
+                        double fy = dy * f;
 
                         disp[i][0] += fx;
                         disp[i][1] += fy;
