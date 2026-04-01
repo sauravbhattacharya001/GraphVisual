@@ -394,14 +394,20 @@ public class ForceDirectedLayout {
         List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
         int m = edges.size();
 
-        // Pre-compute endpoint positions and vertex names into arrays
-        // to avoid repeated HashMap lookups and method calls inside
-        // the O(E²) nested loop.
+        // Pre-compute endpoint positions, vertex names, and axis-aligned
+        // bounding boxes into parallel arrays. The AABB check lets us skip
+        // the expensive cross-product intersection test for edge pairs whose
+        // bounding boxes don't overlap — a significant win on larger graphs
+        // where most edge pairs are spatially distant.
         double[][] ep1 = new double[m][];
         double[][] ep2 = new double[m][];
         String[] v1 = new String[m];
         String[] v2 = new String[m];
         boolean[] valid = new boolean[m];
+        double[] minX = new double[m];
+        double[] maxX = new double[m];
+        double[] minY = new double[m];
+        double[] maxY = new double[m];
 
         for (int i = 0; i < m; i++) {
             Edge e = edges.get(i);
@@ -410,6 +416,12 @@ public class ForceDirectedLayout {
             ep1[i] = positions.get(v1[i]);
             ep2[i] = positions.get(v2[i]);
             valid[i] = ep1[i] != null && ep2[i] != null;
+            if (valid[i]) {
+                minX[i] = Math.min(ep1[i][0], ep2[i][0]);
+                maxX[i] = Math.max(ep1[i][0], ep2[i][0]);
+                minY[i] = Math.min(ep1[i][1], ep2[i][1]);
+                maxY[i] = Math.max(ep1[i][1], ep2[i][1]);
+            }
         }
 
         int crossings = 0;
@@ -418,6 +430,13 @@ public class ForceDirectedLayout {
 
             for (int j = i + 1; j < m; j++) {
                 if (!valid[j]) continue;
+
+                // AABB overlap test: skip pairs whose bounding boxes
+                // don't overlap (no intersection possible)
+                if (maxX[i] < minX[j] || maxX[j] < minX[i] ||
+                    maxY[i] < minY[j] || maxY[j] < minY[i]) {
+                    continue;
+                }
 
                 // Skip if edges share an endpoint
                 if (v1[i].equals(v1[j]) || v1[i].equals(v2[j]) ||
