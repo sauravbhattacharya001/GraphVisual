@@ -328,6 +328,6 @@ public class GraphStorytellerExporter {
     private static String esc(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                .replace("\"", "&quot;");
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 }
