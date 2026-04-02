@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Resilience — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .resilience-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        #graphCanvas { cursor: grab; }
+        #graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 100px; text-align: center; }
+        .stat-card .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .viz-tabs { display: flex; gap: 0; margin-top: 16px; }
+        .viz-tab { padding: 8px 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-muted); }
+        .viz-tab:first-child { border-radius: 8px 0 0 8px; }
+        .viz-tab:last-child { border-radius: 0 8px 8px 0; }
+        .viz-tab.active { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
+        .viz-panel { display: none; margin-top: 12px; }
+        .viz-panel.active { display: block; }
+        .attack-log { max-height: 200px; overflow-y: auto; font-size: 12px; font-family: monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 8px; }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+        .log-entry .removed { color: #e74c3c; font-weight: 600; }
+        .log-entry .metric { color: var(--accent); }
+        .speed-control { display: flex; align-items: center; gap: 8px; }
+        .speed-control input[type=range] { flex: 1; }
+        .comparison-row { display: flex; gap: 8px; margin-top: 8px; }
+        .comparison-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-robust { background: #27ae6022; color: #27ae60; border: 1px solid #27ae60; }
+        .badge-fragile { background: #e74c3c22; color: #e74c3c; border: 1px solid #e74c3c; }
+        .badge-moderate { background: #f39c1222; color: #f39c12; border: 1px solid #f39c12; }
+        @media (max-width: 900px) { .resilience-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="diff.html" class="sidebar-link"><span class="icon">🔀</span>Diff Visualizer</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="resilience.html" class="sidebar-link active"><span class="icon">🛡️</span>Resilience</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">📝</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="content-header">
+        <h1>🛡️ Network Resilience Analyzer</h1>
+        <p>Simulate targeted and random attacks on networks. Watch how the giant component fragments, measure robustness curves, and compare attack strategies side-by-side.</p>
+    </div>
+
+    <div class="resilience-layout">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>Graph Preset</h3>
+                <div class="control-row">
+                    <select id="presetSelect">
+                        <option value="barabasi">Barabási-Albert (50)</option>
+                        <option value="erdos">Erdős-Rényi (50, p=0.08)</option>
+                        <option value="watts">Watts-Strogatz (40, k=6)</option>
+                        <option value="star">Star (25)</option>
+                        <option value="grid">Grid (7×7)</option>
+                        <option value="karate">Zachary's Karate Club</option>
+                    </select>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="loadPreset()">Load Graph</button>
+                    <button class="btn btn-secondary" onclick="resetAttack()">Reset</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Attack Strategy</h3>
+                <div class="control-row">
+                    <select id="attackSelect">
+                        <option value="degree">Targeted: Highest Degree</option>
+                        <option value="betweenness">Targeted: Highest Betweenness</option>
+                        <option value="random">Random Removal</option>
+                        <option value="cascading">Cascading (recalc degree)</option>
+                    </select>
+                </div>
+                <div class="speed-control">
+                    <label style="font-size:12px;color:var(--text-muted)">Speed</label>
+                    <input type="range" id="speedSlider" min="1" max="20" value="8">
+                    <span id="speedLabel" style="font-size:12px;color:var(--text-muted);min-width:30px">8</span>
+                </div>
+                <div class="btn-row" style="margin-top:12px">
+                    <button class="btn btn-danger" id="attackBtn" onclick="startAttack()">▶ Run Attack</button>
+                    <button class="btn btn-secondary" onclick="pauseAttack()">⏸ Pause</button>
+                    <button class="btn btn-secondary" onclick="stepAttack()">⏭ Step</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Compare Strategies</h3>
+                <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Run multiple attacks to overlay robustness curves</p>
+                <div class="btn-row">
+                    <button class="btn btn-secondary" onclick="saveCurrentCurve()">💾 Save Curve</button>
+                    <button class="btn btn-secondary" onclick="clearCurves()">🗑️ Clear All</button>
+                </div>
+                <div id="savedCurves" style="margin-top:8px;font-size:12px"></div>
+            </div>
+
+            <div class="control-group">
+                <h3>Attack Log</h3>
+                <div class="attack-log" id="attackLog">
+                    <div class="log-entry" style="color:var(--text-muted);font-style:italic">Load a graph and run an attack...</div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="viz-tabs">
+                <div class="viz-tab active" onclick="switchTab('graph')">Graph View</div>
+                <div class="viz-tab" onclick="switchTab('chart')">Robustness Curve</div>
+            </div>
+
+            <div class="viz-panel active" id="graphPanel">
+                <canvas id="graphCanvas" width="900" height="550"></canvas>
+            </div>
+            <div class="viz-panel" id="chartPanel">
+                <canvas id="chartCanvas" width="900" height="550"></canvas>
+            </div>
+
+            <div class="stats-bar" id="statsBar">
+                <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+                <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+                <div class="stat-card"><div class="val" id="statGiant">0</div><div class="lbl">Giant Component</div></div>
+                <div class="stat-card"><div class="val" id="statComponents">0</div><div class="lbl">Components</div></div>
+                <div class="stat-card"><div class="val" id="statRemoved">0</div><div class="lbl">Removed</div></div>
+                <div class="stat-card"><div class="val" id="statRobustness">—</div><div class="lbl">R-index</div></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ── State ──
+let nodes = [], edges = [], removedSet = new Set();
+let originalNodes = [], originalEdges = [];
+let positions = {}, velocities = {};
+let attackQueue = [], attackRunning = false, attackPaused = false;
+let robustnessCurve = [], savedCurves = [];
+let dragNode = null, panOffset = {x:0,y:0}, panStart = null;
+let animFrame = null;
+
+const COLORS = {
+    node: '#00d4aa', removed: '#e74c3c44', edge: '#ffffff18',
+    giant: '#00d4aa', other: '#555', highlight: '#e74c3c',
+    curves: ['#00d4aa','#e74c3c','#3498db','#f39c12','#9b59b6','#1abc9c']
+};
+
+// ── Presets ──
+function generateBarabasiAlbert(n, m=2) {
+    const ns = [], es = [];
+    for (let i=0;i<n;i++) ns.push({id:i});
+    // start with m+1 fully connected
+    for (let i=0;i<=m;i++) for (let j=i+1;j<=m;j++) es.push({s:i,t:j});
+    const deg = new Array(n).fill(0);
+    es.forEach(e=>{deg[e.s]++;deg[e.t]++});
+    for (let i=m+1;i<n;i++) {
+        const targets = new Set();
+        let totalDeg = deg.reduce((a,b)=>a+b,0) || 1;
+        while (targets.size < m) {
+            let r = Math.random()*totalDeg, cum=0;
+            for (let j=0;j<i;j++) { cum+=deg[j]; if(cum>=r){targets.add(j);break;} }
+        }
+        targets.forEach(t=>{es.push({s:i,t});deg[i]++;deg[t]++});
+    }
+    return {nodes:ns,edges:es};
+}
+function generateErdosRenyi(n,p) {
+    const ns=[];for(let i=0;i<n;i++)ns.push({id:i});
+    const es=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(Math.random()<p)es.push({s:i,t:j});
+    return{nodes:ns,edges:es};
+}
+function generateWattsStrogatz(n,k,beta=0.3) {
+    const ns=[];for(let i=0;i<n;i++)ns.push({id:i});
+    const es=[];
+    for(let i=0;i<n;i++)for(let j=1;j<=k/2;j++){let t=(i+j)%n;es.push({s:i,t});}
+    es.forEach(e=>{if(Math.random()<beta){let nt;do{nt=Math.floor(Math.random()*n)}while(nt===e.s||es.some(x=>(x.s===e.s&&x.t===nt)||(x.t===e.s&&x.s===nt)));e.t=nt;}});
+    return{nodes:ns,edges:es};
+}
+function generateStar(n) {
+    const ns=[];for(let i=0;i<n;i++)ns.push({id:i});
+    const es=[];for(let i=1;i<n;i++)es.push({s:0,t:i});
+    return{nodes:ns,edges:es};
+}
+function generateGrid(r,c) {
+    const ns=[];for(let i=0;i<r*c;i++)ns.push({id:i});
+    const es=[];
+    for(let i=0;i<r;i++)for(let j=0;j<c;j++){const id=i*c+j;if(j<c-1)es.push({s:id,t:id+1});if(i<r-1)es.push({s:id,t:id+c});}
+    return{nodes:ns,edges:es};
+}
+function karateClub() {
+    const ns=[];for(let i=0;i<34;i++)ns.push({id:i});
+    const pairs=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];
+    const es=pairs.map(([s,t])=>({s,t}));
+    return{nodes:ns,edges:es};
+}
+
+function loadPreset() {
+    const sel = document.getElementById('presetSelect').value;
+    let g;
+    switch(sel) {
+        case 'barabasi': g=generateBarabasiAlbert(50); break;
+        case 'erdos': g=generateErdosRenyi(50,0.08); break;
+        case 'watts': g=generateWattsStrogatz(40,6); break;
+        case 'star': g=generateStar(25); break;
+        case 'grid': g=generateGrid(7,7); break;
+        case 'karate': g=karateClub(); break;
+    }
+    setGraph(g.nodes, g.edges);
+}
+
+function setGraph(ns, es) {
+    nodes = ns.map(n=>({...n})); edges = es.map(e=>({...e}));
+    originalNodes = nodes.map(n=>({...n})); originalEdges = edges.map(e=>({...e}));
+    removedSet.clear(); attackQueue=[]; attackRunning=false; attackPaused=false;
+    robustnessCurve = [];
+    // init positions
+    const canvas = document.getElementById('graphCanvas');
+    const W=canvas.width, H=canvas.height;
+    positions={}; velocities={};
+    nodes.forEach(n => {
+        positions[n.id] = {x: W/2 + (Math.random()-0.5)*W*0.6, y: H/2 + (Math.random()-0.5)*H*0.6};
+        velocities[n.id] = {x:0,y:0};
+    });
+    panOffset={x:0,y:0};
+    recordMetric();
+    startSimulation();
+    updateStats();
+    clearLog();
+    log('Graph loaded: '+nodes.length+' nodes, '+edges.length+' edges', 'metric');
+}
+
+// ── Force-directed layout ──
+function startSimulation() {
+    if(animFrame) cancelAnimationFrame(animFrame);
+    let cooling = 1;
+    function tick() {
+        if(cooling < 0.01) { drawGraph(); return; }
+        const active = nodes.filter(n=>!removedSet.has(n.id));
+        const activeEdges = edges.filter(e=>!removedSet.has(e.s)&&!removedSet.has(e.t));
+        const k = Math.sqrt((900*550)/(active.length||1));
+        // repulsion
+        for(let i=0;i<active.length;i++) {
+            for(let j=i+1;j<active.length;j++) {
+                const a=active[i],b=active[j];
+                let dx=positions[a.id].x-positions[b.id].x, dy=positions[a.id].y-positions[b.id].y;
+                let d=Math.sqrt(dx*dx+dy*dy)||1;
+                let f=k*k/d*cooling;
+                let fx=dx/d*f, fy=dy/d*f;
+                velocities[a.id].x+=fx; velocities[a.id].y+=fy;
+                velocities[b.id].x-=fx; velocities[b.id].y-=fy;
+            }
+        }
+        // attraction
+        activeEdges.forEach(e=>{
+            let dx=positions[e.t].x-positions[e.s].x, dy=positions[e.t].y-positions[e.s].y;
+            let d=Math.sqrt(dx*dx+dy*dy)||1;
+            let f=d*d/k*0.1*cooling;
+            let fx=dx/d*f, fy=dy/d*f;
+            velocities[e.s].x+=fx; velocities[e.s].y+=fy;
+            velocities[e.t].x-=fx; velocities[e.t].y-=fy;
+        });
+        // apply
+        active.forEach(n=>{
+            let v=velocities[n.id];
+            let speed=Math.sqrt(v.x*v.x+v.y*v.y)||1;
+            let maxD=10*cooling;
+            let scale=Math.min(maxD/speed,1);
+            positions[n.id].x+=v.x*scale;
+            positions[n.id].y+=v.y*scale;
+            positions[n.id].x=Math.max(20,Math.min(880,positions[n.id].x));
+            positions[n.id].y=Math.max(20,Math.min(530,positions[n.id].y));
+            velocities[n.id]={x:0,y:0};
+        });
+        cooling*=0.98;
+        drawGraph();
+        animFrame=requestAnimationFrame(tick);
+    }
+    tick();
+}
+
+// ── Graph rendering ──
+function drawGraph() {
+    const canvas=document.getElementById('graphCanvas');
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const components = getComponents();
+    const giantId = getGiantComponentId(components);
+    // edges
+    edges.forEach(e=>{
+        if(removedSet.has(e.s)||removedSet.has(e.t))return;
+        ctx.beginPath();
+        ctx.moveTo(positions[e.s].x, positions[e.s].y);
+        ctx.lineTo(positions[e.t].x, positions[e.t].y);
+        const inGiant = components[e.s]===giantId && components[e.t]===giantId;
+        ctx.strokeStyle = inGiant ? '#00d4aa30' : '#ffffff10';
+        ctx.lineWidth = inGiant ? 1.5 : 0.8;
+        ctx.stroke();
+    });
+    // nodes
+    nodes.forEach(n=>{
+        if(removedSet.has(n.id)) return;
+        const p = positions[n.id];
+        const inGiant = components[n.id]===giantId;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, inGiant?6:4, 0, Math.PI*2);
+        ctx.fillStyle = inGiant ? COLORS.giant : COLORS.other;
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    });
+    // recently removed flash
+    if(attackQueue.length>0 || removedSet.size>0) {
+        const last = [...removedSet].slice(-1)[0];
+        if(last!==undefined && positions[last]) {
+            ctx.beginPath();
+            ctx.arc(positions[last].x, positions[last].y, 12, 0, Math.PI*2);
+            ctx.strokeStyle='#e74c3c88';
+            ctx.lineWidth=2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(positions[last].x, positions[last].y, 4, 0, Math.PI*2);
+            ctx.fillStyle='#e74c3c66';
+            ctx.fill();
+        }
+    }
+}
+
+// ── Components ──
+function getComponents() {
+    const comp={};
+    const active = nodes.filter(n=>!removedSet.has(n.id));
+    const adj={};
+    active.forEach(n=>{adj[n.id]=[]});
+    edges.forEach(e=>{
+        if(removedSet.has(e.s)||removedSet.has(e.t))return;
+        adj[e.s].push(e.t); adj[e.t].push(e.s);
+    });
+    let cid=0;
+    const visited=new Set();
+    active.forEach(n=>{
+        if(visited.has(n.id))return;
+        const stack=[n.id]; visited.add(n.id);
+        while(stack.length){
+            const cur=stack.pop(); comp[cur]=cid;
+            (adj[cur]||[]).forEach(nb=>{if(!visited.has(nb)){visited.add(nb);stack.push(nb)}});
+        }
+        cid++;
+    });
+    return comp;
+}
+function getGiantComponentId(comp) {
+    const sizes={};
+    Object.values(comp).forEach(c=>{sizes[c]=(sizes[c]||0)+1});
+    let max=0,maxId=0;
+    Object.entries(sizes).forEach(([id,sz])=>{if(sz>max){max=sz;maxId=+id}});
+    return maxId;
+}
+function giantSize(comp) {
+    const sizes={};
+    Object.values(comp).forEach(c=>{sizes[c]=(sizes[c]||0)+1});
+    return Math.max(0,...Object.values(sizes));
+}
+function componentCount(comp) {
+    return new Set(Object.values(comp)).size;
+}
+
+// ── Metrics ──
+function updateStats() {
+    const active = nodes.filter(n=>!removedSet.has(n.id));
+    const activeEdges = edges.filter(e=>!removedSet.has(e.s)&&!removedSet.has(e.t));
+    const comp = getComponents();
+    document.getElementById('statNodes').textContent = active.length;
+    document.getElementById('statEdges').textContent = activeEdges.length;
+    document.getElementById('statGiant').textContent = active.length>0 ? giantSize(comp) : 0;
+    document.getElementById('statComponents').textContent = active.length>0 ? componentCount(comp) : 0;
+    document.getElementById('statRemoved').textContent = removedSet.size;
+    // R-index = area under normalized giant component curve
+    if(robustnessCurve.length>1) {
+        let area=0;
+        for(let i=1;i<robustnessCurve.length;i++) {
+            area += (robustnessCurve[i-1].giantFrac + robustnessCurve[i].giantFrac) / 2 * (1/originalNodes.length);
+        }
+        document.getElementById('statRobustness').textContent = area.toFixed(3);
+    }
+}
+function recordMetric() {
+    const active = nodes.filter(n=>!removedSet.has(n.id));
+    const comp = getComponents();
+    const gs = active.length>0 ? giantSize(comp) : 0;
+    robustnessCurve.push({
+        removed: removedSet.size,
+        frac: removedSet.size / originalNodes.length,
+        giant: gs,
+        giantFrac: gs / originalNodes.length,
+        components: active.length>0 ? componentCount(comp) : 0
+    });
+}
+
+// ── Attack strategies ──
+function getDegrees() {
+    const deg={};
+    nodes.forEach(n=>{if(!removedSet.has(n.id))deg[n.id]=0});
+    edges.forEach(e=>{
+        if(removedSet.has(e.s)||removedSet.has(e.t))return;
+        deg[e.s]=(deg[e.s]||0)+1; deg[e.t]=(deg[e.t]||0)+1;
+    });
+    return deg;
+}
+function getBetweenness() {
+    const active=nodes.filter(n=>!removedSet.has(n.id));
+    const adj={};
+    active.forEach(n=>{adj[n.id]=[]});
+    edges.forEach(e=>{
+        if(removedSet.has(e.s)||removedSet.has(e.t))return;
+        adj[e.s].push(e.t);adj[e.t].push(e.s);
+    });
+    const bc={};active.forEach(n=>{bc[n.id]=0});
+    active.forEach(s=>{
+        const stack=[], pred={}, sigma={}, dist={};
+        active.forEach(n=>{pred[n.id]=[];sigma[n.id]=0;dist[n.id]=-1});
+        sigma[s.id]=1;dist[s.id]=0;
+        const queue=[s.id];
+        while(queue.length){
+            const v=queue.shift();
+            stack.push(v);
+            (adj[v]||[]).forEach(w=>{
+                if(dist[w]<0){dist[w]=dist[v]+1;queue.push(w)}
+                if(dist[w]===dist[v]+1){sigma[w]+=sigma[v];pred[w].push(v)}
+            });
+        }
+        const delta={};active.forEach(n=>{delta[n.id]=0});
+        while(stack.length){
+            const w=stack.pop();
+            pred[w].forEach(v=>{delta[v]+=sigma[v]/sigma[w]*(1+delta[w])});
+            if(w!==s.id)bc[w]+=delta[w];
+        }
+    });
+    return bc;
+}
+function buildAttackQueue() {
+    const strategy = document.getElementById('attackSelect').value;
+    const active = nodes.filter(n=>!removedSet.has(n.id)).map(n=>n.id);
+    if(strategy==='random') {
+        const shuffled=[...active];
+        for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+        return shuffled;
+    }
+    if(strategy==='degree') {
+        const deg=getDegrees();
+        return active.sort((a,b)=>deg[b]-deg[a]);
+    }
+    if(strategy==='betweenness') {
+        const bc=getBetweenness();
+        return active.sort((a,b)=>bc[b]-bc[a]);
+    }
+    if(strategy==='cascading') return ['cascading']; // special marker
+    return active;
+}
+
+function startAttack() {
+    if(attackRunning&&!attackPaused) return;
+    if(attackPaused){attackPaused=false;runNextStep();return;}
+    const strategy = document.getElementById('attackSelect').value;
+    if(strategy==='cascading') {
+        attackRunning=true;
+        runCascadingAttack();
+        return;
+    }
+    attackQueue = buildAttackQueue();
+    attackRunning=true; attackPaused=false;
+    log('Attack started: '+document.getElementById('attackSelect').selectedOptions[0].text, 'metric');
+    runNextStep();
+}
+function pauseAttack(){attackPaused=true}
+function stepAttack() {
+    if(!attackRunning) {
+        const strategy = document.getElementById('attackSelect').value;
+        if(strategy==='cascading'){removeNextCascading();return;}
+        attackQueue = buildAttackQueue();
+        attackRunning=true;
+    }
+    removeNext();
+}
+function removeNext() {
+    if(!attackQueue.length){finishAttack();return;}
+    const id=attackQueue.shift();
+    removedSet.add(id);
+    recordMetric();
+    updateStats();
+    drawGraph();
+    drawChart();
+    log('Removed node <span class="removed">'+id+'</span> — giant: <span class="metric">'+robustnessCurve[robustnessCurve.length-1].giant+'</span>', 'removed');
+}
+function runNextStep() {
+    if(attackPaused||!attackRunning)return;
+    if(!attackQueue.length){finishAttack();return;}
+    removeNext();
+    const speed = +document.getElementById('speedSlider').value;
+    setTimeout(()=>runNextStep(), Math.max(20, 500-speed*25));
+}
+function runCascadingAttack() {
+    log('Cascading attack: recalculating degree each step', 'metric');
+    attackRunning=true;
+    function step(){
+        if(attackPaused||!attackRunning)return;
+        const active=nodes.filter(n=>!removedSet.has(n.id));
+        if(!active.length){finishAttack();return;}
+        const deg=getDegrees();
+        let maxD=0,maxN=active[0].id;
+        active.forEach(n=>{if((deg[n.id]||0)>maxD){maxD=deg[n.id];maxN=n.id}});
+        removedSet.add(maxN);
+        recordMetric();updateStats();drawGraph();drawChart();
+        log('Removed node <span class="removed">'+maxN+'</span> (deg='+maxD+') — giant: <span class="metric">'+robustnessCurve[robustnessCurve.length-1].giant+'</span>','removed');
+        const speed=+document.getElementById('speedSlider').value;
+        setTimeout(step, Math.max(20,500-speed*25));
+    }
+    step();
+}
+function removeNextCascading(){
+    const active=nodes.filter(n=>!removedSet.has(n.id));
+    if(!active.length)return;
+    const deg=getDegrees();
+    let maxD=0,maxN=active[0].id;
+    active.forEach(n=>{if((deg[n.id]||0)>maxD){maxD=deg[n.id];maxN=n.id}});
+    removedSet.add(maxN);
+    recordMetric();updateStats();drawGraph();drawChart();
+    log('Removed node <span class="removed">'+maxN+'</span> (deg='+maxD+') — giant: <span class="metric">'+robustnessCurve[robustnessCurve.length-1].giant+'</span>','removed');
+}
+function finishAttack(){
+    attackRunning=false;
+    const rIdx = document.getElementById('statRobustness').textContent;
+    log('Attack complete. R-index: <span class="metric">'+rIdx+'</span>', 'metric');
+}
+
+function resetAttack() {
+    attackRunning=false;attackPaused=false;attackQueue=[];
+    if(originalNodes.length) setGraph(originalNodes, originalEdges);
+}
+
+// ── Chart ──
+function drawChart() {
+    const canvas=document.getElementById('chartCanvas');
+    const ctx=canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    const pad={l:60,r:30,t:30,b:50};
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='var(--surface)';ctx.fillRect(0,0,W,H);
+    // axes
+    ctx.strokeStyle='#444';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+    // labels
+    ctx.fillStyle='#888';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Fraction of Nodes Removed', (pad.l+W-pad.r)/2, H-10);
+    ctx.save();ctx.translate(15,(pad.t+H-pad.b)/2);ctx.rotate(-Math.PI/2);
+    ctx.fillText('Giant Component (fraction)',0,0);ctx.restore();
+    // ticks
+    for(let i=0;i<=5;i++){
+        const x=pad.l+i*(W-pad.l-pad.r)/5;
+        const y=H-pad.b;
+        ctx.fillStyle='#666';ctx.fillText((i*0.2).toFixed(1),x,y+18);
+        ctx.strokeStyle='#333';ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,y);ctx.stroke();
+    }
+    for(let i=0;i<=5;i++){
+        const y=H-pad.b-i*(H-pad.t-pad.b)/5;
+        ctx.fillStyle='#666';ctx.textAlign='right';ctx.fillText((i*0.2).toFixed(1),pad.l-8,y+4);
+        ctx.strokeStyle='#333';ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    }
+    ctx.textAlign='center';
+    function plotCurve(curve, color, lineWidth) {
+        if(curve.length<2)return;
+        ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;
+        curve.forEach((p,i)=>{
+            const x=pad.l+p.frac*(W-pad.l-pad.r);
+            const y=H-pad.b-p.giantFrac*(H-pad.t-pad.b);
+            i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+    }
+    // saved
+    savedCurves.forEach((sc,i)=>{plotCurve(sc.curve, COLORS.curves[(i+1)%COLORS.curves.length], 2)});
+    // current
+    plotCurve(robustnessCurve, COLORS.curves[0], 3);
+    // legend
+    if(savedCurves.length>0||robustnessCurve.length>1) {
+        let ly=pad.t+10;
+        const drawLegend=(label,color)=>{
+            ctx.fillStyle=color;ctx.fillRect(W-pad.r-140,ly,14,14);
+            ctx.fillStyle='#aaa';ctx.textAlign='left';ctx.font='11px sans-serif';
+            ctx.fillText(label,W-pad.r-120,ly+11);ly+=20;
+        };
+        if(robustnessCurve.length>1)drawLegend('Current',COLORS.curves[0]);
+        savedCurves.forEach((sc,i)=>drawLegend(sc.name,COLORS.curves[(i+1)%COLORS.curves.length]));
+    }
+}
+
+// ── Compare ──
+function saveCurrentCurve() {
+    if(robustnessCurve.length<2){log('Nothing to save yet','metric');return;}
+    const name=document.getElementById('attackSelect').selectedOptions[0].text+' ('+savedCurves.length+')';
+    savedCurves.push({name,curve:[...robustnessCurve]});
+    const div=document.getElementById('savedCurves');
+    const badge=document.createElement('span');
+    badge.className='comparison-badge badge-moderate';
+    badge.textContent=name;
+    badge.style.display='inline-block';badge.style.marginRight='4px';badge.style.marginBottom='4px';
+    div.appendChild(badge);
+    log('Saved curve: '+name,'metric');
+    drawChart();
+}
+function clearCurves(){savedCurves=[];document.getElementById('savedCurves').innerHTML='';drawChart();}
+
+// ── Tabs ──
+function switchTab(tab) {
+    document.querySelectorAll('.viz-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.viz-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelector(`.viz-tab:nth-child(${tab==='graph'?1:2})`).classList.add('active');
+    document.getElementById(tab==='graph'?'graphPanel':'chartPanel').classList.add('active');
+    if(tab==='chart')drawChart();
+}
+
+// ── Log ──
+function log(msg, cls) {
+    const el=document.getElementById('attackLog');
+    const d=document.createElement('div');
+    d.className='log-entry';d.innerHTML=msg;
+    el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+function clearLog(){document.getElementById('attackLog').innerHTML='';}
+
+// ── Speed label ──
+document.getElementById('speedSlider').addEventListener('input', e=>{
+    document.getElementById('speedLabel').textContent=e.target.value;
+});
+
+// ── Mouse interaction ──
+const gc=document.getElementById('graphCanvas');
+gc.addEventListener('mousedown',e=>{
+    const r=gc.getBoundingClientRect();
+    const mx=e.offsetX*(gc.width/r.width), my=e.offsetY*(gc.height/r.height);
+    for(const n of nodes){
+        if(removedSet.has(n.id))continue;
+        const p=positions[n.id];
+        if(Math.hypot(p.x-mx,p.y-my)<10){dragNode=n.id;return;}
+    }
+    panStart={x:mx,y:my};
+});
+gc.addEventListener('mousemove',e=>{
+    const r=gc.getBoundingClientRect();
+    const mx=e.offsetX*(gc.width/r.width), my=e.offsetY*(gc.height/r.height);
+    if(dragNode!==null){positions[dragNode]={x:mx,y:my};drawGraph();}
+});
+gc.addEventListener('mouseup',()=>{dragNode=null;panStart=null;});
+
+// ── Init ──
+loadPreset();
+</script>
+
+</body>
+</html>
