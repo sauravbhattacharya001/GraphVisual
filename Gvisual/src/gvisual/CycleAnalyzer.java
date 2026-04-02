@@ -311,12 +311,16 @@ public class CycleAnalyzer {
     public int girth() {
         if (graph.getVertexCount() == 0) return -1;
 
+        // Theoretical minimum: 3 for undirected, 2 for directed (parallel edges).
+        // Terminate early once we hit the minimum possible girth.
+        int theoreticalMin = isDirected ? 2 : 3;
         int minCycle = Integer.MAX_VALUE;
 
         for (String start : graph.getVertices()) {
             int cycleLen = bfsShortestCycle(start);
             if (cycleLen > 0 && cycleLen < minCycle) {
                 minCycle = cycleLen;
+                if (minCycle <= theoreticalMin) break; // can't improve further
             }
         }
 

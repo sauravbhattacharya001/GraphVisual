@@ -291,24 +291,42 @@ public class NodeSimilarityAnalyzer {
      * @param k      maximum number of neighbors to return
      * @return map of node ID → similarity score, sorted by score descending
      */
+    /**
+     * Find the k most similar nodes to a given target node.
+     *
+     * <p>Uses a min-heap of size k to avoid sorting all O(V) pairs.
+     * This reduces memory from O(V) to O(k) and time from
+     * O(V log V) to O(V log k).</p>
+     *
+     * @param target the target node
+     * @param metric the similarity metric to use
+     * @param k      maximum number of neighbors to return
+     * @return map of node ID → similarity score, sorted by score descending
+     */
     public LinkedHashMap<String, Double> kNearestNeighbors(String target, Metric metric, int k) {
         validateNode(target);
         if (k <= 0) return new LinkedHashMap<String, Double>();
 
-        List<ScoredPair> scores = new ArrayList<ScoredPair>();
+        PriorityQueue<ScoredPair> minHeap = new PriorityQueue<ScoredPair>(k + 1,
+            (ScoredPair a, ScoredPair b) -> Double.compare(a.score, b.score)
+        );
+
         for (String v : graph.getVertices()) {
             if (v.equals(target)) continue;
             double s = similarity(target, v, metric);
-            scores.add(new ScoredPair(target, v, s));
+            minHeap.offer(new ScoredPair(target, v, s));
+            if (minHeap.size() > k) {
+                minHeap.poll(); // evict lowest score
+            }
         }
-        Collections.sort(scores); // descending by score
+
+        // Drain heap into sorted list (descending)
+        List<ScoredPair> sorted = new ArrayList<ScoredPair>(minHeap);
+        Collections.sort(sorted); // descending by score
 
         LinkedHashMap<String, Double> result = new LinkedHashMap<String, Double>();
-        int count = 0;
-        for (ScoredPair sp : scores) {
-            if (count >= k) break;
+        for (ScoredPair sp : sorted) {
             result.put(sp.getNodeB(), sp.getScore());
-            count++;
         }
         return result;
     }
