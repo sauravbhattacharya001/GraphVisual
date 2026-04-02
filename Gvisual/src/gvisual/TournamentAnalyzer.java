@@ -420,22 +420,16 @@ public class TournamentAnalyzer {
         int transitive = 0;
         int intransitive = 0;
         List<String[]> examples = new ArrayList<String[]>();
-        int n = vertices.size();
 
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (i == j) continue;
-                String a = vertices.get(i);
-                String b = vertices.get(j);
-                if (!beats.get(a).contains(b)) continue;
-
-                for (int k = 0; k < n; k++) {
-                    if (k == i || k == j) continue;
-                    String c = vertices.get(k);
-                    if (!beats.get(b).contains(c)) continue;
-
+        // Iterate only over actual beat-pairs instead of all O(n²) index combos.
+        // For each edge a→b, walk b's wins to find triples (a→b→c).
+        for (String a : vertices) {
+            Set<String> aBeats = beats.get(a);
+            for (String b : aBeats) {
+                for (String c : beats.get(b)) {
+                    if (c.equals(a)) continue;
                     // a beats b, b beats c
-                    if (beats.get(a).contains(c)) {
+                    if (aBeats.contains(c)) {
                         transitive++;
                     } else {
                         intransitive++;
@@ -492,15 +486,24 @@ public class TournamentAnalyzer {
      * Computes the total dominance score for each vertex (sum of 2-step dominance).
      * This provides a more nuanced ranking than simple win count.
      *
+     * <p>Scores are computed directly without materializing the full dominance
+     * matrix, reducing memory from O(n²) map-of-maps to O(n) counters.</p>
+     *
      * @return map from vertex to total dominance score, sorted descending
      */
     public Map<String, Integer> computeDominanceScores() {
-        Map<String, Map<String, Integer>> matrix = computeDominanceMatrix();
         Map<String, Integer> scores = new HashMap<String, Integer>();
         for (String u : vertices) {
-            int total = 0;
-            for (Map.Entry<String, Integer> entry : matrix.get(u).entrySet()) {
-                total += entry.getValue();
+            Set<String> uBeats = beats.get(u);
+            int total = uBeats.size(); // direct wins each contribute 1
+            // 2-step contributions: for each w that u beats, count how many
+            // other vertices w also beats (excluding u itself)
+            for (String w : uBeats) {
+                for (String target : beats.get(w)) {
+                    if (!target.equals(u)) {
+                        total++;
+                    }
+                }
             }
             scores.put(u, total);
         }
@@ -661,7 +664,17 @@ public class TournamentAnalyzer {
      * @return list of upsets sorted by magnitude (biggest first)
      */
     public List<Upset> findUpsets() {
-        List<RankEntry> ranking = computeCopelandRanking();
+        return findUpsets(computeCopelandRanking());
+    }
+
+    /**
+     * Finds all upsets using a pre-computed Copeland ranking, avoiding
+     * redundant recomputation when called from {@link #generateReport()}.
+     *
+     * @param ranking the pre-computed Copeland ranking entries
+     * @return list of upsets sorted by magnitude (biggest first)
+     */
+    public List<Upset> findUpsets(List<RankEntry> ranking) {
         Map<String, Integer> rankMap = new HashMap<String, Integer>();
         for (RankEntry e : ranking) {
             rankMap.put(e.getVertex(), e.getRank());
@@ -921,7 +934,7 @@ public class TournamentAnalyzer {
         sb.append("\n");
 
         // Upsets
-        List<Upset> upsets = findUpsets();
+        List<Upset> upsets = findUpsets(ranking);
         sb.append("── Upsets ──\n");
         sb.append("Total upsets: ").append(upsets.size()).append("\n");
         int shown = Math.min(5, upsets.size());
