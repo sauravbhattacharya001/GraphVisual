@@ -357,6 +357,7 @@ public class TimelineMetricsRecorder {
      */
     public void exportCsv(File file) throws IOException {
         if (file == null) throw new IllegalArgumentException("File must not be null");
+        ExportUtils.validateOutputPath(file);
         PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
         try {
             pw.println(StepSnapshot.csvHeader());

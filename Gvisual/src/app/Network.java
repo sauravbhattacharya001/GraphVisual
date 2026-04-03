@@ -1,5 +1,6 @@
 package app;
 
+import gvisual.ExportUtils;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -82,12 +83,7 @@ public class Network {
 
         // Validate output path - prevent directory traversal attacks
         File outputFile = new File(path).getCanonicalFile();
-        File workingDir = new File(".").getCanonicalFile();
-        if (!outputFile.toPath().startsWith(workingDir.toPath())) {
-            throw new SecurityException(
-                "Output path must be within the working directory. "
-                + "Resolved path: " + outputFile.getAbsolutePath());
-        }
+        ExportUtils.validateOutputPath(outputFile);
 
         System.out.println("connecting...");
 
