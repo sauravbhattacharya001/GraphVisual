@@ -41,22 +41,6 @@ public class findMeetings {
                 : imei1 + "#" + imei2;
     }
 
-    /**
-     * @deprecated Use {@link Util#getTimeDifference(String, String)}
-     */
-    @Deprecated
-    public static float getTimeDifference(String endTime, String startTime) {
-        return Util.getTimeDifference(endTime, startTime);
-    }
-
-    /**
-     * @deprecated Use {@link Util#getTimeStamp(String, String, String)}
-     */
-    @Deprecated
-    public static String getTimeStamp(String month, String date, String time) {
-        return Util.getTimeStamp(month, date, time);
-    }
-
     /** SQL for meeting inserts — shared by all addMeeting overloads. */
     private static final String INSERT_MEETING_SQL =
             "INSERT INTO meeting (imei1, imei2, starttime, endtime, location, month, date, duration) "
@@ -107,7 +91,7 @@ public class findMeetings {
         pstmt.setString(5, apType);
         pstmt.setString(6, month);
         pstmt.setString(7, date);
-        pstmt.setInt(8, (int) getTimeDifference(endTime, startTime));
+        pstmt.setInt(8, (int) Util.getTimeDifference(endTime, startTime));
         pstmt.addBatch();
     }
 
@@ -181,7 +165,7 @@ public class findMeetings {
                             if (lastTime == null) {
                                 lastTime = y;
                                 meetingStartTime = y;
-                            } else if (getTimeDifference(y, lastTime) > WINDOW_SIZE) {
+                            } else if (Util.getTimeDifference(y, lastTime) > WINDOW_SIZE) {
                                 addMeetingBatch(insertStmt, x, meetingStartTime, lastTime, month, date, "unknown");
                                 batchCount++;
                                 lastTime = y;
