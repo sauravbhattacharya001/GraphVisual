@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Crossing Number Game | GraphVisual</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6;
+  --green: #22c55e; --red: #ef4444; --yellow: #eab308; --purple: #a855f7;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; align-items:center; gap:1rem; }
+.header h1 { font-size:1.4rem; }
+.header a { color:var(--accent); text-decoration:none; font-size:.9rem; }
+.main { display:flex; height:calc(100vh - 60px); }
+.sidebar { width:300px; background:var(--surface); border-right:1px solid var(--border); padding:1rem; overflow-y:auto; flex-shrink:0; }
+.sidebar h3 { font-size:.85rem; text-transform:uppercase; color:var(--muted); margin:1rem 0 .5rem; letter-spacing:.05em; }
+.sidebar h3:first-child { margin-top:0; }
+.canvas-wrap { flex:1; position:relative; }
+canvas { display:block; width:100%; height:100%; cursor:grab; }
+canvas.dragging { cursor:grabbing; }
+.btn { background:var(--accent); color:#fff; border:none; padding:.5rem 1rem; border-radius:6px; cursor:pointer; font-size:.85rem; width:100%; margin-bottom:.5rem; }
+.btn:hover { filter:brightness(1.15); }
+.btn.secondary { background:var(--border); }
+.btn.success { background:var(--green); color:#000; }
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; margin-bottom:.5rem; }
+.preset-btn { background:var(--border); color:var(--text); border:none; padding:.4rem; border-radius:4px; cursor:pointer; font-size:.75rem; }
+.preset-btn:hover { background:var(--accent); }
+.preset-btn.active { background:var(--accent); }
+.stat { display:flex; justify-content:space-between; padding:.3rem 0; font-size:.85rem; border-bottom:1px solid var(--border); }
+.stat .label { color:var(--muted); }
+.stat .value { font-weight:600; }
+.stat .value.good { color:var(--green); }
+.stat .value.bad { color:var(--red); }
+.stat .value.warn { color:var(--yellow); }
+.medal { font-size:1.5rem; text-align:center; padding:.5rem; }
+.history { max-height:150px; overflow-y:auto; font-size:.8rem; }
+.history-item { padding:.25rem 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+.hint { font-size:.75rem; color:var(--muted); padding:.5rem 0; line-height:1.4; }
+.overlay { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface); border:2px solid var(--accent); border-radius:12px; padding:2rem; text-align:center; z-index:10; min-width:300px; }
+.overlay h2 { margin-bottom:1rem; }
+.overlay .big { font-size:3rem; font-weight:700; color:var(--green); }
+.overlay .detail { color:var(--muted); font-size:.9rem; margin:.5rem 0; }
+.hidden { display:none; }
+.timer { font-family:monospace; font-size:1.1rem; text-align:center; padding:.5rem; background:var(--bg); border-radius:6px; margin-bottom:.5rem; }
+.crossings-display { text-align:center; padding:.75rem; background:var(--bg); border-radius:8px; margin-bottom:.5rem; }
+.crossings-display .num { font-size:2.5rem; font-weight:700; }
+.crossings-display .sub { font-size:.75rem; color:var(--muted); }
+.difficulty { display:flex; gap:.3rem; margin-bottom:.5rem; }
+.diff-btn { flex:1; padding:.35rem; border:none; border-radius:4px; cursor:pointer; font-size:.75rem; background:var(--border); color:var(--text); }
+.diff-btn.active { background:var(--purple); }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🔀 Crossing Number Game</h1>
+  <a href="index.html">← Back to GraphVisual</a>
+  <span style="color:var(--muted);font-size:.85rem;margin-left:auto">Drag nodes to minimize edge crossings</span>
+</div>
+<div class="main">
+  <div class="sidebar">
+    <h3>🎯 Crossings</h3>
+    <div class="crossings-display">
+      <div class="num" id="crossCount">0</div>
+      <div class="sub">edge crossings</div>
+    </div>
+    <div class="stat"><span class="label">Best possible</span><span class="value" id="bestKnown">?</span></div>
+    <div class="stat"><span class="label">Your best</span><span class="value good" id="yourBest">—</span></div>
+
+    <h3>⏱️ Timer</h3>
+    <div class="timer" id="timer">00:00</div>
+
+    <h3>📊 Stats</h3>
+    <div class="stat"><span class="label">Nodes</span><span class="value" id="nodeCount">0</span></div>
+    <div class="stat"><span class="label">Edges</span><span class="value" id="edgeCount">0</span></div>
+    <div class="stat"><span class="label">Moves</span><span class="value" id="moveCount">0</span></div>
+    <div class="stat"><span class="label">Rating</span><span class="value" id="rating">—</span></div>
+
+    <h3>🎮 Difficulty</h3>
+    <div class="difficulty">
+      <button class="diff-btn active" data-diff="easy">Easy</button>
+      <button class="diff-btn" data-diff="medium">Medium</button>
+      <button class="diff-btn" data-diff="hard">Hard</button>
+    </div>
+
+    <h3>📋 Presets</h3>
+    <div class="preset-grid">
+      <button class="preset-btn" data-preset="petersen">Petersen</button>
+      <button class="preset-btn" data-preset="k5">K₅</button>
+      <button class="preset-btn" data-preset="k33">K₃,₃</button>
+      <button class="preset-btn" data-preset="k6">K₆</button>
+      <button class="preset-btn" data-preset="cube">Cube Q₃</button>
+      <button class="preset-btn" data-preset="k44">K₄,₄</button>
+      <button class="preset-btn" data-preset="dodecahedron">Dodecahedron</button>
+      <button class="preset-btn" data-preset="k7">K₇</button>
+    </div>
+
+    <button class="btn secondary" id="randomBtn">🎲 Random Graph</button>
+    <button class="btn secondary" id="resetBtn">↩️ Reset Layout</button>
+    <button class="btn success" id="solveBtn">✨ Auto-Solve</button>
+
+    <h3>🏆 History</h3>
+    <div class="history" id="history"></div>
+
+    <div class="hint">
+      💡 <b>Tip:</b> Drag nodes to untangle the graph. The crossing number cr(G) is the minimum number of edge crossings in any drawing. Can you match the theoretical minimum?
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div class="overlay hidden" id="victoryOverlay">
+      <h2>🎉 Congratulations!</h2>
+      <div class="big" id="victoryScore">0</div>
+      <div class="detail">crossings</div>
+      <div class="detail" id="victoryDetail"></div>
+      <div class="medal" id="victoryMedal"></div>
+      <button class="btn" onclick="dismissVictory()" style="width:auto;margin-top:1rem;padding:.5rem 2rem">Continue</button>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+let nodes = [], edges = [];
+let dragging = null, dragOff = {x:0,y:0};
+let crossings = 0, bestCrossings = Infinity, moves = 0;
+let timerStart = null, timerInterval = null;
+let difficulty = 'easy';
+let history = [];
+let currentPreset = '';
+let bestKnownCrossing = {};
+
+// Known crossing numbers
+const KNOWN_CR = {
+  petersen: 2, k5: 1, k33: 1, k6: 3, cube: 0, k44: 4, dodecahedron: 0, k7: 9
+};
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const r = canvas.parentElement.getBoundingClientRect();
+  W = r.width; H = r.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+// Segment intersection test
+function segIntersect(ax,ay,bx,by,cx,cy,dx,dy) {
+  const det = (bx-ax)*(dy-cy)-(by-ay)*(dx-cx);
+  if (Math.abs(det) < 1e-10) return false;
+  const t = ((cx-ax)*(dy-cy)-(cy-ay)*(dx-cx))/det;
+  const u = ((cx-ax)*(by-ay)-(cy-ay)*(bx-ax))/det;
+  return t > 0.01 && t < 0.99 && u > 0.01 && u < 0.99;
+}
+
+function countCrossings() {
+  let c = 0;
+  for (let i = 0; i < edges.length; i++) {
+    for (let j = i+1; j < edges.length; j++) {
+      const e1 = edges[i], e2 = edges[j];
+      if (e1[0]===e2[0]||e1[0]===e2[1]||e1[1]===e2[0]||e1[1]===e2[1]) continue;
+      const a=nodes[e1[0]], b=nodes[e1[1]], c2=nodes[e2[0]], d=nodes[e2[1]];
+      if (segIntersect(a.x,a.y,b.x,b.y,c2.x,c2.y,d.x,d.y)) c++;
+    }
+  }
+  return c;
+}
+
+function updateStats() {
+  crossings = countCrossings();
+  const el = document.getElementById('crossCount');
+  el.textContent = crossings;
+  const known = KNOWN_CR[currentPreset];
+  document.getElementById('bestKnown').textContent = known !== undefined ? known : '?';
+  if (crossings < bestCrossings) bestCrossings = crossings;
+  document.getElementById('yourBest').textContent = bestCrossings === Infinity ? '—' : bestCrossings;
+  document.getElementById('nodeCount').textContent = nodes.length;
+  document.getElementById('edgeCount').textContent = edges.length;
+  document.getElementById('moveCount').textContent = moves;
+
+  // Color
+  if (known !== undefined) {
+    el.style.color = crossings <= known ? 'var(--green)' : crossings <= known + 3 ? 'var(--yellow)' : 'var(--red)';
+  }
+
+  // Rating
+  let r = '—';
+  if (known !== undefined) {
+    if (crossings === known) r = '⭐ Perfect!';
+    else if (crossings <= known + 1) r = '🥇 Excellent';
+    else if (crossings <= known + 3) r = '🥈 Good';
+    else if (crossings <= known + 6) r = '🥉 Fair';
+    else r = '🔄 Keep trying';
+  }
+  document.getElementById('rating').textContent = r;
+
+  // Victory check
+  if (known !== undefined && crossings === known && bestCrossings === known) {
+    showVictory();
+  }
+}
+
+let victoryShown = false;
+function showVictory() {
+  if (victoryShown) return;
+  victoryShown = true;
+  stopTimer();
+  const ov = document.getElementById('victoryOverlay');
+  ov.classList.remove('hidden');
+  document.getElementById('victoryScore').textContent = crossings;
+  const t = document.getElementById('timer').textContent;
+  document.getElementById('victoryDetail').textContent = `${moves} moves in ${t}`;
+  const medals = crossings === 0 ? '🏆' : moves < 20 ? '🥇' : moves < 50 ? '🥈' : '🥉';
+  document.getElementById('victoryMedal').textContent = medals;
+  addHistory(currentPreset, crossings, moves, t);
+}
+function dismissVictory() { document.getElementById('victoryOverlay').classList.add('hidden'); }
+
+function addHistory(preset, cr, mv, time) {
+  history.unshift({preset, cr, mv, time});
+  if (history.length > 20) history.pop();
+  const el = document.getElementById('history');
+  el.innerHTML = history.map(h =>
+    `<div class="history-item"><span>${h.preset} → ${h.cr} cr</span><span>${h.time}</span></div>`
+  ).join('');
+}
+
+function startTimer() {
+  stopTimer();
+  timerStart = Date.now();
+  timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now()-timerStart)/1000);
+    document.getElementById('timer').textContent =
+      String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  }, 500);
+}
+function stopTimer() { if (timerInterval) clearInterval(timerInterval); }
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  // Crossing points
+  const crossPts = [];
+  for (let i = 0; i < edges.length; i++) {
+    for (let j = i+1; j < edges.length; j++) {
+      const e1=edges[i],e2=edges[j];
+      if (e1[0]===e2[0]||e1[0]===e2[1]||e1[1]===e2[0]||e1[1]===e2[1]) continue;
+      const a=nodes[e1[0]],b=nodes[e1[1]],c=nodes[e2[0]],d=nodes[e2[1]];
+      const det=(b.x-a.x)*(d.y-c.y)-(b.y-a.y)*(d.x-c.x);
+      if (Math.abs(det)<1e-10) continue;
+      const t=((c.x-a.x)*(d.y-c.y)-(c.y-a.y)*(d.x-c.x))/det;
+      const u=((c.x-a.x)*(b.y-a.y)-(c.y-a.y)*(b.x-a.x))/det;
+      if (t>0.01&&t<0.99&&u>0.01&&u<0.99) {
+        crossPts.push({x:a.x+t*(b.x-a.x), y:a.y+t*(b.y-a.y)});
+      }
+    }
+  }
+
+  // Edges
+  ctx.lineWidth = 1.5;
+  for (const [i,j] of edges) {
+    ctx.beginPath();
+    ctx.moveTo(nodes[i].x, nodes[i].y);
+    ctx.lineTo(nodes[j].x, nodes[j].y);
+    ctx.strokeStyle = 'rgba(59,130,246,0.4)';
+    ctx.stroke();
+  }
+
+  // Crossing markers
+  ctx.fillStyle = 'rgba(239,68,68,0.7)';
+  for (const p of crossPts) {
+    ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+  }
+
+  // Nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    ctx.beginPath(); ctx.arc(n.x,n.y,12,0,Math.PI*2);
+    ctx.fillStyle = dragging===i ? 'var(--accent)' : '#475569';
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i, n.x, n.y);
+  }
+}
+
+// Mouse
+canvas.addEventListener('mousedown', e => {
+  const r = canvas.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  for (let i = nodes.length-1; i >= 0; i--) {
+    const dx = mx-nodes[i].x, dy = my-nodes[i].y;
+    if (dx*dx+dy*dy < 200) {
+      dragging = i; dragOff = {x:dx,y:dy};
+      canvas.classList.add('dragging');
+      return;
+    }
+  }
+});
+canvas.addEventListener('mousemove', e => {
+  if (dragging === null) return;
+  const r = canvas.getBoundingClientRect();
+  nodes[dragging].x = e.clientX - r.left - dragOff.x;
+  nodes[dragging].y = e.clientY - r.top - dragOff.y;
+  draw(); updateStats();
+});
+canvas.addEventListener('mouseup', () => {
+  if (dragging !== null) { moves++; updateStats(); }
+  dragging = null; canvas.classList.remove('dragging');
+});
+
+// Presets
+function makeComplete(n) {
+  nodes = []; edges = [];
+  for (let i=0;i<n;i++) nodes.push({x:0,y:0});
+  for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) edges.push([i,j]);
+}
+function makeBipartite(a,b) {
+  nodes = []; edges = [];
+  for (let i=0;i<a+b;i++) nodes.push({x:0,y:0});
+  for (let i=0;i<a;i++) for (let j=0;j<b;j++) edges.push([i,a+j]);
+}
+
+const presets = {
+  petersen() {
+    nodes = Array.from({length:10},()=>({x:0,y:0}));
+    // outer: 0-4, inner: 5-9
+    edges = [[0,1],[1,2],[2,3],[3,4],[4,0],[0,5],[1,6],[2,7],[3,8],[4,9],[5,7],[7,9],[9,6],[6,8],[8,5]];
+  },
+  k5() { makeComplete(5); },
+  k33() { makeBipartite(3,3); },
+  k6() { makeComplete(6); },
+  cube() {
+    nodes = Array.from({length:8},()=>({x:0,y:0}));
+    edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  },
+  k44() { makeBipartite(4,4); },
+  dodecahedron() {
+    nodes = Array.from({length:20},()=>({x:0,y:0}));
+    edges = [[0,1],[1,2],[2,3],[3,4],[4,0],
+             [5,6],[6,7],[7,8],[8,9],[9,5],
+             [10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[17,18],[18,19],[19,10],
+             [0,10],[1,12],[2,14],[3,16],[4,18],
+             [5,11],[6,13],[7,15],[8,17],[9,19]];
+  },
+  k7() { makeComplete(7); },
+};
+
+function randomizePositions() {
+  const pad = 60;
+  for (const n of nodes) {
+    n.x = pad + Math.random()*(W-2*pad);
+    n.y = pad + Math.random()*(H-2*pad);
+  }
+}
+
+function loadPreset(name) {
+  currentPreset = name;
+  victoryShown = false;
+  bestCrossings = Infinity;
+  moves = 0;
+  document.getElementById('victoryOverlay').classList.add('hidden');
+  presets[name]();
+  randomizePositions();
+  draw(); updateStats(); startTimer();
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset===name));
+}
+
+function randomGraph() {
+  const diff = {easy:[6,8],medium:[10,18],hard:[15,30]}[difficulty];
+  const n = diff[0] + Math.floor(Math.random()*3);
+  const maxE = diff[1];
+  nodes = Array.from({length:n},()=>({x:0,y:0}));
+  edges = [];
+  // Ensure connected (spanning tree)
+  for (let i=1;i<n;i++) edges.push([Math.floor(Math.random()*i),i]);
+  // Add random edges
+  const possible = [];
+  for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) {
+    if (!edges.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i))) possible.push([i,j]);
+  }
+  possible.sort(()=>Math.random()-.5);
+  while (edges.length < maxE && possible.length) edges.push(possible.pop());
+  currentPreset = 'random';
+  victoryShown = false; bestCrossings = Infinity; moves = 0;
+  document.getElementById('victoryOverlay').classList.add('hidden');
+  randomizePositions();
+  draw(); updateStats(); startTimer();
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// Auto-solve: force-directed layout
+function autoSolve() {
+  const iterations = 300;
+  const k = Math.sqrt((W*H)/nodes.length) * 0.4;
+  for (let iter = 0; iter < iterations; iter++) {
+    const disp = nodes.map(()=>({x:0,y:0}));
+    const temp = (1 - iter/iterations) * k * 2;
+    // Repulsion
+    for (let i=0;i<nodes.length;i++) {
+      for (let j=i+1;j<nodes.length;j++) {
+        let dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        let d=Math.sqrt(dx*dx+dy*dy)||1;
+        let f=k*k/d;
+        disp[i].x+=dx/d*f; disp[i].y+=dy/d*f;
+        disp[j].x-=dx/d*f; disp[j].y-=dy/d*f;
+      }
+    }
+    // Attraction
+    for (const [i,j] of edges) {
+      let dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+      let d=Math.sqrt(dx*dx+dy*dy)||1;
+      let f=d*d/k;
+      disp[i].x+=dx/d*f; disp[i].y+=dy/d*f;
+      disp[j].x-=dx/d*f; disp[j].y-=dy/d*f;
+    }
+    for (let i=0;i<nodes.length;i++) {
+      let d=Math.sqrt(disp[i].x**2+disp[i].y**2)||1;
+      nodes[i].x+=disp[i].x/d*Math.min(d,temp);
+      nodes[i].y+=disp[i].y/d*Math.min(d,temp);
+      nodes[i].x=Math.max(30,Math.min(W-30,nodes[i].x));
+      nodes[i].y=Math.max(30,Math.min(H-30,nodes[i].y));
+    }
+  }
+  draw(); updateStats();
+}
+
+// Event listeners
+document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click', ()=>loadPreset(b.dataset.preset)));
+document.querySelectorAll('.diff-btn').forEach(b => b.addEventListener('click', () => {
+  difficulty = b.dataset.diff;
+  document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+}));
+document.getElementById('randomBtn').addEventListener('click', randomGraph);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  randomizePositions(); moves=0; bestCrossings=Infinity; victoryShown=false;
+  document.getElementById('victoryOverlay').classList.add('hidden');
+  draw(); updateStats(); startTimer();
+});
+document.getElementById('solveBtn').addEventListener('click', autoSolve);
+
+// Init
+resize();
+loadPreset('k5');
+</script>
+</body>
+</html>
