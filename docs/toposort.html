@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topological Sort — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ts-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 500px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .ts-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .ts-btn:hover { background: var(--surface-hover); }
+        .ts-btn.active { border-color: var(--accent); color: var(--accent); }
+        .ts-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .ts-btn.primary:hover { background: var(--accent-hover); }
+        .ts-btn.danger { border-color: var(--red); color: var(--red); }
+        .ts-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+        .verdict { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; text-align: center; }
+        .verdict.is-dag { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid #3fb950; }
+        .verdict.has-cycle { background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .verdict.empty { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .order-display {
+            font-family: 'Courier New', monospace; font-size: 0.85rem;
+            max-height: 150px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+            word-wrap: break-word;
+        }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .indegree-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+        .indegree-table td, .indegree-table th { padding: 3px 8px; text-align: left; }
+        .indegree-table th { color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .zero-indeg { color: #3fb950; font-weight: 700; }
+        .nonzero-indeg { color: var(--text-muted); }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .queue-display {
+            display: flex; gap: 4px; flex-wrap: wrap; min-height: 32px; padding: 0.5rem;
+            background: var(--bg); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 0.75rem;
+        }
+        .queue-item {
+            padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700;
+            background: rgba(88,166,255,0.2); color: var(--accent); border: 1px solid var(--accent);
+        }
+        .algo-select { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="euler.html" class="sidebar-link"><span class="icon">🔄</span>Euler Paths</a>
+        <a href="toposort.html" class="sidebar-link active"><span class="icon">📐</span>Topological Sort</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">📡</span>Centrality Radar</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Graph Spectrum</a>
+        <a href="motif.html" class="sidebar-link"><span class="icon">🧬</span>Motif Finder</a>
+        <a href="treewidth.html" class="sidebar-link"><span class="icon">🌳</span>Treewidth</a>
+        <a href="edge-betweenness.html" class="sidebar-link"><span class="icon">🔀</span>Edge Betweenness</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔁</span>Isomorphism</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📏</span>Planarity</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="content-header">
+        <h1>📐 Topological Sort Visualizer</h1>
+        <p>Build directed acyclic graphs and watch Kahn's or DFS-based topological sorting step by step. Detects cycles and highlights processing order.</p>
+    </div>
+
+    <div class="ts-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <button class="ts-btn active" id="btn-add-node" title="Click canvas to add node">+ Node</button>
+                <button class="ts-btn" id="btn-add-edge" title="Click source then target">+ Edge</button>
+                <button class="ts-btn" id="btn-move" title="Drag nodes">Move</button>
+                <button class="ts-btn danger" id="btn-delete" title="Click to delete">Delete</button>
+                <button class="ts-btn" id="btn-clear">Clear All</button>
+            </div>
+            <canvas id="graph-canvas"></canvas>
+            <div class="legend" style="margin-top:0.75rem;">
+                <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div>Unvisited</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>In Queue</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Processing</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>Sorted</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Cycle</div>
+            </div>
+        </div>
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>Presets</h3>
+                <div class="presets">
+                    <button class="ts-btn" data-preset="diamond">Diamond</button>
+                    <button class="ts-btn" data-preset="build">Build System</button>
+                    <button class="ts-btn" data-preset="courses">Course Prereqs</button>
+                    <button class="ts-btn" data-preset="pipeline">Data Pipeline</button>
+                    <button class="ts-btn" data-preset="cycle">Has Cycle</button>
+                    <button class="ts-btn" data-preset="linear">Linear Chain</button>
+                    <button class="ts-btn" data-preset="wide">Wide DAG</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Algorithm</h3>
+                <div class="algo-select">
+                    <button class="ts-btn active" id="algo-kahn">Kahn's (BFS)</button>
+                    <button class="ts-btn" id="algo-dfs">DFS-based</button>
+                </div>
+            </div>
+
+            <div id="verdict-box" class="verdict empty">Draw a directed graph to begin</div>
+
+            <div class="info-card">
+                <h3>Graph Stats</h3>
+                <div class="stat-row"><span class="stat-label">Nodes</span><span class="stat-value" id="stat-nodes">0</span></div>
+                <div class="stat-row"><span class="stat-label">Edges</span><span class="stat-value" id="stat-edges">0</span></div>
+                <div class="stat-row"><span class="stat-label">Sources (in-deg 0)</span><span class="stat-value" id="stat-sources">0</span></div>
+                <div class="stat-row"><span class="stat-label">Sinks (out-deg 0)</span><span class="stat-value" id="stat-sinks">0</span></div>
+                <div class="stat-row"><span class="stat-label">Longest Path</span><span class="stat-value" id="stat-longest">0</span></div>
+            </div>
+
+            <div class="info-card">
+                <h3>Queue / Stack</h3>
+                <div class="queue-display" id="queue-display"></div>
+            </div>
+
+            <div class="speed-control">
+                <span class="stat-label">Speed</span>
+                <input type="range" id="speed-slider" min="1" max="10" value="5">
+                <span id="speed-label" class="stat-label">5</span>
+            </div>
+
+            <div class="toolbar">
+                <button class="ts-btn primary" id="btn-sort">▶ Sort</button>
+                <button class="ts-btn" id="btn-step" disabled>Step</button>
+                <button class="ts-btn" id="btn-reset">Reset</button>
+            </div>
+
+            <div class="info-card">
+                <h3>In-Degree Table</h3>
+                <div style="max-height:150px;overflow-y:auto;">
+                    <table class="indegree-table" id="indegree-table">
+                        <thead><tr><th>Node</th><th>In-Deg</th><th>Out-Deg</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Topological Order</h3>
+                <div class="order-display" id="order-display">—</div>
+            </div>
+
+            <div class="info-card">
+                <h3>Text Input</h3>
+                <textarea id="text-input" rows="4" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.5rem;font-family:monospace;font-size:0.8rem;resize:vertical;" placeholder="A -> B&#10;B -> C&#10;A -> C"></textarea>
+                <button class="ts-btn" id="btn-parse" style="margin-top:0.5rem;">Parse</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+(() => {
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+
+    const nodes = [];
+    const edges = [];
+    let nextId = 0;
+    let mode = 'add-node'; // add-node, add-edge, move, delete
+    let edgeSrc = null;
+    let dragging = null;
+    let dragOff = {x:0,y:0};
+    let animating = false;
+    let stepMode = false;
+    let stepResolve = null;
+    let algorithm = 'kahn';
+
+    // Node states: default, queued, processing, sorted, cycle
+    const STATE_COLORS = {
+        default: '#8b949e',
+        queued: '#58a6ff',
+        processing: '#f0883e',
+        sorted: '#3fb950',
+        cycle: '#f85149',
+    };
+
+    function resize() {
+        const r = canvas.getBoundingClientRect();
+        dpr = window.devicePixelRatio || 1;
+        W = r.width; H = r.height;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+    window.addEventListener('resize', resize);
+
+    function addNode(x, y, label) {
+        const id = nextId++;
+        const lbl = label || String.fromCharCode(65 + (id % 26)) + (id >= 26 ? Math.floor(id/26) : '');
+        nodes.push({id, x, y, label: lbl, state: 'default', order: -1});
+        updateStats();
+        draw();
+        return id;
+    }
+
+    function addEdge(from, to) {
+        if (from === to) return;
+        if (edges.find(e => e.from === from && e.to === to)) return;
+        edges.push({from, to});
+        updateStats();
+        draw();
+    }
+
+    function nodeAt(x, y) {
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i];
+            if (Math.hypot(n.x - x, n.y - y) < 22) return n;
+        }
+        return null;
+    }
+
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        return {x: e.clientX - r.left, y: e.clientY - r.top};
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        const p = getPos(e);
+        const n = nodeAt(p.x, p.y);
+        if (mode === 'add-node') {
+            if (!n) addNode(p.x, p.y);
+        } else if (mode === 'add-edge') {
+            if (n) {
+                if (!edgeSrc) { edgeSrc = n; n._highlight = true; draw(); }
+                else { addEdge(edgeSrc.id, n.id); edgeSrc._highlight = false; edgeSrc = null; draw(); }
+            }
+        } else if (mode === 'move') {
+            if (n) { dragging = n; dragOff = {x: p.x - n.x, y: p.y - n.y}; }
+        } else if (mode === 'delete') {
+            if (n) {
+                const idx = nodes.indexOf(n);
+                nodes.splice(idx, 1);
+                for (let i = edges.length - 1; i >= 0; i--) {
+                    if (edges[i].from === n.id || edges[i].to === n.id) edges.splice(i, 1);
+                }
+                updateStats(); draw();
+            } else {
+                // try delete edge
+                const ei = edgeAt(p.x, p.y);
+                if (ei >= 0) { edges.splice(ei, 1); updateStats(); draw(); }
+            }
+        }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        if (dragging) {
+            const p = getPos(e);
+            dragging.x = p.x - dragOff.x;
+            dragging.y = p.y - dragOff.y;
+            draw();
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => { dragging = null; });
+
+    function edgeAt(x, y) {
+        for (let i = 0; i < edges.length; i++) {
+            const e = edges[i];
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            const d = distToSegment(x, y, a.x, a.y, b.x, b.y);
+            if (d < 8) return i;
+        }
+        return -1;
+    }
+
+    function distToSegment(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len2 = dx*dx + dy*dy;
+        if (len2 === 0) return Math.hypot(px - x1, py - y1);
+        let t = ((px - x1)*dx + (py - y1)*dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (x1 + t*dx), py - (y1 + t*dy));
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        // edges
+        for (const e of edges) {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            drawArrow(a.x, a.y, b.x, b.y, e._highlight ? '#f0883e' : '#484f58');
+        }
+        // nodes
+        for (const n of nodes) {
+            const col = n._highlight ? '#58a6ff' : STATE_COLORS[n.state] || STATE_COLORS.default;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, 20, 0, Math.PI * 2);
+            ctx.fillStyle = col + '33';
+            ctx.fill();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = '#e6edf3';
+            ctx.font = '600 13px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(n.label, n.x, n.y);
+            if (n.order >= 0) {
+                ctx.font = '700 10px system-ui';
+                ctx.fillStyle = '#3fb950';
+                ctx.fillText('#' + n.order, n.x, n.y + 28);
+            }
+        }
+    }
+
+    function drawArrow(x1, y1, x2, y2, color) {
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        const r = 22; // node radius + gap
+        const sx = x1 + Math.cos(angle) * r;
+        const sy = y1 + Math.sin(angle) * r;
+        const ex = x2 - Math.cos(angle) * r;
+        const ey = y2 - Math.sin(angle) * r;
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // arrowhead
+        const hl = 10;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - hl * Math.cos(angle - 0.4), ey - hl * Math.sin(angle - 0.4));
+        ctx.lineTo(ex - hl * Math.cos(angle + 0.4), ey - hl * Math.sin(angle + 0.4));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    // Mode buttons
+    const modeButtons = {
+        'btn-add-node': 'add-node',
+        'btn-add-edge': 'add-edge',
+        'btn-move': 'move',
+        'btn-delete': 'delete'
+    };
+    for (const [id, m] of Object.entries(modeButtons)) {
+        document.getElementById(id).addEventListener('click', () => {
+            mode = m;
+            edgeSrc = null;
+            for (const [iid] of Object.entries(modeButtons)) {
+                document.getElementById(iid).classList.toggle('active', iid === id);
+            }
+        });
+    }
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+        nodes.length = 0; edges.length = 0; nextId = 0;
+        resetState(); updateStats(); draw();
+    });
+
+    // Algorithm select
+    document.getElementById('algo-kahn').addEventListener('click', () => {
+        algorithm = 'kahn';
+        document.getElementById('algo-kahn').classList.add('active');
+        document.getElementById('algo-dfs').classList.remove('active');
+    });
+    document.getElementById('algo-dfs').addEventListener('click', () => {
+        algorithm = 'dfs';
+        document.getElementById('algo-dfs').classList.add('active');
+        document.getElementById('algo-kahn').classList.remove('active');
+    });
+
+    // Speed
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+    speedSlider.addEventListener('input', () => { speedLabel.textContent = speedSlider.value; });
+    function getDelay() { return 1200 - (parseInt(speedSlider.value) - 1) * 110; }
+
+    // Stats
+    function updateStats() {
+        document.getElementById('stat-nodes').textContent = nodes.length;
+        document.getElementById('stat-edges').textContent = edges.length;
+        const indeg = {}, outdeg = {};
+        for (const n of nodes) { indeg[n.id] = 0; outdeg[n.id] = 0; }
+        for (const e of edges) { indeg[e.to] = (indeg[e.to]||0)+1; outdeg[e.from] = (outdeg[e.from]||0)+1; }
+        const sources = nodes.filter(n => (indeg[n.id]||0) === 0).length;
+        const sinks = nodes.filter(n => (outdeg[n.id]||0) === 0).length;
+        document.getElementById('stat-sources').textContent = sources;
+        document.getElementById('stat-sinks').textContent = sinks;
+        // longest path via topo order
+        document.getElementById('stat-longest').textContent = computeLongestPath();
+        // indegree table
+        const tbody = document.querySelector('#indegree-table tbody');
+        tbody.innerHTML = '';
+        for (const n of nodes) {
+            const tr = document.createElement('tr');
+            const id = n.id;
+            const inD = indeg[id]||0, outD = outdeg[id]||0;
+            tr.innerHTML = `<td>${n.label}</td><td class="${inD===0?'zero-indeg':'nonzero-indeg'}">${inD}</td><td>${outD}</td>`;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function computeLongestPath() {
+        if (nodes.length === 0) return 0;
+        const adj = {};
+        const indeg = {};
+        for (const n of nodes) { adj[n.id] = []; indeg[n.id] = 0; }
+        for (const e of edges) { adj[e.from].push(e.to); indeg[e.to]++; }
+        const q = nodes.filter(n => indeg[n.id] === 0).map(n => n.id);
+        const dist = {};
+        for (const n of nodes) dist[n.id] = 0;
+        const order = [];
+        const inCopy = {...indeg};
+        while (q.length) {
+            const u = q.shift();
+            order.push(u);
+            for (const v of adj[u]) {
+                dist[v] = Math.max(dist[v], dist[u] + 1);
+                if (--inCopy[v] === 0) q.push(v);
+            }
+        }
+        if (order.length !== nodes.length) return '∞ (cycle)';
+        return Math.max(0, ...Object.values(dist));
+    }
+
+    function resetState() {
+        animating = false; stepMode = false; stepResolve = null;
+        for (const n of nodes) { n.state = 'default'; n.order = -1; n._highlight = false; }
+        for (const e of edges) e._highlight = false;
+        document.getElementById('queue-display').innerHTML = '';
+        document.getElementById('order-display').textContent = '—';
+        document.getElementById('verdict-box').className = 'verdict empty';
+        document.getElementById('verdict-box').textContent = nodes.length ? 'Ready' : 'Draw a directed graph to begin';
+        document.getElementById('btn-sort').disabled = false;
+        document.getElementById('btn-step').disabled = false;
+        draw();
+    }
+
+    document.getElementById('btn-reset').addEventListener('click', resetState);
+
+    function showQueue(ids) {
+        const qd = document.getElementById('queue-display');
+        qd.innerHTML = '';
+        for (const id of ids) {
+            const n = nodes.find(nn => nn.id === id);
+            if (!n) continue;
+            const span = document.createElement('span');
+            span.className = 'queue-item';
+            span.textContent = n.label;
+            qd.appendChild(span);
+        }
+    }
+
+    function showOrder(sorted) {
+        document.getElementById('order-display').textContent =
+            sorted.map(id => nodes.find(n => n.id === id)?.label).join(' → ') || '—';
+    }
+
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    function waitStep() {
+        if (!stepMode) return sleep(getDelay());
+        return new Promise(r => { stepResolve = r; });
+    }
+
+    // Kahn's algorithm
+    async function kahnSort() {
+        const adj = {};
+        const indeg = {};
+        for (const n of nodes) { adj[n.id] = []; indeg[n.id] = 0; }
+        for (const e of edges) { adj[e.from].push(e.to); indeg[e.to]++; }
+
+        const queue = [];
+        for (const n of nodes) {
+            if (indeg[n.id] === 0) { queue.push(n.id); n.state = 'queued'; }
+        }
+        showQueue(queue);
+        draw();
+        await waitStep();
+
+        const sorted = [];
+        let order = 0;
+
+        while (queue.length > 0 && animating) {
+            const uid = queue.shift();
+            const u = nodes.find(n => n.id === uid);
+            u.state = 'processing';
+            showQueue(queue);
+            draw();
+            await waitStep();
+
+            u.state = 'sorted';
+            u.order = order++;
+            sorted.push(uid);
+
+            for (const vid of adj[uid]) {
+                indeg[vid]--;
+                const edge = edges.find(e => e.from === uid && e.to === vid);
+                if (edge) edge._highlight = true;
+                if (indeg[vid] === 0) {
+                    queue.push(vid);
+                    const v = nodes.find(n => n.id === vid);
+                    v.state = 'queued';
+                }
+            }
+
+            showQueue(queue);
+            showOrder(sorted);
+            draw();
+            if (queue.length > 0) await waitStep();
+        }
+
+        if (!animating) return;
+
+        // check for cycle
+        if (sorted.length < nodes.length) {
+            for (const n of nodes) {
+                if (n.state !== 'sorted') n.state = 'cycle';
+            }
+            document.getElementById('verdict-box').className = 'verdict has-cycle';
+            document.getElementById('verdict-box').textContent = '❌ Cycle detected — not a DAG!';
+            draw();
+        } else {
+            document.getElementById('verdict-box').className = 'verdict is-dag';
+            document.getElementById('verdict-box').textContent = '✅ Valid topological order found!';
+        }
+        animating = false;
+    }
+
+    // DFS-based
+    async function dfsSort() {
+        const adj = {};
+        for (const n of nodes) adj[n.id] = [];
+        for (const e of edges) adj[e.from].push(e.to);
+
+        const visited = new Set();
+        const inStack = new Set();
+        const result = [];
+        let hasCycle = false;
+
+        async function dfs(uid) {
+            if (!animating || hasCycle) return;
+            visited.add(uid);
+            inStack.add(uid);
+            const u = nodes.find(n => n.id === uid);
+            u.state = 'processing';
+            showQueue([...inStack]);
+            draw();
+            await waitStep();
+
+            for (const vid of adj[uid]) {
+                if (!animating) return;
+                const edge = edges.find(e => e.from === uid && e.to === vid);
+                if (edge) edge._highlight = true;
+                draw();
+                if (inStack.has(vid)) {
+                    hasCycle = true;
+                    const v = nodes.find(n => n.id === vid);
+                    v.state = 'cycle';
+                    u.state = 'cycle';
+                    draw();
+                    return;
+                }
+                if (!visited.has(vid)) await dfs(vid);
+                if (hasCycle) return;
+            }
+
+            inStack.delete(uid);
+            u.state = 'sorted';
+            result.unshift(uid);
+            showOrder(result);
+            draw();
+            await waitStep();
+        }
+
+        for (const n of nodes) {
+            if (!animating) return;
+            if (!visited.has(n.id)) await dfs(n.id);
+            if (hasCycle) break;
+        }
+
+        if (!animating) return;
+
+        if (hasCycle) {
+            for (const n of nodes) { if (n.state !== 'sorted') n.state = 'cycle'; }
+            document.getElementById('verdict-box').className = 'verdict has-cycle';
+            document.getElementById('verdict-box').textContent = '❌ Cycle detected — not a DAG!';
+            draw();
+        } else {
+            let order = 0;
+            for (const id of result) { nodes.find(n => n.id === id).order = order++; }
+            document.getElementById('verdict-box').className = 'verdict is-dag';
+            document.getElementById('verdict-box').textContent = '✅ Valid topological order found!';
+        }
+        animating = false;
+    }
+
+    document.getElementById('btn-sort').addEventListener('click', () => {
+        if (animating) return;
+        resetState();
+        if (nodes.length === 0) return;
+        animating = true; stepMode = false;
+        document.getElementById('btn-sort').disabled = true;
+        if (algorithm === 'kahn') kahnSort();
+        else dfsSort();
+    });
+
+    document.getElementById('btn-step').addEventListener('click', () => {
+        if (!animating) {
+            // start step mode
+            resetState();
+            if (nodes.length === 0) return;
+            animating = true; stepMode = true;
+            document.getElementById('btn-sort').disabled = true;
+            if (algorithm === 'kahn') kahnSort();
+            else dfsSort();
+        } else if (stepResolve) {
+            const r = stepResolve;
+            stepResolve = null;
+            r();
+        }
+    });
+
+    // Presets
+    const PRESETS = {
+        diamond: {
+            nodes: [{l:'A',x:300,y:60},{l:'B',x:180,y:180},{l:'C',x:420,y:180},{l:'D',x:300,y:300}],
+            edges: [[0,1],[0,2],[1,3],[2,3]]
+        },
+        build: {
+            nodes: [{l:'parse',x:300,y:50},{l:'lint',x:150,y:160},{l:'compile',x:300,y:160},{l:'test',x:450,y:160},{l:'bundle',x:300,y:280},{l:'deploy',x:300,y:390}],
+            edges: [[0,1],[0,2],[2,3],[1,4],[2,4],[3,4],[4,5]]
+        },
+        courses: {
+            nodes: [{l:'Math101',x:100,y:80},{l:'CS101',x:300,y:80},{l:'Math201',x:100,y:200},{l:'CS201',x:300,y:200},{l:'CS301',x:200,y:320},{l:'CS401',x:400,y:320}],
+            edges: [[0,2],[1,3],[2,4],[3,4],[3,5],[4,5]]
+        },
+        pipeline: {
+            nodes: [{l:'ingest',x:80,y:200},{l:'clean',x:200,y:120},{l:'validate',x:200,y:280},{l:'transform',x:350,y:200},{l:'enrich',x:480,y:120},{l:'load',x:480,y:280},{l:'index',x:600,y:200}],
+            edges: [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,6],[5,6]]
+        },
+        cycle: {
+            nodes: [{l:'A',x:200,y:100},{l:'B',x:400,y:100},{l:'C',x:400,y:300},{l:'D',x:200,y:300}],
+            edges: [[0,1],[1,2],[2,3],[3,0]]
+        },
+        linear: {
+            nodes: [{l:'1',x:80,y:200},{l:'2',x:200,y:200},{l:'3',x:320,y:200},{l:'4',x:440,y:200},{l:'5',x:560,y:200}],
+            edges: [[0,1],[1,2],[2,3],[3,4]]
+        },
+        wide: {
+            nodes: [{l:'root',x:300,y:60},{l:'A',x:100,y:180},{l:'B',x:230,y:180},{l:'C',x:370,y:180},{l:'D',x:500,y:180},{l:'sink',x:300,y:320}],
+            edges: [[0,1],[0,2],[0,3],[0,4],[1,5],[2,5],[3,5],[4,5]]
+        }
+    };
+
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const p = PRESETS[btn.dataset.preset];
+            if (!p) return;
+            nodes.length = 0; edges.length = 0; nextId = 0;
+            for (const nd of p.nodes) addNode(nd.x, nd.y, nd.l);
+            for (const [fi, ti] of p.edges) addEdge(nodes[fi].id, nodes[ti].id);
+            resetState();
+        });
+    });
+
+    // Text parser
+    document.getElementById('btn-parse').addEventListener('click', () => {
+        const text = document.getElementById('text-input').value.trim();
+        if (!text) return;
+        nodes.length = 0; edges.length = 0; nextId = 0;
+        const nameMap = {};
+        const lines = text.split('\n');
+        let cx = 100, cy = 80;
+        function getOrCreate(name) {
+            name = name.trim();
+            if (name in nameMap) return nameMap[name];
+            const id = addNode(cx, cy, name);
+            nameMap[name] = id;
+            cx += 120; if (cx > 550) { cx = 100; cy += 100; }
+            return id;
+        }
+        for (const line of lines) {
+            const m = line.match(/^\s*(.+?)\s*->\s*(.+?)\s*$/);
+            if (m) {
+                const from = getOrCreate(m[1]);
+                const to = getOrCreate(m[2]);
+                addEdge(from, to);
+            }
+        }
+        resetState();
+    });
+
+    // Init
+    setTimeout(() => { resize(); }, 50);
+})();
+</script>
+
+</body>
+</html>
