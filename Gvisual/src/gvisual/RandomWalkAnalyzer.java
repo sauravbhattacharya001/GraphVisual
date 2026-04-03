@@ -159,19 +159,84 @@ public class RandomWalkAnalyzer {
         return hittingTime(graph, nodeA, nodeB) + hittingTime(graph, nodeB, nodeA);
     }
 
+    /**
+     * Estimates the cover time from a source vertex via Monte Carlo simulation.
+     *
+     * <p><b>Optimisation (array-indexed, generation-counter tracking):</b>
+     * The previous implementation allocated a new {@code HashSet<V>} per
+     * simulation to track visited vertices — 10,000 sims × O(V) allocation
+     * and GC overhead.  This version uses integer-indexed arrays with a
+     * generation counter (same technique as {@link #hittingTimesFrom}):
+     * visited state is "reset" in O(1) by incrementing the generation,
+     * and adjacency is pre-built as {@code int[][]} for cache-friendly,
+     * boxing-free traversal.</p>
+     */
     public <V, E> double coverTime(Graph<V, E> graph, V source) {
         validateGraph(graph);
         validateNode(graph, source, "source");
-        // Precompute reachable set once (BFS) — avoids redundant O(V+E)
-        // traversal on every simulation.
+
+        // Build indexed vertex list and adjacency restricted to reachable set
         Set<V> reachable = bfsReachable(graph, source);
         if (reachable.size() <= 1) return 0;
-        // Cache neighbor lists to avoid allocating new ArrayLists per step.
-        Map<V, List<V>> neighborCache = buildNeighborCache(graph, reachable);
+
+        int n = reachable.size();
+        List<V> vertexList = new ArrayList<>(reachable);
+        Map<V, Integer> vertexIndex = new HashMap<>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
+        }
+        int sourceIdx = vertexIndex.get(source);
+
+        // Build int[][] adjacency (only within reachable set)
+        int[][] adj = new int[n][];
+        for (int i = 0; i < n; i++) {
+            V v = vertexList.get(i);
+            Collection<V> nbrs = graph.getNeighbors(v);
+            if (nbrs == null || nbrs.isEmpty()) {
+                adj[i] = new int[0];
+            } else {
+                int[] neighbors = new int[nbrs.size()];
+                int j = 0;
+                for (V nb : nbrs) {
+                    Integer idx = vertexIndex.get(nb);
+                    if (idx != null) neighbors[j++] = idx;
+                }
+                adj[i] = (j == neighbors.length) ? neighbors : java.util.Arrays.copyOf(neighbors, j);
+            }
+        }
+
+        int maxSteps = n * n * 20;
+
+        // Generation-counter visited tracking: O(1) reset per simulation
+        int[] visitedGen = new int[n];
+        int currentGen = 0;
+
         long totalSteps = 0;
-        int maxSteps = graph.getVertexCount() * graph.getVertexCount() * 20;
         for (int sim = 0; sim < defaultSimulations; sim++) {
-            totalSteps += simulateCoverWalk(source, reachable, neighborCache, maxSteps);
+            currentGen++;
+            visitedGen[sourceIdx] = currentGen;
+            int remaining = n - 1;
+            int currentIdx = sourceIdx;
+
+            for (int step = 1; step <= maxSteps && remaining > 0; step++) {
+                int[] nbrs = adj[currentIdx];
+                if (nbrs.length == 0) {
+                    totalSteps += step;
+                    remaining = 0;
+                    break;
+                }
+                currentIdx = nbrs[rng.nextInt(nbrs.length)];
+                if (visitedGen[currentIdx] != currentGen) {
+                    visitedGen[currentIdx] = currentGen;
+                    remaining--;
+                }
+                if (remaining == 0) {
+                    totalSteps += step;
+                }
+            }
+            if (remaining > 0) {
+                totalSteps += maxSteps;
+            }
         }
         return (double) totalSteps / defaultSimulations;
     }
