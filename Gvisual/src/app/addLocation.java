@@ -1,11 +1,15 @@
 package app;
 
 /**
- * Resolves meeting locations by cross-referencing WiFi access point data.
+ * Legacy entry point for location resolution.
  *
- * @deprecated Use {@link LocationResolver} instead. This class is a thin
- *             delegate kept only for backward compatibility with scripts
- *             that reference {@code addLocation} by name.
+ * <p>This class has been superseded by {@link LocationResolver}, which
+ * extracts the AP-to-location mapping into a configurable {@code Map},
+ * deduplicates the single-IMEI fallback query logic, and follows Java
+ * naming conventions. This wrapper exists solely for backward
+ * compatibility with scripts that reference {@code addLocation.main}.</p>
+ *
+ * @deprecated Use {@link LocationResolver} instead.
  * @author user
  */
 @Deprecated
@@ -22,17 +26,13 @@ public class addLocation {
     }
 
     /**
-     * Entry point — delegates entirely to {@link LocationResolver#main(String[])}.
+     * Delegates to {@link LocationResolver#main(String[])}.
      *
-     * <p>The original implementation duplicated the AP classification logic
-     * (hardcoded switch statement) and fallback query code that
-     * {@code LocationResolver} already encapsulates via
-     * {@link LocationResolver#classifyAP(int)} and
-     * {@link LocationResolver#main(String[])}. This delegation eliminates
-     * ~100 lines of duplicated SQL, fallback logic, and the fragile
-     * switch/case AP mapping that would drift out of sync with
-     * {@code LocationResolver}'s canonical {@code AP_LOCATION_MAP}.</p>
+     * @param argv command-line arguments (forwarded unchanged)
+     * @throws Exception if location resolution fails
+     * @deprecated Use {@link LocationResolver#main(String[])} directly.
      */
+    @Deprecated
     public static void main(String[] argv) throws Exception {
         LocationResolver.main(argv);
     }
