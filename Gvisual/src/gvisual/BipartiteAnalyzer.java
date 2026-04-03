@@ -86,7 +86,7 @@ public class BipartiteAnalyzer {
 
             color.put(start, LEFT);
             parent.put(start, null);
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(start);
 
             while (!queue.isEmpty() && bipartite) {
@@ -317,7 +317,7 @@ public class BipartiteAnalyzer {
     private boolean bfs(List<String> leftVerts, Map<String, List<String>> adj,
                         Map<String, String> matchL, Map<String, String> matchR,
                         Map<String, Integer> dist) {
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         for (String l : leftVerts) {
             if (matchL.get(l).equals(NIL)) {
@@ -430,7 +430,7 @@ public class BipartiteAnalyzer {
         // Alternate: unmatched Edge to right, matched Edge back to left
         Set<String> visitedL = new LinkedHashSet<String>(unmatchedLeft);
         Set<String> visitedR = new LinkedHashSet<String>();
-        Queue<String> queue = new LinkedList<String>(unmatchedLeft);
+        Queue<String> queue = new ArrayDeque<String>(unmatchedLeft);
 
         while (!queue.isEmpty()) {
             String l = queue.poll();

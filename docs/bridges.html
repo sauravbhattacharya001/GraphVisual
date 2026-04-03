@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Articulation Points &amp; Bridges — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ab-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 520px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+            position: relative;
+        }
+        .ab-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .ab-btn:hover { background: var(--surface-hover); }
+        .ab-btn.active { border-color: var(--accent); color: var(--accent); }
+        .ab-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .ab-btn.primary:hover { background: var(--accent-hover); }
+        .ab-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-value.ap { color: #ef4444; }
+        .stat-value.bridge { color: #f59e0b; }
+        .stat-value.safe { color: #22c55e; }
+        .stat-value.pending { color: var(--text-muted); }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .result-list {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 180px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .result-banner {
+            padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600;
+            font-size: 0.95rem; margin-bottom: 1rem; text-align: center;
+        }
+        .result-banner.has-critical { background: rgba(239,68,68,0.12); color: #ef4444; }
+        .result-banner.biconnected { background: rgba(34,197,94,0.12); color: #22c55e; }
+        .step-info {
+            font-size: 0.82rem; padding: 0.75rem; background: var(--bg);
+            border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .step-info .label { color: var(--text-muted); }
+        .step-info .highlight { color: var(--accent); font-weight: 600; }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .legend { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.8rem; margin-bottom: 1rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.3rem; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .legend-line { width: 20px; height: 3px; border-radius: 2px; }
+        .dfs-table {
+            width: 100%; font-size: 0.78rem; border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+        .dfs-table th, .dfs-table td {
+            padding: 3px 6px; border: 1px solid var(--border); text-align: center;
+        }
+        .dfs-table th { background: var(--surface); color: var(--text-muted); font-weight: 600; }
+        .dfs-table td.active { background: rgba(99,102,241,0.15); }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-content">
+            <a href="index.html" class="logo">GraphVisual</a>
+            <nav class="header-nav">
+                <a href="explorer.html">Explorer</a>
+                <a href="builder.html">Builder</a>
+                <a href="stats.html">Stats</a>
+                <a href="bridges.html" class="active">Bridges</a>
+                <a href="guide.html">Guide</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content" style="padding: 2rem;">
+        <h1>🌉 Articulation Points &amp; Bridges</h1>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+            Find critical vertices and edges whose removal disconnects the graph. Uses Tarjan's DFS algorithm with step-by-step animation.
+        </p>
+
+        <div class="ab-container">
+            <div class="canvas-panel">
+                <div class="toolbar">
+                    <button class="ab-btn active" id="btn-add-node" onclick="setMode('node')">+ Node</button>
+                    <button class="ab-btn" id="btn-add-edge" onclick="setMode('edge')">+ Edge</button>
+                    <button class="ab-btn" id="btn-delete" onclick="setMode('delete')">✕ Delete</button>
+                    <button class="ab-btn" id="btn-move" onclick="setMode('move')">↔ Move</button>
+                    <button class="ab-btn danger" onclick="clearGraph()">Clear</button>
+                </div>
+                <canvas id="graph-canvas"></canvas>
+                <div class="legend" style="margin-top: 0.75rem;">
+                    <div class="legend-item"><div class="legend-dot" style="background:#6366f1;"></div> Normal node</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div> Articulation point</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;border:2px solid #93c5fd;"></div> Current DFS</div>
+                    <div class="legend-item"><div class="legend-line" style="background:#64748b;"></div> Normal edge</div>
+                    <div class="legend-item"><div class="legend-line" style="background:#f59e0b;height:4px;"></div> Bridge</div>
+                    <div class="legend-item"><div class="legend-line" style="background:#3b82f6;"></div> DFS tree edge</div>
+                    <div class="legend-item"><div class="legend-line" style="background:#94a3b8;border-top:2px dashed #94a3b8;height:0;"></div> Back edge</div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="info-card">
+                    <h3>Presets</h3>
+                    <div class="presets" id="presets"></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Algorithm</h3>
+                    <button class="ab-btn primary" onclick="runAlgorithm()" style="width:100%;margin-bottom:0.5rem;" id="btn-run">▶ Find Critical Points &amp; Bridges</button>
+                    <button class="ab-btn" onclick="stepAlgorithm()" style="width:100%;margin-bottom:0.5rem;" id="btn-step">⏭ Step</button>
+                    <button class="ab-btn" onclick="resetAlgorithm()" style="width:100%;" id="btn-reset">⟲ Reset</button>
+                    <div class="speed-control" style="margin-top: 0.75rem;">
+                        <span style="font-size:0.8rem;color:var(--text-muted);">Speed</span>
+                        <input type="range" min="50" max="1500" value="500" id="speed-slider">
+                        <span style="font-size:0.8rem;color:var(--text-muted);" id="speed-label">500ms</span>
+                    </div>
+                </div>
+
+                <div id="step-display" class="step-info" style="display:none;"></div>
+
+                <div class="info-card">
+                    <h3>Results</h3>
+                    <div style="display:flex;gap:1rem;margin-bottom:0.75rem;">
+                        <div>
+                            <div class="stat-value pending" id="ap-count">—</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Articulation Pts</div>
+                        </div>
+                        <div>
+                            <div class="stat-value pending" id="bridge-count">—</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Bridges</div>
+                        </div>
+                        <div>
+                            <div class="stat-value pending" id="comp-count">—</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Components</div>
+                        </div>
+                    </div>
+                    <div id="result-banner"></div>
+                    <div id="result-details"></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>DFS Discovery &amp; Low Values</h3>
+                    <div id="dfs-table-wrap" class="result-list" style="max-height:200px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+    let nodes = [], edges = [];
+    let mode = 'node';
+    let nextId = 0;
+    let dragging = null, dragOff = {x:0,y:0};
+    let edgeStart = null;
+
+    // Algorithm state
+    let algoState = null; // null = not running
+    let animInterval = null;
+
+    function resize() {
+        const r = canvas.getBoundingClientRect();
+        dpr = window.devicePixelRatio || 1;
+        W = r.width; H = r.height;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        draw();
+    }
+    window.addEventListener('resize', resize);
+
+    function setMode(m) {
+        mode = m; edgeStart = null;
+        document.querySelectorAll('.toolbar .ab-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById('btn-'+({node:'add-node',edge:'add-edge',delete:'delete',move:'move'}[m]));
+        if(btn) btn.classList.add('active');
+        canvas.style.cursor = m==='move'?'grab':'crosshair';
+    }
+
+    function nodeAt(x,y) {
+        for(let i=nodes.length-1;i>=0;i--) {
+            const n=nodes[i], dx=n.x-x, dy=n.y-y;
+            if(dx*dx+dy*dy<400) return n;
+        }
+        return null;
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        const r=canvas.getBoundingClientRect();
+        const x=e.clientX-r.left, y=e.clientY-r.top;
+        const n=nodeAt(x,y);
+
+        if(mode==='node') {
+            if(!n) {
+                nodes.push({id:nextId, x, y, label:String.fromCharCode(65+(nextId%26))+(nextId>=26?Math.floor(nextId/26):'')});
+                nextId++;
+                resetAlgorithm();
+                draw();
+            }
+        } else if(mode==='edge') {
+            if(n) {
+                if(!edgeStart) { edgeStart=n; }
+                else if(edgeStart.id!==n.id) {
+                    if(!edges.find(e=>(e.u===edgeStart.id&&e.v===n.id)||(e.u===n.id&&e.v===edgeStart.id))) {
+                        edges.push({u:edgeStart.id, v:n.id});
+                        resetAlgorithm();
+                    }
+                    edgeStart=null;
+                    draw();
+                }
+            }
+        } else if(mode==='delete') {
+            if(n) {
+                edges=edges.filter(e=>e.u!==n.id&&e.v!==n.id);
+                nodes=nodes.filter(nd=>nd.id!==n.id);
+                resetAlgorithm();
+                draw();
+            } else {
+                // try edge
+                for(let i=0;i<edges.length;i++) {
+                    const e=edges[i];
+                    const u=nodes.find(n=>n.id===e.u), v=nodes.find(n=>n.id===e.v);
+                    if(u&&v&&distToSeg(x,y,u.x,u.y,v.x,v.y)<8) {
+                        edges.splice(i,1); resetAlgorithm(); draw(); return;
+                    }
+                }
+            }
+        } else if(mode==='move') {
+            if(n) { dragging=n; dragOff={x:x-n.x,y:y-n.y}; canvas.style.cursor='grabbing'; }
+        }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        if(!dragging) return;
+        const r=canvas.getBoundingClientRect();
+        dragging.x=e.clientX-r.left-dragOff.x;
+        dragging.y=e.clientY-r.top-dragOff.y;
+        draw();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        dragging=null; if(mode==='move') canvas.style.cursor='grab';
+    });
+
+    function distToSeg(px,py,ax,ay,bx,by) {
+        const dx=bx-ax, dy=by-ay, len2=dx*dx+dy*dy;
+        if(len2===0) return Math.hypot(px-ax,py-ay);
+        let t=((px-ax)*dx+(py-ay)*dy)/len2;
+        t=Math.max(0,Math.min(1,t));
+        return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+    }
+
+    // Drawing
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        const as = algoState;
+
+        // edges
+        for(const e of edges) {
+            const u=nodes.find(n=>n.id===e.u), v=nodes.find(n=>n.id===e.v);
+            if(!u||!v) continue;
+            let color='#64748b', width=2, dash=[];
+
+            if(as) {
+                const ek=edgeKey(e.u,e.v);
+                if(as.bridges.has(ek)) { color='#f59e0b'; width=4; }
+                else if(as.treeEdges.has(ek)) { color='#3b82f6'; width=2.5; }
+                else if(as.backEdges.has(ek)) { color='#94a3b8'; dash=[6,4]; }
+            }
+
+            ctx.beginPath();
+            ctx.setLineDash(dash);
+            ctx.strokeStyle=color;
+            ctx.lineWidth=width;
+            ctx.moveTo(u.x,u.y); ctx.lineTo(v.x,v.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // nodes
+        for(const n of nodes) {
+            let fill='#6366f1', stroke='#6366f1', r=18, textColor='#fff';
+
+            if(as) {
+                if(as.articulationPoints.has(n.id)) { fill='#ef4444'; stroke='#ef4444'; }
+                if(as.currentNode===n.id) { fill='#3b82f6'; stroke='#93c5fd'; r=22; }
+                if(as.visited.has(n.id) && !as.articulationPoints.has(n.id) && as.currentNode!==n.id) {
+                    fill='#475569';
+                }
+            }
+
+            ctx.beginPath();
+            ctx.arc(n.x,n.y,r,0,Math.PI*2);
+            ctx.fillStyle=fill; ctx.fill();
+            ctx.strokeStyle=stroke; ctx.lineWidth=2.5; ctx.stroke();
+
+            ctx.fillStyle=textColor;
+            ctx.font='bold 13px system-ui';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(n.label,n.x,n.y);
+
+            // disc/low values
+            if(as && as.disc[n.id]!==undefined) {
+                ctx.font='10px system-ui';
+                ctx.fillStyle='var(--text-muted)';
+                ctx.fillStyle='#94a3b8';
+                ctx.fillText(`${as.disc[n.id]}/${as.low[n.id]}`,n.x,n.y+r+12);
+            }
+        }
+
+        // edge start indicator
+        if(edgeStart) {
+            ctx.beginPath();
+            ctx.arc(edgeStart.x,edgeStart.y,22,0,Math.PI*2);
+            ctx.strokeStyle='#22c55e'; ctx.lineWidth=2; ctx.stroke();
+        }
+    }
+
+    function edgeKey(u,v) { return Math.min(u,v)+','+Math.max(u,v); }
+
+    // Tarjan's algorithm (step-by-step)
+    function initAlgorithm() {
+        if(nodes.length===0) return;
+        const adj = {};
+        for(const n of nodes) adj[n.id]=[];
+        for(const e of edges) { adj[e.u].push(e.v); adj[e.v].push(e.u); }
+
+        algoState = {
+            adj,
+            disc: {}, low: {}, parent: {},
+            visited: new Set(),
+            articulationPoints: new Set(),
+            bridges: new Set(),
+            treeEdges: new Set(),
+            backEdges: new Set(),
+            timer: 0,
+            stack: [], // DFS stack: [{node, neighborIdx, isRoot}]
+            currentNode: null,
+            done: false,
+            steps: [],
+            stepIdx: 0,
+            components: 0,
+            nodeOrder: [...nodes.map(n=>n.id)],
+            startNodeIdx: 0,
+            phase: 'init' // init, dfs, complete
+        };
+        // Build steps
+        buildSteps(algoState);
+        updateStepDisplay();
+        updateResults();
+    }
+
+    function buildSteps(s) {
+        // Pre-compute all steps for replay
+        const adj=s.adj, disc={}, low={}, parent={};
+        const visited=new Set();
+        const aps=new Set(), bridges=new Set();
+        const treeEdges=new Set(), backEdges=new Set();
+        let timer=0, components=0;
+        const steps=[];
+
+        for(const startId of s.nodeOrder) {
+            if(visited.has(startId)) continue;
+            components++;
+            steps.push({type:'component', node:startId, component:components});
+            // iterative DFS
+            const stack=[{node:startId, ni:0, isRoot:true}];
+            parent[startId]=-1;
+            disc[startId]=low[startId]=timer++;
+            visited.add(startId);
+            steps.push({type:'discover', node:startId, disc:disc[startId], low:low[startId],
+                         discCopy:{...disc}, lowCopy:{...low}, visited:new Set(visited),
+                         aps:new Set(aps), bridges:new Set(bridges),
+                         tree:new Set(treeEdges), back:new Set(backEdges)});
+
+            while(stack.length>0) {
+                const top=stack[stack.length-1];
+                const u=top.node;
+                const neighbors=adj[u];
+
+                if(top.ni<neighbors.length) {
+                    const v=neighbors[top.ni];
+                    top.ni++;
+
+                    if(!visited.has(v)) {
+                        parent[v]=u;
+                        disc[v]=low[v]=timer++;
+                        visited.add(v);
+                        treeEdges.add(edgeKey(u,v));
+                        steps.push({type:'discover', node:v, from:u, disc:disc[v], low:low[v],
+                                     discCopy:{...disc}, lowCopy:{...low}, visited:new Set(visited),
+                                     aps:new Set(aps), bridges:new Set(bridges),
+                                     tree:new Set(treeEdges), back:new Set(backEdges)});
+                        stack.push({node:v, ni:0, isRoot:false});
+                    } else if(v!==parent[u]) {
+                        const oldLow=low[u];
+                        low[u]=Math.min(low[u],disc[v]);
+                        backEdges.add(edgeKey(u,v));
+                        steps.push({type:'back-edge', node:u, neighbor:v, oldLow, newLow:low[u],
+                                     discCopy:{...disc}, lowCopy:{...low}, visited:new Set(visited),
+                                     aps:new Set(aps), bridges:new Set(bridges),
+                                     tree:new Set(treeEdges), back:new Set(backEdges)});
+                    }
+                } else {
+                    stack.pop();
+                    if(stack.length>0) {
+                        const p=stack[stack.length-1].node;
+                        const oldLow=low[p];
+                        low[p]=Math.min(low[p],low[u]);
+                        let isAP=false, isBridge=false;
+
+                        // AP check
+                        if(parent[p]===-1) {
+                            // root: AP if >1 children in DFS tree
+                            let childCount=0;
+                            for(const w of adj[p]) { if(parent[w]===p) childCount++; }
+                            if(childCount>1) { aps.add(p); isAP=true; }
+                        } else {
+                            if(low[u]>=disc[p]) { aps.add(p); isAP=true; }
+                        }
+
+                        // Bridge check
+                        if(low[u]>disc[p]) { bridges.add(edgeKey(p,u)); isBridge=true; }
+
+                        steps.push({type:'backtrack', node:u, to:p, oldLow, newLow:low[p],
+                                     isAP, isBridge,
+                                     discCopy:{...disc}, lowCopy:{...low}, visited:new Set(visited),
+                                     aps:new Set(aps), bridges:new Set(bridges),
+                                     tree:new Set(treeEdges), back:new Set(backEdges)});
+                    }
+                }
+            }
+        }
+
+        steps.push({type:'done', discCopy:{...disc}, lowCopy:{...low}, visited:new Set(visited),
+                     aps:new Set(aps), bridges:new Set(bridges),
+                     tree:new Set(treeEdges), back:new Set(backEdges), components});
+
+        s.steps=steps;
+        s.totalComponents=components;
+    }
+
+    function applyStep(idx) {
+        if(!algoState || idx>=algoState.steps.length) return;
+        const s=algoState.steps[idx];
+        algoState.stepIdx=idx;
+        algoState.disc=s.discCopy;
+        algoState.low=s.lowCopy;
+        algoState.visited=s.visited;
+        algoState.articulationPoints=s.aps;
+        algoState.bridges=s.bridges;
+        algoState.treeEdges=s.tree;
+        algoState.backEdges=s.back;
+        algoState.currentNode=s.node||null;
+        if(s.type==='done') { algoState.done=true; algoState.currentNode=null; algoState.components=s.components; }
+        updateStepDisplay();
+        updateResults();
+        draw();
+    }
+
+    function stepAlgorithm() {
+        if(!algoState) initAlgorithm();
+        if(!algoState || algoState.done) return;
+        applyStep(algoState.stepIdx);
+        algoState.stepIdx++;
+    }
+
+    function runAlgorithm() {
+        if(animInterval) { clearInterval(animInterval); animInterval=null; }
+        if(!algoState) initAlgorithm();
+        if(!algoState) return;
+        algoState.stepIdx=0;
+        const speed=parseInt(document.getElementById('speed-slider').value);
+        animInterval=setInterval(()=>{
+            if(!algoState||algoState.stepIdx>=algoState.steps.length) {
+                clearInterval(animInterval); animInterval=null; return;
+            }
+            applyStep(algoState.stepIdx);
+            algoState.stepIdx++;
+        }, speed);
+    }
+
+    function resetAlgorithm() {
+        if(animInterval) { clearInterval(animInterval); animInterval=null; }
+        algoState=null;
+        document.getElementById('step-display').style.display='none';
+        document.getElementById('result-banner').innerHTML='';
+        document.getElementById('result-details').innerHTML='';
+        document.getElementById('ap-count').textContent='—';
+        document.getElementById('ap-count').className='stat-value pending';
+        document.getElementById('bridge-count').textContent='—';
+        document.getElementById('bridge-count').className='stat-value pending';
+        document.getElementById('comp-count').textContent='—';
+        document.getElementById('comp-count').className='stat-value pending';
+        document.getElementById('dfs-table-wrap').innerHTML='';
+        draw();
+    }
+
+    function updateStepDisplay() {
+        if(!algoState) return;
+        const el=document.getElementById('step-display');
+        const idx=Math.max(0,algoState.stepIdx-1);
+        if(idx>=algoState.steps.length) return;
+        const s=algoState.steps[idx];
+        el.style.display='block';
+        let html=`<span class="label">Step ${idx+1}/${algoState.steps.length}</span><br>`;
+
+        if(s.type==='component') {
+            html+=`<span class="highlight">New component #${s.component}</span> starting from node ${nodeLabel(s.node)}`;
+        } else if(s.type==='discover') {
+            html+=`<span class="highlight">Discover</span> ${nodeLabel(s.node)}`;
+            if(s.from!==undefined) html+=` from ${nodeLabel(s.from)}`;
+            html+=`<br>disc[${nodeLabel(s.node)}]=${s.disc}, low[${nodeLabel(s.node)}]=${s.low}`;
+        } else if(s.type==='back-edge') {
+            html+=`<span class="highlight">Back edge</span> ${nodeLabel(s.node)}→${nodeLabel(s.neighbor)}`;
+            html+=`<br>low[${nodeLabel(s.node)}]: ${s.oldLow} → ${s.newLow}`;
+        } else if(s.type==='backtrack') {
+            html+=`<span class="highlight">Backtrack</span> from ${nodeLabel(s.node)} to ${nodeLabel(s.to)}`;
+            html+=`<br>low[${nodeLabel(s.to)}]: ${s.oldLow} → ${s.newLow}`;
+            if(s.isAP) html+=`<br>⚠️ <b>${nodeLabel(s.to)}</b> is an articulation point!`;
+            if(s.isBridge) html+=`<br>🌉 Edge ${nodeLabel(s.to)}—${nodeLabel(s.node)} is a bridge!`;
+        } else if(s.type==='done') {
+            html+=`<span class="highlight">✓ Algorithm complete!</span>`;
+        }
+        el.innerHTML=html;
+    }
+
+    function nodeLabel(id) {
+        const n=nodes.find(n=>n.id===id);
+        return n?n.label:id;
+    }
+
+    function updateResults() {
+        if(!algoState) return;
+        const apEl=document.getElementById('ap-count');
+        const brEl=document.getElementById('bridge-count');
+        const coEl=document.getElementById('comp-count');
+        const apN=algoState.articulationPoints.size;
+        const brN=algoState.bridges.size;
+
+        apEl.textContent=apN; apEl.className='stat-value '+(apN>0?'ap':'safe');
+        brEl.textContent=brN; brEl.className='stat-value '+(brN>0?'bridge':'safe');
+
+        if(algoState.done) {
+            coEl.textContent=algoState.components; coEl.className='stat-value';
+            const banner=document.getElementById('result-banner');
+            if(apN===0&&brN===0) {
+                banner.innerHTML='✅ Graph is 2-edge-connected — no critical points or bridges';
+                banner.className='result-banner biconnected';
+            } else {
+                banner.innerHTML=`⚠️ Found ${apN} articulation point${apN!==1?'s':''} and ${brN} bridge${brN!==1?'s':''}`;
+                banner.className='result-banner has-critical';
+            }
+
+            let details='';
+            if(apN>0) {
+                details+=`<div style="margin-bottom:0.5rem;font-size:0.85rem;"><b>Articulation Points:</b> ${[...algoState.articulationPoints].map(nodeLabel).join(', ')}</div>`;
+            }
+            if(brN>0) {
+                details+=`<div style="font-size:0.85rem;"><b>Bridges:</b> ${[...algoState.bridges].map(k=>{
+                    const [a,b]=k.split(',').map(Number);
+                    return nodeLabel(a)+'—'+nodeLabel(b);
+                }).join(', ')}</div>`;
+            }
+            document.getElementById('result-details').innerHTML=details;
+        }
+
+        // DFS table
+        const tw=document.getElementById('dfs-table-wrap');
+        if(Object.keys(algoState.disc).length>0) {
+            let html='<table class="dfs-table"><tr><th>Node</th><th>disc</th><th>low</th></tr>';
+            for(const n of nodes) {
+                if(algoState.disc[n.id]!==undefined) {
+                    const active=algoState.currentNode===n.id?' class="active"':'';
+                    html+=`<tr${active}><td>${n.label}</td><td>${algoState.disc[n.id]}</td><td>${algoState.low[n.id]}</td></tr>`;
+                }
+            }
+            html+='</table>';
+            tw.innerHTML=html;
+        }
+    }
+
+    // Presets
+    const PRESETS = [
+        {
+            name: 'Simple Bridge',
+            nodes: [{id:0,x:100,y:260,label:'A'},{id:1,x:200,y:160,label:'B'},{id:2,x:200,y:360,label:'C'},{id:3,x:350,y:260,label:'D'},{id:4,x:500,y:160,label:'E'},{id:5,x:500,y:360,label:'F'}],
+            edges: [{u:0,v:1},{u:0,v:2},{u:1,v:2},{u:1,v:3},{u:3,v:4},{u:3,v:5},{u:4,v:5}]
+        },
+        {
+            name: 'Tree (All Bridges)',
+            nodes: [{id:0,x:300,y:60,label:'A'},{id:1,x:150,y:180,label:'B'},{id:2,x:450,y:180,label:'C'},{id:3,x:75,y:300,label:'D'},{id:4,x:225,y:300,label:'E'},{id:5,x:375,y:300,label:'F'},{id:6,x:525,y:300,label:'G'}],
+            edges: [{u:0,v:1},{u:0,v:2},{u:1,v:3},{u:1,v:4},{u:2,v:5},{u:2,v:6}]
+        },
+        {
+            name: 'Biconnected (No AP)',
+            nodes: [{id:0,x:200,y:100,label:'A'},{id:1,x:400,y:100,label:'B'},{id:2,x:500,y:260,label:'C'},{id:3,x:400,y:420,label:'D'},{id:4,x:200,y:420,label:'E'},{id:5,x:100,y:260,label:'F'}],
+            edges: [{u:0,v:1},{u:1,v:2},{u:2,v:3},{u:3,v:4},{u:4,v:5},{u:5,v:0},{u:0,v:3},{u:1,v:4}]
+        },
+        {
+            name: 'Chain',
+            nodes: [{id:0,x:60,y:260,label:'A'},{id:1,x:180,y:260,label:'B'},{id:2,x:300,y:260,label:'C'},{id:3,x:420,y:260,label:'D'},{id:4,x:540,y:260,label:'E'}],
+            edges: [{u:0,v:1},{u:1,v:2},{u:2,v:3},{u:3,v:4}]
+        },
+        {
+            name: 'Complex Network',
+            nodes: [{id:0,x:100,y:150,label:'A'},{id:1,x:250,y:80,label:'B'},{id:2,x:250,y:220,label:'C'},
+                    {id:3,x:400,y:150,label:'D'},{id:4,x:400,y:320,label:'E'},{id:5,x:550,y:100,label:'F'},
+                    {id:6,x:550,y:250,label:'G'},{id:7,x:300,y:420,label:'H'}],
+            edges: [{u:0,v:1},{u:0,v:2},{u:1,v:2},{u:1,v:3},{u:2,v:4},{u:3,v:5},{u:3,v:6},{u:5,v:6},{u:4,v:7}]
+        },
+        {
+            name: 'Disconnected',
+            nodes: [{id:0,x:100,y:200,label:'A'},{id:1,x:200,y:120,label:'B'},{id:2,x:200,y:280,label:'C'},
+                    {id:3,x:420,y:200,label:'D'},{id:4,x:520,y:120,label:'E'},{id:5,x:520,y:280,label:'F'}],
+            edges: [{u:0,v:1},{u:0,v:2},{u:1,v:2},{u:3,v:4},{u:3,v:5},{u:4,v:5}]
+        }
+    ];
+
+    function loadPreset(p) {
+        resetAlgorithm();
+        nodes=p.nodes.map(n=>({...n}));
+        edges=p.edges.map(e=>({...e}));
+        nextId=Math.max(...nodes.map(n=>n.id))+1;
+        draw();
+    }
+
+    function initPresets() {
+        const el=document.getElementById('presets');
+        el.innerHTML=PRESETS.map((p,i)=>`<button class="ab-btn" onclick="loadPreset(PRESETS[${i}])">${p.name}</button>`).join('');
+    }
+
+    function clearGraph() {
+        resetAlgorithm();
+        nodes=[]; edges=[]; nextId=0;
+        draw();
+    }
+
+    document.getElementById('speed-slider').addEventListener('input', e => {
+        document.getElementById('speed-label').textContent=e.target.value+'ms';
+    });
+
+    // Init
+    initPresets();
+    resize();
+    loadPreset(PRESETS[0]);
+    </script>
+</body>
+</html>

@@ -199,7 +199,7 @@ public class CircularLayout {
 
         for (String v : vertices) {
             if (!visited.contains(v)) {
-                Queue<String> queue = new LinkedList<>();
+                Queue<String> queue = new ArrayDeque<>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {
@@ -233,7 +233,7 @@ public class CircularLayout {
 
         List<String> ordered = new ArrayList<>();
         Set<String> visited = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
 
         queue.add(start);
         visited.add(start);

@@ -70,7 +70,7 @@ public class GraphPowerCalculator {
 
     private Map<String, Integer> bfsDistances(String source) {
         Map<String, Integer> dist = new LinkedHashMap<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         dist.put(source, 0);
         queue.add(source);
         while (!queue.isEmpty()) {

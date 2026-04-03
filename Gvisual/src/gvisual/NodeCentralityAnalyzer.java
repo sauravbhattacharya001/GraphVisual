@@ -196,29 +196,21 @@ public class NodeCentralityAnalyzer {
      */
     public List<CentralityResult> getTopByMetric(int n, String metric) {
         if (!computed) compute();
+        if (n <= 0) return new ArrayList<CentralityResult>();
 
-        List<CentralityResult> all = new ArrayList<CentralityResult>();
-        for (String nodeId : graph.getVertices()) {
-            all.add(getResult(nodeId));
-        }
+        List<CentralityResult> all = getRankedResults();
 
         final String m = metric.toLowerCase();
-        Collections.sort(all, (CentralityResult a, CentralityResult b) -> {
-                double va, vb;
-                if ("betweenness".equals(m)) {
-                    va = a.getBetweennessCentrality();
-                    vb = b.getBetweennessCentrality();
-                } else if ("closeness".equals(m)) {
-                    va = a.getClosenessCentrality();
-                    vb = b.getClosenessCentrality();
-                } else {
-                    va = a.getDegreeCentrality();
-                    vb = b.getDegreeCentrality();
-                }
-                return Double.compare(vb, va);
-            });
+        Comparator<CentralityResult> cmp;
+        if ("betweenness".equals(m)) {
+            cmp = (a, b) -> Double.compare(b.getBetweennessCentrality(), a.getBetweennessCentrality());
+        } else if ("closeness".equals(m)) {
+            cmp = (a, b) -> Double.compare(b.getClosenessCentrality(), a.getClosenessCentrality());
+        } else {
+            cmp = (a, b) -> Double.compare(b.getDegreeCentrality(), a.getDegreeCentrality());
+        }
+        Collections.sort(all, cmp);
 
-        if (n <= 0) return new ArrayList<CentralityResult>();
         return all.subList(0, Math.min(n, all.size()));
     }
 
@@ -307,8 +299,11 @@ public class NodeCentralityAnalyzer {
     /**
      * Classifies the network topology based on degree distribution characteristics.
      *
-     * <p>Reuses the degree data already computed by {@link #computeDegreeCentrality()}
-     * instead of iterating all vertices again.</p>
+     * <p>Single-pass implementation: computes isolated count, max degree, sum,
+     * and sum-of-squares in one traversal instead of two separate loops.
+     * Uses the already-computed degreeCentrality map to derive raw degrees
+     * (degree = centrality × (V−1)) rather than re-querying graph.degree()
+     * for each vertex.</p>
      *
      * @return one of: "Trivial" (≤1 node), "Disconnected" (isolated nodes exist),
      *         "Hub-and-Spoke" (one node dominates), "Distributed" (even degree distribution),
@@ -321,31 +316,34 @@ public class NodeCentralityAnalyzer {
         if (n <= 1) return "Trivial";
         if (graph.getEdgeCount() == 0) return "Disconnected";
 
-        // Reuse cached degree data from computeDegreeCentrality()
+        // Collect raw degrees from degreeCentrality map (avoids n graph.degree() calls)
+        int[] degrees = new int[n];
+        int idx = 0;
         int isolated = 0;
         int maxDeg = 0;
-        double sumDeg = 0;
-        for (String node : graph.getVertices()) {
-            int deg = graph.degree(node);
+        long sumDeg = 0;
+        long sumSqDeg = 0;
+
+        for (Double dc : degreeCentrality.values()) {
+            int deg = (int) Math.round(dc * (n - 1));
+            degrees[idx++] = deg;
             if (deg == 0) isolated++;
             if (deg > maxDeg) maxDeg = deg;
             sumDeg += deg;
+            sumSqDeg += (long) deg * deg;
         }
 
         if (isolated > n * 0.5) return "Disconnected";
 
-        double avgDeg = sumDeg / n;
+        double avgDeg = (double) sumDeg / n;
         if (avgDeg == 0) return "Disconnected";
 
         double hubRatio = maxDeg / avgDeg;
         if (hubRatio > 4.0 && maxDeg > n * 0.3) return "Hub-and-Spoke";
 
-        double sumSqDiff = 0;
-        for (String node : graph.getVertices()) {
-            double diff = graph.degree(node) - avgDeg;
-            sumSqDiff += diff * diff;
-        }
-        double stdDev = Math.sqrt(sumSqDiff / n);
+        // Variance from E[X²] - E[X]² (single-pass formula, no second iteration)
+        double variance = (double) sumSqDeg / n - avgDeg * avgDeg;
+        double stdDev = Math.sqrt(Math.max(0.0, variance));
         double cv = stdDev / avgDeg;
 
         if (cv < 0.5) return "Distributed";

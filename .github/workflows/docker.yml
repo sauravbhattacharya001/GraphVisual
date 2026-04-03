@@ -37,6 +37,11 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -54,11 +59,12 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
+          platforms: ${{ github.event_name != 'pull_request' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Load image locally for scanning even on PRs
+          # Load image locally for scanning even on PRs (load only works with single platform)
           load: ${{ github.event_name == 'pull_request' }}
 
       - name: Determine scan image

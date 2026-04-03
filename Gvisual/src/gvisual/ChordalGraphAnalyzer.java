@@ -300,7 +300,7 @@ public final class ChordalGraphAnalyzer {
                                                     String v, String u, String w) {
         // Simple approach: BFS from u to w avoiding v and direct u-w Edge
         // to find shortest path, then cycle is v → u → path → w → v
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         Map<String, String> parent = new HashMap<>();
         Set<String> visited = new HashSet<>();
         visited.add(v);

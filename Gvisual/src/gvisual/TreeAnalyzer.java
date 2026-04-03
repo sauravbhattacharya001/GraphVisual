@@ -312,7 +312,7 @@ public class TreeAnalyzer {
 
         // Iterative leaf peeling
         Map<String, Integer> degree = new HashMap<>();
-        Queue<String> leaves = new LinkedList<>();
+        Queue<String> leaves = new ArrayDeque<>();
         Set<String> remaining = new HashSet<>(graph.getVertices());
 
         for (String v : graph.getVertices()) {
@@ -325,7 +325,7 @@ public class TreeAnalyzer {
 
         int radius = 0;
         while (remaining.size() > 2) {
-            Queue<String> nextLeaves = new LinkedList<>();
+            Queue<String> nextLeaves = new ArrayDeque<>();
             for (String leaf : leaves) {
                 remaining.remove(leaf);
                 for (String neighbor : graph.getNeighbors(leaf)) {
@@ -452,7 +452,7 @@ public class TreeAnalyzer {
         depth.put(root, 0);
 
         // BFS for depth
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(root);
         List<String> order = new ArrayList<>();
 
@@ -782,7 +782,7 @@ public class TreeAnalyzer {
     private void computeSubtreeSizes(String root, Map<String, Integer> subtreeSize,
                                       Map<String, String> parent) {
         parent.put(root, null);
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(root);
         List<String> order = new ArrayList<>();
 
@@ -824,7 +824,7 @@ public class TreeAnalyzer {
     private BFSResult bfs(String start) {
         Map<String, Integer> dist = new HashMap<>();
         Map<String, String> parent = new HashMap<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
 
         dist.put(start, 0);
         parent.put(start, null);

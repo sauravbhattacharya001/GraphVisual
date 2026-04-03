@@ -145,7 +145,7 @@ public class findMeetings {
 
                     rs.last();
                     System.out.println("fetched " + rs.getRow() + " number of entries....still working...");
-                    rs.first();
+                    rs.beforeFirst();
                     while (rs.next()) {
                         if (rs.getRow() % 1000 == 0) {
                             System.out.println("added " + rs.getRow() + " number of entries to map");

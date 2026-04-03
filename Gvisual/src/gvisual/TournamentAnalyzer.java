@@ -320,59 +320,61 @@ public class TournamentAnalyzer {
     // ── Hamiltonian Path ────────────────────────────────────────
 
     /**
-     * Constructs a Hamiltonian path using the insertion algorithm.
+     * Constructs a Hamiltonian path using binary-search insertion.
      * Every tournament has a Hamiltonian path (Rédei's theorem, 1934).
      *
-     * <p>Algorithm: Start with one vertex. For each new vertex, insert it
-     * into the existing path by binary-search-like placement: find the
-     * first position where the new vertex beats the vertex at that position.</p>
+     * <p>Algorithm: maintain the path in an {@code ArrayList}. For each
+     * new vertex v, binary-search for the insertion point — the first
+     * index where v beats the vertex at that index. Because the "beats"
+     * relation along any Hamiltonian path is monotonic (once v starts
+     * losing to path members it never wins again), binary search is
+     * correct and gives O(n log n) time overall.</p>
      *
-     * <p>Time complexity: O(n²) worst case, O(n log n) with binary search.</p>
+     * <p>Previous implementation used {@code LinkedList} with
+     * {@code path.get(it.nextIndex())} — an O(n) operation per step,
+     * making the algorithm O(n³). This version is O(n log n).</p>
      *
      * @return the Hamiltonian path as an ordered list of vertices
      */
     public List<String> findHamiltonianPath() {
         if (vertices.isEmpty()) return new ArrayList<String>();
 
-        LinkedList<String> path = new LinkedList<String>();
+        ArrayList<String> path = new ArrayList<String>(vertices.size());
         path.add(vertices.get(0));
 
         for (int i = 1; i < vertices.size(); i++) {
             String v = vertices.get(i);
-            insertIntoPath(path, v);
+            int pos = findInsertionPoint(path, v);
+            path.add(pos, v);
         }
 
-        return new ArrayList<String>(path);
+        return path;
     }
 
     /**
-     * Inserts vertex v into the sorted path. Finds the first position
-     * where v beats the existing vertex at that position.
+     * Binary-searches the path for the correct insertion position of v.
+     * Returns the first index where v beats path[index]. If v loses to
+     * everyone, returns path.size() (append).
      */
-    private void insertIntoPath(LinkedList<String> path, String v) {
-        // If v beats the first vertex, prepend
-        if (beats.get(v).contains(path.getFirst())) {
-            path.addFirst(v);
-            return;
-        }
+    private int findInsertionPoint(ArrayList<String> path, String v) {
+        Set<String> vBeats = beats.get(v);
+        // If v beats the first vertex, insert at front
+        if (vBeats.contains(path.get(0))) return 0;
+        // If v loses to the last vertex, append
+        if (!vBeats.contains(path.get(path.size() - 1))) return path.size();
 
-        // Find the first position where v beats the next vertex
-        ListIterator<String> it = path.listIterator();
-        while (it.hasNext()) {
-            String current = it.next();
-            if (!it.hasNext()) {
-                // v loses to everyone, append at end
-                it.add(v);
-                return;
-            }
-            String next = path.get(it.nextIndex());
-            if (beats.get(current).contains(v) && beats.get(v).contains(next)) {
-                it.add(v);
-                return;
+        // Binary search: find smallest index where v beats path[index]
+        // Invariant: v loses to path[lo], v beats path[hi]
+        int lo = 0, hi = path.size() - 1;
+        while (hi - lo > 1) {
+            int mid = (lo + hi) >>> 1;
+            if (vBeats.contains(path.get(mid))) {
+                hi = mid;
+            } else {
+                lo = mid;
             }
         }
-        // Should never reach here for a valid tournament, but append as fallback
-        path.addLast(v);
+        return hi;
     }
 
     // ── Transitivity ────────────────────────────────────────────
@@ -420,22 +422,16 @@ public class TournamentAnalyzer {
         int transitive = 0;
         int intransitive = 0;
         List<String[]> examples = new ArrayList<String[]>();
-        int n = vertices.size();
 
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (i == j) continue;
-                String a = vertices.get(i);
-                String b = vertices.get(j);
-                if (!beats.get(a).contains(b)) continue;
-
-                for (int k = 0; k < n; k++) {
-                    if (k == i || k == j) continue;
-                    String c = vertices.get(k);
-                    if (!beats.get(b).contains(c)) continue;
-
+        // Iterate only over actual beat-pairs instead of all O(n²) index combos.
+        // For each edge a→b, walk b's wins to find triples (a→b→c).
+        for (String a : vertices) {
+            Set<String> aBeats = beats.get(a);
+            for (String b : aBeats) {
+                for (String c : beats.get(b)) {
+                    if (c.equals(a)) continue;
                     // a beats b, b beats c
-                    if (beats.get(a).contains(c)) {
+                    if (aBeats.contains(c)) {
                         transitive++;
                     } else {
                         intransitive++;
@@ -492,15 +488,24 @@ public class TournamentAnalyzer {
      * Computes the total dominance score for each vertex (sum of 2-step dominance).
      * This provides a more nuanced ranking than simple win count.
      *
+     * <p>Scores are computed directly without materializing the full dominance
+     * matrix, reducing memory from O(n²) map-of-maps to O(n) counters.</p>
+     *
      * @return map from vertex to total dominance score, sorted descending
      */
     public Map<String, Integer> computeDominanceScores() {
-        Map<String, Map<String, Integer>> matrix = computeDominanceMatrix();
         Map<String, Integer> scores = new HashMap<String, Integer>();
         for (String u : vertices) {
-            int total = 0;
-            for (Map.Entry<String, Integer> entry : matrix.get(u).entrySet()) {
-                total += entry.getValue();
+            Set<String> uBeats = beats.get(u);
+            int total = uBeats.size(); // direct wins each contribute 1
+            // 2-step contributions: for each w that u beats, count how many
+            // other vertices w also beats (excluding u itself)
+            for (String w : uBeats) {
+                for (String target : beats.get(w)) {
+                    if (!target.equals(u)) {
+                        total++;
+                    }
+                }
             }
             scores.put(u, total);
         }
@@ -602,23 +607,55 @@ public class TournamentAnalyzer {
                                       components, condensationOrder);
     }
 
-    private void dfsForward(String v, Set<String> visited, List<String> finishOrder) {
-        visited.add(v);
-        for (String w : beats.get(v)) {
-            if (!visited.contains(w)) {
-                dfsForward(w, visited, finishOrder);
+    /**
+     * Iterative DFS to compute finish order. Avoids StackOverflowError
+     * on large tournaments where recursive depth would exceed the JVM
+     * stack limit.
+     */
+    private void dfsForward(String start, Set<String> visited, List<String> finishOrder) {
+        Deque<Object[]> stack = new ArrayDeque<Object[]>();
+        // Each frame: [vertex, iterator-over-successors]
+        visited.add(start);
+        stack.push(new Object[]{start, beats.get(start).iterator()});
+
+        while (!stack.isEmpty()) {
+            Object[] frame = stack.peek();
+            String v = (String) frame[0];
+            @SuppressWarnings("unchecked")
+            Iterator<String> it = (Iterator<String>) frame[1];
+
+            if (it.hasNext()) {
+                String w = it.next();
+                if (!visited.contains(w)) {
+                    visited.add(w);
+                    stack.push(new Object[]{w, beats.get(w).iterator()});
+                }
+            } else {
+                stack.pop();
+                finishOrder.add(v);
             }
         }
-        finishOrder.add(v);
     }
 
-    private void dfsReverse(String v, Set<String> visited, Set<String> component,
+    /**
+     * Iterative reverse-DFS to collect a strongly connected component.
+     * Avoids StackOverflowError on large tournaments.
+     */
+    private void dfsReverse(String start, Set<String> visited, Set<String> component,
                             Map<String, Set<String>> reverseAdj) {
-        visited.add(v);
-        component.add(v);
-        for (String w : reverseAdj.get(v)) {
-            if (!visited.contains(w)) {
-                dfsReverse(w, visited, component, reverseAdj);
+        Deque<String> stack = new ArrayDeque<String>();
+        visited.add(start);
+        component.add(start);
+        stack.push(start);
+
+        while (!stack.isEmpty()) {
+            String v = stack.pop();
+            for (String w : reverseAdj.get(v)) {
+                if (!visited.contains(w)) {
+                    visited.add(w);
+                    component.add(w);
+                    stack.push(w);
+                }
             }
         }
     }
@@ -661,7 +698,17 @@ public class TournamentAnalyzer {
      * @return list of upsets sorted by magnitude (biggest first)
      */
     public List<Upset> findUpsets() {
-        List<RankEntry> ranking = computeCopelandRanking();
+        return findUpsets(computeCopelandRanking());
+    }
+
+    /**
+     * Finds all upsets using a pre-computed Copeland ranking, avoiding
+     * redundant recomputation when called from {@link #generateReport()}.
+     *
+     * @param ranking the pre-computed Copeland ranking entries
+     * @return list of upsets sorted by magnitude (biggest first)
+     */
+    public List<Upset> findUpsets(List<RankEntry> ranking) {
         Map<String, Integer> rankMap = new HashMap<String, Integer>();
         for (RankEntry e : ranking) {
             rankMap.put(e.getVertex(), e.getRank());
@@ -921,7 +968,7 @@ public class TournamentAnalyzer {
         sb.append("\n");
 
         // Upsets
-        List<Upset> upsets = findUpsets();
+        List<Upset> upsets = findUpsets(ranking);
         sb.append("── Upsets ──\n");
         sb.append("Total upsets: ").append(upsets.size()).append("\n");
         int shown = Math.min(5, upsets.size());

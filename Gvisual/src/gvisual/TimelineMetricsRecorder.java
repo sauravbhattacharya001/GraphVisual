@@ -357,6 +357,7 @@ public class TimelineMetricsRecorder {
      */
     public void exportCsv(File file) throws IOException {
         if (file == null) throw new IllegalArgumentException("File must not be null");
+        ExportUtils.validateOutputPath(file);
         PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
         try {
             pw.println(StepSnapshot.csvHeader());
@@ -495,7 +496,7 @@ public class TimelineMetricsRecorder {
         for (String v : graph.getVertices()) {
             if (!visited.contains(v)) {
                 components++;
-                Queue<String> queue = new LinkedList<>();
+                Queue<String> queue = new ArrayDeque<>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {

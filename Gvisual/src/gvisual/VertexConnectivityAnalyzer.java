@@ -533,7 +533,7 @@ public class VertexConnectivityAnalyzer {
         int totalFlow = 0;
         while (true) {
             Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(source);
             parent.put(source, null);
 
@@ -590,7 +590,7 @@ public class VertexConnectivityAnalyzer {
         // Run max flow
         while (true) {
             Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(source);
             parent.put(source, null);
             while (!queue.isEmpty() && !parent.containsKey(sink)) {
@@ -612,7 +612,7 @@ public class VertexConnectivityAnalyzer {
 
         // BFS from source in residual
         Set<String> reachable = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(source);
         reachable.add(source);
         while (!queue.isEmpty()) {
@@ -661,7 +661,7 @@ public class VertexConnectivityAnalyzer {
 
         while (true) {
             Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(s);
             parent.put(s, null);
             while (!queue.isEmpty() && !parent.containsKey(t)) {
@@ -682,7 +682,7 @@ public class VertexConnectivityAnalyzer {
         }
 
         Set<String> reachable = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(s);
         reachable.add(s);
         while (!queue.isEmpty()) {
@@ -730,7 +730,7 @@ public class VertexConnectivityAnalyzer {
 
         while (true) {
             Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(source);
             parent.put(source, null);
             while (!queue.isEmpty() && !parent.containsKey(sink)) {
@@ -802,7 +802,7 @@ public class VertexConnectivityAnalyzer {
 
         while (true) {
             Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(s);
             parent.put(s, null);
             while (!queue.isEmpty() && !parent.containsKey(t)) {

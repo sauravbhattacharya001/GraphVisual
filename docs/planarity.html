@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planarity Tester — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .pl-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 520px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+            position: relative;
+        }
+        .pl-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .pl-btn:hover { background: var(--surface-hover); }
+        .pl-btn.active { border-color: var(--accent); color: var(--accent); }
+        .pl-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pl-btn.primary:hover { background: var(--accent-hover); }
+        .pl-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-value.yes { color: #22c55e; }
+        .stat-value.no { color: #ef4444; }
+        .stat-value.pending { color: var(--text-muted); }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .result-banner {
+            padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600;
+            font-size: 0.95rem; margin-bottom: 1rem; text-align: center;
+        }
+        .result-banner.planar { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e40; }
+        .result-banner.not-planar { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+        .result-banner.empty { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .edge-list {
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            max-height: 160px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .detail-section { font-size: 0.85rem; margin-top: 0.5rem; }
+        .detail-section .label { color: var(--text-muted); }
+        .formula { font-family: 'Courier New', monospace; font-size: 0.8rem; color: var(--accent); }
+        .step-list { font-size: 0.8rem; max-height: 200px; overflow-y: auto; }
+        .step-list li { padding: 2px 0; }
+        .step-list li.violation { color: #ef4444; font-weight: 600; }
+        .step-list li.pass { color: #22c55e; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="euler.html" class="sidebar-link"><span class="icon">🛤️</span>Euler Paths</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges & APs</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="planarity.html" class="sidebar-link active"><span class="icon">📐</span>Planarity</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="page-header">
+        <h1>📐 Planarity Tester</h1>
+        <p class="subtitle">Test if a graph can be drawn without edge crossings. Visualize Euler's formula checks, edge density bounds, and K₅/K₃,₃ subdivision detection.</p>
+    </div>
+
+    <div class="pl-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <button class="pl-btn active" id="btn-node" onclick="setMode('node')">➕ Add Node</button>
+                <button class="pl-btn" id="btn-edge" onclick="setMode('edge')">🔗 Add Edge</button>
+                <button class="pl-btn" id="btn-move" onclick="setMode('move')">✋ Move</button>
+                <button class="pl-btn" id="btn-delete" onclick="setMode('delete')">🗑️ Delete</button>
+                <button class="pl-btn primary" onclick="testPlanarity()">📐 Test</button>
+                <button class="pl-btn" onclick="autoLayout()">⚡ Auto Layout</button>
+                <button class="pl-btn danger" onclick="clearGraph()">Clear</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Normal</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Planar OK</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Violation</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>K₅/K₃,₃ subgraph</div>
+            </div>
+            <canvas id="graph-canvas" width="800" height="520"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div id="result-banner" class="result-banner empty">Draw a graph and click Test</div>
+
+            <div class="info-card">
+                <h3>Graph Stats</h3>
+                <div class="detail-section">
+                    <span class="label">Vertices (V):</span> <span id="stat-v">0</span> &nbsp;|&nbsp;
+                    <span class="label">Edges (E):</span> <span id="stat-e">0</span>
+                </div>
+                <div class="detail-section">
+                    <span class="label">Components:</span> <span id="stat-c">0</span> &nbsp;|&nbsp;
+                    <span class="label">Faces (F):</span> <span id="stat-f">—</span>
+                </div>
+                <div class="detail-section" style="margin-top:0.5rem">
+                    <span class="label">Euler: V − E + F =</span> <span id="euler-val" class="formula">—</span>
+                </div>
+                <div class="detail-section">
+                    <span class="label">Edge bound: E ≤ 3V − 6 →</span> <span id="edge-bound" class="formula">—</span>
+                </div>
+                <div class="detail-section">
+                    <span class="label">Bipartite bound: E ≤ 2V − 4 →</span> <span id="bip-bound" class="formula">—</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Analysis Steps</h3>
+                <ol class="step-list" id="step-list">
+                    <li class="pending">Run the test to see analysis…</li>
+                </ol>
+            </div>
+
+            <div class="info-card">
+                <h3>Presets</h3>
+                <div class="presets">
+                    <button class="pl-btn" onclick="loadPreset('k4')">K₄ (planar)</button>
+                    <button class="pl-btn" onclick="loadPreset('k5')">K₅ (non-planar)</button>
+                    <button class="pl-btn" onclick="loadPreset('k33')">K₃,₃ (non-planar)</button>
+                    <button class="pl-btn" onclick="loadPreset('petersen')">Petersen</button>
+                    <button class="pl-btn" onclick="loadPreset('cube')">Cube Q₃</button>
+                    <button class="pl-btn" onclick="loadPreset('icosahedron')">Icosahedron</button>
+                    <button class="pl-btn" onclick="loadPreset('tree')">Tree</button>
+                    <button class="pl-btn" onclick="loadPreset('k4minus')">K₄ − e</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Edge List</h3>
+                <div class="edge-list" id="edge-list">No edges</div>
+            </div>
+
+            <div class="info-card">
+                <h3>About Planarity</h3>
+                <div style="font-size:0.82rem;color:var(--text-muted)">
+                    <p>A graph is <b>planar</b> if it can be drawn in the plane with no edge crossings.</p>
+                    <p style="margin-top:0.4rem"><b>Kuratowski's Theorem:</b> A graph is planar ⟺ it contains no subdivision of K₅ or K₃,₃.</p>
+                    <p style="margin-top:0.4rem"><b>Euler's Formula:</b> For connected planar graphs: V − E + F = 2.</p>
+                    <p style="margin-top:0.4rem"><b>Edge bounds:</b> For planar graphs with V ≥ 3: E ≤ 3V − 6 (general) and E ≤ 2V − 4 (triangle-free/bipartite).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let nodes = [], edges = [];
+let mode = 'node';
+let dragNode = null, edgeStart = null;
+let nextId = 1;
+const NODE_R = 18;
+
+// Colors
+const COL = { normal: '#3b82f6', ok: '#22c55e', bad: '#ef4444', sub: '#f97316', text: '#fff', edge: '#888', edgeBad: '#ef4444', edgeSub: '#f97316' };
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.toolbar .pl-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('btn-' + m);
+    if (btn) btn.classList.add('active');
+    canvas.style.cursor = m === 'move' ? 'grab' : m === 'delete' ? 'pointer' : 'crosshair';
+}
+
+function draw() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Edges
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = e.color || COL.edge;
+        ctx.lineWidth = e.highlight ? 3 : 1.5;
+        ctx.stroke();
+    }
+
+    // Nodes
+    for (const n of nodes) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, NODE_R, 0, Math.PI * 2);
+        ctx.fillStyle = n.color || COL.normal;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = COL.text;
+        ctx.font = 'bold 12px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+    }
+
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('stat-v').textContent = nodes.length;
+    document.getElementById('stat-e').textContent = edges.length;
+    const comps = countComponents();
+    document.getElementById('stat-c').textContent = comps;
+    document.getElementById('edge-list').textContent = edges.length === 0 ? 'No edges' :
+        edges.map(e => {
+            const a = nodes.find(n => n.id === e.from);
+            const b = nodes.find(n => n.id === e.to);
+            return `${a?.label || '?'} — ${b?.label || '?'}`;
+        }).join('\n');
+}
+
+function countComponents() {
+    if (nodes.length === 0) return 0;
+    const visited = new Set();
+    let count = 0;
+    const adj = buildAdj();
+    for (const n of nodes) {
+        if (!visited.has(n.id)) {
+            count++;
+            const stack = [n.id];
+            while (stack.length) {
+                const cur = stack.pop();
+                if (visited.has(cur)) continue;
+                visited.add(cur);
+                for (const nb of (adj[cur] || [])) stack.push(nb);
+            }
+        }
+    }
+    return count;
+}
+
+function buildAdj() {
+    const adj = {};
+    for (const n of nodes) adj[n.id] = [];
+    for (const e of edges) {
+        adj[e.from].push(e.to);
+        adj[e.to].push(e.from);
+    }
+    return adj;
+}
+
+// --- Canvas interaction ---
+function getCanvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function findNode(x, y) {
+    return nodes.find(n => Math.hypot(n.x - x, n.y - y) < NODE_R + 4);
+}
+
+function findEdge(x, y) {
+    for (const e of edges) {
+        const a = nodes.find(n => n.id === e.from);
+        const b = nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1) continue;
+        const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (len * len)));
+        const px = a.x + t * dx, py = a.y + t * dy;
+        if (Math.hypot(x - px, y - py) < 8) return e;
+    }
+    return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+    const pos = getCanvasPos(e);
+    if (mode === 'node') {
+        if (!findNode(pos.x, pos.y)) {
+            nodes.push({ id: nextId, label: '' + nextId, x: pos.x, y: pos.y, color: null });
+            nextId++;
+            clearResults();
+            draw();
+        }
+    } else if (mode === 'edge') {
+        const n = findNode(pos.x, pos.y);
+        if (n) {
+            if (!edgeStart) { edgeStart = n; n.color = '#a855f7'; draw(); }
+            else {
+                if (edgeStart.id !== n.id && !edges.find(e => (e.from === edgeStart.id && e.to === n.id) || (e.from === n.id && e.to === edgeStart.id))) {
+                    edges.push({ from: edgeStart.id, to: n.id, color: null, highlight: false });
+                }
+                edgeStart.color = null; edgeStart = null;
+                clearResults();
+                draw();
+            }
+        }
+    } else if (mode === 'move') {
+        dragNode = findNode(pos.x, pos.y);
+        if (dragNode) canvas.style.cursor = 'grabbing';
+    } else if (mode === 'delete') {
+        const n = findNode(pos.x, pos.y);
+        if (n) {
+            edges = edges.filter(e => e.from !== n.id && e.to !== n.id);
+            nodes = nodes.filter(nd => nd.id !== n.id);
+            clearResults(); draw();
+        } else {
+            const ed = findEdge(pos.x, pos.y);
+            if (ed) { edges = edges.filter(e => e !== ed); clearResults(); draw(); }
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (mode === 'move' && dragNode) {
+        const pos = getCanvasPos(e);
+        dragNode.x = pos.x; dragNode.y = pos.y;
+        draw();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (dragNode) { dragNode = null; canvas.style.cursor = 'grab'; }
+});
+
+function clearResults() {
+    for (const n of nodes) n.color = null;
+    for (const e of edges) { e.color = null; e.highlight = false; }
+    document.getElementById('result-banner').className = 'result-banner empty';
+    document.getElementById('result-banner').textContent = 'Draw a graph and click Test';
+    document.getElementById('stat-f').textContent = '—';
+    document.getElementById('euler-val').textContent = '—';
+    document.getElementById('edge-bound').textContent = '—';
+    document.getElementById('bip-bound').textContent = '—';
+    document.getElementById('step-list').innerHTML = '<li class="pending">Run the test to see analysis…</li>';
+}
+
+// --- Planarity Testing ---
+function testPlanarity() {
+    if (nodes.length === 0) return;
+    const steps = [];
+    const V = nodes.length, E = edges.length;
+    const C = countComponents();
+    let planar = true;
+    let subgraphNodes = new Set(), subgraphEdges = new Set();
+
+    // Reset colors
+    for (const n of nodes) n.color = COL.ok;
+    for (const e of edges) { e.color = COL.edge; e.highlight = false; }
+
+    steps.push({ text: `Graph has V=${V}, E=${E}, C=${C}`, cls: '' });
+
+    // Trivial cases
+    if (V <= 4) {
+        steps.push({ text: 'V ≤ 4 → always planar', cls: 'pass' });
+        finish(true, steps, subgraphNodes, subgraphEdges);
+        return;
+    }
+
+    // Edge bound: E ≤ 3V - 6
+    const bound = 3 * V - 6;
+    const boundPass = E <= bound;
+    document.getElementById('edge-bound').textContent = `${E} ≤ ${bound} → ${boundPass ? '✓' : '✗'}`;
+    steps.push({ text: `Edge bound: E=${E} ≤ 3V−6=${bound} → ${boundPass ? 'PASS' : 'FAIL'}`, cls: boundPass ? 'pass' : 'violation' });
+    if (!boundPass) planar = false;
+
+    // Bipartite check + bound
+    const bip = isBipartite();
+    if (bip.is) {
+        const bipBound = 2 * V - 4;
+        const bipPass = E <= bipBound;
+        document.getElementById('bip-bound').textContent = `${E} ≤ ${bipBound} → ${bipPass ? '✓' : '✗'}`;
+        steps.push({ text: `Graph is bipartite. E=${E} ≤ 2V−4=${bipBound} → ${bipPass ? 'PASS' : 'FAIL'}`, cls: bipPass ? 'pass' : 'violation' });
+        if (!bipPass) planar = false;
+    } else {
+        document.getElementById('bip-bound').textContent = 'N/A (not bipartite)';
+        steps.push({ text: 'Graph is not bipartite — triangle-free bound skipped', cls: '' });
+    }
+
+    // K5 subgraph check
+    const k5 = findK5Subdivision();
+    if (k5) {
+        planar = false;
+        subgraphNodes = new Set(k5.nodes);
+        subgraphEdges = new Set(k5.edges);
+        steps.push({ text: `Found K₅ subdivision: nodes {${k5.branch.join(', ')}}`, cls: 'violation' });
+    } else {
+        steps.push({ text: 'No K₅ subdivision found', cls: 'pass' });
+    }
+
+    // K3,3 subgraph check
+    const k33 = findK33Subdivision();
+    if (k33) {
+        planar = false;
+        for (const id of k33.nodes) subgraphNodes.add(id);
+        for (const idx of k33.edges) subgraphEdges.add(idx);
+        steps.push({ text: `Found K₃,₃ subdivision: {${k33.setA.join(',')}} × {${k33.setB.join(',')}}`, cls: 'violation' });
+    } else {
+        steps.push({ text: 'No K₃,₃ subdivision found', cls: 'pass' });
+    }
+
+    // Euler's formula for planar
+    if (planar) {
+        const F = 2 - V + E + C; // generalized: V - E + F = 1 + C
+        document.getElementById('stat-f').textContent = F;
+        document.getElementById('euler-val').textContent = `${V} − ${E} + ${F} = ${V - E + F}`;
+        steps.push({ text: `Euler's formula: V−E+F = ${V - E + F} (expected ${1 + C})`, cls: 'pass' });
+    }
+
+    finish(planar, steps, subgraphNodes, subgraphEdges);
+}
+
+function finish(planar, steps, subNodes, subEdges) {
+    const banner = document.getElementById('result-banner');
+    if (planar) {
+        banner.className = 'result-banner planar';
+        banner.textContent = '✅ Graph is PLANAR';
+        for (const n of nodes) n.color = COL.ok;
+    } else {
+        banner.className = 'result-banner not-planar';
+        banner.textContent = '❌ Graph is NOT PLANAR';
+        for (const n of nodes) n.color = subNodes.has(n.id) ? COL.sub : COL.normal;
+        edges.forEach((e, i) => {
+            if (subEdges.has(i)) { e.color = COL.edgeSub; e.highlight = true; }
+        });
+    }
+
+    const sl = document.getElementById('step-list');
+    sl.innerHTML = steps.map(s => `<li class="${s.cls}">${s.text}</li>`).join('');
+    draw();
+}
+
+function isBipartite() {
+    const color = {};
+    const adj = buildAdj();
+    for (const n of nodes) {
+        if (color[n.id] !== undefined) continue;
+        const queue = [n.id];
+        color[n.id] = 0;
+        while (queue.length) {
+            const cur = queue.shift();
+            for (const nb of adj[cur]) {
+                if (color[nb] === undefined) { color[nb] = 1 - color[cur]; queue.push(nb); }
+                else if (color[nb] === color[cur]) return { is: false };
+            }
+        }
+    }
+    return { is: true };
+}
+
+// K5 detection: find 5 vertices all pairwise connected (possibly through paths)
+function findK5Subdivision() {
+    if (nodes.length < 5) return null;
+    const adj = buildAdj();
+    // Find 5 vertices with degree >= 4 as candidates
+    const highDeg = nodes.filter(n => (adj[n.id] || []).length >= 4).map(n => n.id);
+    const candidates = highDeg.length >= 5 ? highDeg : nodes.map(n => n.id);
+
+    // Try combinations of 5 vertices
+    const ids = candidates.slice(0, 15); // limit search
+    for (let i = 0; i < ids.length; i++)
+    for (let j = i+1; j < ids.length; j++)
+    for (let k = j+1; k < ids.length; k++)
+    for (let l = k+1; l < ids.length; l++)
+    for (let m = l+1; m < ids.length; m++) {
+        const five = [ids[i], ids[j], ids[k], ids[l], ids[m]];
+        if (allPairsConnected(five, adj)) {
+            const pathNodes = new Set(five);
+            const pathEdges = new Set();
+            // Mark edges between them
+            for (let a = 0; a < 5; a++)
+            for (let b = a+1; b < 5; b++) {
+                markPath(five[a], five[b], adj, pathNodes, pathEdges);
+            }
+            return { nodes: pathNodes, edges: pathEdges, branch: five.map(id => nodes.find(n=>n.id===id)?.label) };
+        }
+    }
+    return null;
+}
+
+function allPairsConnected(five, adj) {
+    for (let a = 0; a < five.length; a++)
+    for (let b = a+1; b < five.length; b++) {
+        if (!bfsConnected(five[a], five[b], adj)) return false;
+    }
+    return true;
+}
+
+function bfsConnected(s, t, adj) {
+    if (s === t) return true;
+    const visited = new Set([s]);
+    const queue = [s];
+    while (queue.length) {
+        const cur = queue.shift();
+        for (const nb of adj[cur]) {
+            if (nb === t) return true;
+            if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+        }
+    }
+    return false;
+}
+
+function markPath(s, t, adj, pathNodes, pathEdges) {
+    // BFS to find shortest path, mark edges
+    const prev = {};
+    const visited = new Set([s]);
+    const queue = [s];
+    while (queue.length) {
+        const cur = queue.shift();
+        if (cur === t) break;
+        for (const nb of adj[cur]) {
+            if (!visited.has(nb)) { visited.add(nb); prev[nb] = cur; queue.push(nb); }
+        }
+    }
+    let cur = t;
+    while (cur !== s && prev[cur] !== undefined) {
+        pathNodes.add(cur);
+        const p = prev[cur];
+        // Find edge index
+        edges.forEach((e, i) => {
+            if ((e.from === cur && e.to === p) || (e.from === p && e.to === cur)) pathEdges.add(i);
+        });
+        cur = p;
+    }
+}
+
+// K3,3 detection: find 3+3 vertices with all cross-connections
+function findK33Subdivision() {
+    if (nodes.length < 6) return null;
+    const adj = buildAdj();
+    const ids = nodes.map(n => n.id).slice(0, 15);
+    // Try all 3+3 partitions
+    for (let i = 0; i < ids.length; i++)
+    for (let j = i+1; j < ids.length; j++)
+    for (let k = j+1; k < ids.length; k++) {
+        const setA = [ids[i], ids[j], ids[k]];
+        for (let l = 0; l < ids.length; l++) {
+            if (setA.includes(ids[l])) continue;
+            for (let m = l+1; m < ids.length; m++) {
+                if (setA.includes(ids[m])) continue;
+                for (let n2 = m+1; n2 < ids.length; n2++) {
+                    if (setA.includes(ids[n2])) continue;
+                    const setB = [ids[l], ids[m], ids[n2]];
+                    let allConn = true;
+                    for (const a of setA)
+                    for (const b of setB) {
+                        if (!bfsConnected(a, b, adj)) { allConn = false; break; }
+                        if (!allConn) break;
+                    }
+                    if (allConn) {
+                        const pathNodes = new Set([...setA, ...setB]);
+                        const pathEdges = new Set();
+                        for (const a of setA)
+                        for (const b of setB) markPath(a, b, adj, pathNodes, pathEdges);
+                        return {
+                            nodes: pathNodes, edges: pathEdges,
+                            setA: setA.map(id => nodes.find(n=>n.id===id)?.label),
+                            setB: setB.map(id => nodes.find(n=>n.id===id)?.label)
+                        };
+                    }
+                }
+            }
+        }
+    }
+    return null;
+}
+
+// --- Presets ---
+function loadPreset(name) {
+    clearGraph();
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2, cy = rect.height / 2, r = 150;
+
+    const presets = {
+        k4: { n: 4, edges: [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]] },
+        k5: { n: 5, edges: [[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]] },
+        k33: { n: 6, edges: [[0,3],[0,4],[0,5],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5]], layout: 'bipartite' },
+        petersen: {
+            n: 10,
+            edges: [[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]],
+            layout: 'petersen'
+        },
+        cube: { n: 8, edges: [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]], layout: 'cube' },
+        icosahedron: {
+            n: 12,
+            edges: [[0,1],[0,2],[0,3],[0,4],[0,5],[1,2],[2,3],[3,4],[4,5],[5,1],
+                    [1,6],[2,6],[2,7],[3,7],[3,8],[4,8],[4,9],[5,9],[5,10],[1,10],
+                    [6,7],[7,8],[8,9],[9,10],[10,6],[6,11],[7,11],[8,11],[9,11],[10,11]]
+        },
+        tree: { n: 7, edges: [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]], layout: 'tree' },
+        'k4minus': { n: 4, edges: [[0,1],[0,2],[0,3],[1,2],[2,3]] }
+    };
+
+    const p = presets[name];
+    if (!p) return;
+
+    for (let i = 0; i < p.n; i++) {
+        let x, y;
+        if (p.layout === 'bipartite') {
+            x = i < 3 ? cx - 120 : cx + 120;
+            y = cy - 100 + (i % 3) * 100;
+        } else if (p.layout === 'petersen') {
+            if (i < 5) { const a = -Math.PI/2 + i * 2*Math.PI/5; x = cx + r*Math.cos(a); y = cy + r*Math.sin(a); }
+            else { const a = -Math.PI/2 + (i-5) * 2*Math.PI/5; x = cx + r*0.45*Math.cos(a); y = cy + r*0.45*Math.sin(a); }
+        } else if (p.layout === 'cube') {
+            const positions = [[-1,-1],[1,-1],[1,1],[-1,1],[-0.5,-0.5],[0.5,-0.5],[0.5,0.5],[-0.5,0.5]];
+            x = cx + positions[i][0] * 100; y = cy + positions[i][1] * 100;
+        } else if (p.layout === 'tree') {
+            const positions = [[0,-1.5],[-1.5,0],[1.5,0],[-2.2,1.5],[-0.8,1.5],[0.8,1.5],[2.2,1.5]];
+            x = cx + positions[i][0] * 70; y = cy + positions[i][1] * 70;
+        } else {
+            const a = -Math.PI/2 + i * 2*Math.PI/p.n;
+            x = cx + r * Math.cos(a); y = cy + r * Math.sin(a);
+        }
+        nodes.push({ id: nextId, label: '' + nextId, x, y, color: null });
+        nextId++;
+    }
+
+    const baseId = nodes[nodes.length - p.n].id;
+    for (const [a, b] of p.edges) {
+        edges.push({ from: baseId + a, to: baseId + b, color: null, highlight: false });
+    }
+
+    draw();
+}
+
+function clearGraph() {
+    nodes = []; edges = []; nextId = 1; edgeStart = null;
+    clearResults(); draw();
+}
+
+function autoLayout() {
+    if (nodes.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2, cy = rect.height / 2;
+    // Force-directed layout (simple)
+    const iterations = 100;
+    for (let iter = 0; iter < iterations; iter++) {
+        const forces = {};
+        for (const n of nodes) forces[n.id] = { fx: 0, fy: 0 };
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++)
+        for (let j = i+1; j < nodes.length; j++) {
+            const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+            const dist = Math.max(Math.hypot(dx, dy), 1);
+            const f = 5000 / (dist * dist);
+            forces[nodes[i].id].fx -= f * dx / dist;
+            forces[nodes[i].id].fy -= f * dy / dist;
+            forces[nodes[j].id].fx += f * dx / dist;
+            forces[nodes[j].id].fy += f * dy / dist;
+        }
+        // Attraction
+        for (const e of edges) {
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+            if (!a || !b) continue;
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const dist = Math.max(Math.hypot(dx, dy), 1);
+            const f = dist / 50;
+            forces[a.id].fx += f * dx / dist;
+            forces[a.id].fy += f * dy / dist;
+            forces[b.id].fx -= f * dx / dist;
+            forces[b.id].fy -= f * dy / dist;
+        }
+        // Center gravity
+        for (const n of nodes) {
+            forces[n.id].fx += (cx - n.x) * 0.01;
+            forces[n.id].fy += (cy - n.y) * 0.01;
+        }
+        // Apply
+        const cooling = 1 - iter / iterations;
+        for (const n of nodes) {
+            n.x += forces[n.id].fx * cooling * 0.5;
+            n.y += forces[n.id].fy * cooling * 0.5;
+            n.x = Math.max(30, Math.min(rect.width - 30, n.x));
+            n.y = Math.max(30, Math.min(rect.height - 30, n.y));
+        }
+    }
+    draw();
+}
+
+// Init
+draw();
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>

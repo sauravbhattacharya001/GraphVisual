@@ -214,7 +214,7 @@ public class NetworkFlowAnalyzer {
      */
     private Set<String> findReachableFromSource() {
         Set<String> reachable = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         queue.add(source);
         reachable.add(source);
 
@@ -352,7 +352,7 @@ public class NetworkFlowAnalyzer {
         while (true) {
             // BFS from source to sink following positive-flow edges
             Map<String, String> parent = new LinkedHashMap<String, String>();
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(source);
             parent.put(source, null);
             boolean found = false;
@@ -599,7 +599,7 @@ public class NetworkFlowAnalyzer {
 
     private double bfsAugmentingPath(Map<String, String> parent,
                                      Map<String, String> parentArcKey) {
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         queue.add(source);
         parent.put(source, null);
 

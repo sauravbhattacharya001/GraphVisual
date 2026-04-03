@@ -193,7 +193,7 @@ public class HamiltonianAnalyzer {
     public <V, E> boolean isConnected(Graph<V, E> graph) {
         if (graph.getVertexCount() == 0) return true;
         Set<V> visited = new HashSet<>();
-        Queue<V> queue = new LinkedList<>();
+        Queue<V> queue = new ArrayDeque<>();
         V start = graph.getVertices().iterator().next();
         queue.add(start);
         visited.add(start);

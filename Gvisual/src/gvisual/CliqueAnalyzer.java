@@ -189,7 +189,18 @@ public class CliqueAnalyzer {
         return bestPivot;
     }
 
+    /**
+     * Count elements in the intersection of two sets.
+     * Iterates the smaller set and probes the larger one for O(min(|a|,|b|))
+     * instead of always O(|a|). In choosePivot this is called O(|P|+|X|)
+     * times with P potentially much larger than individual neighbor sets,
+     * so iterating the smaller side can cut pivot selection time significantly.
+     */
     private int countIntersection(Set<String> a, Set<String> b) {
+        // Always iterate the smaller set, probe the larger
+        if (a.size() > b.size()) {
+            Set<String> tmp = a; a = b; b = tmp;
+        }
         int count = 0;
         for (String s : a) {
             if (b.contains(s)) count++;
@@ -541,16 +552,18 @@ public class CliqueAnalyzer {
         int cliqueNumber = getCliqueNumber();
         int cliqueCount = getCliqueCount();
         double avgSize = getAverageCliqueSize();
-        double coverage = getCoverage();
         int totalVertices = graph.getVertexCount();
-        int coveredCount = 0;
+        // Compute coverage in a single pass instead of calling getCoverage()
+        // (which iterates all cliques) and then re-iterating to count covered
+        // vertices — previously this did the same O(C*V) work twice.
         Set<String> covered = new HashSet<String>();
         for (Set<String> clique : cliques) {
             if (clique.size() >= 3) {
                 covered.addAll(clique);
             }
         }
-        coveredCount = covered.size();
+        int coveredCount = covered.size();
+        double coverage = totalVertices > 0 ? (double) coveredCount / totalVertices : 0.0;
 
         sb.append(String.format("Clique number (\u03C9):    %d%n", cliqueNumber));
         sb.append(String.format("Maximal cliques:      %d%n", cliqueCount));

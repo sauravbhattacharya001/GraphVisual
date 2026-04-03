@@ -133,7 +133,7 @@ public class GraphStatsDashboard {
         for (String v : graph.getVertices()) {
             if (!visited.contains(v)) {
                 count++;
-                Queue<String> queue = new LinkedList<>();
+                Queue<String> queue = new ArrayDeque<>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {

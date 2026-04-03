@@ -436,7 +436,7 @@ public class NetworkRoleClassifier {
             sigma.put(s, 1);
             dist.put(s, 0);
 
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(s);
 
             while (!queue.isEmpty()) {

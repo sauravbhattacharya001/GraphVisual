@@ -221,7 +221,7 @@ public final class BandwidthMinimizer {
 
             // Reset visited for this component traversal
             Set<V> componentVisited = new HashSet<>();
-            Queue<V> queue = new LinkedList<>();
+            Queue<V> queue = new ArrayDeque<>();
             queue.add(start);
             componentVisited.add(start);
 
@@ -281,7 +281,7 @@ public final class BandwidthMinimizer {
     /** BFS distance map from a source vertex. */
     private static <V, E> Map<V, Integer> bfsDistances(Graph<V, E> graph, V source) {
         Map<V, Integer> dist = new HashMap<>();
-        Queue<V> queue = new LinkedList<>();
+        Queue<V> queue = new ArrayDeque<>();
         dist.put(source, 0);
         queue.add(source);
 

@@ -109,7 +109,7 @@ public class ShortestPathFinder {
         // BFS
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, Edge> predecessorEdge = new HashMap<String, Edge>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         predecessor.put(source, null);
         queue.add(source);
@@ -228,7 +228,7 @@ public class ShortestPathFinder {
         validateVertex(source, "Source");
 
         Set<String> reachable = new LinkedHashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         reachable.add(source);
         queue.add(source);
@@ -262,7 +262,7 @@ public class ShortestPathFinder {
         if (source.equals(target)) return true;
 
         Set<String> visited = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         visited.add(source);
         queue.add(source);
