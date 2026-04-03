@@ -81,7 +81,7 @@ public class NetworkFlowExporter {
         while (true) {
             Arrays.fill(parent, -1);
             parent[s] = s;
-            Queue<Integer> queue = new LinkedList<>();
+            Queue<Integer> queue = new ArrayDeque<>();
             queue.add(s);
             while (!queue.isEmpty() && parent[t] == -1) {
                 int u = queue.poll();

@@ -267,7 +267,7 @@ public class SubgraphExtractor {
             if (!sourceGraph.containsVertex(seedNode)) {
                 return candidates; // seed not in graph
             }
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             Map<String, Integer> distances = new HashMap<>();
             queue.add(seedNode);
             distances.put(seedNode, 0);

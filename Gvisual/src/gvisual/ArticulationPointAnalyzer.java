@@ -374,7 +374,7 @@ public class ArticulationPointAnalyzer {
             if (assigned.contains(neighbor)) continue;
             // BFS from neighbor, excluding the articulation point
             Set<String> component = new HashSet<String>();
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(neighbor);
             component.add(neighbor);
             while (!queue.isEmpty()) {
@@ -408,7 +408,7 @@ public class ArticulationPointAnalyzer {
      */
     private Set<String> bfsExcludingEdge(String start, Edge excluded) {
         Set<String> visited = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         queue.add(start);
         visited.add(start);
 

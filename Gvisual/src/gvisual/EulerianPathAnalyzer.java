@@ -171,7 +171,7 @@ public class EulerianPathAnalyzer {
         // Build adjacency with Edge tracking
         Map<String, LinkedList<EdgeEntry>> adj = new LinkedHashMap<String, LinkedList<EdgeEntry>>();
         for (String v : graph.getVertices()) {
-            adj.put(v, new LinkedList<EdgeEntry>());
+            adj.put(v, new ArrayDeque<EdgeEntry>());
         }
 
         Set<Edge> allEdges = new HashSet<Edge>();
@@ -427,7 +427,7 @@ public class EulerianPathAnalyzer {
         while (true) {
             // BFS to find augmenting path
             Map<String, String> parent = new HashMap<String, String>();
-            Queue<String> q = new LinkedList<String>();
+            Queue<String> q = new ArrayDeque<String>();
             q.add(source);
             parent.put(source, source);
 

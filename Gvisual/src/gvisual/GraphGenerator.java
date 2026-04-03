@@ -321,7 +321,7 @@ public class GraphGenerator {
         int nodeId = 0;
         g.addVertex(nodeName(nodeId));
 
-        Queue<int[]> queue = new LinkedList<>();
+        Queue<int[]> queue = new ArrayDeque<>();
         queue.add(new int[]{nodeId, 0}); // [nodeIndex, currentDepth]
 
         while (!queue.isEmpty()) {

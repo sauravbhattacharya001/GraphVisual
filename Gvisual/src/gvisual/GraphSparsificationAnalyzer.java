@@ -302,7 +302,7 @@ public class GraphSparsificationAnalyzer {
             Map<String, Integer> dist = new HashMap<String, Integer>();
             for (String vtx : graph.getVertices()) { pred.put(vtx, new ArrayList<String>()); sigma.put(vtx, 0); dist.put(vtx, -1); }
             sigma.put(s, 1); dist.put(s, 0);
-            Queue<String> q = new LinkedList<String>(); q.add(s);
+            Queue<String> q = new ArrayDeque<String>(); q.add(s);
             while (!q.isEmpty()) {
                 String vtx = q.poll(); stack.push(vtx);
                 for (String w : graph.getNeighbors(vtx)) {

@@ -341,7 +341,7 @@ public class RandomWalkAnalyzer {
     /** BFS to find all vertices reachable from {@code source}. */
     private <V, E> Set<V> bfsReachable(Graph<V, E> graph, V source) {
         Set<V> reachable = new HashSet<>();
-        Queue<V> q = new LinkedList<>();
+        Queue<V> q = new ArrayDeque<>();
         q.add(source);
         reachable.add(source);
         while (!q.isEmpty()) {

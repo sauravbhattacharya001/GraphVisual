@@ -385,7 +385,7 @@ public class ChordalGraphAnalyzerTest {
                 Iterator<Integer> it = nodes.iterator();
                 int start = it.next();
                 Set<Integer> reached = new HashSet<>();
-                Queue<Integer> q = new LinkedList<>();
+                Queue<Integer> q = new ArrayDeque<>();
                 q.add(start);
                 reached.add(start);
                 while (!q.isEmpty()) {

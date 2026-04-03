@@ -474,7 +474,7 @@ public final class PlanarGraphAnalyzer {
         for (String v : graph.getVertices()) {
             if (visited.contains(v)) continue;
             count++;
-            Queue<String> q = new LinkedList<String>();
+            Queue<String> q = new ArrayDeque<String>();
             q.add(v);
             visited.add(v);
             while (!q.isEmpty()) {
@@ -711,7 +711,7 @@ public final class PlanarGraphAnalyzer {
         // Check bipartiteness
         List<String> verts = new ArrayList<String>(g.keySet());
         Map<String, Integer> color = new HashMap<String, Integer>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         color.put(verts.get(0), 0);
         queue.add(verts.get(0));
         while (!queue.isEmpty()) {
@@ -1115,7 +1115,7 @@ public final class PlanarGraphAnalyzer {
         if (src.equals(dst)) return Arrays.asList(src);
 
         Map<String, String> prev = new HashMap<String, String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         queue.add(src);
         prev.put(src, src);
 

@@ -66,7 +66,7 @@ public class GraphVoronoiPartitioner {
         // Multi-source BFS
         Map<String, String> assignment = new LinkedHashMap<>();   // vertex → seed
         Map<String, Integer> distance = new HashMap<>();          // vertex → dist
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
 
         // Initialize seeds
         List<String> sortedSeeds = seeds.stream().sorted().collect(Collectors.toList());

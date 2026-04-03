@@ -262,7 +262,7 @@ public class NetworkReportGenerator {
         for (String v : graph.getVertices()) {
             if (!visited.contains(v)) {
                 components++;
-                Queue<String> queue = new LinkedList<String>();
+                Queue<String> queue = new ArrayDeque<String>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {

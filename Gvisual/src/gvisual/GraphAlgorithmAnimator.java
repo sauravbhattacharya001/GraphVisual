@@ -208,7 +208,7 @@ public class GraphAlgorithmAnimator {
                 "Start BFS from " + source,
                 s.nodeColors, s.edgeColors, s.nodeLabels, null));
 
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         Set<String> visited = new LinkedHashSet<>();
         queue.add(source);
         visited.add(source);

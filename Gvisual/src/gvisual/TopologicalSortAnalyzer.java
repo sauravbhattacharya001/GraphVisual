@@ -323,7 +323,7 @@ public class TopologicalSortAnalyzer {
 
         // BFS backwards for all transitive dependencies
         Set<String> allDeps = new HashSet<String>();
-        Queue<String> bfsQueue = new LinkedList<String>();
+        Queue<String> bfsQueue = new ArrayDeque<String>();
         bfsQueue.add(vertex);
         Set<String> visited = new HashSet<String>();
         visited.add(vertex);
@@ -498,7 +498,7 @@ public class TopologicalSortAnalyzer {
 
         for (String v : sorted) {
             if (color.get(v) == 0) {
-                dfsCycleDetect(v, successors, color, parent, cycles, new LinkedList<String>());
+                dfsCycleDetect(v, successors, color, parent, cycles, new ArrayDeque<String>());
             }
         }
 
@@ -599,7 +599,7 @@ public class TopologicalSortAnalyzer {
         }
 
         // Backtrack through predecessors choosing the one at depth - 1
-        LinkedList<String> path = new LinkedList<String>();
+        ArrayDeque<String> path = new ArrayDeque<String>();
         String current = deepest;
         while (current != null) {
             path.addFirst(current);

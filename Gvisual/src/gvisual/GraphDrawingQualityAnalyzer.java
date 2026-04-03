@@ -431,7 +431,7 @@ public class GraphDrawingQualityAnalyzer {
     private Map<String, Integer> bfs(String source) {
         Map<String, Integer> dist = new HashMap<>();
         dist.put(source, 0);
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(source);
         while (!queue.isEmpty()) {
             String u = queue.poll();

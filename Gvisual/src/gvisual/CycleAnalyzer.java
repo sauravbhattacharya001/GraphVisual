@@ -330,7 +330,7 @@ public class CycleAnalyzer {
     private int bfsShortestCycle(String start) {
         Map<String, Integer> dist = new HashMap<String, Integer>();
         Map<String, String> parent = new HashMap<String, String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
 
         dist.put(start, 0);
         parent.put(start, null);
@@ -395,7 +395,7 @@ public class CycleAnalyzer {
         for (String root : graph.getVertices()) {
             if (visited.contains(root)) continue;
 
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(root);
             visited.add(root);
             parentMap.put(root, null);

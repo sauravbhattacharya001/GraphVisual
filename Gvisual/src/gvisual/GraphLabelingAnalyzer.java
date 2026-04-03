@@ -261,7 +261,7 @@ public class GraphLabelingAnalyzer {
     private List<String> bfsOrder(String start) {
         List<String> order = new ArrayList<String>();
         Set<String> visited = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         queue.add(start);
         visited.add(start);
         while (!queue.isEmpty()) {
@@ -370,7 +370,7 @@ public class GraphLabelingAnalyzer {
         Map<String, Integer> color = new HashMap<String, Integer>();
         for (String v : graph.getVertices()) {
             if (!color.containsKey(v)) {
-                Queue<String> queue = new LinkedList<String>();
+                Queue<String> queue = new ArrayDeque<String>();
                 queue.add(v);
                 color.put(v, 0);
                 while (!queue.isEmpty()) {

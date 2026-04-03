@@ -378,7 +378,7 @@ public final class ChromaticPolynomialCalculator {
         for (String v : graph.getVertices()) {
             if (!visited.contains(v)) {
                 Set<String> component = new HashSet<>();
-                Queue<String> queue = new LinkedList<>();
+                Queue<String> queue = new ArrayDeque<>();
                 queue.add(v);
                 visited.add(v);
                 while (!queue.isEmpty()) {
@@ -594,7 +594,7 @@ public final class ChromaticPolynomialCalculator {
     private boolean isConnected() {
         if (graph.getVertexCount() == 0) return true;
         Set<String> visited = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         String start = graph.getVertices().iterator().next();
         queue.add(start);
         visited.add(start);

@@ -128,9 +128,9 @@ public class GraphPartitioner {
         // Initialize BFS queues for each partition
         int[] partitionSizes = new int[k];
         @SuppressWarnings("unchecked")
-        Queue<String>[] queues = new LinkedList[k];
+        Queue<String>[] queues = new ArrayDeque[k];
         for (int i = 0; i < k; i++) {
-            queues[i] = new LinkedList<>();
+            queues[i] = new ArrayDeque<>();
             if (i < seeds.size()) {
                 queues[i].add(seeds.get(i));
                 assignment.put(seeds.get(i), i);
@@ -220,7 +220,7 @@ public class GraphPartitioner {
      */
     private Map<String, Integer> bfsDistances(List<String> sources) {
         Map<String, Integer> dist = new HashMap<>();
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         for (String s : sources) {
             dist.put(s, 0);
             queue.add(s);

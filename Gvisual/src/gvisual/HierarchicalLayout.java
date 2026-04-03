@@ -291,7 +291,7 @@ public class HierarchicalLayout {
         }
 
         // BFS/topological longest-path from sources
-        Queue<String> queue = new LinkedList<String>();
+        Queue<String> queue = new ArrayDeque<String>();
         for (String s : sources) {
             depth.put(s, 0);
             queue.add(s);

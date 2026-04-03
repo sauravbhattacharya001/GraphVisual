@@ -243,7 +243,7 @@ public class LineGraphAnalyzer {
         Map<String, Integer> color = new HashMap<String, Integer>();
         for (String start : graph.getVertices()) {
             if (color.containsKey(start)) continue;
-            Queue<String> queue = new LinkedList<String>();
+            Queue<String> queue = new ArrayDeque<String>();
             queue.add(start);
             color.put(start, 0);
             while (!queue.isEmpty()) {

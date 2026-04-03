@@ -356,7 +356,7 @@ public final class PerfectGraphAnalyzer {
         Arrays.fill(color, -1);
         for (int s = 0; s < n; s++) {
             if (color[s] != -1) continue;
-            Queue<Integer> q = new LinkedList<>();
+            Queue<Integer> q = new ArrayDeque<>();
             color[s] = 0;
             q.add(s);
             while (!q.isEmpty()) {

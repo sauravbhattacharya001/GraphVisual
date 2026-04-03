@@ -125,7 +125,7 @@ public class EdgeBetweennessAnalyzer {
             dist.put(s, 0);
             sigma.put(s, 1.0);
 
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(s);
 
             while (!queue.isEmpty()) {

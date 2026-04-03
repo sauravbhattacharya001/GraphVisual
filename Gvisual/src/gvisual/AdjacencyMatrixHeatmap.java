@@ -95,7 +95,7 @@ public class AdjacencyMatrixHeatmap extends JPanel {
         // Start with highest degree node
         nodeOrder.sort((a, b) -> Integer.compare(graph.degree(b), graph.degree(a)));
 
-        Queue<String> queue = new LinkedList<>();
+        Queue<String> queue = new ArrayDeque<>();
         queue.add(nodeOrder.get(0));
         visited.add(nodeOrder.get(0));
 

@@ -186,7 +186,7 @@ public class FeedbackVertexSetAnalyzer {
 
         for (String start : vertices) {
             if (visited.contains(start)) continue;
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(start); visited.add(start);
             while (!queue.isEmpty()) {
                 String v = queue.poll();
@@ -268,7 +268,7 @@ public class FeedbackVertexSetAnalyzer {
         Map<String, String> parent = new HashMap<>();
         for (String start : vertices) {
             if (visited.contains(start)) continue;
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(start); visited.add(start); parent.put(start, null);
             while (!queue.isEmpty()) {
                 String v = queue.poll();

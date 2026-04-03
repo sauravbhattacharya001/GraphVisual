@@ -477,7 +477,7 @@ public class SignedGraphAnalyzer {
 
         for (String start : graph.getVertices()) {
             if (color.containsKey(start)) continue;
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(start);
             color.put(start, 0);
             while (!queue.isEmpty()) {
@@ -682,7 +682,7 @@ public class SignedGraphAnalyzer {
         int comp = 0;
         for (String v : graph.getVertices()) {
             if (component.containsKey(v)) continue;
-            Queue<String> queue = new LinkedList<>();
+            Queue<String> queue = new ArrayDeque<>();
             queue.add(v);
             component.put(v, comp);
             while (!queue.isEmpty()) {
