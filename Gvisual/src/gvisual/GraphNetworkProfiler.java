@@ -382,7 +382,7 @@ public class GraphNetworkProfiler {
 
         // LATTICE: regular degree, high clustering, high diameter
         double latticeScore = 0;
-        if (degCV < 0.3) latticeScore += 35;
+        if (degreeCV < 0.3) latticeScore += 35;
         if (globalClustering > 0.3) latticeScore += 25;
         if (n > 5 && approxDiameter > Math.sqrt(n)) latticeScore += 20;
         if (density < 0.3) latticeScore += 20;
@@ -391,7 +391,7 @@ public class GraphNetworkProfiler {
         // RANDOM: low clustering, moderate degree variance
         double randomScore = 0;
         if (globalClustering < 0.15) randomScore += 30;
-        if (degCV < 0.8) randomScore += 20;
+        if (degreeCV < 0.8) randomScore += 20;
         if (Math.abs(assortativity) < 0.15) randomScore += 25;
         if (hubDominance < 3) randomScore += 25;
         scores.put(NetworkType.RANDOM, randomScore);
@@ -423,7 +423,7 @@ public class GraphNetworkProfiler {
         // CORE_PERIPHERY: wide degree spread, some high-degree core
         double cpScore = 0;
         if (hubDominance > 3) cpScore += 30;
-        if (degCV > 0.8) cpScore += 25;
+        if (degreeCV > 0.8) cpScore += 25;
         if (assortativity < 0) cpScore += 20;
         if (largestComponentFraction > 0.7) cpScore += 25;
         scores.put(NetworkType.CORE_PERIPHERY, cpScore);
