@@ -130,16 +130,13 @@ prevent mutation after creation.
 | Dependency | Version | Notes |
 |------------|---------|-------|
 | JUNG | 2.0.1 | Graph library — no known CVEs |
-| PostgreSQL JDBC | 8.3-604 | Legacy driver — consider upgrading for TLS improvements |
-| Commons IO | 1.4 | File utilities — consider upgrading for security patches |
+| PostgreSQL JDBC | 42.7.5 | ✅ Current — TLS 1.3 support, security patches applied |
+| Commons IO | 2.18.0 | ✅ Current — CVE-2021-29425 path traversal fix included |
+| Woodstox | 7.1.0 | ✅ Current — XML parser (replaced legacy wstx-asl) |
 | JUnit | 4.13.2 | Test-only dependency |
 
 ### Recommendations
 
-- **Upgrade PostgreSQL JDBC** to 42.x for TLS 1.3 support and
-  security fixes
-- **Upgrade Commons IO** to 2.x for path traversal fixes in utility
-  methods
 - **Run with least-privilege database credentials** — the application
   only needs SELECT on `nic_aziala` tables and SELECT/INSERT/UPDATE on
   `nic_apps` tables
@@ -155,3 +152,4 @@ configured for automated security scanning on every push.
 |------|---------|----------|-----|
 | 2026-03-02 | `Network.generateFile()` path traversal bypass — validation used canonical `outputFile` but file write used raw `path` | High | Changed file write to use validated `outputFile` |
 | 2026-03-02 | `Util` JDBC connection string injection — `DB_HOST` env var concatenated into JDBC URL without sanitization, enabling parameter injection and potential RCE via `socketFactory` gadgets | High | Added `validateHost()` with strict hostname regex |
+| 2026-04-03 | SECURITY.md dependency table listed old versions (PostgreSQL 8.3-604, Commons IO 1.4) despite pom.xml already upgraded | Low | Updated SECURITY.md to reflect actual dependency versions |
