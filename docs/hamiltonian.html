@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamiltonian Path & Circuit Finder - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ham-container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .ham-canvas-wrap { flex: 1; min-width: 500px; }
+        .ham-canvas-wrap canvas { width: 100%; border: 2px solid #334155; border-radius: 8px; background: #0f172a; cursor: crosshair; }
+        .ham-controls { width: 300px; }
+        .ham-panel { background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .ham-panel h3 { margin: 0 0 12px; color: #94a3b8; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        .ham-btn { display: inline-block; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; margin: 3px; transition: all .15s; }
+        .ham-btn-primary { background: #3b82f6; color: #fff; }
+        .ham-btn-primary:hover { background: #2563eb; }
+        .ham-btn-success { background: #10b981; color: #fff; }
+        .ham-btn-success:hover { background: #059669; }
+        .ham-btn-danger { background: #ef4444; color: #fff; }
+        .ham-btn-danger:hover { background: #dc2626; }
+        .ham-btn-warn { background: #f59e0b; color: #fff; }
+        .ham-btn-warn:hover { background: #d97706; }
+        .ham-btn-sm { padding: 5px 10px; font-size: 12px; }
+        .ham-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .ham-preset { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .ham-log { background: #0f172a; border-radius: 6px; padding: 10px; font-family: 'Consolas','Courier New',monospace; font-size: 12px; color: #94a3b8; max-height: 200px; overflow-y: auto; line-height: 1.5; }
+        .ham-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .ham-stat { background: #0f172a; border-radius: 6px; padding: 10px; text-align: center; }
+        .ham-stat .val { font-size: 22px; font-weight: 700; color: #e2e8f0; }
+        .ham-stat .lbl { font-size: 11px; color: #64748b; margin-top: 2px; }
+        .ham-speed { width: 100%; margin: 8px 0; }
+        .ham-result { padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 600; text-align: center; }
+        .ham-result.found { background: #064e3b; color: #34d399; }
+        .ham-result.not-found { background: #7f1d1d; color: #fca5a5; }
+        .ham-result.running { background: #1e3a5f; color: #93c5fd; }
+        .ham-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+        .ham-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #94a3b8; }
+        .ham-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        select, input[type=number] { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; padding: 6px 8px; font-size: 13px; }
+        .ham-mode-toggle { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #334155; }
+        .ham-mode-toggle button { flex: 1; padding: 8px; border: none; background: #0f172a; color: #94a3b8; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .ham-mode-toggle button.active { background: #3b82f6; color: #fff; }
+        .ham-instructions { font-size: 12px; color: #64748b; margin-top: 8px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="hamiltonian.html" class="sidebar-link active"><span class="icon">🔁</span>Hamiltonian</a>
+    <a href="euler.html" class="sidebar-link"><span class="icon">🛤️</span>Euler Path</a>
+    <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+    <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Coloring</a>
+    <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+</nav>
+<main class="content">
+<h1>🔁 Hamiltonian Path & Circuit Finder</h1>
+<p>Find Hamiltonian paths and circuits using backtracking with pruning. Watch the algorithm explore and backtrack in real-time.</p>
+
+<div class="ham-container">
+    <div class="ham-canvas-wrap">
+        <canvas id="hamCanvas" width="700" height="500"></canvas>
+        <div class="ham-legend">
+            <div class="ham-legend-item"><div class="ham-legend-dot" style="background:#64748b"></div>Unvisited</div>
+            <div class="ham-legend-item"><div class="ham-legend-dot" style="background:#3b82f6"></div>Current</div>
+            <div class="ham-legend-item"><div class="ham-legend-dot" style="background:#10b981"></div>In Path</div>
+            <div class="ham-legend-item"><div class="ham-legend-dot" style="background:#ef4444"></div>Backtracked</div>
+            <div class="ham-legend-item"><div class="ham-legend-dot" style="background:#fbbf24"></div>Solution</div>
+        </div>
+        <div class="ham-instructions">
+            <strong>Click</strong> canvas to add nodes. <strong>Drag</strong> between nodes to add edges. <strong>Right-click</strong> node to delete. <strong>Shift+click</strong> node to set start.
+        </div>
+    </div>
+    <div class="ham-controls">
+        <div class="ham-panel">
+            <h3>Mode</h3>
+            <div class="ham-mode-toggle">
+                <button id="modePath" class="active" onclick="setMode('path')">Path</button>
+                <button id="modeCircuit" onclick="setMode('circuit')">Circuit</button>
+            </div>
+        </div>
+        <div class="ham-panel">
+            <h3>Presets</h3>
+            <div class="ham-preset">
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('petersen')">Petersen</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('cube')">Cube</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('dodecahedron')">Dodecahedron</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('complete5')">K₅</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('cycle8')">C₈</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('bipartite')">K₃,₃</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('herschel')">Herschel</button>
+                <button class="ham-btn ham-btn-primary ham-btn-sm" onclick="loadPreset('wheel6')">Wheel₆</button>
+            </div>
+        </div>
+        <div class="ham-panel">
+            <h3>Animation Speed</h3>
+            <input type="range" id="speedSlider" class="ham-speed" min="1" max="100" value="50">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b"><span>Slow</span><span>Fast</span></div>
+        </div>
+        <div class="ham-panel">
+            <h3>Actions</h3>
+            <button class="ham-btn ham-btn-success" id="btnRun" onclick="runSolver()">▶ Find</button>
+            <button class="ham-btn ham-btn-warn" id="btnPause" onclick="togglePause()" disabled>⏸ Pause</button>
+            <button class="ham-btn ham-btn-danger" id="btnStop" onclick="stopSolver()" disabled>⏹ Stop</button>
+            <button class="ham-btn ham-btn-primary" onclick="clearGraph()">🗑 Clear</button>
+            <div id="resultBox"></div>
+        </div>
+        <div class="ham-panel">
+            <h3>Statistics</h3>
+            <div class="ham-stats">
+                <div class="ham-stat"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+                <div class="ham-stat"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+                <div class="ham-stat"><div class="val" id="statSteps">0</div><div class="lbl">Steps</div></div>
+                <div class="ham-stat"><div class="val" id="statBacktracks">0</div><div class="lbl">Backtracks</div></div>
+            </div>
+        </div>
+        <div class="ham-panel">
+            <h3>Algorithm Log</h3>
+            <div class="ham-log" id="logBox">Ready. Add nodes or load a preset.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('hamCanvas');
+const ctx = canvas.getContext('2d');
+let nodes = [], edges = [], mode = 'path', startNode = 0;
+let solving = false, paused = false, stopRequested = false;
+let steps = 0, backtracks = 0;
+let visitState = [], pathEdges = [], currentPath = [];
+let dragFrom = null, dragPos = null, hoverNode = -1;
+
+const COLORS = { unvisited: '#64748b', current: '#3b82f6', inPath: '#10b981', backtracked: '#ef4444', solution: '#fbbf24' };
+
+function delay() { const v = document.getElementById('speedSlider').value; return Math.max(5, 500 - v * 4.9); }
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // edges
+    edges.forEach(([a, b], i) => {
+        const na = nodes[a], nb = nodes[b];
+        const isPath = pathEdges.includes(i);
+        const isSolution = visitState.solution;
+        ctx.beginPath(); ctx.moveTo(na.x, na.y); ctx.lineTo(nb.x, nb.y);
+        ctx.strokeStyle = isPath ? (isSolution ? COLORS.solution : COLORS.inPath) : '#334155';
+        ctx.lineWidth = isPath ? 3 : 1.5;
+        ctx.stroke();
+    });
+    // drag line
+    if (dragFrom !== null && dragPos) {
+        ctx.beginPath(); ctx.moveTo(nodes[dragFrom].x, nodes[dragFrom].y);
+        ctx.lineTo(dragPos.x, dragPos.y);
+        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // nodes
+    nodes.forEach((n, i) => {
+        let color = COLORS.unvisited;
+        if (visitState.solution && currentPath.includes(i)) color = COLORS.solution;
+        else if (visitState[i] === 'current') color = COLORS.current;
+        else if (visitState[i] === 'inPath') color = COLORS.inPath;
+        else if (visitState[i] === 'backtracked') color = COLORS.backtracked;
+        ctx.beginPath(); ctx.arc(n.x, n.y, i === startNode ? 18 : 15, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = i === hoverNode ? '#fff' : '#1e293b'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(i.toString(), n.x, n.y);
+        if (i === startNode) { ctx.fillStyle = '#fbbf24'; ctx.font = '10px sans-serif'; ctx.fillText('★', n.x, n.y - 22); }
+    });
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('statNodes').textContent = nodes.length;
+    document.getElementById('statEdges').textContent = edges.length;
+    document.getElementById('statSteps').textContent = steps;
+    document.getElementById('statBacktracks').textContent = backtracks;
+}
+
+function log(msg) {
+    const box = document.getElementById('logBox');
+    box.innerHTML += '\n' + msg;
+    box.scrollTop = box.scrollHeight;
+}
+
+function setMode(m) {
+    mode = m;
+    document.getElementById('modePath').classList.toggle('active', m === 'path');
+    document.getElementById('modeCircuit').classList.toggle('active', m === 'circuit');
+}
+
+function nodeAt(x, y) { return nodes.findIndex(n => Math.hypot(n.x - x, n.y - y) < 18); }
+function edgeExists(a, b) { return edges.some(([u, v]) => (u === a && v === b) || (u === b && v === a)); }
+function neighbors(n) { return edges.reduce((acc, [a, b], i) => { if (a === n) acc.push({node: b, edge: i}); if (b === n) acc.push({node: a, edge: i}); return acc; }, []); }
+
+canvas.addEventListener('mousedown', e => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.offsetX / r.width) * canvas.width, y = (e.offsetY / r.height) * canvas.height;
+    const idx = nodeAt(x, y);
+    if (e.button === 2) { e.preventDefault(); if (idx >= 0) { deleteNode(idx); } return; }
+    if (e.shiftKey && idx >= 0) { startNode = idx; log(`Start node → ${idx}`); draw(); return; }
+    if (idx >= 0) { dragFrom = idx; } else { nodes.push({x, y}); log(`Added node ${nodes.length-1}`); draw(); }
+});
+canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.offsetX / r.width) * canvas.width, y = (e.offsetY / r.height) * canvas.height;
+    hoverNode = nodeAt(x, y);
+    if (dragFrom !== null) { dragPos = {x, y}; draw(); }
+});
+canvas.addEventListener('mouseup', e => {
+    if (dragFrom !== null) {
+        const r = canvas.getBoundingClientRect();
+        const x = (e.offsetX / r.width) * canvas.width, y = (e.offsetY / r.height) * canvas.height;
+        const idx = nodeAt(x, y);
+        if (idx >= 0 && idx !== dragFrom && !edgeExists(dragFrom, idx)) {
+            edges.push([dragFrom, idx]); log(`Edge ${dragFrom}—${idx}`);
+        }
+    }
+    dragFrom = null; dragPos = null; draw();
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function deleteNode(idx) {
+    nodes.splice(idx, 1);
+    edges = edges.filter(([a, b]) => a !== idx && b !== idx).map(([a, b]) => [a > idx ? a-1 : a, b > idx ? b-1 : b]);
+    if (startNode >= nodes.length) startNode = 0;
+    if (startNode === idx) startNode = 0;
+    else if (startNode > idx) startNode--;
+    log(`Deleted node ${idx}`); draw();
+}
+
+function clearGraph() { nodes = []; edges = []; visitState = []; pathEdges = []; currentPath = []; steps = 0; backtracks = 0; startNode = 0; document.getElementById('logBox').innerHTML = 'Cleared.'; document.getElementById('resultBox').innerHTML = ''; draw(); }
+
+function showResult(found, msg) {
+    const box = document.getElementById('resultBox');
+    box.className = 'ham-result ' + (found ? 'found' : 'not-found');
+    box.textContent = msg;
+}
+
+async function runSolver() {
+    if (solving) return;
+    if (nodes.length < 2) { log('Need at least 2 nodes.'); return; }
+    solving = true; paused = false; stopRequested = false; steps = 0; backtracks = 0;
+    visitState = new Array(nodes.length).fill('unvisited'); pathEdges = []; currentPath = [];
+    document.getElementById('btnRun').disabled = true;
+    document.getElementById('btnPause').disabled = false;
+    document.getElementById('btnStop').disabled = false;
+    document.getElementById('resultBox').innerHTML = '<div class="ham-result running">Searching...</div>';
+    log(`\n--- Finding Hamiltonian ${mode} from node ${startNode} ---`);
+
+    const found = await hamiltonian(startNode);
+    if (stopRequested) { log('Stopped by user.'); }
+    else if (found) {
+        visitState.solution = true;
+        showResult(true, `✅ Hamiltonian ${mode} found! (${steps} steps, ${backtracks} backtracks)`);
+        log(`✅ Found: ${currentPath.join(' → ')}${mode === 'circuit' ? ' → ' + currentPath[0] : ''}`);
+    } else {
+        showResult(false, `❌ No Hamiltonian ${mode} exists (${steps} steps, ${backtracks} backtracks)`);
+        log('❌ No solution exists.');
+    }
+    draw();
+    solving = false;
+    document.getElementById('btnRun').disabled = false;
+    document.getElementById('btnPause').disabled = true;
+    document.getElementById('btnStop').disabled = true;
+}
+
+async function hamiltonian(node) {
+    if (stopRequested) return false;
+    while (paused) await new Promise(r => setTimeout(r, 100));
+
+    currentPath.push(node);
+    visitState[node] = 'current';
+    steps++;
+    draw();
+    await new Promise(r => setTimeout(r, delay()));
+
+    if (currentPath.length === nodes.length) {
+        if (mode === 'path') { visitState[node] = 'inPath'; return true; }
+        // circuit: check edge back to start
+        if (edgeExists(node, startNode)) {
+            const ei = edges.findIndex(([a,b]) => (a===node&&b===startNode)||(a===startNode&&b===node));
+            if (ei >= 0) pathEdges.push(ei);
+            visitState[node] = 'inPath';
+            return true;
+        }
+    }
+
+    if (currentPath.length < nodes.length) {
+        // pruning: check if unvisited nodes are still reachable
+        const nbrs = neighbors(node).filter(n => !currentPath.includes(n.node));
+        // sort by degree (Warnsdorff-like heuristic)
+        nbrs.sort((a, b) => {
+            const da = neighbors(a.node).filter(n => !currentPath.includes(n.node)).length;
+            const db = neighbors(b.node).filter(n => !currentPath.includes(n.node)).length;
+            return da - db;
+        });
+        for (const {node: next, edge: ei} of nbrs) {
+            visitState[node] = 'inPath';
+            pathEdges.push(ei);
+            draw();
+            if (await hamiltonian(next)) return true;
+            pathEdges.pop();
+        }
+    }
+
+    // backtrack
+    currentPath.pop();
+    visitState[node] = 'backtracked';
+    backtracks++;
+    steps++;
+    log(`↩ Backtrack from ${node}`);
+    draw();
+    await new Promise(r => setTimeout(r, delay() / 2));
+    return false;
+}
+
+function togglePause() {
+    paused = !paused;
+    document.getElementById('btnPause').textContent = paused ? '▶ Resume' : '⏸ Pause';
+    if (!paused) log('Resumed.');
+    else log('Paused.');
+}
+function stopSolver() { stopRequested = true; }
+
+// Presets
+function loadPreset(name) {
+    clearGraph();
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const ring = (n, r, ox=0, oy=0) => Array.from({length: n}, (_, i) => ({x: cx + ox + r * Math.cos(2*Math.PI*i/n - Math.PI/2), y: cy + oy + r * Math.sin(2*Math.PI*i/n - Math.PI/2)}));
+
+    if (name === 'petersen') {
+        nodes = [...ring(5, 180), ...ring(5, 80)];
+        edges = [[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]];
+        log('Loaded Petersen graph (no Hamiltonian circuit!)');
+    } else if (name === 'cube') {
+        nodes = [{x:cx-100,y:cy-100},{x:cx+100,y:cy-100},{x:cx+100,y:cy+100},{x:cx-100,y:cy+100},{x:cx-50,y:cy-50},{x:cx+150,y:cy-50},{x:cx+150,y:cy+150},{x:cx-50,y:cy+150}];
+        edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+        log('Loaded Cube graph (Q₃)');
+    } else if (name === 'dodecahedron') {
+        nodes = [...ring(10, 200), ...ring(10, 110)];
+        edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0],[0,10],[1,11],[2,12],[3,13],[4,14],[5,15],[6,16],[7,17],[8,18],[9,19],[10,11],[12,13],[14,15],[16,17],[18,19],[11,12],[13,14],[15,16],[17,18],[19,10]];
+        log('Loaded Dodecahedron');
+    } else if (name === 'complete5') {
+        nodes = ring(5, 150);
+        edges = [[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]];
+        log('Loaded K₅ (complete graph)');
+    } else if (name === 'cycle8') {
+        nodes = ring(8, 170);
+        edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]];
+        log('Loaded C₈ (cycle)');
+    } else if (name === 'bipartite') {
+        nodes = [{x:cx-120,y:cy-120},{x:cx-120,y:cy},{x:cx-120,y:cy+120},{x:cx+120,y:cy-120},{x:cx+120,y:cy},{x:cx+120,y:cy+120}];
+        edges = [[0,3],[0,4],[0,5],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5]];
+        log('Loaded K₃,₃ (complete bipartite)');
+    } else if (name === 'herschel') {
+        nodes = [{x:cx,y:cy-180},{x:cx-150,y:cy-80},{x:cx+150,y:cy-80},{x:cx-180,y:cy+40},{x:cx+180,y:cy+40},{x:cx-100,y:cy+40},{x:cx+100,y:cy+40},{x:cx-60,y:cy+140},{x:cx+60,y:cy+140},{x:cx,y:cy+100},{x:cx,y:cy+200}];
+        edges = [[0,1],[0,2],[1,3],[1,5],[2,4],[2,6],[3,5],[3,7],[4,6],[4,8],[5,9],[6,9],[7,10],[8,10],[9,7],[9,8]];
+        log('Loaded Herschel graph (no Hamiltonian circuit!)');
+    } else if (name === 'wheel6') {
+        const outer = ring(6, 170);
+        nodes = [{x:cx,y:cy}, ...outer];
+        edges = [[1,2],[2,3],[3,4],[4,5],[5,6],[6,1],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6]];
+        log('Loaded Wheel₆');
+    }
+    draw();
+}
+
+loadPreset('cube');
+</script>
+</main>
+</body>
+</html>
