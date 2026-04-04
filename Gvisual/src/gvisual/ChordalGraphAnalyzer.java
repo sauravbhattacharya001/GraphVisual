@@ -742,6 +742,13 @@ public final class ChordalGraphAnalyzer {
     /**
      * Runs comprehensive chordal analysis on the graph.
      *
+     * <p>Internally reuses the MCS ordering, adjacency map, and chordality
+     * result across all sub-analyses. Before this optimization each public
+     * method (optimalColoring, maximumClique, allMaximalCliques,
+     * buildCliqueTree) independently re-ran MCS and rebuilt the adjacency
+     * map, resulting in 5× redundant MCS traversals and ~10× redundant
+     * adjacency-map constructions.</p>
+     *
      * @param graph the graph
      * @return full analysis report
      */
@@ -749,7 +756,21 @@ public final class ChordalGraphAnalyzer {
         int vc = graph != null ? graph.getVertexCount() : 0;
         int ec = graph != null ? graph.getEdgeCount() : 0;
 
-        ChordalityResult chordality = testChordality(graph);
+        if (graph == null || vc == 0) {
+            ChordalityResult cr = new ChordalityResult(true, Collections.<String>emptyList(), null);
+            return new ChordalReport(cr,
+                    new ColoringResult(Collections.<String, Integer>emptyMap(), 0),
+                    Collections.emptySet(), null, null, null, 0, 0);
+        }
+
+        // Compute expensive structures once
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        List<String> mcsOrder = maximumCardinalitySearch(graph);
+        Map<String, Integer> pos = buildPositionMap(mcsOrder);
+
+        // Test chordality using pre-computed data
+        ChordalityResult chordality = verifyChordalityFromMCS(mcsOrder, adj, pos);
+
         ColoringResult coloring = null;
         Set<String> maxClique = null;
         List<Set<String>> maximalCliques = null;
@@ -757,18 +778,243 @@ public final class ChordalGraphAnalyzer {
         FillInResult fillIn = null;
 
         if (chordality.isChordal()) {
-            coloring = optimalColoring(graph);
-            maxClique = maximumClique(graph);
-            maximalCliques = allMaximalCliques(graph);
-            cliqueTree = buildCliqueTree(graph);
+            coloring = colorFromPEO(mcsOrder, adj);
+            maxClique = maxCliqueFromPEO(mcsOrder, pos, adj);
+            maximalCliques = maximalCliquesFromPEO(mcsOrder, pos, adj);
+            cliqueTree = buildCliqueTreeFromCliques(maximalCliques);
         } else {
-            fillIn = computeFillIn(graph);
-            // Still try greedy coloring and clique
-            coloring = optimalColoring(graph);
+            fillIn = fillInFromMCS(mcsOrder, pos, adj);
+            coloring = colorFromPEO(mcsOrder, adj);
             maxClique = findMaxCliqueGreedy(graph);
         }
 
         return new ChordalReport(chordality, coloring, maxClique, maximalCliques,
                                  cliqueTree, fillIn, vc, ec);
+    }
+
+    // ── Internal methods that reuse pre-computed structures ──────────────
+
+    private static Map<String, Integer> buildPositionMap(List<String> ordering) {
+        Map<String, Integer> pos = new HashMap<>(ordering.size() * 2);
+        for (int i = 0; i < ordering.size(); i++) {
+            pos.put(ordering.get(i), i);
+        }
+        return pos;
+    }
+
+    /**
+     * Verifies chordality from pre-computed MCS ordering and adjacency map.
+     * Equivalent to testChordality but avoids recomputing MCS and adj.
+     */
+    private static ChordalityResult verifyChordalityFromMCS(
+            List<String> mcsOrder, Map<String, Set<String>> adj,
+            Map<String, Integer> pos) {
+        for (int i = 0; i < mcsOrder.size(); i++) {
+            String v = mcsOrder.get(i);
+            Set<String> nbrs = adj.get(v);
+            if (nbrs == null) continue;
+
+            List<String> laterNeighbors = new ArrayList<>();
+            for (String nb : nbrs) {
+                if (pos.get(nb) > i) {
+                    laterNeighbors.add(nb);
+                }
+            }
+
+            for (int a = 0; a < laterNeighbors.size(); a++) {
+                for (int b = a + 1; b < laterNeighbors.size(); b++) {
+                    String u = laterNeighbors.get(a);
+                    String w = laterNeighbors.get(b);
+                    Set<String> uNbrs = adj.get(u);
+                    if (uNbrs == null || !uNbrs.contains(w)) {
+                        List<String> cycle = findChordlessCycle(adj, v, u, w);
+                        return new ChordalityResult(false, mcsOrder, cycle);
+                    }
+                }
+            }
+        }
+        return new ChordalityResult(true, mcsOrder, null);
+    }
+
+    /**
+     * Greedy coloring on reverse PEO using pre-computed adjacency map.
+     */
+    private static ColoringResult colorFromPEO(List<String> peo,
+                                                Map<String, Set<String>> adj) {
+        List<String> reversed = new ArrayList<>(peo);
+        Collections.reverse(reversed);
+
+        Map<String, Integer> colors = new LinkedHashMap<>();
+        int maxColor = 0;
+
+        for (String v : reversed) {
+            Set<Integer> usedColors = new HashSet<>();
+            Set<String> nbrs = adj.get(v);
+            if (nbrs != null) {
+                for (String nb : nbrs) {
+                    Integer c = colors.get(nb);
+                    if (c != null) usedColors.add(c);
+                }
+            }
+            int c = 0;
+            while (usedColors.contains(c)) c++;
+            colors.put(v, c);
+            if (c > maxColor) maxColor = c;
+        }
+
+        return new ColoringResult(colors, maxColor + 1);
+    }
+
+    /**
+     * Maximum clique from PEO using pre-computed adjacency map and positions.
+     */
+    private static Set<String> maxCliqueFromPEO(List<String> peo,
+                                                 Map<String, Integer> pos,
+                                                 Map<String, Set<String>> adj) {
+        Set<String> best = new LinkedHashSet<>();
+        for (int i = 0; i < peo.size(); i++) {
+            String v = peo.get(i);
+            Set<String> clique = new LinkedHashSet<>();
+            clique.add(v);
+            Set<String> nbrs = adj.get(v);
+            if (nbrs != null) {
+                for (String nb : nbrs) {
+                    if (pos.get(nb) > i) clique.add(nb);
+                }
+            }
+            if (clique.size() > best.size()) best = clique;
+        }
+        return best;
+    }
+
+    /**
+     * All maximal cliques from PEO using pre-computed adjacency map and positions.
+     */
+    private static List<Set<String>> maximalCliquesFromPEO(List<String> peo,
+                                                            Map<String, Integer> pos,
+                                                            Map<String, Set<String>> adj) {
+        List<Set<String>> cliques = new ArrayList<>();
+        Set<Set<String>> seen = new HashSet<>();
+
+        for (int i = 0; i < peo.size(); i++) {
+            String v = peo.get(i);
+            Set<String> clique = new TreeSet<>();
+            clique.add(v);
+            Set<String> nbrs = adj.get(v);
+            if (nbrs != null) {
+                for (String nb : nbrs) {
+                    if (pos.get(nb) > i) clique.add(nb);
+                }
+            }
+            if (!seen.contains(clique)) {
+                boolean maximal = true;
+                for (Set<String> existing : cliques) {
+                    if (existing.containsAll(clique)) {
+                        maximal = false;
+                        break;
+                    }
+                }
+                if (maximal) {
+                    Iterator<Set<String>> it = cliques.iterator();
+                    while (it.hasNext()) {
+                        if (clique.containsAll(it.next())) it.remove();
+                    }
+                    cliques.add(clique);
+                    seen.add(clique);
+                }
+            }
+        }
+        return cliques;
+    }
+
+    /**
+     * Build clique tree from pre-computed maximal cliques list.
+     */
+    private static List<CliqueTreeNode> buildCliqueTreeFromCliques(List<Set<String>> cliques) {
+        if (cliques == null || cliques.isEmpty()) return Collections.emptyList();
+
+        List<CliqueTreeNode> nodes = new ArrayList<>();
+        for (int i = 0; i < cliques.size(); i++) {
+            nodes.add(new CliqueTreeNode(i, cliques.get(i)));
+        }
+
+        if (cliques.size() <= 1) return nodes;
+
+        int n = cliques.size();
+        boolean[] inTree = new boolean[n];
+        int[] maxWeight = new int[n];
+        int[] parent = new int[n];
+        Arrays.fill(maxWeight, -1);
+        Arrays.fill(parent, -1);
+        maxWeight[0] = 0;
+
+        for (int iter = 0; iter < n; iter++) {
+            int best = -1;
+            for (int i = 0; i < n; i++) {
+                if (!inTree[i] && (best == -1 || maxWeight[i] > maxWeight[best])) {
+                    best = i;
+                }
+            }
+            inTree[best] = true;
+
+            if (parent[best] >= 0) {
+                nodes.get(best).neighbors.add(parent[best]);
+                nodes.get(parent[best]).neighbors.add(best);
+            }
+
+            Set<String> bestSet = cliques.get(best);
+            for (int i = 0; i < n; i++) {
+                if (!inTree[i]) {
+                    int intersection = intersectionSize(bestSet, cliques.get(i));
+                    if (intersection > maxWeight[i]) {
+                        maxWeight[i] = intersection;
+                        parent[i] = best;
+                    }
+                }
+            }
+        }
+
+        return nodes;
+    }
+
+    /**
+     * Compute fill-in edges using pre-computed MCS ordering and adjacency map.
+     */
+    private static FillInResult fillInFromMCS(List<String> mcsOrder,
+                                               Map<String, Integer> pos,
+                                               Map<String, Set<String>> adj) {
+        Map<String, Set<String>> augmented = new HashMap<>();
+        for (Map.Entry<String, Set<String>> e : adj.entrySet()) {
+            augmented.put(e.getKey(), new HashSet<>(e.getValue()));
+        }
+
+        List<String[]> fillEdges = new ArrayList<>();
+
+        for (int i = 0; i < mcsOrder.size(); i++) {
+            String v = mcsOrder.get(i);
+            Set<String> nbrs = augmented.get(v);
+            if (nbrs == null) continue;
+
+            List<String> laterNeighbors = new ArrayList<>();
+            for (String nb : nbrs) {
+                if (pos.get(nb) > i) laterNeighbors.add(nb);
+            }
+
+            for (int a = 0; a < laterNeighbors.size(); a++) {
+                for (int b = a + 1; b < laterNeighbors.size(); b++) {
+                    String u = laterNeighbors.get(a);
+                    String w = laterNeighbors.get(b);
+                    if (!augmented.get(u).contains(w)) {
+                        augmented.get(u).add(w);
+                        augmented.get(w).add(u);
+                        String first = u.compareTo(w) < 0 ? u : w;
+                        String second = u.compareTo(w) < 0 ? w : u;
+                        fillEdges.add(new String[]{first, second});
+                    }
+                }
+            }
+        }
+
+        return new FillInResult(fillEdges);
     }
 }
