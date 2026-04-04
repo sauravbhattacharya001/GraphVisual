@@ -778,21 +778,93 @@ public class TournamentAnalyzer {
     }
 
     /**
-     * Exact Slater ranking via permutation enumeration.
+     * Exact Slater ranking via branch-and-bound search.
+     *
+     * <p>Previous implementation generated all n! permutations in memory
+     * (3.6M lists for n=10) before evaluating each one. This version
+     * builds orderings incrementally and prunes branches whose partial
+     * disagreement count already exceeds the best known solution,
+     * dramatically reducing both memory and time.</p>
      */
     private SlaterResult slaterExact() {
-        List<String> best = null;
-        int bestDisagreements = Integer.MAX_VALUE;
+        int n = vertices.size();
+        // Use greedy result as initial upper bound for pruning
+        SlaterResult greedy = slaterGreedy();
+        int[] bestDisagreements = {greedy.getDisagreements()};
+        List<String>[] bestOrder = new List[]{new ArrayList<>(greedy.getRanking())};
 
-        List<List<String>> perms = generatePermutations(new ArrayList<String>(vertices));
-        for (List<String> perm : perms) {
-            int d = countDisagreements(perm);
-            if (d < bestDisagreements) {
-                bestDisagreements = d;
-                best = new ArrayList<String>(perm);
+        boolean[] used = new boolean[n];
+        List<String> current = new ArrayList<>(n);
+
+        slaterBranchAndBound(current, used, 0, bestDisagreements, bestOrder);
+        return new SlaterResult(bestOrder[0], bestDisagreements[0]);
+    }
+
+    /**
+     * Recursive branch-and-bound for Slater ranking. Extends the partial
+     * ordering one vertex at a time, pruning when the accumulated
+     * disagreements already exceed the best known solution.
+     *
+     * @param current    partial ordering built so far
+     * @param used       which vertex indices are already placed
+     * @param partialDis disagreements accumulated in the partial ordering
+     * @param bestDis    single-element array holding the best disagreement count
+     * @param bestOrder  single-element array holding the best ordering found
+     */
+    private void slaterBranchAndBound(List<String> current, boolean[] used,
+                                       int partialDis, int[] bestDis,
+                                       List<String>[] bestOrder) {
+        int pos = current.size();
+        int n = vertices.size();
+
+        if (pos == n) {
+            if (partialDis < bestDis[0]) {
+                bestDis[0] = partialDis;
+                bestOrder[0] = new ArrayList<>(current);
+            }
+            return;
+        }
+
+        // Prune: if partial disagreements already >= best, no point continuing
+        if (partialDis >= bestDis[0]) return;
+
+        for (int i = 0; i < n; i++) {
+            if (used[i]) continue;
+            String v = vertices.get(i);
+
+            // Count new disagreements: edges from v to vertices already placed
+            // (those vertices appear earlier in the ordering but v beats them —
+            // that's fine, no disagreement). Disagreement: a vertex already
+            // placed beats v (it's ranked higher but v should beat it... no).
+            // Actually: disagreement = edge (u→w) where u appears AFTER w.
+            // Placing v at position pos: for each already-placed vertex w at
+            // some position < pos, if v beats w that's fine (v is after w,
+            // and v→w means the edge agrees only if v is ranked before w...
+            // wait, let me re-derive).
+            //
+            // In the ordering, position 0 is "best". An edge u→v (u beats v)
+            // is a disagreement if u appears after v (higher index = worse rank
+            // but u won). So placing vertex v at position pos:
+            //   - For each w already placed (at position < pos):
+            //     if w beats v: no disagreement (w is ranked higher AND wins)
+            //     if v beats w: disagreement (v is ranked lower but beat w)
+            int newDis = 0;
+            Set<String> vBeats = beats.get(v);
+            for (String w : current) {
+                if (vBeats.contains(w)) {
+                    newDis++;  // v beats w but v is placed after w
+                }
+            }
+
+            int totalDis = partialDis + newDis;
+            if (totalDis < bestDis[0]) {
+                used[i] = true;
+                current.add(v);
+                slaterBranchAndBound(current, used, totalDis, bestDis, bestOrder);
+                current.remove(current.size() - 1);
+                used[i] = false;
             }
         }
-        return new SlaterResult(best, bestDisagreements);
     }
 
     /**
@@ -851,28 +923,7 @@ public class TournamentAnalyzer {
         return count;
     }
 
-    /**
-     * Generates all permutations of a list (for small n only).
-     */
-    private List<List<String>> generatePermutations(List<String> items) {
-        List<List<String>> result = new ArrayList<List<String>>();
-        if (items.size() <= 1) {
-            result.add(new ArrayList<String>(items));
-            return result;
-        }
-        for (int i = 0; i < items.size(); i++) {
-            String first = items.get(i);
-            List<String> rest = new ArrayList<String>(items);
-            rest.remove(i);
-            for (List<String> perm : generatePermutations(rest)) {
-                List<String> full = new ArrayList<String>();
-                full.add(first);
-                full.addAll(perm);
-                result.add(full);
-            }
-        }
-        return result;
-    }
+
 
     // ── Report Generation ───────────────────────────────────────
 
