@@ -192,6 +192,22 @@ public class DominatingSetAnalyzer {
     // ── Independent dominating set ──────────────────────────────────────
 
     /**
+     * Checks whether a vertex can be added to the result set without
+     * violating independence (no adjacency to any existing member).
+     *
+     * @param v      the candidate vertex
+     * @param result the current independent set
+     * @return true if v is not adjacent to any member of result
+     */
+    private boolean isIndependentOf(String v, Set<String> result) {
+        Set<String> neighbors = adj.get(v);
+        for (String m : result) {
+            if (neighbors.contains(m)) return false;
+        }
+        return true;
+    }
+
+    /**
      * Finds an independent dominating set — a dominating set where no two
      * members are adjacent to each other.
      *
@@ -206,30 +222,14 @@ public class DominatingSetAnalyzer {
                 return adj.get(b).size() - adj.get(a).size();
             });
 
-        for (String v : vertices) {
-            if (dominated.contains(v)) continue;
-            // Check independence: v must not be adjacent to any member
-            boolean independent = true;
-            for (String m : result) {
-                if (adj.get(v).contains(m)) {
-                    independent = false;
-                    break;
-                }
-            }
-            if (independent) {
-                result.add(v);
-                dominated.add(v);
-                dominated.addAll(adj.get(v));
-            }
-        }
-        // Cover any remaining undominated vertices
-        for (String v : vertices) {
-            if (!dominated.contains(v)) {
-                boolean canAdd = true;
-                for (String m : result) {
-                    if (adj.get(v).contains(m)) { canAdd = false; break; }
-                }
-                if (canAdd) {
+        // Two passes: first pass prioritizes undominated vertices,
+        // second pass covers any remaining gaps.
+        for (int pass = 0; pass < 2; pass++) {
+            for (String v : vertices) {
+                if (result.contains(v)) continue;
+                if (pass == 0 && dominated.contains(v)) continue;
+                if (pass == 1 && dominated.contains(v)) continue;
+                if (isIndependentOf(v, result)) {
                     result.add(v);
                     dominated.add(v);
                     dominated.addAll(adj.get(v));
@@ -259,8 +259,9 @@ public class DominatingSetAnalyzer {
         String start = null;
         int maxDeg = -1;
         for (Map.Entry<String, Set<String>> e : adj.entrySet()) {
-            if (e.getValue().size() > maxDeg) {
-                maxDeg = e.getValue().size();
+            int deg = e.getValue().size();
+            if (deg > maxDeg) {
+                maxDeg = deg;
                 start = e.getKey();
             }
         }
@@ -387,23 +388,43 @@ public class DominatingSetAnalyzer {
 
     /**
      * Checks whether the given set is an independent set (no two members adjacent).
+     * Uses the internal {@link #isIndependentOf} helper to avoid O(n²) pair checks
+     * when the set is built incrementally — but for arbitrary verification, the
+     * pairwise scan is still needed.
      *
      * @param set the set to check
      * @return true if no two members share an Edge
      */
     public boolean isIndependentSet(Set<String> set) {
-        if (set == null) return true;
-        List<String> members = new ArrayList<String>(set);
-        for (int i = 0; i < members.size(); i++) {
-            for (int j = i + 1; j < members.size(); j++) {
-                Set<String> ni = adj.get(members.get(i));
-                if (ni != null && ni.contains(members.get(j))) return false;
+        if (set == null || set.size() <= 1) return true;
+        // For each member, check that none of its neighbors are also in the set.
+        // This is O(Σ degree) which is typically better than O(|set|²) for sparse graphs.
+        for (String v : set) {
+            Set<String> neighbors = adj.get(v);
+            if (neighbors != null) {
+                for (String n : neighbors) {
+                    if (set.contains(n)) return false;
+                }
             }
         }
         return true;
     }
 
     // ── Domination bounds ───────────────────────────────────────────────
+
+    /**
+     * Returns the maximum degree (Δ) of any vertex in the graph.
+     * Used by domination bound computations and greedy heuristics.
+     *
+     * @return maximum degree, or 0 for empty graphs
+     */
+    private int maxDegree() {
+        int maxDeg = 0;
+        for (Set<String> neighbors : adj.values()) {
+            if (neighbors.size() > maxDeg) maxDeg = neighbors.size();
+        }
+        return maxDeg;
+    }
 
     /**
      * Computes the lower bound on the domination number: ceil(n / (1 + Δ)).
@@ -413,11 +434,7 @@ public class DominatingSetAnalyzer {
     public int dominationLowerBound() {
         int n = adj.size();
         if (n == 0) return 0;
-        int maxDeg = 0;
-        for (Set<String> neighbors : adj.values()) {
-            if (neighbors.size() > maxDeg) maxDeg = neighbors.size();
-        }
-        return (int) Math.ceil((double) n / (1 + maxDeg));
+        return (int) Math.ceil((double) n / (1 + maxDegree()));
     }
 
     /**
@@ -429,10 +446,7 @@ public class DominatingSetAnalyzer {
     public int dominationUpperBound() {
         int n = adj.size();
         if (n == 0) return 0;
-        int maxDeg = 0;
-        for (Set<String> neighbors : adj.values()) {
-            if (neighbors.size() > maxDeg) maxDeg = neighbors.size();
-        }
+        int maxDeg = maxDegree();
         return maxDeg > 0 ? n - maxDeg : n;
     }
 
