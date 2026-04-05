@@ -69,22 +69,14 @@ public class VertexCoverAnalyzer {
      */
     public Set<String> approxVertexCover() {
         Set<String> cover = new LinkedHashSet<String>();
-        Set<String> coveredEdgeKeys = new HashSet<String>();
 
         for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
-            String key = edgeKey(v1, v2);
-            if (!coveredEdgeKeys.contains(key)) {
+            // Edge is uncovered iff neither endpoint is in the cover yet
+            if (!cover.contains(v1) && !cover.contains(v2)) {
                 cover.add(v1);
                 cover.add(v2);
-                // Mark all edges incident to v1 and v2 as covered
-                for (String n : adj.get(v1)) {
-                    coveredEdgeKeys.add(edgeKey(v1, n));
-                }
-                for (String n : adj.get(v2)) {
-                    coveredEdgeKeys.add(edgeKey(v2, n));
-                }
             }
         }
         return Collections.unmodifiableSet(cover);
