@@ -278,6 +278,46 @@ public final class ChromaticPolynomialCalculator {
             return poly;
         }
 
+        // Fast path: trees have closed-form P(T_n, k) = k(k-1)^(n-1).
+        // When m == n - 1 during recursion, the subgraph must be a tree
+        // (connected component from computeViaComponents), so skip the
+        // entire deletion-contraction subtree.
+        if (m == n - 1) {
+            return treePolynomial(n);
+        }
+
+        // Fast path: strip pendant vertices (degree 1) in bulk.
+        // For each pendant vertex v with neighbor u:
+        //   P(G, k) = (k - 1) * P(G - v, k)
+        // This avoids branching into deletion-contraction for trivial
+        // leaves, which is especially effective on sparse graphs.
+        {
+            Graph<String, String> reduced = g;
+            int pendantCount = 0;
+            boolean found = true;
+            while (found) {
+                found = false;
+                for (String vertex : new ArrayList<>(reduced.getVertices())) {
+                    if (reduced.degree(vertex) == 1) {
+                        Graph<String, String> next = copyGraph(reduced);
+                        next.removeVertex(vertex);
+                        reduced = next;
+                        pendantCount++;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (pendantCount > 0) {
+                long[] subPoly = deletionContraction(reduced, memo);
+                long[] factor = new long[]{-1, 1}; // (k - 1)
+                for (int i = 0; i < pendantCount; i++) {
+                    subPoly = multiplyPolynomials(subPoly, factor);
+                }
+                return subPoly;
+            }
+        }
+
         // Check memo
         String key = canonicalKey(g);
         if (memo.containsKey(key)) {
