@@ -39,8 +39,19 @@ public final class RandomGraphGenerator {
 
     private static int edgeId = 0;
 
+    /**
+     * Creates a new Edge with a unique generated type code and placeholder
+     * vertices. The actual endpoints are set by JUNG's
+     * {@code Graph.addEdge(edge, v1, v2)} — the Edge constructor values
+     * here serve only as identifiers for equals/hashCode.
+     *
+     * <p>Note: {@code edgeId} is a static counter, so this is not
+     * thread-safe. All public generator methods should be called from
+     * a single thread, or externally synchronized.</p>
+     */
     private static Edge newEdge() {
-        return new Edge(edgeId++, 0, 0, "generated");
+        int id = edgeId++;
+        return new Edge("gen", "_" + id + "a", "_" + id + "b");
     }
 
     private static void resetEdgeId() {
