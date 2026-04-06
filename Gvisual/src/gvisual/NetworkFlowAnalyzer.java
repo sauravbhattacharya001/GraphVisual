@@ -55,6 +55,8 @@ public class NetworkFlowAnalyzer {
     private String sink;
     private double maxFlowValue;
     private boolean computed;
+    // Cached flow path decomposition (expensive to compute, requested by multiple methods)
+    private List<FlowPath> cachedFlowPaths;
 
     /**
      * Creates a new NetworkFlowAnalyzer for the given graph.
@@ -96,12 +98,12 @@ public class NetworkFlowAnalyzer {
         buildResidualGraph();
 
         maxFlowValue = 0;
+        cachedFlowPaths = null;
 
         // Edmonds–Karp: BFS for shortest augmenting path
         while (true) {
             Map<String, String> parent = new LinkedHashMap<String, String>();
-            Map<String, String> parentArcKey = new LinkedHashMap<String, String>();
-            double pathFlow = bfsAugmentingPath(parent, parentArcKey);
+            double pathFlow = bfsAugmentingPath(parent);
 
             if (pathFlow <= 0) break;
 
@@ -181,9 +183,9 @@ public class NetworkFlowAnalyzer {
 
             // Net flow direction
             if (fwdFlow > 1e-9) {
-                result.put(formatKey(fwd), fwdFlow);
+                result.put(fwd, fwdFlow);
             } else if (revFlow > 1e-9) {
-                result.put(formatKey(rev), revFlow);
+                result.put(rev, revFlow);
             }
         }
         return Collections.unmodifiableMap(result);
@@ -338,12 +340,15 @@ public class NetworkFlowAnalyzer {
 
     /**
      * Decomposes the max flow into individual source-to-sink paths,
-     * each with its flow value.
+     * each with its flow value. Results are cached to avoid redundant
+     * O(V·E) recomputation across {@link #getSummary()},
+     * {@link #getResult()}, and {@link #getAugmentingPathCount()}.
      *
      * @return list of flow paths, each described by vertices and flow value
      */
     public List<FlowPath> decomposeFlowPaths() {
         ensureComputed();
+        if (cachedFlowPaths != null) return cachedFlowPaths;
 
         // Work on a copy of flows
         Map<String, Double> flowCopy = new HashMap<String, Double>(flow);
@@ -402,7 +407,8 @@ public class NetworkFlowAnalyzer {
                     Collections.unmodifiableList(pathVertices), pathFlow));
         }
 
-        return Collections.unmodifiableList(paths);
+        cachedFlowPaths = Collections.unmodifiableList(paths);
+        return cachedFlowPaths;
     }
 
     // ── Result object ──────────────────────────────────────────────
@@ -597,8 +603,7 @@ public class NetworkFlowAnalyzer {
         }
     }
 
-    private double bfsAugmentingPath(Map<String, String> parent,
-                                     Map<String, String> parentArcKey) {
+    private double bfsAugmentingPath(Map<String, String> parent) {
         Queue<String> queue = new ArrayDeque<String>();
         queue.add(source);
         parent.put(source, null);
@@ -613,7 +618,6 @@ public class NetworkFlowAnalyzer {
                 if (!parent.containsKey(v) &&
                         residualCapacity.getOrDefault(key, 0.0) > 1e-9) {
                     parent.put(v, u);
-                    parentArcKey.put(v, key);
                     if (v.equals(sink)) {
                         // Find bottleneck
                         double pathFlow = Double.MAX_VALUE;
@@ -641,17 +645,6 @@ public class NetworkFlowAnalyzer {
 
     private String directedKey(String from, String to) {
         return from + "->" + to;
-    }
-
-    /**
-     * Formats a directed key as a human-readable string for display purposes.
-     * Since keys are already in "from->to" format, this is an identity operation.
-     *
-     * @param key the directed key string
-     * @return the key itself
-     */
-    private String formatKey(String key) {
-        return key;
     }
 
     private void validateVertex(String vertex, String name) {
