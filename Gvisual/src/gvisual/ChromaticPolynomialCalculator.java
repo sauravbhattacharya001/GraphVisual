@@ -291,29 +291,39 @@ public final class ChromaticPolynomialCalculator {
         //   P(G, k) = (k - 1) * P(G - v, k)
         // This avoids branching into deletion-contraction for trivial
         // leaves, which is especially effective on sparse graphs.
+        //
+        // Optimisation: collect ALL pendant vertices in each pass before
+        // copying the graph, so we do O(rounds) graph copies instead of
+        // O(pendants) copies. On star graphs this reduces from O(n²·E)
+        // to O(V+E).
         {
             Graph<String, String> reduced = g;
             int pendantCount = 0;
             boolean found = true;
             while (found) {
-                found = false;
-                for (String vertex : new ArrayList<>(reduced.getVertices())) {
+                // Collect all current pendant vertices in one scan
+                List<String> pendants = new ArrayList<>();
+                for (String vertex : reduced.getVertices()) {
                     if (reduced.degree(vertex) == 1) {
-                        Graph<String, String> next = copyGraph(reduced);
-                        next.removeVertex(vertex);
-                        reduced = next;
-                        pendantCount++;
-                        found = true;
-                        break;
+                        pendants.add(vertex);
                     }
+                }
+                if (pendants.isEmpty()) {
+                    found = false;
+                } else {
+                    Graph<String, String> next = copyGraph(reduced);
+                    for (String p : pendants) {
+                        next.removeVertex(p);
+                    }
+                    pendantCount += pendants.size();
+                    reduced = next;
                 }
             }
             if (pendantCount > 0) {
                 long[] subPoly = deletionContraction(reduced, memo);
-                long[] factor = new long[]{-1, 1}; // (k - 1)
-                for (int i = 0; i < pendantCount; i++) {
-                    subPoly = multiplyPolynomials(subPoly, factor);
-                }
+                // Multiply by (k-1)^pendantCount using repeated squaring
+                long[] factor = computePower(new long[]{-1, 1}, pendantCount);
+                subPoly = multiplyPolynomials(subPoly, factor);
                 return subPoly;
             }
         }
@@ -373,24 +383,16 @@ public final class ChromaticPolynomialCalculator {
     /** P(T_n, k) = k(k-1)^(n-1) for any tree on n vertices. */
     private static long[] treePolynomial(int n) {
         if (n == 1) return new long[]{0, 1}; // k
-        // k * (k-1)^(n-1)
-        long[] base = new long[]{-1, 1}; // (k-1)
-        long[] power = new long[]{1};
-        for (int i = 0; i < n - 1; i++) {
-            power = multiplyPolynomials(power, base);
-        }
+        // k * (k-1)^(n-1) using exponentiation by squaring
+        long[] power = computePower(new long[]{-1, 1}, n - 1);
         // multiply by k
         return multiplyPolynomials(power, new long[]{0, 1});
     }
 
     /** P(C_n, k) = (k-1)^n + (-1)^n * (k-1) for cycle on n vertices. */
     private static long[] cyclePolynomial(int n) {
-        // (k-1)^n
-        long[] base = new long[]{-1, 1};
-        long[] power = new long[]{1};
-        for (int i = 0; i < n; i++) {
-            power = multiplyPolynomials(power, base);
-        }
+        // (k-1)^n using exponentiation by squaring
+        long[] power = computePower(new long[]{-1, 1}, n);
         // + (-1)^n * (k-1)
         long sign = (n % 2 == 0) ? 1 : -1;
         long[] term = new long[]{-sign, sign}; // (-1)^n * (k-1)
@@ -530,6 +532,21 @@ public final class ChromaticPolynomialCalculator {
         long[] result = new long[maxLen];
         for (int i = 0; i < a.length; i++) result[i] += a[i];
         for (int i = 0; i < b.length; i++) result[i] -= b[i];
+        return result;
+    }
+
+    /**
+     * Raise a polynomial to the n-th power via exponentiation by squaring.
+     * O(deg * log n) multiplications instead of O(deg * n).
+     */
+    private static long[] computePower(long[] base, int exp) {
+        if (exp == 0) return new long[]{1};
+        if (exp == 1) return base.clone();
+        long[] half = computePower(base, exp / 2);
+        long[] result = multiplyPolynomials(half, half);
+        if (exp % 2 != 0) {
+            result = multiplyPolynomials(result, base);
+        }
         return result;
     }
 
