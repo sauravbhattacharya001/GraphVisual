@@ -314,9 +314,6 @@ public class RichClubAnalyzer {
      *             analytical formula directly without redundant iterations.
      */
     @Deprecated
-    private Map<String, Integer> generateRandomDegrees() {
-        return computeDegrees();
-    }
 
     /**
      * Computes rich-club coefficient from a degree map using the

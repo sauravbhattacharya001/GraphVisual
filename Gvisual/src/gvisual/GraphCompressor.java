@@ -388,15 +388,6 @@ public class GraphCompressor {
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    private static double jaccardSimilarity(Set<String> a, Set<String> b) {
-        if (a.isEmpty() && b.isEmpty()) return 1.0;
-        Set<String> union = new HashSet<>(a);
-        union.addAll(b);
-        if (union.isEmpty()) return 1.0;
-        Set<String> intersection = new HashSet<>(a);
-        intersection.retainAll(b);
-        return (double) intersection.size() / union.size();
-    }
 
     private String formatReportLine(String label, CompressionResult result) {
         return String.format("  %-30s → %d supernodes, %d edges (%.1f%% node reduction, %.1f%% Edge reduction)\n",

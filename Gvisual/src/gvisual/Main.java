@@ -684,10 +684,6 @@ public class Main extends JFrame {
     /**
      * Returns a human-readable label for Edge type codes.
      */
-    private String getDominantLabel(String typeCode) {
-        EdgeType type = EdgeType.fromCode(typeCode);
-        return type != null ? type.getDisplayLabel() : typeCode;
-    }
 
     /**
      * Initializes the MST controller.
