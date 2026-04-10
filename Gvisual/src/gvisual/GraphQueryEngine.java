@@ -206,9 +206,17 @@ public class GraphQueryEngine {
 
         /** Execute the query and return matching nodes. */
         public Set<String> results() {
-            return graph.getVertices().stream()
-                    .filter(v -> filters.stream().allMatch(f -> f.test(v)))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            // Use explicit loop instead of nested streams to avoid
+            // creating a stream per-vertex for the filter check.
+            LinkedHashSet<String> result = new LinkedHashSet<>();
+            outer:
+            for (String v : graph.getVertices()) {
+                for (int i = 0; i < filters.size(); i++) {
+                    if (!filters.get(i).test(v)) continue outer;
+                }
+                result.add(v);
+            }
+            return result;
         }
 
         /** Execute the query and return the count of matching nodes. */
@@ -322,9 +330,17 @@ public class GraphQueryEngine {
 
         /** Execute the query and return matching edges. */
         public Set<Edge> results() {
-            return graph.getEdges().stream()
-                    .filter(e -> filters.stream().allMatch(f -> f.test(e)))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            // Use explicit loop instead of nested streams to avoid
+            // creating a stream per-edge for the filter check.
+            LinkedHashSet<Edge> result = new LinkedHashSet<>();
+            outer:
+            for (Edge e : graph.getEdges()) {
+                for (int i = 0; i < filters.size(); i++) {
+                    if (!filters.get(i).test(e)) continue outer;
+                }
+                result.add(e);
+            }
+            return result;
         }
 
         /** Execute the query and return the count. */
@@ -355,16 +371,22 @@ public class GraphQueryEngine {
             if (r.isEmpty()) return "No matching edges.";
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("Found %d Edge(s):\n", r.size()));
+            // Build type breakdown in the same pass as display to avoid
+            // re-executing the query via typeBreakdown().
+            Map<String, Integer> types = new LinkedHashMap<>();
             int shown = 0;
             for (Edge e : r) {
-                sb.append(String.format("  %s --%s--> %s  (w=%.2f)\n",
-                        e.getVertex1(), e.getType(), e.getVertex2(), e.getWeight()));
-                if (++shown >= 50) {
-                    sb.append(String.format("  ... and %d more\n", r.size() - 50));
-                    break;
+                if (shown < 50) {
+                    sb.append(String.format("  %s --%s--> %s  (w=%.2f)\n",
+                            e.getVertex1(), e.getType(), e.getVertex2(), e.getWeight()));
+                    shown++;
+                    if (shown == 50 && r.size() > 50) {
+                        sb.append(String.format("  ... and %d more\n", r.size() - 50));
+                    }
                 }
+                String t = e.getType() != null ? e.getType() : "unknown";
+                types.merge(t, 1, Integer::sum);
             }
-            Map<String, Integer> types = typeBreakdown();
             sb.append("Type breakdown: ").append(types).append("\n");
             return sb.toString();
         }
