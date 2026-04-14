@@ -2,65 +2,73 @@
 
 ## Project Overview
 
-GraphVisual is a Java Swing desktop application for visualizing community evolution in student/social networks using the [JUNG](http://jung.sourceforge.net/) (Java Universal Network/Graph Framework) library.
+GraphVisual is a Java graph visualization and analysis platform built with [JUNG](http://jung.sourceforge.net/) (Java Universal Network/Graph Framework). It includes a Swing desktop GUI, 100+ graph algorithm implementations, and a docs site with interactive HTML dashboards.
 
 ## Architecture
 
-### Source Layout
-- `Gvisual/src/gvisual/` — GUI & visualization layer
-  - `Main.java` — Main application class (~1600 lines). Contains the Swing GUI, JUNG graph rendering, timeline controls, category panel, and notes pane.
-  - `edge.java` — Edge data model for graph connections.
-- `Gvisual/src/app/` — Data processing & network analysis layer
-  - `Network.java` — Core network/graph construction logic. Builds graphs from data, computes community structures.
-  - `Util.java` — Utility methods for data parsing, file I/O, and helper functions.
-  - `addLocation.java` — Location-based data enrichment.
-  - `findMeetings.java` — Meeting/interaction detection between users.
-  - `matchImei.java` — IMEI-based device matching.
-- `Gvisual/test/` — JUnit tests
-  - `app/UtilMethodsTest.java` — Tests for utility methods.
-  - `gvisual/EdgeTest.java` — Tests for edge model.
-- `Gvisual/lib/` — Third-party JARs (JUNG 2.0.1, PostgreSQL JDBC, commons-io, etc.)
-- `Gvisual/images/` — UI icons and button images.
+### Source Layout (272 Java files)
+- `Gvisual/src/gvisual/` — GUI, visualization, and algorithm layer (~260 classes)
+  - `Main.java` — Swing GUI entry point with JUNG graph rendering, timeline controls, category panel
+  - `edge.java` — Edge data model
+  - Algorithm analyzers: `ArticulationPointAnalyzer`, `BipartiteAnalyzer`, `CliqueAnalyzer`, `CommunityDetector`, `LouvainCommunityDetector`, `PageRankAnalyzer`, `ShortestPathFinder`, `SpectralAnalyzer`, `NetworkFlowAnalyzer`, etc.
+  - Layout engines: `CircularLayout`, `ForceDirectedLayout`, `HierarchicalLayout`
+  - Exporters: `DotExporter`, `GexfExporter`, `GraphMLExporter`, `JsonGraphExporter`, `SvgExporter`, `InteractiveHtmlExporter`, `CsvReportExporter`
+  - Utilities: `GraphUtils`, `GraphStats`, `GraphGenerator`, `FamousGraphLibrary`, `GraphQueryEngine`
+- `Gvisual/src/app/` — Data processing & network construction
+  - `Network.java` — Graph construction from data
+  - `Util.java` — Parsing, file I/O, helpers
+  - `ThresholdConfig.java` — Configurable thresholds
+  - `LocationResolver.java`, `addLocation.java`, `findMeetings.java`, `matchImei.java`
+- `Gvisual/test/` — 105 JUnit test files
+- `Gvisual/lib/` — Third-party JARs (legacy; Maven preferred)
+- `docs/` — GitHub Pages site with interactive graph algorithm dashboards
 
 ### Build System
 - **Maven** (primary): `pom.xml` at project root
-- Build: `mvn compile`
-- Test: `mvn test`
-- Package: `mvn package` (produces JAR in `target/`)
-- Legacy **Ant** (NetBeans-generated): `Gvisual/build.xml` — still present but Maven is preferred
+  - `mvn compile` — Build
+  - `mvn test` — Run 105 JUnit test suites
+  - `mvn package` — Produce JAR in `target/`
+- **Java 11** (compiler source/target in pom.xml)
+- Legacy **Ant** (`Gvisual/build.xml`) — still present but Maven is preferred
 
-### Key Dependencies
+### Key Dependencies (from pom.xml)
 - **JUNG 2.0.1** — Graph algorithms, layout, visualization
 - **Java Swing** — GUI framework
 - **PostgreSQL JDBC** — Database connectivity
-- **commons-io 1.4** — File utilities
-- **Java3D / vecmath** — 3D visualization support
+- **JUnit 4** — Testing framework
+- **commons-io** — File utilities
+- **vecmath** — 3D vector math support
 
 ## Conventions
 
-- Package names are lowercase (`gvisual`, `app`)
-- Class names follow Java conventions (PascalCase) except for `edge.java` which is lowercase
-- The project was originally built with NetBeans IDE
-- Java 8+ compatible (uses generics, collections framework)
-- No Maven/Gradle — dependencies are committed as JARs in `lib/`
+- Package names: lowercase (`gvisual`, `app`)
+- Class names: PascalCase (exception: legacy `edge.java`)
+- Algorithm classes follow the pattern: `XxxAnalyzer` with `analyze()` method returning results
+- Exporter classes follow: `XxxExporter` with `export()` method
+- Test classes: `XxxTest.java` mirroring source structure
 
 ## How to Test
 
-1. Run `mvn test` for JUnit tests (preferred)
-2. Legacy: `cd Gvisual && ant test`
-3. Tests are in `Gvisual/test/` mirroring the source package structure
-4. When adding new tests, place them in the corresponding test package
+```bash
+mvn test                           # Run all 105 test suites
+mvn test -Dtest=ShortestPathFinderTest  # Run a specific test
+mvn test -pl . -Dtest="gvisual.*"      # Run all gvisual package tests
+```
+
+When adding new tests, place them in `Gvisual/test/` matching the source package.
 
 ## Common Patterns
 
-- Graph construction uses JUNG's `UndirectedSparseGraph<String, edge>`
-- Visualization uses JUNG's `VisualizationViewer` with custom renderers
-- Layout algorithms: `StaticLayout`, `FRLayout`, `KKLayout` from JUNG
-- Event handling follows standard Swing `ActionListener` pattern
+- Graph construction: `UndirectedSparseGraph<String, edge>` (JUNG)
+- Visualization: JUNG's `VisualizationViewer` with custom renderers
+- Layout algorithms: `StaticLayout`, `FRLayout`, `KKLayout` from JUNG, plus custom `CircularLayout`, `ForceDirectedLayout`, `HierarchicalLayout`
+- Event handling: standard Swing `ActionListener` pattern
+- Algorithm results: typically returned as `Map<String, Object>` or dedicated result classes
 
 ## Notes for AI Agents
 
-- The `Main.java` file is very large (~1600 lines). Consider refactoring into separate classes for GUI components, graph operations, and data management.
-- The `edge` class should be renamed to `Edge` to follow Java naming conventions.
-- Database connection details may be hardcoded — check `Network.java` for configuration.
-- The project bundles all dependencies as JARs — no dependency manager is used.
+- `Main.java` is large (~1600 lines) — when modifying, focus on the specific section needed
+- Many algorithm analyzers are self-contained: one class, one test file, no dependencies beyond JUNG and `GraphUtils`
+- The `docs/` directory is a separate GitHub Pages site — changes there don't affect the Java build
+- Database configuration may be in `Network.java` — check before modifying DB-related code
+- Use `mvn compile -q` to verify compilation after changes
