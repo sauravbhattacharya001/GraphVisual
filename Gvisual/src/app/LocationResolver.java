@@ -117,6 +117,9 @@ public class LocationResolver {
         return 0;
     }
 
+    /** Number of updates to accumulate before flushing a batch. */
+    private static final int BATCH_SIZE = 500;
+
     public static void main(String[] argv) throws Exception {
         try (Connection azialaConn = Util.getAzialaConnection();
              Connection appConn = Util.getAppConnection();
@@ -128,57 +131,88 @@ public class LocationResolver {
                      ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
              PreparedStatement updatePs = appConn.prepareStatement(UPDATE_LOCATION_SQL)) {
 
-            String query = "select * from meeting";
-            ResultSet meetings = appStmt.executeQuery(query);
+            // Disable auto-commit for batch performance — each individual
+            // executeUpdate was triggering a commit, adding ~5-10ms of
+            // fsync overhead per meeting. Batching amortises this across
+            // BATCH_SIZE meetings.
+            boolean prevAutoCommit = appConn.getAutoCommit();
+            appConn.setAutoCommit(false);
 
-            int count = 0;
-            while (meetings.next()) {
-                count++;
-                System.out.println("finding location for meeting # " + count);
-                String imei1 = meetings.getString("imei1");
-                String imei2 = meetings.getString("imei2");
+            try {
+                String query = "select * from meeting";
+                ResultSet meetings = appStmt.executeQuery(query);
 
-                String startTime = meetings.getString("starttime");
-                String endTime = meetings.getString("endtime");
-                String month = meetings.getString("month");
-                String date = meetings.getString("date");
-                String startTimeStamp = getTimeStamp(month, date, startTime);
-                String endTimeStamp = getTimeStamp(month, date, endTime);
+                int count = 0;
+                int batchPending = 0;
+                while (meetings.next()) {
+                    count++;
+                    if (count % 1000 == 0) {
+                        System.out.println("processing meeting # " + count + "...");
+                    }
+                    String imei1 = meetings.getString("imei1");
+                    String imei2 = meetings.getString("imei2");
 
-                // Try intersection of both IMEIs first
-                commonApPs.setString(1, imei1);
-                commonApPs.setString(2, startTimeStamp);
-                commonApPs.setString(3, endTimeStamp);
-                commonApPs.setString(4, imei2);
-                commonApPs.setString(5, startTimeStamp);
-                commonApPs.setString(6, endTimeStamp);
+                    String startTime = meetings.getString("starttime");
+                    String endTime = meetings.getString("endtime");
+                    String month = meetings.getString("month");
+                    String date = meetings.getString("date");
+                    String startTimeStamp = getTimeStamp(month, date, startTime);
+                    String endTimeStamp = getTimeStamp(month, date, endTime);
 
-                int ap = 0;
-                try (ResultSet rs = commonApPs.executeQuery()) {
-                    if (rs.next()) {
-                        ap = rs.getInt("ap");
+                    // Try intersection of both IMEIs first
+                    commonApPs.setString(1, imei1);
+                    commonApPs.setString(2, startTimeStamp);
+                    commonApPs.setString(3, endTimeStamp);
+                    commonApPs.setString(4, imei2);
+                    commonApPs.setString(5, startTimeStamp);
+                    commonApPs.setString(6, endTimeStamp);
+
+                    int ap = 0;
+                    try (ResultSet rs = commonApPs.executeQuery()) {
+                        if (rs.next()) {
+                            ap = rs.getInt("ap");
+                        }
+                    }
+
+                    // Fallback: try each IMEI individually
+                    if (ap == 0) {
+                        ap = findBestAP(singleApPs, imei1, startTimeStamp, endTimeStamp);
+                    }
+                    if (ap == 0) {
+                        ap = findBestAP(singleApPs, imei2, startTimeStamp, endTimeStamp);
+                    }
+
+                    String apType = classifyAP(ap);
+
+                    updatePs.setString(1, apType);
+                    updatePs.setString(2, imei1);
+                    updatePs.setString(3, imei2);
+                    updatePs.setString(4, startTime);
+                    updatePs.setString(5, endTime);
+                    updatePs.setString(6, month);
+                    updatePs.setString(7, date);
+                    updatePs.addBatch();
+                    batchPending++;
+
+                    if (batchPending >= BATCH_SIZE) {
+                        updatePs.executeBatch();
+                        appConn.commit();
+                        batchPending = 0;
                     }
                 }
 
-                // Fallback: try each IMEI individually
-                if (ap == 0) {
-                    ap = findBestAP(singleApPs, imei1, startTimeStamp, endTimeStamp);
-                }
-                if (ap == 0) {
-                    ap = findBestAP(singleApPs, imei2, startTimeStamp, endTimeStamp);
+                // Flush remaining updates
+                if (batchPending > 0) {
+                    updatePs.executeBatch();
+                    appConn.commit();
                 }
 
-                String apType = classifyAP(ap);
-                System.out.println("common access point # " + ap + " → " + apType);
-
-                updatePs.setString(1, apType);
-                updatePs.setString(2, imei1);
-                updatePs.setString(3, imei2);
-                updatePs.setString(4, startTime);
-                updatePs.setString(5, endTime);
-                updatePs.setString(6, month);
-                updatePs.setString(7, date);
-                updatePs.executeUpdate();
+                System.out.println("resolved locations for " + count + " meetings");
+            } catch (Exception ex) {
+                appConn.rollback();
+                throw ex;
+            } finally {
+                appConn.setAutoCommit(prevAutoCommit);
             }
         }
     }
