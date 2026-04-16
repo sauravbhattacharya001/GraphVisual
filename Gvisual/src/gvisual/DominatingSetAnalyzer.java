@@ -63,32 +63,81 @@ public class DominatingSetAnalyzer {
      * Finds a dominating set using a greedy heuristic.
      * Picks the vertex that dominates the most uncovered vertices at each step.
      *
+     * <p><b>Optimization:</b> Maintains per-vertex scores (number of
+     * undominated vertices in the closed neighborhood) incrementally.
+     * When a vertex is selected, only its 2-hop neighborhood has scores
+     * updated — vertices further away are unaffected. A score-indexed
+     * bucket structure provides O(1) max-score extraction. This reduces
+     * the per-round cost from O(V·avg_degree) to O(Δ²) amortized,
+     * where Δ is the maximum degree.</p>
+     *
      * @return an unmodifiable set of vertex IDs forming a dominating set
      */
     public Set<String> greedyDominatingSet() {
+        int totalVertices = adj.size();
+        if (totalVertices == 0) return Collections.emptySet();
+
         Set<String> dominated = new HashSet<String>();
         Set<String> result = new LinkedHashSet<String>();
-        Set<String> remaining = new HashSet<String>(adj.keySet());
 
-        while (dominated.size() < adj.size()) {
-            String best = null;
-            int bestScore = -1;
-            for (String v : remaining) {
-                int score = 0;
-                if (!dominated.contains(v)) score++;
-                for (String n : adj.get(v)) {
-                    if (!dominated.contains(n)) score++;
+        // Compute initial scores: |closed neighborhood| = 1 + degree
+        Map<String, Integer> score = new HashMap<String, Integer>(totalVertices * 2);
+        int maxScore = 0;
+        for (Map.Entry<String, Set<String>> e : adj.entrySet()) {
+            int s = 1 + e.getValue().size();
+            score.put(e.getKey(), s);
+            if (s > maxScore) maxScore = s;
+        }
+
+        // Bucket structure: buckets[s] = set of vertices with score s
+        @SuppressWarnings("unchecked")
+        Set<String>[] buckets = new LinkedHashSet[maxScore + 1];
+        for (int i = 0; i <= maxScore; i++) buckets[i] = new LinkedHashSet<String>();
+        for (Map.Entry<String, Integer> e : score.entrySet()) {
+            buckets[e.getValue()].add(e.getKey());
+        }
+        int topBucket = maxScore;
+
+        while (dominated.size() < totalVertices) {
+            // Find highest non-empty bucket
+            while (topBucket > 0 && buckets[topBucket].isEmpty()) topBucket--;
+            if (topBucket <= 0) break;
+
+            // Pick any vertex from the top bucket
+            Iterator<String> it = buckets[topBucket].iterator();
+            String best = it.next();
+            it.remove();
+
+            result.add(best);
+            score.remove(best);
+
+            // Determine newly dominated vertices
+            List<String> newlyDominated = new ArrayList<>();
+            if (dominated.add(best)) newlyDominated.add(best);
+            for (String n : adj.get(best)) {
+                if (dominated.add(n)) newlyDominated.add(n);
+            }
+
+            // For each newly dominated vertex, decrement scores of its
+            // neighbors (they no longer gain from covering it)
+            for (String nd : newlyDominated) {
+                for (String affected : adj.get(nd)) {
+                    Integer oldS = score.get(affected);
+                    if (oldS == null || oldS <= 0) continue;
+                    buckets[oldS].remove(affected);
+                    int newS = oldS - 1;
+                    score.put(affected, newS);
+                    if (newS > 0) buckets[newS].add(affected);
                 }
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = v;
+                // nd itself (if still a candidate)
+                Integer oldS = score.get(nd);
+                if (oldS != null && oldS > 0) {
+                    buckets[oldS].remove(nd);
+                    int newS = oldS - 1;
+                    score.put(nd, newS);
+                    if (newS > 0) buckets[newS].add(nd);
                 }
             }
-            if (best == null) break;
-            result.add(best);
-            remaining.remove(best);
-            dominated.add(best);
-            dominated.addAll(adj.get(best));
         }
         return Collections.unmodifiableSet(result);
     }
@@ -313,51 +362,83 @@ public class DominatingSetAnalyzer {
      * Finds a k-dominating set where every non-member vertex is adjacent
      * to at least k members.
      *
+     * <p><b>Optimization:</b> Tracks the count of under-dominated vertices
+     * incrementally. Instead of rescanning all vertices each round to check
+     * coverage, maintains a running count of vertices with coverage &lt; k.
+     * Score computation uses a bucket structure for O(1) max extraction.</p>
+     *
      * @param k the domination factor (≥ 1)
      * @return an unmodifiable k-dominating set
-     * @throws IllegalArgumentException if k < 1
+     * @throws IllegalArgumentException if k &lt; 1
      */
     public Set<String> kDominatingSet(int k) {
         if (k < 1) throw new IllegalArgumentException("k must be >= 1");
 
+        int totalVertices = adj.size();
+        if (totalVertices == 0) return Collections.emptySet();
+
         Set<String> result = new LinkedHashSet<String>();
-        Map<String, Integer> coverage = new HashMap<String, Integer>();
+        Map<String, Integer> coverage = new HashMap<String, Integer>(totalVertices * 2);
         for (String v : adj.keySet()) coverage.put(v, 0);
 
-        List<String> vertices = new ArrayList<String>(adj.keySet());
-        Collections.sort(vertices, (String a, String b) -> {
-                return adj.get(b).size() - adj.get(a).size();
-            });
+        // Track how many non-member vertices still need more coverage
+        int underDominated = totalVertices;
 
-        while (true) {
-            // Find vertices not yet k-dominated (excluding result members)
-            boolean allCovered = true;
-            for (String v : adj.keySet()) {
-                if (!result.contains(v) && coverage.get(v) < k) {
-                    allCovered = false;
-                    break;
-                }
-            }
-            if (allCovered) break;
+        // Score: for each candidate vertex, how many of its neighbors are
+        // under-dominated (coverage < k and not in result)
+        Map<String, Integer> score = new HashMap<String, Integer>(totalVertices * 2);
+        int maxScore = 0;
+        for (String v : adj.keySet()) {
+            // Initially all neighbors are under-dominated
+            int s = adj.get(v).size();
+            score.put(v, s);
+            if (s > maxScore) maxScore = s;
+        }
 
-            // Pick vertex that covers the most under-dominated vertices
-            String best = null;
-            int bestScore = -1;
-            for (String v : vertices) {
-                if (result.contains(v)) continue;
-                int score = 0;
-                for (String n : adj.get(v)) {
-                    if (!result.contains(n) && coverage.get(n) < k) score++;
-                }
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = v;
-                }
-            }
-            if (best == null) break;
+        @SuppressWarnings("unchecked")
+        Set<String>[] buckets = new LinkedHashSet[maxScore + 1];
+        for (int i = 0; i <= maxScore; i++) buckets[i] = new LinkedHashSet<String>();
+        for (Map.Entry<String, Integer> e : score.entrySet()) {
+            buckets[e.getValue()].add(e.getKey());
+        }
+        int topBucket = maxScore;
+
+        while (underDominated > 0) {
+            // Find best vertex
+            while (topBucket > 0 && buckets[topBucket].isEmpty()) topBucket--;
+            if (topBucket <= 0) break;
+
+            Iterator<String> it = buckets[topBucket].iterator();
+            String best = it.next();
+            it.remove();
+            score.remove(best);
+
             result.add(best);
+
+            // Update coverage for best's neighbors
             for (String n : adj.get(best)) {
-                coverage.put(n, coverage.get(n) + 1);
+                int oldCov = coverage.get(n);
+                int newCov = oldCov + 1;
+                coverage.put(n, newCov);
+
+                // If this neighbor just became k-dominated, update counts
+                if (oldCov < k && newCov >= k && !result.contains(n)) {
+                    underDominated--;
+                    // Decrement scores of n's neighbors (n no longer needs coverage)
+                    for (String nn : adj.get(n)) {
+                        Integer oldS = score.get(nn);
+                        if (oldS == null) continue;
+                        buckets[oldS].remove(nn);
+                        int newS = Math.max(0, oldS - 1);
+                        score.put(nn, newS);
+                        if (newS > 0) buckets[newS].add(nn);
+                    }
+                }
+            }
+            // The selected vertex itself is a member, doesn't need coverage
+            if (coverage.get(best) < k) {
+                // Members are excluded from the coverage requirement
+                underDominated--;
             }
         }
         return Collections.unmodifiableSet(result);
