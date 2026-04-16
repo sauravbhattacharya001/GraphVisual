@@ -58,6 +58,9 @@ public class GraphMotifFinder {
     private static final int MIN_STAR_DEGREE = 3;
     private static final int MAX_SQUARES = 50_000;
 
+    /** Pre-computed neighbour sets shared across all motif detectors. */
+    private Map<String, Set<String>> neighborSets;
+
     /**
      * @param graph the JUNG graph to analyze
      */
@@ -67,13 +70,27 @@ public class GraphMotifFinder {
 
     /**
      * Run full motif analysis. Call this before querying results.
+     *
+     * <p>Neighbour sets are pre-computed once in O(V + E) and shared
+     * across all four motif detectors, eliminating the redundant
+     * per-detector HashMap builds that previously tripled memory
+     * allocations on large graphs.</p>
      */
     public void analyze() {
+        // Build shared neighbour sets once — O(V + E)
+        List<String> verts = new ArrayList<>(graph.getVertices());
+        neighborSets = new HashMap<>(verts.size() * 2);
+        for (String v : verts) {
+            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+        }
+
         findTriangles();
         findStars();
         findOpenPaths();
         findSquares();
         buildCensus();
+
+        neighborSets = null; // release after analysis
     }
 
     /* ── Triangle detection ─────────────────────────────────────────── */
@@ -95,12 +112,6 @@ public class GraphMotifFinder {
         triangles = new ArrayList<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-
-        // Pre-compute neighbour sets once — O(V + E)
-        Map<String, Set<String>> neighborSets = new HashMap<>(vertices.size() * 2);
-        for (String v : vertices) {
-            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
-        }
 
         // For each edge (u, v) with u < v, find common neighbours w > v
         for (int i = 0; i < vertices.size(); i++) {
@@ -139,17 +150,27 @@ public class GraphMotifFinder {
 
     /* ── Open path (P3) detection ───────────────────────────────────── */
 
+    /**
+     * Detect open P3 paths using the shared pre-computed neighbour sets.
+     *
+     * <p>The previous implementation called {@code graph.isNeighbor(a, b)}
+     * which, depending on the JUNG backing store, can be O(degree) per call
+     * — making the per-vertex cost O(k³) instead of O(k²).  Using the
+     * pre-computed HashSet neighbour lookup reduces this to O(1) per pair,
+     * giving true O(k²) per vertex.</p>
+     */
     private void findOpenPaths() {
         openPaths = new ArrayList<>();
         for (String middle : graph.getVertices()) {
             List<String> neighbors = new ArrayList<>(graph.getNeighbors(middle));
             Collections.sort(neighbors);
             for (int i = 0; i < neighbors.size(); i++) {
+                String a = neighbors.get(i);
+                Set<String> aNbrs = neighborSets.get(a);
                 for (int j = i + 1; j < neighbors.size(); j++) {
-                    String a = neighbors.get(i);
                     String b = neighbors.get(j);
-                    // Only count if a and b are NOT connected (otherwise it's a triangle)
-                    if (!graph.isNeighbor(a, b)) {
+                    // O(1) HashSet lookup instead of O(degree) graph.isNeighbor()
+                    if (!aNbrs.contains(b)) {
                         openPaths.add(Arrays.asList(a, middle, b));
                     }
                 }
@@ -173,12 +194,6 @@ public class GraphMotifFinder {
         Set<String> seen = new HashSet<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-
-        // Pre-compute neighbour sets — O(V + E), reused for all probes
-        Map<String, Set<String>> neighborSets = new HashMap<>(vertices.size() * 2);
-        for (String v : vertices) {
-            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
-        }
 
         outer:
         for (String u : vertices) {
