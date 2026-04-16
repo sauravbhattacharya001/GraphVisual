@@ -199,7 +199,15 @@ public final class ChordalGraphAnalyzer {
     /**
      * MCS using a pre-computed adjacency map, avoiding redundant graph traversals
      * when the caller already has the adjacency structure.
+     *
+     * <p>Uses a bucket-based priority queue for O(V+E) total time instead of
+     * the naive O(V²) linear-scan approach. Each vertex is placed in a bucket
+     * corresponding to its current weight (number of already-selected
+     * neighbors). Selecting the max-weight vertex is O(1) amortized by
+     * tracking the current maximum bucket, and weight increments are O(1)
+     * bucket moves.</p>
      */
+    @SuppressWarnings("unchecked")
     static List<String> maximumCardinalitySearch(Graph<String, Edge> graph,
                                                   Map<String, Set<String>> adj) {
         if (graph == null) return Collections.emptyList();
@@ -207,35 +215,47 @@ public final class ChordalGraphAnalyzer {
         if (vertices == null || vertices.isEmpty()) return Collections.emptyList();
 
         int n = vertices.size();
-        Map<String, Integer> weight = new HashMap<>();
-        Set<String> remaining = new LinkedHashSet<>();
-        for (String v : vertices) {
-            weight.put(v, 0);
-            remaining.add(v);
+
+        // Bucket-queue: buckets[w] holds vertices with current weight w.
+        // Max possible weight is n-1 (a vertex adjacent to all others).
+        List<LinkedHashSet<String>> buckets = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            buckets.add(new LinkedHashSet<>());
         }
 
+        Map<String, Integer> weight = new HashMap<>(n * 2);
+        Set<String> selected = new HashSet<>(n * 2);
+        for (String v : vertices) {
+            weight.put(v, 0);
+            buckets.get(0).add(v);
+        }
+
+        int maxBucket = 0;
         List<String> ordering = new ArrayList<>(n);
 
         for (int i = 0; i < n; i++) {
-            // Pick vertex with maximum weight among remaining
-            String best = null;
-            int bestW = -1;
-            for (String v : remaining) {
-                int w = weight.get(v);
-                if (w > bestW) {
-                    bestW = w;
-                    best = v;
-                }
+            // Find the highest non-empty bucket
+            while (maxBucket > 0 && buckets.get(maxBucket).isEmpty()) {
+                maxBucket--;
             }
+            // Pop one vertex from that bucket
+            Iterator<String> it = buckets.get(maxBucket).iterator();
+            String best = it.next();
+            it.remove();
+            selected.add(best);
             ordering.add(best);
-            remaining.remove(best);
 
-            // Increment weights of remaining neighbors
+            // Increment weights of unselected neighbors (O(deg) bucket moves)
             Set<String> neighbors = adj.get(best);
             if (neighbors != null) {
                 for (String nb : neighbors) {
-                    if (remaining.contains(nb)) {
-                        weight.put(nb, weight.get(nb) + 1);
+                    if (!selected.contains(nb)) {
+                        int oldW = weight.get(nb);
+                        int newW = oldW + 1;
+                        buckets.get(oldW).remove(nb);
+                        buckets.get(newW).add(nb);
+                        weight.put(nb, newW);
+                        if (newW > maxBucket) maxBucket = newW;
                     }
                 }
             }
@@ -488,7 +508,6 @@ public final class ChordalGraphAnalyzer {
     public static FillInResult computeFillIn(Graph<String, Edge> graph) {
         if (graph == null || graph.getVertexCount() == 0) {
             return new FillInResult(Collections.<String[]>emptyList());
-        }
         }
 
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
