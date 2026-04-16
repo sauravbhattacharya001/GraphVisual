@@ -51,6 +51,7 @@ public class GraphAnomalyDetector {
 
     private final Graph<String, Edge> graph;
     private List<AnomalyResult> results;
+    private Map<String, AnomalyResult> resultIndex;
     private boolean analyzed;
 
     /* Raw metric maps (populated during analyze). */
@@ -77,6 +78,7 @@ public class GraphAnomalyDetector {
         }
         this.graph = graph;
         this.results = new ArrayList<AnomalyResult>();
+        this.resultIndex = new HashMap<String, AnomalyResult>();
         this.analyzed = false;
     }
 
@@ -156,6 +158,7 @@ public class GraphAnomalyDetector {
 
     /**
      * Returns the anomaly result for a specific node.
+     * O(1) lookup via internal index.
      *
      * @param nodeId the node to look up
      * @return the result, or null if the node is not in the graph
@@ -163,22 +166,24 @@ public class GraphAnomalyDetector {
      */
     public AnomalyResult getResult(String nodeId) {
         ensureAnalyzed();
-        for (AnomalyResult r : results) {
-            if (r.nodeId.equals(nodeId)) {
-                return r;
-            }
-        }
-        return null;
+        return resultIndex.get(nodeId);
     }
 
     /**
      * Returns the number of nodes flagged as anomalous at the given threshold.
+     * Counts in-place without allocating an intermediate list.
      *
      * @param zThreshold minimum composite z-score
      * @return count of anomalous nodes
+     * @throws IllegalStateException if not yet analyzed
      */
     public int countAnomalies(double zThreshold) {
-        return getAnomaliesAboveThreshold(zThreshold).size();
+        ensureAnalyzed();
+        int count = 0;
+        for (AnomalyResult r : results) {
+            if (r.compositeZScore >= zThreshold) count++;
+        }
+        return count;
     }
 
     /**
@@ -544,6 +549,12 @@ public class GraphAnomalyDetector {
         }
 
         Collections.sort(results);
+
+        // Build O(1) lookup index
+        resultIndex.clear();
+        for (AnomalyResult r : results) {
+            resultIndex.put(r.nodeId, r);
+        }
     }
 
     /**
