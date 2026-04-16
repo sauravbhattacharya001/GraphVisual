@@ -141,7 +141,7 @@ public class ShortestPathFinder {
     /**
      * Finds the shortest path by total Edge weight (Dijkstra) between source and target.
      *
-     * <p>Uses a typed {@link DijkstraEntry} in the priority queue for clean
+     * <p>Uses a typed {@link GraphUtils.DijkstraEntry} in the priority queue for clean
      * vertex lookups without index indirection or double-to-int casting.</p>
      *
      * @param source source vertex ID
@@ -168,16 +168,16 @@ public class ShortestPathFinder {
         Map<String, String> predecessor = new HashMap<String, String>();
         Map<String, Edge> predecessorEdge = new HashMap<String, Edge>();
 
-        PriorityQueue<DijkstraEntry> pq = new PriorityQueue<DijkstraEntry>();
+        PriorityQueue<GraphUtils.DijkstraEntry> pq = new PriorityQueue<GraphUtils.DijkstraEntry>();
 
         dist.put(source, 0.0);
         predecessor.put(source, null);
-        pq.add(new DijkstraEntry(0.0, source));
+        pq.add(new GraphUtils.DijkstraEntry(0.0, source));
 
         Set<String> visited = new HashSet<String>();
 
         while (!pq.isEmpty()) {
-            DijkstraEntry entry = pq.poll();
+            GraphUtils.DijkstraEntry entry = pq.poll();
             double entryDist = entry.distance;
             String current = entry.vertex;
 
@@ -210,7 +210,7 @@ public class ShortestPathFinder {
                     predecessor.put(neighbor, current);
                     predecessorEdge.put(neighbor, e);
 
-                    pq.add(new DijkstraEntry(newDist, neighbor));
+                    pq.add(new GraphUtils.DijkstraEntry(newDist, neighbor));
                 }
             }
         }
@@ -280,29 +280,6 @@ public class ShortestPathFinder {
         }
 
         return false;
-    }
-
-    // --- Dijkstra priority-queue entry ---
-
-    /**
-     * Typed PQ entry replacing the previous {@code double[]} hack that required
-     * a parallel {@code vertexIndex} list and {@code vertexToIndex} map for
-     * int-to-vertex lookups. This eliminates the O(V) index bookkeeping and
-     * the fragile double-to-int casting on every PQ poll.
-     */
-    private static final class DijkstraEntry implements Comparable<DijkstraEntry> {
-        final double distance;
-        final String vertex;
-
-        DijkstraEntry(double distance, String vertex) {
-            this.distance = distance;
-            this.vertex = vertex;
-        }
-
-        @Override
-        public int compareTo(DijkstraEntry other) {
-            return Double.compare(this.distance, other.distance);
-        }
     }
 
     // --- private helpers ---

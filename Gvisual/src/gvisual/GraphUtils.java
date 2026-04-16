@@ -626,10 +626,10 @@ public final class GraphUtils {
      * int-to-vertex lookups. Eliminates O(V) index bookkeeping and
      * fragile double-to-int casting on every PQ poll.
      *
-     * <p>Consistent with the approach already used in
-     * {@link ShortestPathFinder}.</p>
+     * <p>Package-visible so that {@link ShortestPathFinder} can reuse
+     * the same entry type instead of maintaining its own duplicate.</p>
      */
-    private static final class DijkstraEntry implements Comparable<DijkstraEntry> {
+    static final class DijkstraEntry implements Comparable<DijkstraEntry> {
         final double distance;
         final String vertex;
 
