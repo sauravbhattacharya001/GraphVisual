@@ -173,25 +173,69 @@ public class GraphResilienceAnalyzer {
 
     // --- Private simulation methods ---
 
+    /**
+     * Simulates a targeted degree-based attack using a bucket-queue to
+     * maintain vertex ordering by degree. Each removal updates only the
+     * removed node's neighbors, giving O(V + E) total for the ordering
+     * maintenance instead of O(V²) from a per-step linear scan.
+     */
     private List<ResilienceStep> simulateDegreeAttack() {
         Graph<String, Edge> copy = copyGraph();
         List<ResilienceStep> curve = new ArrayList<>();
         int originalSize = copy.getVertexCount();
+        if (originalSize == 0) {
+            curve.add(new ResilienceStep(0, 0, 0, 0, 0.0, null));
+            return curve;
+        }
 
         curve.add(captureStep(copy, originalSize, 0, null));
 
+        // Build bucket queue: degree -> set of vertices with that degree
+        Map<String, Integer> degMap = new HashMap<>(originalSize * 2);
+        int maxDegree = 0;
+        for (String v : copy.getVertices()) {
+            int d = copy.degree(v);
+            degMap.put(v, d);
+            if (d > maxDegree) maxDegree = d;
+        }
+
+        @SuppressWarnings("unchecked")
+        Set<String>[] buckets = new Set[maxDegree + 1];
+        for (int i = 0; i <= maxDegree; i++) {
+            buckets[i] = new LinkedHashSet<>();
+        }
+        for (Map.Entry<String, Integer> e : degMap.entrySet()) {
+            buckets[e.getValue()].add(e.getKey());
+        }
+        int currentMax = maxDegree;
+
         for (int step = 1; step <= originalSize; step++) {
-            // Find highest-degree node
-            String target = null;
-            int maxDeg = -1;
-            for (String v : copy.getVertices()) {
-                int deg = copy.degree(v);
-                if (deg > maxDeg) {
-                    maxDeg = deg;
-                    target = v;
+            // Find highest-degree bucket
+            while (currentMax >= 0 && buckets[currentMax].isEmpty()) {
+                currentMax--;
+            }
+            if (currentMax < 0) break;
+
+            // Pick one vertex from the top bucket
+            Iterator<String> it = buckets[currentMax].iterator();
+            String target = it.next();
+            it.remove();
+
+            // Update neighbors' degrees before removal
+            Collection<String> neighbors = copy.getNeighbors(target);
+            if (neighbors != null) {
+                for (String nb : new ArrayList<>(neighbors)) {
+                    Integer nbDeg = degMap.get(nb);
+                    if (nbDeg != null && nbDeg > 0) {
+                        buckets[nbDeg].remove(nb);
+                        int newDeg = nbDeg - 1;
+                        degMap.put(nb, newDeg);
+                        buckets[newDeg].add(nb);
+                    }
                 }
             }
-            if (target == null) break;
+
+            degMap.remove(target);
             copy.removeVertex(target);
             curve.add(captureStep(copy, originalSize, step, target));
         }
