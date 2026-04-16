@@ -294,33 +294,75 @@ public class GraphDistanceDistribution {
     /**
      * Generates a human-readable text report of the distance distribution.
      *
+     * <p><b>Performance:</b> Computes all aggregate statistics (average path
+     * length, Wiener index, harmonic mean, histogram, separation ratio, and
+     * percentiles) in a single O(V²) pass over the distance matrix, then
+     * sorts the collected distances once for all percentile queries. The
+     * previous implementation made 8+ separate O(V²) passes and sorted the
+     * distance list 3 times independently.</p>
+     *
      * @return multi-line report string
      */
     public String generateReport() {
         ensureComputed();
         StringBuilder sb = new StringBuilder();
         int n = graph.getVertexCount();
-        int e = graph.getEdgeCount();
+        int edgeCount = graph.getEdgeCount();
+        List<String> vertices = new ArrayList<>(graph.getVertices());
+
+        // Single pass over the upper triangle of the distance matrix to
+        // compute all aggregate metrics simultaneously.
+        long distSum = 0;
+        long reachableCount = 0;
+        double reciprocalSum = 0.0;
+        long totalPairs = (long) n * (n - 1) / 2;
+        Map<Integer, Integer> hist = new TreeMap<>();
+        List<Integer> finiteDistances = new ArrayList<>();
+
+        for (int i = 0; i < vertices.size(); i++) {
+            Map<String, Integer> row = distanceMatrix.get(vertices.get(i));
+            for (int j = i + 1; j < vertices.size(); j++) {
+                Integer d = row.get(vertices.get(j));
+                if (d != null && d > 0) {
+                    distSum += d;
+                    reachableCount++;
+                    reciprocalSum += 1.0 / d;
+                    hist.merge(d, 1, Integer::sum);
+                    finiteDistances.add(d);
+                }
+            }
+        }
+
+        double avgPath = reachableCount == 0 ? 0.0 : (double) distSum / reachableCount;
+        double harmonicMean = reciprocalSum == 0 ? Double.POSITIVE_INFINITY
+                : (double) totalPairs / reciprocalSum;
+        double separation = n <= 1 ? 0.0 : 1.0 - (double) reachableCount / totalPairs;
+
+        // Sort once for all percentile queries
+        Collections.sort(finiteDistances);
 
         sb.append("=== Distance Distribution Report ===\n\n");
-        sb.append(String.format("Vertices: %d | Edges: %d\n", n, e));
-        sb.append(String.format("Average path length: %.4f\n", getAveragePathLength()));
-        sb.append(String.format("Wiener index: %d\n", getWienerIndex()));
-        sb.append(String.format("Harmonic mean distance: %.4f\n", getHarmonicMeanDistance()));
-        sb.append(String.format("Median distance: %d\n", getMedianDistance()));
-        sb.append(String.format("90th percentile: %d\n", getDistancePercentile(90)));
-        sb.append(String.format("95th percentile: %d\n", getDistancePercentile(95)));
-        sb.append(String.format("Separation ratio: %.4f\n", getSeparationRatio()));
-        sb.append(String.format("Distinct distances: %d\n\n", getDistinctDistanceCount()));
+        sb.append(String.format("Vertices: %d | Edges: %d\n", n, edgeCount));
+        sb.append(String.format("Average path length: %.4f\n", avgPath));
+        sb.append(String.format("Wiener index: %d\n", distSum));
+        sb.append(String.format("Harmonic mean distance: %.4f\n", harmonicMean));
+        sb.append(String.format("Median distance: %d\n", percentileFromSorted(finiteDistances, 50)));
+        sb.append(String.format("90th percentile: %d\n", percentileFromSorted(finiteDistances, 90)));
+        sb.append(String.format("95th percentile: %d\n", percentileFromSorted(finiteDistances, 95)));
+        sb.append(String.format("Separation ratio: %.4f\n", separation));
+        sb.append(String.format("Distinct distances: %d\n\n", hist.size()));
 
-        Map<Integer, Integer> hist = getDistanceHistogram();
         if (!hist.isEmpty()) {
             sb.append("Distance Histogram:\n");
-            int maxCount = hist.values().stream().max(Integer::compareTo).orElse(1);
+            int maxCount = 0;
+            for (int c : hist.values()) {
+                if (c > maxCount) maxCount = c;
+            }
             for (Map.Entry<Integer, Integer> entry : hist.entrySet()) {
                 int barLen = (int) Math.ceil(40.0 * entry.getValue() / maxCount);
-                String bar = String.join("", Collections.nCopies(barLen, "█"));
-                sb.append(String.format("  d=%d: %s %d\n", entry.getKey(), bar, entry.getValue()));
+                StringBuilder bar = new StringBuilder(barLen);
+                for (int b = 0; b < barLen; b++) bar.append('\u2588');
+                sb.append(String.format("  d=%d: %s %d\n", entry.getKey(), bar.toString(), entry.getValue()));
             }
         }
 
@@ -333,6 +375,20 @@ public class GraphDistanceDistribution {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Extracts a percentile from a pre-sorted list of distances.
+     *
+     * @param sorted     sorted list of finite pairwise distances
+     * @param percentile the percentile (0–100)
+     * @return the distance at the given percentile, or -1 if list is empty
+     */
+    private static int percentileFromSorted(List<Integer> sorted, double percentile) {
+        if (sorted.isEmpty()) return -1;
+        int index = (int) Math.ceil(percentile / 100.0 * sorted.size()) - 1;
+        if (index < 0) index = 0;
+        return sorted.get(index);
     }
 
     /**
