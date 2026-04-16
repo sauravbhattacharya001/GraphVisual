@@ -201,30 +201,53 @@ public class GraphNetworkProfiler {
         density = n <= 1 ? 0.0 : (2.0 * m) / (n * (n - 1.0));
     }
 
+    private int maxDegree;  // cached for computeHubDominance
+
     private void computeDegreeStats(int n) {
         double sum = 0, sumSq = 0;
+        int maxDeg = 0;
         for (String v : graph.getVertices()) {
             int d = graph.degree(v);
             sum += d;
             sumSq += d * d;
+            if (d > maxDeg) maxDeg = d;
         }
         avgDegree = sum / n;
         degreeVariance = (sumSq / n) - (avgDegree * avgDegree);
         degreeCV = avgDegree < 1e-10 ? 0 : Math.sqrt(degreeVariance) / avgDegree;
+        maxDegree = maxDeg;
     }
 
+    /**
+     * Compute global clustering coefficient (average of local coefficients).
+     *
+     * <p>Optimised: pre-builds a HashMap of neighbor sets for all vertices,
+     * then uses O(1) HashSet lookups in the triangle-counting inner loop.
+     * The previous implementation called {@code graph.isNeighbor()} which,
+     * depending on the JUNG graph backing store, can be O(degree) per call
+     * — making the per-vertex cost O(k³) instead of O(k²).  With pre-built
+     * HashSets the inner loop is a true O(k²) with small constants.</p>
+     */
     private void computeClustering() {
+        // Pre-build neighbor sets for all vertices (O(V + E) total)
+        Map<String, Set<String>> neighborSets = new HashMap<>();
+        for (String v : graph.getVertices()) {
+            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+        }
+
         double totalCoeff = 0;
         int counted = 0;
         for (String v : graph.getVertices()) {
-            Collection<String> neighbors = graph.getNeighbors(v);
-            int k = neighbors.size();
+            Set<String> nSet = neighborSets.get(v);
+            int k = nSet.size();
             if (k < 2) continue;
-            List<String> nList = new ArrayList<>(neighbors);
+            List<String> nList = new ArrayList<>(nSet);
             int triangles = 0;
             for (int i = 0; i < nList.size(); i++) {
+                // Look up neighbor i's neighbor set once
+                Set<String> niNeighbors = neighborSets.get(nList.get(i));
                 for (int j = i + 1; j < nList.size(); j++) {
-                    if (graph.isNeighbor(nList.get(i), nList.get(j))) {
+                    if (niNeighbors.contains(nList.get(j))) {
                         triangles++;
                     }
                 }
@@ -351,15 +374,15 @@ public class GraphNetworkProfiler {
         smallWorldQuotient = lambda < 1e-10 ? 0 : gamma / lambda;
     }
 
+    /**
+     * Compute hub dominance using the max degree already cached by
+     * computeDegreeStats(), avoiding a redundant O(V) vertex iteration.
+     */
     private void computeHubDominance() {
         if (graph.getVertexCount() == 0 || avgDegree < 1e-10) {
             hubDominance = 0; return;
         }
-        int maxDeg = 0;
-        for (String v : graph.getVertices()) {
-            maxDeg = Math.max(maxDeg, graph.degree(v));
-        }
-        hubDominance = maxDeg / avgDegree;
+        hubDominance = maxDegree / avgDegree;
     }
 
     // ── Classification ──────────────────────────────────────────
