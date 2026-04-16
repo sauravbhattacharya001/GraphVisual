@@ -193,6 +193,15 @@ public final class ChordalGraphAnalyzer {
      * @return MCS ordering (last eliminated first)
      */
     public static List<String> maximumCardinalitySearch(Graph<String, Edge> graph) {
+        return maximumCardinalitySearch(graph, GraphUtils.buildAdjacencyMap(graph));
+    }
+
+    /**
+     * MCS using a pre-computed adjacency map, avoiding redundant graph traversals
+     * when the caller already has the adjacency structure.
+     */
+    static List<String> maximumCardinalitySearch(Graph<String, Edge> graph,
+                                                  Map<String, Set<String>> adj) {
         if (graph == null) return Collections.emptyList();
         Collection<String> vertices = graph.getVertices();
         if (vertices == null || vertices.isEmpty()) return Collections.emptyList();
@@ -206,7 +215,6 @@ public final class ChordalGraphAnalyzer {
         }
 
         List<String> ordering = new ArrayList<>(n);
-        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
 
         for (int i = 0; i < n; i++) {
             // Pick vertex with maximum weight among remaining
@@ -252,45 +260,10 @@ public final class ChordalGraphAnalyzer {
             return new ChordalityResult(true, Collections.<String>emptyList(), null);
         }
 
-        List<String> mcsOrder = maximumCardinalitySearch(graph);
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-
-        // Position in ordering
-        Map<String, Integer> pos = new HashMap<>();
-        for (int i = 0; i < mcsOrder.size(); i++) {
-            pos.put(mcsOrder.get(i), i);
-        }
-
-        // Verify PEO: for each vertex v at position i,
-        // its neighbors with position > i must form a clique
-        for (int i = 0; i < mcsOrder.size(); i++) {
-            String v = mcsOrder.get(i);
-            Set<String> nbrs = adj.get(v);
-            if (nbrs == null) continue;
-
-            List<String> laterNeighbors = new ArrayList<>();
-            for (String nb : nbrs) {
-                if (pos.get(nb) > i) {
-                    laterNeighbors.add(nb);
-                }
-            }
-
-            // Check all pairs of later neighbors are adjacent
-            for (int a = 0; a < laterNeighbors.size(); a++) {
-                for (int b = a + 1; b < laterNeighbors.size(); b++) {
-                    String u = laterNeighbors.get(a);
-                    String w = laterNeighbors.get(b);
-                    Set<String> uNbrs = adj.get(u);
-                    if (uNbrs == null || !uNbrs.contains(w)) {
-                        // Not chordal — find a chordless cycle
-                        List<String> cycle = findChordlessCycle(adj, v, u, w);
-                        return new ChordalityResult(false, mcsOrder, cycle);
-                    }
-                }
-            }
-        }
-
-        return new ChordalityResult(true, mcsOrder, null);
+        List<String> mcsOrder = maximumCardinalitySearch(graph, adj);
+        Map<String, Integer> pos = buildPositionMap(mcsOrder);
+        return verifyChordalityFromMCS(mcsOrder, adj, pos);
     }
 
     /**
@@ -354,36 +327,9 @@ public final class ChordalGraphAnalyzer {
             return new ColoringResult(Collections.<String, Integer>emptyMap(), 0);
         }
 
-        ChordalityResult cr = testChordality(graph);
-        List<String> peo = cr.getPeo();
-
-        // Greedy color in reverse PEO order (last eliminated first)
-        List<String> reversed = new ArrayList<>(peo);
-        Collections.reverse(reversed);
-
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-        Map<String, Integer> colors = new LinkedHashMap<>();
-        int maxColor = 0;
-
-        for (String v : reversed) {
-            // Find colors used by already-colored neighbors
-            Set<Integer> usedColors = new HashSet<>();
-            Set<String> nbrs = adj.get(v);
-            if (nbrs != null) {
-                for (String nb : nbrs) {
-                    if (colors.containsKey(nb)) {
-                        usedColors.add(colors.get(nb));
-                    }
-                }
-            }
-            // Assign smallest available color
-            int c = 0;
-            while (usedColors.contains(c)) c++;
-            colors.put(v, c);
-            if (c > maxColor) maxColor = c;
-        }
-
-        return new ColoringResult(colors, maxColor + 1);
+        List<String> peo = maximumCardinalitySearch(graph, adj);
+        return colorFromPEO(peo, adj);
     }
 
     // ── Maximum clique (chordal) ─────────────────────────────────────────
@@ -401,40 +347,23 @@ public final class ChordalGraphAnalyzer {
             return Collections.emptySet();
         }
 
-        ChordalityResult cr = testChordality(graph);
-        if (!cr.isChordal()) {
-            // Fallback: find largest clique via enumeration (slow for non-chordal)
-            return findMaxCliqueGreedy(graph);
-        }
-
-        List<String> peo = cr.getPeo();
-        Map<String, Integer> pos = new HashMap<>();
-        for (int i = 0; i < peo.size(); i++) pos.put(peo.get(i), i);
-
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        List<String> mcsOrder = maximumCardinalitySearch(graph, adj);
+        Map<String, Integer> pos = buildPositionMap(mcsOrder);
+        ChordalityResult cr = verifyChordalityFromMCS(mcsOrder, adj, pos);
 
-        Set<String> best = new LinkedHashSet<>();
-        for (int i = 0; i < peo.size(); i++) {
-            String v = peo.get(i);
-            Set<String> clique = new LinkedHashSet<>();
-            clique.add(v);
-            Set<String> nbrs = adj.get(v);
-            if (nbrs != null) {
-                for (String nb : nbrs) {
-                    if (pos.get(nb) > i) {
-                        clique.add(nb);
-                    }
-                }
-            }
-            if (clique.size() > best.size()) {
-                best = clique;
-            }
+        if (!cr.isChordal()) {
+            return findMaxCliqueGreedy(graph, adj);
         }
-        return best;
+        return maxCliqueFromPEO(mcsOrder, pos, adj);
     }
 
     private static Set<String> findMaxCliqueGreedy(Graph<String, Edge> graph) {
-        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        return findMaxCliqueGreedy(graph, GraphUtils.buildAdjacencyMap(graph));
+    }
+
+    private static Set<String> findMaxCliqueGreedy(Graph<String, Edge> graph,
+                                                    Map<String, Set<String>> adj) {
         // Sort vertices by degree descending
         List<String> sorted = new ArrayList<>(graph.getVertices());
         Collections.sort(sorted, (String a, String b) -> {
@@ -472,51 +401,10 @@ public final class ChordalGraphAnalyzer {
             return Collections.emptyList();
         }
 
-        ChordalityResult cr = testChordality(graph);
-        List<String> peo = cr.getPeo();
-        Map<String, Integer> pos = new HashMap<>();
-        for (int i = 0; i < peo.size(); i++) pos.put(peo.get(i), i);
-
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-
-        List<Set<String>> cliques = new ArrayList<>();
-        Set<Set<String>> seen = new HashSet<>();
-
-        for (int i = 0; i < peo.size(); i++) {
-            String v = peo.get(i);
-            Set<String> clique = new TreeSet<>();
-            clique.add(v);
-            Set<String> nbrs = adj.get(v);
-            if (nbrs != null) {
-                for (String nb : nbrs) {
-                    if (pos.get(nb) > i) {
-                        clique.add(nb);
-                    }
-                }
-            }
-            if (!seen.contains(clique)) {
-                // Check maximality — not a subset of any existing
-                boolean maximal = true;
-                for (Set<String> existing : cliques) {
-                    if (existing.containsAll(clique)) {
-                        maximal = false;
-                        break;
-                    }
-                }
-                if (maximal) {
-                    // Remove any existing cliques that are subsets of this one
-                    Iterator<Set<String>> it = cliques.iterator();
-                    while (it.hasNext()) {
-                        if (clique.containsAll(it.next())) {
-                            it.remove();
-                        }
-                    }
-                    cliques.add(clique);
-                    seen.add(clique);
-                }
-            }
-        }
-        return cliques;
+        List<String> peo = maximumCardinalitySearch(graph, adj);
+        Map<String, Integer> pos = buildPositionMap(peo);
+        return maximalCliquesFromPEO(peo, pos, adj);
     }
 
     // ── Clique tree (junction tree) ──────────────────────────────────────
@@ -601,50 +489,12 @@ public final class ChordalGraphAnalyzer {
         if (graph == null || graph.getVertexCount() == 0) {
             return new FillInResult(Collections.<String[]>emptyList());
         }
+        }
 
-        List<String> mcsOrder = maximumCardinalitySearch(graph);
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-
-        // Make a mutable copy of adjacency for fill-in
-        Map<String, Set<String>> augmented = new HashMap<>();
-        for (Map.Entry<String, Set<String>> e : adj.entrySet()) {
-            augmented.put(e.getKey(), new HashSet<>(e.getValue()));
-        }
-
-        Map<String, Integer> pos = new HashMap<>();
-        for (int i = 0; i < mcsOrder.size(); i++) pos.put(mcsOrder.get(i), i);
-
-        List<String[]> fillEdges = new ArrayList<>();
-
-        for (int i = 0; i < mcsOrder.size(); i++) {
-            String v = mcsOrder.get(i);
-            Set<String> nbrs = augmented.get(v);
-            if (nbrs == null) continue;
-
-            List<String> laterNeighbors = new ArrayList<>();
-            for (String nb : nbrs) {
-                if (pos.get(nb) > i) {
-                    laterNeighbors.add(nb);
-                }
-            }
-
-            for (int a = 0; a < laterNeighbors.size(); a++) {
-                for (int b = a + 1; b < laterNeighbors.size(); b++) {
-                    String u = laterNeighbors.get(a);
-                    String w = laterNeighbors.get(b);
-                    if (!augmented.get(u).contains(w)) {
-                        // Add fill Edge
-                        augmented.get(u).add(w);
-                        augmented.get(w).add(u);
-                        String first = u.compareTo(w) < 0 ? u : w;
-                        String second = u.compareTo(w) < 0 ? w : u;
-                        fillEdges.add(new String[]{first, second});
-                    }
-                }
-            }
-        }
-
-        return new FillInResult(fillEdges);
+        List<String> mcsOrder = maximumCardinalitySearch(graph, adj);
+        Map<String, Integer> pos = buildPositionMap(mcsOrder);
+        return fillInFromMCS(mcsOrder, pos, adj);
     }
 
     // ── Minimum separators ───────────────────────────────────────────────
@@ -658,7 +508,7 @@ public final class ChordalGraphAnalyzer {
      */
     public static List<Set<String>> minimalSeparators(Graph<String, Edge> graph) {
         List<Set<String>> cliques = allMaximalCliques(graph);
-        List<CliqueTreeNode> tree = buildCliqueTree(graph);
+        List<CliqueTreeNode> tree = buildCliqueTreeFromCliques(cliques);
         if (tree.size() <= 1) return Collections.emptyList();
 
         Set<Set<String>> separators = new LinkedHashSet<>();
@@ -702,7 +552,7 @@ public final class ChordalGraphAnalyzer {
                                                         List<String> order) {
         if (graph == null || order == null) return Collections.emptyList();
 
-        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);  // needed: mutable copy below
         // Mutable copy
         Map<String, Set<String>> remaining = new HashMap<>();
         for (Map.Entry<String, Set<String>> e : adj.entrySet()) {
@@ -765,7 +615,7 @@ public final class ChordalGraphAnalyzer {
 
         // Compute expensive structures once
         Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
-        List<String> mcsOrder = maximumCardinalitySearch(graph);
+        List<String> mcsOrder = maximumCardinalitySearch(graph, adj);
         Map<String, Integer> pos = buildPositionMap(mcsOrder);
 
         // Test chordality using pre-computed data
