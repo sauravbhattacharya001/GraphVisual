@@ -235,49 +235,94 @@ public class LinkPredictionAnalyzer {
      * Predict using all methods and return a combined ranking.
      * Each method's scores are normalized to [0,1] and averaged.
      *
+     * <p>Uses a two-pass streaming approach: pass 1 computes per-method
+     * max scores (needed for normalization) while keeping only the raw
+     * scores of the current top-K candidates in a min-heap. Pass 2
+     * re-scores only those top-K finalists with normalized values.
+     * This avoids materializing O(V²) pair lists and score arrays,
+     * reducing memory from O(V²) to O(K).</p>
+     *
      * @param topK number of top predictions to return
      * @return prediction result with ensemble scores
      */
     public PredictionResult predictEnsemble(int topK) {
-        PairEvaluation eval = evaluatePairs();
+        Collection<String> vertices = graph.getVertices();
+        int n = vertices.size();
+        int existingEdges = graph.getEdgeCount();
+        long possibleEdges = (long) n * (n - 1) / 2;
+        Map<String, Set<String>> adjacency = GraphUtils.buildAdjacencyMap(graph);
+        List<String> vertexList = new ArrayList<String>(vertices);
+
         Method[] methods = {
             Method.COMMON_NEIGHBORS, Method.JACCARD,
             Method.ADAMIC_ADAR, Method.PREFERENTIAL_ATTACHMENT
         };
 
-        // Score every pair with all four methods
-        double[][] allScores = new double[eval.pairs.size()][4];
+        // Pass 1: stream through all pairs, track max scores and keep a
+        // generous top-K candidate pool (4*topK to allow for re-ranking
+        // after normalization).
+        int poolSize = Math.max(topK * 4, 64);
         double[] maxScores = new double[4];
+        int candidatesEvaluated = 0;
 
-        for (int idx = 0; idx < eval.pairs.size(); idx++) {
-            String[] pair = eval.pairs.get(idx);
-            Set<String> common = eval.commonNeighbors.get(idx);
-            for (int m = 0; m < 4; m++) {
-                double s = computeScore(methods[m], eval.adjacency, pair[0], pair[1], common);
-                allScores[idx][m] = s;
-                maxScores[m] = Math.max(maxScores[m], s);
+        // Each entry in the heap stores: [u, v, common, scores[4]]
+        PriorityQueue<Object[]> minHeap = new PriorityQueue<Object[]>(
+                poolSize + 1,
+                (Object[] a, Object[] b) -> Double.compare(
+                        ((double[]) a[3])[4], ((double[]) b[3])[4]));
+
+        for (int i = 0; i < vertexList.size(); i++) {
+            String u = vertexList.get(i);
+            Set<String> uNeighbors = adjacency.get(u);
+
+            for (int j = i + 1; j < vertexList.size(); j++) {
+                String v = vertexList.get(j);
+                if (uNeighbors.contains(v)) continue;
+
+                candidatesEvaluated++;
+
+                Set<String> vNeighbors = adjacency.get(v);
+                // Quick check: if both have zero neighbors, skip
+                if (uNeighbors.isEmpty() && vNeighbors.isEmpty()) continue;
+
+                Set<String> common = GraphUtils.getCommonNeighbors(adjacency, u, v);
+                double[] scores = new double[5]; // [CN, Jaccard, AA, PA, rawSum]
+                for (int m = 0; m < 4; m++) {
+                    scores[m] = computeScore(methods[m], adjacency, u, v, common);
+                }
+                // Skip pairs with no signal at all
+                if (scores[0] == 0 && scores[3] == 0) continue;
+
+                scores[4] = scores[0] + scores[1] + scores[2] + scores[3]; // raw sum for heap ordering
+
+                for (int m = 0; m < 4; m++) {
+                    maxScores[m] = Math.max(maxScores[m], scores[m]);
+                }
+
+                if (minHeap.size() < poolSize || scores[4] > ((double[]) minHeap.peek()[3])[4]) {
+                    minHeap.offer(new Object[]{u, v, common, scores});
+                    if (minHeap.size() > poolSize) minHeap.poll();
+                }
             }
         }
 
-        // Normalize and average
-        List<PredictedLink> candidates = new ArrayList<PredictedLink>();
-        for (int idx = 0; idx < eval.pairs.size(); idx++) {
-            // Skip pairs with no signal
-            if (allScores[idx][0] == 0 && allScores[idx][3] == 0) continue;
-
+        // Pass 2: normalize the pool and extract the real top-K
+        List<PredictedLink> candidates = new ArrayList<PredictedLink>(minHeap.size());
+        for (Object[] entry : minHeap) {
+            double[] scores = (double[]) entry[3];
             double avg = 0;
             int count = 0;
             for (int m = 0; m < 4; m++) {
                 if (maxScores[m] > 0) {
-                    avg += allScores[idx][m] / maxScores[m];
+                    avg += scores[m] / maxScores[m];
                     count++;
                 }
             }
             avg = count > 0 ? avg / count : 0;
-
-            String[] pair = eval.pairs.get(idx);
-            candidates.add(new PredictedLink(pair[0], pair[1], avg,
-                    Method.ENSEMBLE, eval.commonNeighbors.get(idx)));
+            @SuppressWarnings("unchecked")
+            Set<String> common = (Set<String>) entry[2];
+            candidates.add(new PredictedLink((String) entry[0], (String) entry[1],
+                    avg, Method.ENSEMBLE, common));
         }
 
         Collections.sort(candidates, SCORE_DESCENDING);
@@ -285,8 +330,8 @@ public class LinkPredictionAnalyzer {
                 0, Math.min(topK, candidates.size()));
 
         return new PredictionResult(new ArrayList<PredictedLink>(top),
-                Method.ENSEMBLE, eval.n, eval.existingEdges, eval.possibleEdges,
-                eval.pairs.size());
+                Method.ENSEMBLE, n, existingEdges, possibleEdges,
+                candidatesEvaluated);
     }
 
     // ── Shared pair enumeration ──────────────────────────────────
@@ -365,9 +410,11 @@ public class LinkPredictionAnalyzer {
                 return common.size();
 
             case JACCARD: {
-                Set<String> union = new HashSet<String>(adjacency.get(u));
-                union.addAll(adjacency.get(v));
-                return union.isEmpty() ? 0 : (double) common.size() / union.size();
+                // Compute union size arithmetically to avoid allocating a HashSet:
+                // |A ∪ B| = |A| + |B| - |A ∩ B|
+                int unionSize = adjacency.get(u).size() + adjacency.get(v).size()
+                        - common.size();
+                return unionSize == 0 ? 0 : (double) common.size() / unionSize;
             }
 
             case ADAMIC_ADAR: {
