@@ -39,6 +39,15 @@ public class BipartiteAnalyzer {
     private boolean computed;
     private List<String> oddCycle;
 
+    // Cached matching result — Hopcroft-Karp is O(E√V) and was being
+    // recomputed 3-5 times in getResult()/getSummary() due to
+    // getMaximumMatching() being called transitively by
+    // getMinimumVertexCover(), getMaximumIndependentSet(),
+    // getMatchingCoverage(), and hasPerfectMatching().
+    private List<MatchingEdge> cachedMatching;
+    private Map<String, String> cachedMatchL;
+    private Map<String, String> cachedMatchR;
+
     /**
      * Creates a new BipartiteAnalyzer for the given graph.
      *
@@ -258,13 +267,17 @@ public class BipartiteAnalyzer {
     }
 
     /**
-     * Computes the maximum matching using Hopcroft–Karp algorithm.
-     * Only valid for bipartite graphs.
+     * Runs Hopcroft-Karp and caches the result (matching edges + partner maps).
+     * Subsequent calls return the cached result in O(1).
      *
-     * @return list of matching edges
-     * @throws IllegalStateException if the graph is not bipartite
+     * <p>Previously, every call to getMaximumMatching() re-ran the full
+     * O(E√V) algorithm. Since getResult() and getSummary() transitively
+     * invoke it 3-5 times (via getMinimumVertexCover, getMaximumIndependentSet,
+     * getMatchingCoverage, hasPerfectMatching), caching eliminates 60-80%
+     * of redundant work in those paths.</p>
      */
-    public List<MatchingEdge> getMaximumMatching() {
+    private void ensureMatchingComputed() {
+        if (cachedMatching != null) return;
         ensureComputed();
         if (!bipartite) {
             throw new IllegalStateException(
@@ -311,7 +324,22 @@ public class BipartiteAnalyzer {
             }
         }
 
-        return matching;
+        cachedMatching = Collections.unmodifiableList(matching);
+        cachedMatchL = matchL;
+        cachedMatchR = matchR;
+    }
+
+    /**
+     * Computes the maximum matching using Hopcroft–Karp algorithm.
+     * Only valid for bipartite graphs. Result is cached — O(E√V) on
+     * first call, O(1) on subsequent calls.
+     *
+     * @return list of matching edges
+     * @throws IllegalStateException if the graph is not bipartite
+     */
+    public List<MatchingEdge> getMaximumMatching() {
+        ensureMatchingComputed();
+        return cachedMatching;
     }
 
     private boolean bfs(List<String> leftVerts, Map<String, List<String>> adj,
@@ -394,34 +422,26 @@ public class BipartiteAnalyzer {
      * In a bipartite graph, |min vertex cover| = |max matching|.
      *
      * <p>Uses alternating path BFS from unmatched left vertices to
-     * identify the cover set.</p>
+     * identify the cover set. Reuses the cached matching partner maps
+     * from Hopcroft-Karp instead of rebuilding them.</p>
      *
      * @return sorted list of vertices in the minimum vertex cover
      * @throws IllegalStateException if the graph is not bipartite
      */
     public List<String> getMinimumVertexCover() {
-        ensureComputed();
-        if (!bipartite) {
-            throw new IllegalStateException(
-                    "Minimum vertex cover (König) requires a bipartite graph");
-        }
+        ensureMatchingComputed();
 
-        List<MatchingEdge> matching = getMaximumMatching();
         List<String> leftVerts = getLeftPartition();
         List<String> rightVerts = getRightPartition();
 
-        // Build matched-partner maps
-        Map<String, String> matchL = new HashMap<String, String>();
-        Map<String, String> matchR = new HashMap<String, String>();
-        for (MatchingEdge me : matching) {
-            matchL.put(me.getLeft(), me.getRight());
-            matchR.put(me.getRight(), me.getLeft());
-        }
+        // Reuse the partner maps from the cached matching computation
+        Map<String, String> matchL = cachedMatchL;
+        Map<String, String> matchR = cachedMatchR;
 
-        // Find unmatched left vertices
+        // Find unmatched left vertices (matched to NIL sentinel)
         Set<String> unmatchedLeft = new LinkedHashSet<String>();
         for (String l : leftVerts) {
-            if (!matchL.containsKey(l)) {
+            if (NIL.equals(matchL.get(l))) {
                 unmatchedLeft.add(l);
             }
         }
@@ -442,7 +462,7 @@ public class BipartiteAnalyzer {
                         visitedR.add(n);
                         // Follow matched Edge back to left
                         String partner = matchR.get(n);
-                        if (partner != null && !visitedL.contains(partner)) {
+                        if (partner != null && !NIL.equals(partner) && !visitedL.contains(partner)) {
                             visitedL.add(partner);
                             queue.add(partner);
                         }
@@ -479,11 +499,7 @@ public class BipartiteAnalyzer {
      * @throws IllegalStateException if the graph is not bipartite
      */
     public List<String> getMaximumIndependentSet() {
-        ensureComputed();
-        if (!bipartite) {
-            throw new IllegalStateException(
-                    "Maximum independent set requires a bipartite graph");
-        }
+        ensureMatchingComputed(); // ensures bipartite check + matching cache
 
         Set<String> cover = new HashSet<String>(getMinimumVertexCover());
         List<String> independent = new ArrayList<String>();
