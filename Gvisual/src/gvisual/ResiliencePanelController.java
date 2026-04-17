@@ -164,11 +164,20 @@ public class ResiliencePanelController {
         chooser.setSelectedFile(new java.io.File("resilience_analysis.csv"));
         if (chooser.showSaveDialog(parentFrame) == JFileChooser.APPROVE_OPTION) {
             try {
-                java.io.FileWriter writer = new java.io.FileWriter(chooser.getSelectedFile());
-                writer.write(lastAnalyzer.exportCSV());
-                writer.close();
+                java.io.File outputFile = chooser.getSelectedFile();
+                ExportUtils.validateOutputPath(outputFile);
+                try (java.io.Writer writer = new java.io.BufferedWriter(
+                        new java.io.OutputStreamWriter(
+                                new java.io.FileOutputStream(outputFile),
+                                java.nio.charset.StandardCharsets.UTF_8))) {
+                    writer.write(lastAnalyzer.exportCSV());
+                }
                 JOptionPane.showMessageDialog(parentFrame, "Resilience data exported.",
                         "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+            } catch (SecurityException ex) {
+                JOptionPane.showMessageDialog(parentFrame,
+                        "Export blocked: " + ex.getMessage(),
+                        "Security Error", JOptionPane.ERROR_MESSAGE);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(parentFrame, "Export failed: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
