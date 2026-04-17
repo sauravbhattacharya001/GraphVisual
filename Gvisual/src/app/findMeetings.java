@@ -3,7 +3,10 @@ package app;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -25,6 +28,96 @@ public class findMeetings {
      * defines the time window for which no interaction defines the end of a meeting
      */
     private static double WINDOW_SIZE = 5.00;
+
+    // ── Meeting segment representation ──────────────────────────
+
+    /**
+     * An immutable record representing a detected meeting segment
+     * between two devices — a contiguous period of co-location
+     * observations with no gap exceeding the window size.
+     */
+    public static final class MeetingSegment {
+        private final String startTime;
+        private final String endTime;
+
+        public MeetingSegment(String startTime, String endTime) {
+            if (startTime == null || endTime == null) {
+                throw new IllegalArgumentException("start/end time must not be null");
+            }
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
+
+        public String getStartTime() { return startTime; }
+        public String getEndTime()   { return endTime; }
+
+        @Override
+        public String toString() {
+            return "MeetingSegment[" + startTime + " -> " + endTime + "]";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MeetingSegment)) return false;
+            MeetingSegment that = (MeetingSegment) o;
+            return startTime.equals(that.startTime) && endTime.equals(that.endTime);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * startTime.hashCode() + endTime.hashCode();
+        }
+    }
+
+    // ── Core algorithm (extracted from main for testability) ────
+
+    /**
+     * Segments a sorted set of observation timestamps into meeting intervals.
+     *
+     * <p>Scans the times in order; whenever the gap between consecutive
+     * observations exceeds {@code windowMinutes}, the current meeting ends
+     * and a new one begins.  Returns an unmodifiable list of segments.</p>
+     *
+     * <p>This was previously inlined inside {@code main()}, making it
+     * impossible to unit-test the segmentation logic independently of
+     * the database.  Extracting it enables fast, deterministic tests.</p>
+     *
+     * @param sortedTimes   chronologically sorted observation times
+     *                      in trace format ("HH.MM:SS.mmm")
+     * @param windowMinutes maximum gap (in minutes) before a meeting
+     *                      is considered to have ended
+     * @return immutable list of meeting segments (may be empty)
+     */
+    public static List<MeetingSegment> segmentMeetings(
+            SortedSet<String> sortedTimes, double windowMinutes) {
+        if (sortedTimes == null || sortedTimes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<MeetingSegment> segments = new ArrayList<MeetingSegment>();
+        String meetingStart = null;
+        String lastTime = null;
+
+        for (String time : sortedTimes) {
+            if (lastTime == null) {
+                meetingStart = time;
+                lastTime = time;
+            } else if (Util.getTimeDifference(time, lastTime) > windowMinutes) {
+                segments.add(new MeetingSegment(meetingStart, lastTime));
+                meetingStart = time;
+                lastTime = time;
+            } else {
+                lastTime = time;
+            }
+        }
+        // Flush the final segment
+        if (meetingStart != null && lastTime != null) {
+            segments.add(new MeetingSegment(meetingStart, lastTime));
+        }
+
+        return Collections.unmodifiableList(segments);
+    }
 
     /**
      * Returns a canonical device pair key with the lexicographically smaller
@@ -172,31 +265,12 @@ public class findMeetings {
 
                     int batchCount = 0;
                     for (String x : deviceInteraction.keySet()) {
-                        SortedSet<String> curSet = deviceInteraction.get(x);
-
-                        String meetingStartTime = null;
-                        String lastTime = null;
-
-                        for (String y : curSet) {
-                            if (lastTime == null) {
-                                lastTime = y;
-                                meetingStartTime = y;
-                            } else if (getTimeDifference(y, lastTime) > WINDOW_SIZE) {
-                                addMeetingBatch(insertStmt, x, meetingStartTime, lastTime, month, date, "unknown");
-                                batchCount++;
-                                lastTime = y;
-                                meetingStartTime = y;
-                            } else {
-                                lastTime = y;
-                            }
-                        }
-
-                        // Flush the final meeting segment — the loop above only
-                        // inserts when a gap exceeds WINDOW_SIZE, so the last
-                        // meeting (from meetingStartTime to lastTime) would be
-                        // silently dropped without this.
-                        if (meetingStartTime != null && lastTime != null) {
-                            addMeetingBatch(insertStmt, x, meetingStartTime, lastTime, month, date, "unknown");
+                        List<MeetingSegment> segments =
+                                segmentMeetings(deviceInteraction.get(x), WINDOW_SIZE);
+                        for (MeetingSegment seg : segments) {
+                            addMeetingBatch(insertStmt, x,
+                                    seg.getStartTime(), seg.getEndTime(),
+                                    month, date, "unknown");
                             batchCount++;
                         }
                     }
