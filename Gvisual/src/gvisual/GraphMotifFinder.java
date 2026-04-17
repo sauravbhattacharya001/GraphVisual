@@ -265,21 +265,39 @@ public class GraphMotifFinder {
 
     /**
      * Compute per-node local clustering coefficient.
+     *
+     * <p>Uses O(1) HashSet lookups instead of JUNG's {@code isNeighbor()}
+     * which can be O(degree) per call, reducing per-vertex cost from
+     * O(k³) to O(k²).</p>
+     *
      * @return map of node → local clustering coefficient
      */
     public Map<String, Double> getLocalClustering() {
+        // Build neighbour sets if not available (analyze() nulls them out)
+        boolean builtLocally = false;
+        Map<String, Set<String>> nbSets = this.neighborSets;
+        if (nbSets == null) {
+            builtLocally = true;
+            nbSets = new HashMap<>(graph.getVertexCount() * 2);
+            for (String v : graph.getVertices()) {
+                nbSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+            }
+        }
+
         Map<String, Double> result = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
-            List<String> neighbors = new ArrayList<>(graph.getNeighbors(v));
-            int k = neighbors.size();
+            Collection<String> rawNbrs = graph.getNeighbors(v);
+            int k = rawNbrs.size();
             if (k < 2) {
                 result.put(v, 0.0);
                 continue;
             }
+            List<String> neighbors = new ArrayList<>(rawNbrs);
             int links = 0;
             for (int i = 0; i < neighbors.size(); i++) {
+                Set<String> iNbrs = nbSets.get(neighbors.get(i));
                 for (int j = i + 1; j < neighbors.size(); j++) {
-                    if (graph.isNeighbor(neighbors.get(i), neighbors.get(j))) {
+                    if (iNbrs.contains(neighbors.get(j))) {
                         links++;
                     }
                 }
@@ -287,6 +305,8 @@ public class GraphMotifFinder {
             double maxLinks = k * (k - 1.0) / 2.0;
             result.put(v, links / maxLinks);
         }
+
+        if (builtLocally) nbSets = null; // let GC reclaim
         return result;
     }
 
