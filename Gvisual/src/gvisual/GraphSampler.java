@@ -200,12 +200,7 @@ public class GraphSampler {
         int n = graph.getVertexCount();
         int target = Math.max(1, (int) Math.ceil(n * fraction));
 
-        String seed;
-        if (startNode != null && graph.containsVertex(startNode)) {
-            seed = startNode;
-        } else {
-            seed = randomVertex();
-        }
+        String seed = resolveSeed(startNode);
         if (seed == null) return buildResult(new LinkedHashSet<String>(), "RandomWalk");
 
         Set<String> sampled = new LinkedHashSet<String>();
@@ -263,12 +258,7 @@ public class GraphSampler {
         int n = graph.getVertexCount();
         int target = Math.max(1, (int) Math.ceil(n * fraction));
 
-        String seed;
-        if (startNode != null && graph.containsVertex(startNode)) {
-            seed = startNode;
-        } else {
-            seed = randomVertex();
-        }
+        String seed = resolveSeed(startNode);
         if (seed == null) return buildResult(new LinkedHashSet<String>(), "ForestFire");
 
         Set<String> sampled = new LinkedHashSet<String>();
@@ -348,6 +338,73 @@ public class GraphSampler {
     }
 
     /**
+     * Resolves a seed vertex: returns {@code candidate} if it exists in the
+     * graph, otherwise picks a random vertex. Used by randomWalk and
+     * forestFire to eliminate duplicated seed-resolution logic.
+     *
+     * @param candidate the requested start node (may be null)
+     * @return a valid vertex, or null if the graph is empty
+     */
+    private String resolveSeed(String candidate) {
+        if (candidate != null && graph.containsVertex(candidate)) {
+            return candidate;
+        }
+        return randomVertex();
+    }
+
+    /**
+     * Creates a deep copy of an Edge between two vertices, preserving all
+     * metadata (type, weight, label, timestamps). Centralises the five-line
+     * copy block that was previously duplicated in every subgraph builder.
+     */
+    private static Edge copyEdge(Edge e, String v1, String v2) {
+        Edge copy = new Edge(e.getType(), v1, v2);
+        copy.setWeight(e.getWeight());
+        copy.setLabel(e.getLabel());
+        if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
+        if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
+        return copy;
+    }
+
+    /**
+     * Resolves the two endpoints of an Edge, returning them as a two-element
+     * array, or {@code null} if the Edge has fewer than two endpoints.
+     */
+    private String[] endpoints(Edge e) {
+        Collection<String> ep = graph.getEndpoints(e);
+        if (ep == null || ep.size() < 2) return null;
+        Iterator<String> it = ep.iterator();
+        return new String[]{ it.next(), it.next() };
+    }
+
+    /**
+     * Induces a subgraph on {@code sampledNodes} by iterating incident edges
+     * of each sampled node (O(sum-of-degrees) instead of O(|E|)).
+     * Edges already present in {@code preAdded} are skipped.
+     *
+     * @param sample       the target graph to add edges to
+     * @param sampledNodes the set of vertices in the sample
+     * @param preAdded     edges already added (may be empty; mutated)
+     */
+    private void induceEdges(Graph<String, Edge> sample,
+                             Set<String> sampledNodes,
+                             Set<Edge> preAdded) {
+        for (String v : sampledNodes) {
+            Collection<Edge> incident = graph.getIncidentEdges(v);
+            if (incident == null) continue;
+            for (Edge e : incident) {
+                if (preAdded.contains(e)) continue;
+                String[] ep = endpoints(e);
+                if (ep == null) continue;
+                if (sampledNodes.contains(ep[0]) && sampledNodes.contains(ep[1])) {
+                    preAdded.add(e);
+                    sample.addEdge(copyEdge(e, ep[0], ep[1]), ep[0], ep[1]);
+                }
+            }
+        }
+    }
+
+    /**
      * Build a SampleResult by inducing the subgraph on the sampled nodes.
      *
      * <p>Uses incident-edge iteration instead of scanning all edges in the
@@ -361,38 +418,15 @@ public class GraphSampler {
         for (String v : sampledNodes) {
             sample.addVertex(v);
         }
-
-        // Track edges already added to avoid duplicates (each undirected
-        // edge is incident to both endpoints).
-        Set<Edge> added = new HashSet<Edge>();
-        for (String v : sampledNodes) {
-            Collection<Edge> incident = graph.getIncidentEdges(v);
-            if (incident == null) continue;
-            for (Edge e : incident) {
-                if (added.contains(e)) continue;
-                Collection<String> endpoints = graph.getEndpoints(e);
-                if (endpoints == null || endpoints.size() < 2) continue;
-                Iterator<String> it = endpoints.iterator();
-                String v1 = it.next();
-                String v2 = it.next();
-                if (sampledNodes.contains(v1) && sampledNodes.contains(v2)) {
-                    added.add(e);
-                    Edge copy = new Edge(e.getType(), v1, v2);
-                    copy.setWeight(e.getWeight());
-                    copy.setLabel(e.getLabel());
-                    if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
-                    if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
-                    sample.addEdge(copy, v1, v2);
-                }
-            }
-        }
-
+        induceEdges(sample, sampledNodes, new HashSet<Edge>());
         return new SampleResult(sample, graph.getVertexCount(),
             graph.getEdgeCount(), strategy);
     }
 
     /**
      * Build a SampleResult from pre-selected edges (for Edge sampling).
+     * First adds the explicitly selected edges, then induces any
+     * remaining edges between sampled nodes.
      */
     private SampleResult buildResultFromEdges(Set<String> sampledNodes,
                                               Set<Edge> sampledEdges,
@@ -402,47 +436,16 @@ public class GraphSampler {
             sample.addVertex(v);
         }
 
+        // Add the explicitly sampled edges first
+        Set<Edge> added = new HashSet<Edge>(sampledEdges);
         for (Edge e : sampledEdges) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            if (endpoints == null || endpoints.size() < 2) continue;
-            Iterator<String> it = endpoints.iterator();
-            String v1 = it.next();
-            String v2 = it.next();
-            Edge copy = new Edge(e.getType(), v1, v2);
-            copy.setWeight(e.getWeight());
-            copy.setLabel(e.getLabel());
-            if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
-            if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
-            sample.addEdge(copy, v1, v2);
+            String[] ep = endpoints(e);
+            if (ep == null) continue;
+            sample.addEdge(copyEdge(e, ep[0], ep[1]), ep[0], ep[1]);
         }
 
-        // Also add any induced edges between sampled nodes that weren't
-        // directly selected. Use incident-edge iteration on sampled nodes
-        // instead of scanning all edges in the original graph (faster when
-        // the sample is small relative to the graph).
-        Set<Edge> seenEdges = new HashSet<Edge>(sampledEdges);
-        for (String v : sampledNodes) {
-            Collection<Edge> incident = graph.getIncidentEdges(v);
-            if (incident == null) continue;
-            for (Edge e : incident) {
-                if (seenEdges.contains(e)) continue;
-                Collection<String> endpoints = graph.getEndpoints(e);
-                if (endpoints == null || endpoints.size() < 2) continue;
-                Iterator<String> it = endpoints.iterator();
-                String v1 = it.next();
-                String v2 = it.next();
-                if (sampledNodes.contains(v1) && sampledNodes.contains(v2)
-                        && sample.findEdge(v1, v2) == null) {
-                    seenEdges.add(e);
-                    Edge copy = new Edge(e.getType(), v1, v2);
-                    copy.setWeight(e.getWeight());
-                    copy.setLabel(e.getLabel());
-                    if (e.getTimestamp() != null) copy.setTimestamp(e.getTimestamp());
-                    if (e.getEndTimestamp() != null) copy.setEndTimestamp(e.getEndTimestamp());
-                    sample.addEdge(copy, v1, v2);
-                }
-            }
-        }
+        // Induce remaining edges between sampled nodes
+        induceEdges(sample, sampledNodes, added);
 
         return new SampleResult(sample, graph.getVertexCount(),
             graph.getEdgeCount(), strategy);
