@@ -80,14 +80,9 @@ public class RandomWalkAnalyzer {
         validateGraph(graph);
         validateNode(graph, source, "source");
 
-        int n = graph.getVertexCount();
-        List<V> vertexList = new ArrayList<>(graph.getVertices());
-        Map<V, Integer> vertexIndex = new HashMap<>(n * 2);
-        for (int i = 0; i < n; i++) {
-            vertexIndex.put(vertexList.get(i), i);
-        }
-
-        int sourceIdx = vertexIndex.get(source);
+        IndexedGraph<V> ig = buildIndexedGraph(graph, graph.getVertices());
+        int n = ig.size;
+        int sourceIdx = ig.indexOf(source);
 
         // Array-based accumulators (no boxing, no Map lookups in hot loop)
         long[] totalSteps = new long[n];
@@ -96,39 +91,17 @@ public class RandomWalkAnalyzer {
 
         int maxSteps = n * n * 10;
 
-        // Build adjacency as int[][] for cache-friendly, boxing-free traversal
-        int[][] adj = new int[n][];
-        for (int i = 0; i < n; i++) {
-            V v = vertexList.get(i);
-            Collection<V> nbrs = graph.getNeighbors(v);
-            if (nbrs == null || nbrs.isEmpty()) {
-                adj[i] = new int[0];
-            } else {
-                int[] neighbors = new int[nbrs.size()];
-                int j = 0;
-                for (V nb : nbrs) {
-                    Integer idx = vertexIndex.get(nb);
-                    if (idx != null) neighbors[j++] = idx;
-                }
-                adj[i] = (j == neighbors.length) ? neighbors : java.util.Arrays.copyOf(neighbors, j);
-            }
-        }
-
-        // Generation-based visited tracking: instead of allocating a new
-        // HashSet or calling Arrays.fill(visited, false) each simulation,
-        // we increment a generation counter. A vertex is "visited" when
-        // visitedGen[v] == currentGen. Reset is O(1) per simulation.
         int[] visitedGen = new int[n];
         int currentGen = 0;
 
         for (int sim = 0; sim < defaultSimulations; sim++) {
             currentGen++;
             visitedGen[sourceIdx] = currentGen;
-            int remaining = n - 1;  // count of unvisited vertices
+            int remaining = n - 1;
 
             int currentIdx = sourceIdx;
             for (int step = 1; step <= maxSteps && remaining > 0; step++) {
-                int[] nbrs = adj[currentIdx];
+                int[] nbrs = ig.adj[currentIdx];
                 if (nbrs.length == 0) break;
                 currentIdx = nbrs[rng.nextInt(nbrs.length)];
 
@@ -141,13 +114,12 @@ public class RandomWalkAnalyzer {
             }
         }
 
-        // Build result map
         Map<V, Double> result = new LinkedHashMap<>();
         for (int i = 0; i < n; i++) {
             if (i == sourceIdx) {
-                result.put(vertexList.get(i), 0.0);
+                result.put(ig.vertex(i), 0.0);
             } else {
-                result.put(vertexList.get(i), reachedCount[i] == 0
+                result.put(ig.vertex(i), reachedCount[i] == 0
                         ? Double.POSITIVE_INFINITY
                         : (double) totalSteps[i] / reachedCount[i]);
             }
@@ -175,39 +147,14 @@ public class RandomWalkAnalyzer {
         validateGraph(graph);
         validateNode(graph, source, "source");
 
-        // Build indexed vertex list and adjacency restricted to reachable set
         Set<V> reachable = bfsReachable(graph, source);
         if (reachable.size() <= 1) return 0;
 
-        int n = reachable.size();
-        List<V> vertexList = new ArrayList<>(reachable);
-        Map<V, Integer> vertexIndex = new HashMap<>(n * 2);
-        for (int i = 0; i < n; i++) {
-            vertexIndex.put(vertexList.get(i), i);
-        }
-        int sourceIdx = vertexIndex.get(source);
-
-        // Build int[][] adjacency (only within reachable set)
-        int[][] adj = new int[n][];
-        for (int i = 0; i < n; i++) {
-            V v = vertexList.get(i);
-            Collection<V> nbrs = graph.getNeighbors(v);
-            if (nbrs == null || nbrs.isEmpty()) {
-                adj[i] = new int[0];
-            } else {
-                int[] neighbors = new int[nbrs.size()];
-                int j = 0;
-                for (V nb : nbrs) {
-                    Integer idx = vertexIndex.get(nb);
-                    if (idx != null) neighbors[j++] = idx;
-                }
-                adj[i] = (j == neighbors.length) ? neighbors : java.util.Arrays.copyOf(neighbors, j);
-            }
-        }
-
+        IndexedGraph<V> ig = buildIndexedGraph(graph, reachable);
+        int n = ig.size;
+        int sourceIdx = ig.indexOf(source);
         int maxSteps = n * n * 20;
 
-        // Generation-counter visited tracking: O(1) reset per simulation
         int[] visitedGen = new int[n];
         int currentGen = 0;
 
@@ -219,7 +166,7 @@ public class RandomWalkAnalyzer {
             int currentIdx = sourceIdx;
 
             for (int step = 1; step <= maxSteps && remaining > 0; step++) {
-                int[] nbrs = adj[currentIdx];
+                int[] nbrs = ig.adj[currentIdx];
                 if (nbrs.length == 0) {
                     totalSteps += step;
                     remaining = 0;
@@ -413,22 +360,6 @@ public class RandomWalkAnalyzer {
         return -1;
     }
 
-    private <V> long simulateCoverWalk(V source, Set<V> reachable,
-                                      Map<V, List<V>> neighborCache, int maxSteps) {
-        Set<V> visited = new HashSet<>();
-        V current = source;
-        visited.add(current);
-        int target = reachable.size();
-        for (int step = 1; step <= maxSteps; step++) {
-            List<V> nb = neighborCache.get(current);
-            if (nb == null || nb.isEmpty()) return step;
-            current = nb.get(rng.nextInt(nb.size()));
-            visited.add(current);
-            if (visited.size() >= target) return step;
-        }
-        return maxSteps;
-    }
-
     /** BFS to find all vertices reachable from {@code source}. */
     private <V, E> Set<V> bfsReachable(Graph<V, E> graph, V source) {
         Set<V> reachable = new HashSet<>();
@@ -442,16 +373,6 @@ public class RandomWalkAnalyzer {
             }
         }
         return reachable;
-    }
-
-    /** Cache neighbor lists for a set of vertices — avoids per-step allocation. */
-    private <V, E> Map<V, List<V>> buildNeighborCache(Graph<V, E> graph, Set<V> vertices) {
-        Map<V, List<V>> cache = new HashMap<>();
-        for (V v : vertices) {
-            Collection<V> neighbors = graph.getNeighbors(v);
-            cache.put(v, neighbors != null ? new ArrayList<>(neighbors) : Collections.<V>emptyList());
-        }
-        return cache;
     }
 
     private <V, E> long simulateReturnWalk(Graph<V, E> graph, V node, int maxSteps) {
@@ -495,5 +416,65 @@ public class RandomWalkAnalyzer {
     private <V, E> void validateNode(Graph<V, E> graph, V node, String name) {
         if (node == null) throw new IllegalArgumentException(name + " must not be null");
         if (!graph.containsVertex(node)) throw new IllegalArgumentException(name + " not found in graph: " + node);
+    }
+
+    // ── Indexed Graph Helper ───────────────────────────────────────────
+
+    /**
+     * Compact, array-indexed representation of a vertex subset and its
+     * adjacency. Eliminates the duplicated index-building and int[][]
+     * adjacency construction that was previously copy-pasted between
+     * hittingTimesFrom and coverTime.
+     */
+    private static class IndexedGraph<V> {
+        final int size;
+        final int[][] adj;
+        private final List<V> vertexList;
+        private final Map<V, Integer> vertexIndex;
+
+        IndexedGraph(int size, int[][] adj, List<V> vertexList,
+                     Map<V, Integer> vertexIndex) {
+            this.size = size;
+            this.adj = adj;
+            this.vertexList = vertexList;
+            this.vertexIndex = vertexIndex;
+        }
+
+        int indexOf(V v) { return vertexIndex.get(v); }
+        V vertex(int i) { return vertexList.get(i); }
+    }
+
+    /**
+     * Builds an {@link IndexedGraph} from a subset of vertices in the
+     * given graph. Adjacency arrays only reference vertices within the
+     * subset, making it safe for reachability-restricted analysis.
+     */
+    private <V, E> IndexedGraph<V> buildIndexedGraph(Graph<V, E> graph,
+                                                      Collection<V> vertices) {
+        int n = vertices.size();
+        List<V> vertexList = new ArrayList<>(vertices);
+        Map<V, Integer> vertexIndex = new HashMap<>(n * 2);
+        for (int i = 0; i < n; i++) {
+            vertexIndex.put(vertexList.get(i), i);
+        }
+
+        int[][] adj = new int[n][];
+        for (int i = 0; i < n; i++) {
+            V v = vertexList.get(i);
+            Collection<V> nbrs = graph.getNeighbors(v);
+            if (nbrs == null || nbrs.isEmpty()) {
+                adj[i] = new int[0];
+            } else {
+                int[] neighbors = new int[nbrs.size()];
+                int j = 0;
+                for (V nb : nbrs) {
+                    Integer idx = vertexIndex.get(nb);
+                    if (idx != null) neighbors[j++] = idx;
+                }
+                adj[i] = (j == neighbors.length) ? neighbors
+                        : java.util.Arrays.copyOf(neighbors, j);
+            }
+        }
+        return new IndexedGraph<>(n, adj, vertexList, vertexIndex);
     }
 }
