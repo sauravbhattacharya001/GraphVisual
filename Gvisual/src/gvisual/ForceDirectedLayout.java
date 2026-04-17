@@ -164,16 +164,22 @@ public class ForceDirectedLayout {
             indexMap.put(vertexList.get(i), i);
         }
 
-        // Build Edge list as index pairs with weights
-        List<int[]> edgeIndices = new ArrayList<int[]>();
-        List<Double> edgeWeights = new ArrayList<Double>();
+        // Build Edge list as primitive arrays for cache-friendly
+        // iteration in the hot loop (avoids List/Integer boxing overhead).
+        int edgeCapacity = graph.getEdgeCount();
+        int[] edgeSrc = new int[edgeCapacity];
+        int[] edgeDst = new int[edgeCapacity];
+        double[] edgeWt = new double[edgeCapacity];
+        int edgeCount = 0;
         for (Edge e : graph.getEdges()) {
             Integer u = indexMap.get(e.getVertex1());
             Integer v = indexMap.get(e.getVertex2());
             if (u != null && v != null && !u.equals(v)) {
-                edgeIndices.add(new int[]{u, v});
-                edgeWeights.add(useEdgeWeights
-                        ? Math.max(e.getWeight(), 0.1) : 1.0);
+                edgeSrc[edgeCount] = u;
+                edgeDst[edgeCount] = v;
+                edgeWt[edgeCount] = useEdgeWeights
+                        ? Math.max(e.getWeight(), 0.1) : 1.0;
+                edgeCount++;
             }
         }
 
@@ -222,10 +228,12 @@ public class ForceDirectedLayout {
             }
 
             // ── Attractive forces (edges) ──────────────────────────
-            for (int e = 0; e < edgeIndices.size(); e++) {
-                int u = edgeIndices.get(e)[0];
-                int v = edgeIndices.get(e)[1];
-                double w = edgeWeights.get(e);
+            // Uses primitive arrays (edgeSrc/edgeDst/edgeWt) for
+            // sequential memory access — no List.get() or unboxing.
+            for (int e = 0; e < edgeCount; e++) {
+                int u = edgeSrc[e];
+                int v = edgeDst[e];
+                double w = edgeWt[e];
 
                 double dx = pos[u][0] - pos[v][0];
                 double dy = pos[u][1] - pos[v][1];
@@ -233,9 +241,10 @@ public class ForceDirectedLayout {
                 if (dist < MIN_DIST) dist = MIN_DIST;
 
                 // Attractive force: dist² / k, scaled by Edge weight
-                double force = (dist * dist) / k * w;
-                double fx = (dx / dist) * force;
-                double fy = (dy / dist) * force;
+                // Simplified: force/dist = dist/k * w (avoids one division)
+                double fOverD = dist / k * w;
+                double fx = dx * fOverD;
+                double fy = dy * fOverD;
 
                 disp[u][0] -= fx;
                 disp[u][1] -= fy;
