@@ -208,6 +208,27 @@ public class StructuralHoleAnalyzer {
         }
     }
 
+    // ── Cached analysis ─────────────────────────────────────────
+
+    /**
+     * Lazily-computed cache of analyzeAll() results.
+     * Avoids recomputing O(V·d²) metrics when topBrokers(), mostConstrained(),
+     * and generateReport() are called in sequence (previously 3 full passes).
+     */
+    private List<VertexMetrics> cachedAnalysis;
+
+    /**
+     * Returns the cached analyzeAll() result, computing it on first access.
+     * The cache is never invalidated because the analyzer is constructed
+     * once per graph instance and the graph is not mutated.
+     */
+    private List<VertexMetrics> getCachedAnalysis() {
+        if (cachedAnalysis == null) {
+            cachedAnalysis = analyzeAll();
+        }
+        return cachedAnalysis;
+    }
+
     // ── Analysis methods ────────────────────────────────────────
 
     /**
@@ -256,18 +277,24 @@ public class StructuralHoleAnalyzer {
     /**
      * Get the top N brokers in the network.
      *
+     * <p>Reuses cached analysis results from {@link #analyzeAll()} to avoid
+     * recomputing O(V²) metrics on repeated calls.</p>
+     *
      * @param n number of brokers to return
      * @return list of top brokers sorted by brokerage score
      * @throws IllegalArgumentException if n &lt; 1
      */
     public List<VertexMetrics> topBrokers(int n) {
         if (n < 1) throw new IllegalArgumentException("n must be >= 1");
-        List<VertexMetrics> all = analyzeAll();
-        return all.subList(0, Math.min(n, all.size()));
+        List<VertexMetrics> all = getCachedAnalysis();
+        return new ArrayList<>(all.subList(0, Math.min(n, all.size())));
     }
 
     /**
      * Get the most constrained vertices (least brokerage opportunity).
+     *
+     * <p>Reuses cached analysis results and sorts a copy to avoid
+     * mutating the cached brokerage-sorted list.</p>
      *
      * @param n number of vertices to return
      * @return list sorted by constraint (descending)
@@ -275,7 +302,7 @@ public class StructuralHoleAnalyzer {
      */
     public List<VertexMetrics> mostConstrained(int n) {
         if (n < 1) throw new IllegalArgumentException("n must be >= 1");
-        List<VertexMetrics> all = analyzeAll();
+        List<VertexMetrics> all = new ArrayList<>(getCachedAnalysis());
         all.sort((a, b) -> Double.compare(b.getConstraint(), a.getConstraint()));
         return all.subList(0, Math.min(n, all.size()));
     }
@@ -334,7 +361,7 @@ public class StructuralHoleAnalyzer {
      * @return the brokerage report
      */
     public BrokerageReport generateReport() {
-        List<VertexMetrics> all = analyzeAll();
+        List<VertexMetrics> all = getCachedAnalysis();
 
         double avgConstraint = 0, avgEfficiency = 0, avgBrokerage = 0;
         if (!all.isEmpty()) {
