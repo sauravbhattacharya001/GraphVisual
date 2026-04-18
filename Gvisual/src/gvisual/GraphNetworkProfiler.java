@@ -57,43 +57,49 @@ public class GraphNetworkProfiler {
 
     /** Network type classifications. */
     public enum NetworkType {
-        SOCIAL("Social Network", "High clustering, assortative mixing, community structure"),
-        SCALE_FREE("Scale-Free Network", "Power-law degree distribution, hub-dominated"),
-        SMALL_WORLD("Small-World Network", "High clustering with short average paths"),
-        RANDOM("Random Network", "Erdős–Rényi-like, low clustering, Poisson degree"),
-        LATTICE("Lattice/Grid", "Regular degree, high diameter, spatial structure"),
-        TREE_LIKE("Tree-Like", "Minimal edges, no cycles, hierarchical"),
-        CORE_PERIPHERY("Core-Periphery", "Dense core connected to sparse periphery"),
-        UNKNOWN("Unclassified", "Does not match known network profiles");
+        SOCIAL("Social Network", "High clustering, assortative mixing, community structure", "#4CAF50"),
+        SCALE_FREE("Scale-Free Network", "Power-law degree distribution, hub-dominated", "#FF5722"),
+        SMALL_WORLD("Small-World Network", "High clustering with short average paths", "#2196F3"),
+        RANDOM("Random Network", "Erdős–Rényi-like, low clustering, Poisson degree", "#9E9E9E"),
+        LATTICE("Lattice/Grid", "Regular degree, high diameter, spatial structure", "#FF9800"),
+        TREE_LIKE("Tree-Like", "Minimal edges, no cycles, hierarchical", "#8BC34A"),
+        CORE_PERIPHERY("Core-Periphery", "Dense core connected to sparse periphery", "#9C27B0"),
+        UNKNOWN("Unclassified", "Does not match known network profiles", "#607D8B");
 
         private final String displayName;
         private final String description;
+        private final String color;
 
-        NetworkType(String displayName, String description) {
+        NetworkType(String displayName, String description, String color) {
             this.displayName = displayName;
             this.description = description;
+            this.color = color;
         }
 
         public String getDisplayName() { return displayName; }
         public String getDescription() { return description; }
+        public String getColor() { return color; }
     }
 
     /** Grade levels for individual metrics. */
     public enum Grade {
-        A_PLUS("A+", 97), A("A", 93), A_MINUS("A-", 90),
-        B_PLUS("B+", 87), B("B", 83), B_MINUS("B-", 80),
-        C_PLUS("C+", 77), C("C", 73), C_MINUS("C-", 70),
-        D("D", 60), F("F", 0);
+        A_PLUS("A+", 97, "#4CAF50"), A("A", 93, "#4CAF50"), A_MINUS("A-", 90, "#4CAF50"),
+        B_PLUS("B+", 87, "#8BC34A"), B("B", 83, "#8BC34A"), B_MINUS("B-", 80, "#8BC34A"),
+        C_PLUS("C+", 77, "#FF9800"), C("C", 73, "#FF9800"), C_MINUS("C-", 70, "#FF9800"),
+        D("D", 60, "#FF5722"), F("F", 0, "#F44336");
 
         private final String label;
         private final int minScore;
+        private final String color;
 
-        Grade(String label, int minScore) {
+        Grade(String label, int minScore, String color) {
             this.label = label;
             this.minScore = minScore;
+            this.color = color;
         }
 
         public String getLabel() { return label; }
+        public String getColor() { return color; }
 
         public static Grade fromScore(double score) {
             for (Grade g : values()) {
@@ -329,9 +335,9 @@ public class GraphNetworkProfiler {
         for (Edge e : graph.getEdges()) {
             String v1 = e.getVertex1();
             String v2 = e.getVertex2();
-            int di = graph.degree(v1);
-            int dj = graph.degree(v2);
-            sumProd += di * dj;
+            long di = graph.degree(v1);
+            long dj = graph.degree(v2);
+            sumProd += di * dj;   // use long to avoid int overflow on dense graphs
             sumI += di;
             sumJ += dj;
             sumISq += di * di;
@@ -712,7 +718,7 @@ public class GraphNetworkProfiler {
         h.append("</div>\n");
 
         // Classification card
-        String typeColor = getTypeColor(classification);
+        String typeColor = classification.getColor();
         h.append("<div class=\"card classification\">\n");
         h.append(String.format("<div class=\"type-badge\" style=\"background:%s\">%s</div>\n",
                 typeColor, classification.getDisplayName()));
@@ -722,7 +728,7 @@ public class GraphNetworkProfiler {
         h.append("</div>\n");
 
         // Overall score
-        String gradeColor = getGradeColor(getOverallGrade());
+        String gradeColor = getOverallGrade().getColor();
         h.append("<div class=\"card score-card\">\n");
         h.append(String.format("<div class=\"big-grade\" style=\"color:%s\">%s</div>\n",
                 gradeColor, getOverallGrade().getLabel()));
@@ -742,7 +748,7 @@ public class GraphNetworkProfiler {
             h.append("<table>\n<tr><th>Metric</th><th>Value</th><th>Score</th>");
             h.append("<th>Grade</th><th>Interpretation</th></tr>\n");
             for (MetricResult mr : entry.getValue()) {
-                String gc = getGradeColor(mr.getGrade());
+                String gc = mr.getGrade().getColor();
                 h.append(String.format("<tr><td>%s</td><td>%.4f</td>", mr.getName(), mr.getValue()));
                 h.append(String.format("<td><div class=\"bar\"><div class=\"bar-fill\" style=\"width:%.0f%%;background:%s\"></div></div></td>",
                         mr.getScore(), gc));
@@ -771,30 +777,6 @@ public class GraphNetworkProfiler {
         h.append("<div class=\"footer\">Generated by GraphVisual Network Profiler</div>\n");
         h.append("</div>\n</body>\n</html>");
         return h.toString();
-    }
-
-    private String getTypeColor(NetworkType type) {
-        switch (type) {
-            case SOCIAL: return "#4CAF50";
-            case SCALE_FREE: return "#FF5722";
-            case SMALL_WORLD: return "#2196F3";
-            case RANDOM: return "#9E9E9E";
-            case LATTICE: return "#FF9800";
-            case TREE_LIKE: return "#8BC34A";
-            case CORE_PERIPHERY: return "#9C27B0";
-            default: return "#607D8B";
-        }
-    }
-
-    private String getGradeColor(Grade grade) {
-        switch (grade) {
-            case A_PLUS: case A: case A_MINUS: return "#4CAF50";
-            case B_PLUS: case B: case B_MINUS: return "#8BC34A";
-            case C_PLUS: case C: case C_MINUS: return "#FF9800";
-            case D: return "#FF5722";
-            case F: return "#F44336";
-            default: return "#607D8B";
-        }
     }
 
     private void ensureAnalyzed() {
