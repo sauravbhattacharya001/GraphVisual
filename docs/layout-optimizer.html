@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Optimizer — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .lo-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row input[type=range] { flex: 1; }
+        .control-row select { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .control-row .val-display { font-size: 12px; color: var(--accent); min-width: 50px; text-align: right; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { opacity: 0.8; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; height: 500px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+        .metric-card .val { font-size: 20px; font-weight: 700; color: var(--accent); }
+        .metric-card .lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+        .preset-btn { padding: 6px 10px; font-size: 11px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .progress-bar { width: 100%; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+        .progress-bar .fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+        .auto-label { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .auto-label input[type=checkbox] { accent-color: var(--accent); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="brand">GraphVisual</a>
+        <span class="page-title">Layout Optimizer</span>
+    </nav>
+
+    <main class="container">
+        <h1>🔄 Autonomous Layout Optimizer</h1>
+        <p>Simulated annealing automatically finds optimal graph layouts by minimizing edge crossings and improving visual clarity. Watch the optimizer work in real-time.</p>
+
+        <div class="lo-layout">
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>Preset Graphs</h3>
+                    <div class="btn-row" id="presetRow" style="flex-wrap:wrap;gap:6px;"></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Custom Graph</h3>
+                    <textarea class="text-input" id="adjInput" placeholder="Adjacency list (one edge per line):&#10;0 1&#10;0 2&#10;1 3"></textarea>
+                    <button class="btn btn-secondary" onclick="loadCustomGraph()" style="margin-top:8px;width:100%">Load</button>
+                </div>
+
+                <div class="control-group">
+                    <h3>Optimizer Controls</h3>
+                    <div class="control-row">
+                        <label>Temperature</label>
+                        <input type="range" id="tempSlider" min="0.1" max="5" step="0.1" value="2">
+                        <span class="val-display" id="tempVal">2.00</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Cooling Rate</label>
+                        <input type="range" id="coolSlider" min="0.9" max="0.999" step="0.001" value="0.995">
+                        <span class="val-display" id="coolVal">0.995</span>
+                    </div>
+                    <div class="control-row">
+                        <label>Speed</label>
+                        <input type="range" id="speedSlider" min="1" max="50" step="1" value="10">
+                        <span class="val-display" id="speedVal">10</span>
+                    </div>
+                    <div class="auto-label">
+                        <input type="checkbox" id="autoOptimize" checked>
+                        Auto-optimize on preset load
+                    </div>
+                    <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+                    <div class="btn-row" style="margin-top:12px">
+                        <button class="btn btn-primary" id="startBtn" onclick="toggleOptimizer()">▶ Start</button>
+                        <button class="btn btn-danger" onclick="resetLayout()">↺ Reset</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Quality Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card" id="mc-crossings"><div class="val">0</div><div class="lbl">🔀 Crossings</div></div>
+                        <div class="metric-card" id="mc-edgestd"><div class="val">0</div><div class="lbl">📏 Edge σ</div></div>
+                        <div class="metric-card" id="mc-angular"><div class="val">0°</div><div class="lbl">📐 Min Angle</div></div>
+                        <div class="metric-card" id="mc-quality"><div class="val">0</div><div class="lbl">📊 Quality</div></div>
+                        <div class="metric-card" id="mc-temp"><div class="val">0</div><div class="lbl">🌡️ Temp</div></div>
+                        <div class="metric-card" id="mc-iters"><div class="val">0</div><div class="lbl">⚡ Iters</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <canvas id="graphCanvas"></canvas>
+                <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Click canvas to add nodes • Click two nodes to add edge • Drag nodes to reposition</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let nodes = [], edges = [];
+    let dragging = null, selectedNode = null;
+    let running = false, animId = null;
+    let temperature, coolingRate, stepsPerFrame;
+    let iterations = 0;
+    let savedPositions = [];
+
+    const presets = {
+        'Petersen': () => petersen(),
+        'K5': () => complete(5),
+        'K3,3': () => bipartiteComplete(3,3),
+        'Cube': () => cube(),
+        'Dodecahedron': () => dodecahedron(),
+        'Grid 4×4': () => grid(4,4),
+        'Random(15,25)': () => randomGraph(15,25),
+        'Bipartite(5,5)': () => bipartiteComplete(5,5)
+    };
+
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        buildPresetButtons();
+        setupCanvasEvents();
+        setupSliders();
+        loadPreset('Petersen');
+    }
+
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * devicePixelRatio;
+        canvas.height = rect.height * devicePixelRatio;
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+        draw();
+    }
+
+    function buildPresetButtons() {
+        const row = document.getElementById('presetRow');
+        Object.keys(presets).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'preset-btn';
+            btn.textContent = name;
+            btn.onclick = () => loadPreset(name);
+            row.appendChild(btn);
+        });
+    }
+
+    function loadPreset(name) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.preset-btn').forEach(b => { if(b.textContent === name) b.classList.add('active'); });
+        stopOptimizer();
+        const result = presets[name]();
+        nodes = result.nodes; edges = result.edges;
+        randomizePositions();
+        savedPositions = nodes.map(n => ({x:n.x, y:n.y}));
+        iterations = 0;
+        updateMetrics();
+        draw();
+        if(document.getElementById('autoOptimize').checked) {
+            setTimeout(() => startOptimizer(), 300);
+        }
+    }
+
+    function randomizePositions() {
+        const w = canvas.getBoundingClientRect().width - 60;
+        const h = canvas.getBoundingClientRect().height - 60;
+        nodes.forEach(n => { n.x = 30 + Math.random() * w; n.y = 30 + Math.random() * h; });
+    }
+
+    function loadCustomGraph() {
+        const text = document.getElementById('adjInput').value.trim();
+        if(!text) return;
+        stopOptimizer();
+        const nodeSet = new Set();
+        const edgeList = [];
+        text.split('\n').forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            if(parts.length >= 2) {
+                const a = parseInt(parts[0]), b = parseInt(parts[1]);
+                if(!isNaN(a) && !isNaN(b)) { nodeSet.add(a); nodeSet.add(b); edgeList.push([a,b]); }
+            }
+        });
+        const ids = [...nodeSet].sort((a,b)=>a-b);
+        const map = {}; ids.forEach((id,i) => map[id] = i);
+        nodes = ids.map((_,i) => ({id:i,x:0,y:0}));
+        edges = edgeList.map(([a,b]) => ({source:map[a], target:map[b]}));
+        randomizePositions();
+        savedPositions = nodes.map(n=>({x:n.x,y:n.y}));
+        iterations = 0;
+        updateMetrics(); draw();
+    }
+
+    function petersen() {
+        const n = []; for(let i=0;i<10;i++) n.push({id:i,x:0,y:0});
+        const e = [];
+        for(let i=0;i<5;i++) { e.push({source:i,target:(i+1)%5}); e.push({source:i,target:i+5}); e.push({source:i+5,target:5+(i+2)%5}); }
+        return {nodes:n, edges:e};
+    }
+    function complete(k) {
+        const n = []; for(let i=0;i<k;i++) n.push({id:i,x:0,y:0});
+        const e = []; for(let i=0;i<k;i++) for(let j=i+1;j<k;j++) e.push({source:i,target:j});
+        return {nodes:n, edges:e};
+    }
+    function bipartiteComplete(a,b) {
+        const n=[]; for(let i=0;i<a+b;i++) n.push({id:i,x:0,y:0});
+        const e=[]; for(let i=0;i<a;i++) for(let j=a;j<a+b;j++) e.push({source:i,target:j});
+        return {nodes:n, edges:e};
+    }
+    function cube() {
+        const n=[]; for(let i=0;i<8;i++) n.push({id:i,x:0,y:0});
+        const e=[{source:0,target:1},{source:1,target:2},{source:2,target:3},{source:3,target:0},{source:4,target:5},{source:5,target:6},{source:6,target:7},{source:7,target:4},{source:0,target:4},{source:1,target:5},{source:2,target:6},{source:3,target:7}];
+        return {nodes:n, edges:e};
+    }
+    function dodecahedron() {
+        const n=[]; for(let i=0;i<20;i++) n.push({id:i,x:0,y:0});
+        const e=[]; const adj=[[1,4,5],[0,2,6],[1,3,7],[2,4,8],[3,0,9],[0,10,14],[1,10,11],[2,11,12],[3,12,13],[4,13,14],[5,6,15],[6,7,16],[7,8,17],[8,9,18],[9,5,19],[10,16,19],[11,15,17],[12,16,18],[13,17,19],[14,18,15]];
+        adj.forEach((nbrs,i)=>nbrs.forEach(j=>{if(i<j)e.push({source:i,target:j});}));
+        return {nodes:n, edges:e};
+    }
+    function grid(r,c) {
+        const n=[]; for(let i=0;i<r*c;i++) n.push({id:i,x:0,y:0});
+        const e=[];
+        for(let i=0;i<r;i++) for(let j=0;j<c;j++) { const id=i*c+j; if(j<c-1) e.push({source:id,target:id+1}); if(i<r-1) e.push({source:id,target:id+c}); }
+        return {nodes:n, edges:e};
+    }
+    function randomGraph(nCount,eCount) {
+        const n=[]; for(let i=0;i<nCount;i++) n.push({id:i,x:0,y:0});
+        const e=[], added=new Set();
+        while(e.length<eCount) { const a=Math.floor(Math.random()*nCount), b=Math.floor(Math.random()*nCount); if(a!==b&&!added.has(`${Math.min(a,b)}-${Math.max(a,b)}`)){added.add(`${Math.min(a,b)}-${Math.max(a,b)}`);e.push({source:Math.min(a,b),target:Math.max(a,b)});} }
+        return {nodes:n, edges:e};
+    }
+
+    function setupCanvasEvents() {
+        let dragOffset = {x:0,y:0};
+        canvas.addEventListener('mousedown', e => {
+            const {x,y} = canvasCoords(e);
+            const node = findNode(x,y);
+            if(node !== null) { dragging = node; dragOffset = {x: x-nodes[node].x, y: y-nodes[node].y}; selectedNode = null; }
+        });
+        canvas.addEventListener('mousemove', e => {
+            if(dragging !== null) { const {x,y}=canvasCoords(e); nodes[dragging].x=x-dragOffset.x; nodes[dragging].y=y-dragOffset.y; draw(); }
+        });
+        canvas.addEventListener('mouseup', e => {
+            if(dragging !== null) { dragging = null; updateMetrics(); return; }
+            const {x,y} = canvasCoords(e);
+            const node = findNode(x,y);
+            if(node !== null) {
+                if(selectedNode !== null && selectedNode !== node) {
+                    edges.push({source: Math.min(selectedNode,node), target: Math.max(selectedNode,node)});
+                    selectedNode = null; updateMetrics(); draw();
+                } else { selectedNode = node; draw(); }
+            } else {
+                nodes.push({id: nodes.length, x, y});
+                selectedNode = null; updateMetrics(); draw();
+            }
+        });
+    }
+
+    function canvasCoords(e) { const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+    function findNode(x,y) { for(let i=0;i<nodes.length;i++) { if(Math.hypot(nodes[i].x-x, nodes[i].y-y)<12) return i; } return null; }
+
+    function draw() {
+        const w = canvas.getBoundingClientRect().width, h = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0,0,w,h);
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+        edges.forEach(e => { ctx.beginPath(); ctx.moveTo(nodes[e.source].x, nodes[e.source].y); ctx.lineTo(nodes[e.target].x, nodes[e.target].y); ctx.stroke(); });
+        nodes.forEach((n,i) => {
+            ctx.beginPath(); ctx.arc(n.x, n.y, 10, 0, Math.PI*2);
+            ctx.fillStyle = i === selectedNode ? '#f39c12' : '#00d4aa';
+            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#000'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(i, n.x, n.y);
+        });
+    }
+
+    function countCrossings() {
+        let count = 0;
+        for(let i=0;i<edges.length;i++) for(let j=i+1;j<edges.length;j++) {
+            if(edges[i].source===edges[j].source||edges[i].source===edges[j].target||edges[i].target===edges[j].source||edges[i].target===edges[j].target) continue;
+            if(segmentsIntersect(nodes[edges[i].source],nodes[edges[i].target],nodes[edges[j].source],nodes[edges[j].target])) count++;
+        }
+        return count;
+    }
+
+    function segmentsIntersect(p1,p2,p3,p4) {
+        const d1=direction(p3,p4,p1), d2=direction(p3,p4,p2), d3=direction(p1,p2,p3), d4=direction(p1,p2,p4);
+        if(((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0))) return true;
+        return false;
+    }
+    function direction(a,b,c) { return (c.x-a.x)*(b.y-a.y)-(c.y-a.y)*(b.x-a.x); }
+
+    function edgeLengthStd() {
+        if(edges.length===0) return 0;
+        const lens = edges.map(e => Math.hypot(nodes[e.source].x-nodes[e.target].x, nodes[e.source].y-nodes[e.target].y));
+        const mean = lens.reduce((a,b)=>a+b,0)/lens.length;
+        return Math.sqrt(lens.reduce((a,l)=>a+(l-mean)**2,0)/lens.length);
+    }
+
+    function minAngularResolution() {
+        let minAngle = 360;
+        nodes.forEach((n,i) => {
+            const nbrs = edges.filter(e=>e.source===i||e.target===i).map(e=>e.source===i?e.target:e.source);
+            if(nbrs.length < 2) return;
+            const angles = nbrs.map(j => Math.atan2(nodes[j].y-n.y, nodes[j].x-n.x)).sort((a,b)=>a-b);
+            for(let k=0;k<angles.length;k++) {
+                const diff = ((angles[(k+1)%angles.length] - angles[k]) + 2*Math.PI) % (2*Math.PI);
+                const deg = diff * 180 / Math.PI;
+                if(deg < minAngle) minAngle = deg;
+            }
+        });
+        return minAngle === 360 ? 0 : minAngle;
+    }
+
+    function qualityScore() {
+        const crossings = countCrossings();
+        const maxCross = Math.max(edges.length * (edges.length-1)/2, 1);
+        const crossScore = Math.max(0, 100 - (crossings / maxCross) * 200);
+        const stdScore = Math.max(0, 100 - edgeLengthStd() / 5);
+        const angleScore = Math.min(100, minAngularResolution() * 2.5);
+        return Math.round(crossScore * 0.5 + stdScore * 0.25 + angleScore * 0.25);
+    }
+
+    function updateMetrics() {
+        setMetric('mc-crossings', countCrossings());
+        setMetric('mc-edgestd', edgeLengthStd().toFixed(1));
+        setMetric('mc-angular', minAngularResolution().toFixed(0) + '°');
+        setMetric('mc-quality', qualityScore());
+        setMetric('mc-temp', temperature ? temperature.toFixed(3) : '—');
+        setMetric('mc-iters', iterations);
+    }
+    function setMetric(id, val) { document.getElementById(id).querySelector('.val').textContent = val; }
+
+    function cost() {
+        const w = canvas.getBoundingClientRect().width, h = canvas.getBoundingClientRect().height;
+        let c = countCrossings() * 100;
+        c += edgeLengthStd() * 0.5;
+        for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++) {
+            const d = Math.hypot(nodes[i].x-nodes[j].x, nodes[i].y-nodes[j].y);
+            if(d < 40) c += (40-d) * 5;
+        }
+        nodes.forEach(n => { if(n.x<20||n.x>w-20||n.y<20||n.y>h-20) c += 50; });
+        return c;
+    }
+
+    function annealingStep() {
+        const w = canvas.getBoundingClientRect().width, h = canvas.getBoundingClientRect().height;
+        const i = Math.floor(Math.random() * nodes.length);
+        const oldX = nodes[i].x, oldY = nodes[i].y;
+        const oldCost = cost();
+        const radius = temperature * 20;
+        nodes[i].x = Math.max(15, Math.min(w-15, oldX + (Math.random()-0.5)*radius));
+        nodes[i].y = Math.max(15, Math.min(h-15, oldY + (Math.random()-0.5)*radius));
+        const newCost = cost();
+        const delta = newCost - oldCost;
+        if(delta > 0 && Math.random() > Math.exp(-delta / (temperature * 50))) {
+            nodes[i].x = oldX; nodes[i].y = oldY;
+        }
+        temperature *= coolingRate;
+        iterations++;
+    }
+
+    function optimizerLoop() {
+        if(!running) return;
+        for(let i=0;i<stepsPerFrame;i++) annealingStep();
+        if(temperature < 0.001) { stopOptimizer(); }
+        const initTemp = parseFloat(document.getElementById('tempSlider').value);
+        const progress = Math.min(100, (1 - temperature / initTemp) * 100);
+        document.getElementById('progressFill').style.width = progress + '%';
+        updateMetrics(); draw();
+        animId = requestAnimationFrame(optimizerLoop);
+    }
+
+    function startOptimizer() {
+        temperature = parseFloat(document.getElementById('tempSlider').value);
+        coolingRate = parseFloat(document.getElementById('coolSlider').value);
+        stepsPerFrame = parseInt(document.getElementById('speedSlider').value);
+        running = true;
+        document.getElementById('startBtn').textContent = '⏸ Pause';
+        optimizerLoop();
+    }
+
+    function stopOptimizer() {
+        running = false;
+        if(animId) cancelAnimationFrame(animId);
+        animId = null;
+        document.getElementById('startBtn').textContent = '▶ Start';
+    }
+
+    function toggleOptimizer() { running ? stopOptimizer() : startOptimizer(); }
+
+    function resetLayout() {
+        stopOptimizer();
+        if(savedPositions.length === nodes.length) {
+            nodes.forEach((n,i) => { n.x = savedPositions[i].x; n.y = savedPositions[i].y; });
+        } else { randomizePositions(); }
+        iterations = 0; temperature = parseFloat(document.getElementById('tempSlider').value);
+        document.getElementById('progressFill').style.width = '0%';
+        updateMetrics(); draw();
+    }
+
+    function setupSliders() {
+        const t=document.getElementById('tempSlider'), c=document.getElementById('coolSlider'), s=document.getElementById('speedSlider');
+        t.oninput=()=>document.getElementById('tempVal').textContent=parseFloat(t.value).toFixed(2);
+        c.oninput=()=>document.getElementById('coolVal').textContent=parseFloat(c.value).toFixed(3);
+        s.oninput=()=>{document.getElementById('speedVal').textContent=s.value; stepsPerFrame=parseInt(s.value);};
+    }
+
+    init();
+    </script>
+</body>
+</html>
