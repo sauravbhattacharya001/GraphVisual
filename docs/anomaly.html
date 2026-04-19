@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Anomaly Detector — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .anomaly-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .control-row select, .control-row input[type=number], .control-row input[type=range] { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: #f85149; color: #fff; }
+        .btn-danger:hover { background: #da3633; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        #graphCanvas { cursor: grab; }
+        #graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 100px; text-align: center; }
+        .stat-card .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .stat-card.alert .val { color: var(--red); }
+        .stat-card.warn .val { color: var(--orange); }
+        .stat-card.ok .val { color: var(--green); }
+        .anomaly-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+        .anomaly-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .anomaly-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+        .anomaly-table tr:hover { background: var(--surface-hover); }
+        .severity-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .sev-critical { background: #f8514922; color: #f85149; border: 1px solid #f85149; }
+        .sev-high { background: #d2992222; color: #d29922; border: 1px solid #d29922; }
+        .sev-medium { background: #58a6ff22; color: #58a6ff; border: 1px solid #58a6ff; }
+        .sev-low { background: #3fb95022; color: #3fb950; border: 1px solid #3fb950; }
+        .findings-panel { max-height: 300px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 8px; }
+        .finding { padding: 8px; border-bottom: 1px solid var(--border); }
+        .finding:last-child { border-bottom: none; }
+        .finding-title { font-weight: 600; font-size: 13px; }
+        .finding-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .metric-bar { display: flex; align-items: center; gap: 6px; }
+        .metric-fill { height: 6px; border-radius: 3px; transition: width 0.3s; }
+        .viz-tabs { display: flex; gap: 0; margin-top: 16px; }
+        .viz-tab { padding: 8px 20px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-muted); }
+        .viz-tab:first-child { border-radius: 8px 0 0 8px; }
+        .viz-tab:last-child { border-radius: 0 8px 8px 0; }
+        .viz-tab.active { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
+        .viz-panel { display: none; margin-top: 12px; }
+        .viz-panel.active { display: block; }
+        .tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; z-index: 200; display: none; max-width: 260px; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
+        .checkbox-row input[type=checkbox] { accent-color: var(--accent); }
+        @media (max-width: 900px) { .anomaly-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="anomaly.html" class="sidebar-link active"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">📝</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <h1>🚨 Graph Anomaly Detector</h1>
+    <p>Proactively identify suspicious nodes and edges using statistical outlier detection across
+    multiple graph metrics. Anomalous nodes are highlighted by severity with explanations of why
+    each is unusual.</p>
+
+    <div class="anomaly-layout">
+        <!-- Left: Controls -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>📐 Graph Input</h3>
+                <div class="control-row">
+                    <label>Preset</label>
+                    <select id="presetSelect">
+                        <option value="karate">Zachary's Karate Club</option>
+                        <option value="florentine">Florentine Families</option>
+                        <option value="star-anomaly">Star + Hub Anomaly</option>
+                        <option value="bridge-anomaly">Bridge Anomaly</option>
+                        <option value="cluster-outlier">Cluster Outlier</option>
+                        <option value="random-er">Random (Erdős–Rényi)</option>
+                        <option value="scale-free">Scale-Free (Barabási–Albert)</option>
+                        <option value="custom">Custom (text)</option>
+                    </select>
+                </div>
+                <textarea id="customInput" rows="5" placeholder="Enter edges: one per line, e.g.&#10;A B&#10;B C&#10;C A" style="display:none;width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="btn btn-primary" id="loadBtn">Load & Scan</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🔧 Detection Settings</h3>
+                <div class="control-row">
+                    <label>Method</label>
+                    <select id="methodSelect">
+                        <option value="zscore">Z-Score</option>
+                        <option value="iqr">IQR (Tukey)</option>
+                        <option value="both">Both (union)</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>Z threshold</label>
+                    <input type="range" id="zThreshold" min="1" max="4" step="0.1" value="2">
+                    <span id="zVal" style="font-size:12px;min-width:30px;">2.0</span>
+                </div>
+                <div class="control-row">
+                    <label>IQR multiplier</label>
+                    <input type="range" id="iqrMult" min="1" max="3" step="0.1" value="1.5">
+                    <span id="iqrVal" style="font-size:12px;min-width:30px;">1.5</span>
+                </div>
+                <h3 style="margin-top:12px;">📊 Metrics to Scan</h3>
+                <div class="checkbox-row"><input type="checkbox" id="chkDegree" checked><label for="chkDegree">Degree</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkClustering" checked><label for="chkClustering">Clustering Coefficient</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkBetweenness" checked><label for="chkBetweenness">Betweenness Centrality</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkCloseness" checked><label for="chkCloseness">Closeness Centrality</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkPageRank" checked><label for="chkPageRank">PageRank</label></div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎯 Anomaly Summary</h3>
+                <div id="summaryPanel" style="font-size:13px;color:var(--text-muted);">Load a graph to begin scanning.</div>
+            </div>
+        </div>
+
+        <!-- Right: Visualizations -->
+        <div>
+            <div class="stats-bar" id="statsBar"></div>
+            <div class="viz-tabs">
+                <div class="viz-tab active" data-tab="graph">Graph View</div>
+                <div class="viz-tab" data-tab="table">Anomaly Table</div>
+                <div class="viz-tab" data-tab="dist">Distributions</div>
+                <div class="viz-tab" data-tab="findings">Findings</div>
+            </div>
+            <div class="viz-panel active" id="panel-graph">
+                <canvas id="graphCanvas" width="800" height="520"></canvas>
+            </div>
+            <div class="viz-panel" id="panel-table">
+                <div style="overflow-x:auto;">
+                    <table class="anomaly-table" id="anomalyTable">
+                        <thead><tr><th>#</th><th>Node</th><th>Severity</th><th>Anomalous Metrics</th><th>Degree</th><th>Clustering</th><th>Betweenness</th></tr></thead>
+                        <tbody id="anomalyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="viz-panel" id="panel-dist">
+                <canvas id="distCanvas" width="800" height="400"></canvas>
+                <div class="control-row" style="margin-top:8px;">
+                    <label>Metric</label>
+                    <select id="distMetric">
+                        <option value="degree">Degree</option>
+                        <option value="clustering">Clustering Coefficient</option>
+                        <option value="betweenness">Betweenness Centrality</option>
+                        <option value="closeness">Closeness Centrality</option>
+                        <option value="pagerank">PageRank</option>
+                    </select>
+                </div>
+            </div>
+            <div class="viz-panel" id="panel-findings">
+                <div class="findings-panel" id="findingsPanel"></div>
+            </div>
+        </div>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+</main>
+
+<script>
+// ====================== GRAPH ANOMALY DETECTOR ======================
+
+const PRESETS = {
+    'karate': () => {
+        // Zachary's Karate Club (34 nodes)
+        const edges = [[1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,11],[1,12],[1,13],[1,14],[1,18],[1,20],[1,22],[1,32],
+            [2,3],[2,4],[2,8],[2,14],[2,18],[2,20],[2,22],[2,31],
+            [3,4],[3,8],[3,9],[3,10],[3,14],[3,28],[3,29],[3,33],
+            [4,8],[4,13],[4,14],[5,7],[5,11],[6,7],[6,11],[6,17],[7,17],
+            [9,31],[9,33],[9,34],[10,34],[14,34],[15,33],[15,34],[16,33],[16,34],
+            [19,33],[19,34],[20,34],[21,33],[21,34],[23,33],[23,34],
+            [24,26],[24,28],[24,30],[24,33],[24,34],[25,26],[25,28],[25,32],
+            [26,32],[27,30],[27,34],[28,34],[29,32],[29,34],[30,33],[30,34],
+            [31,33],[31,34],[32,33],[32,34],[33,34]];
+        return edges.map(([a,b]) => [String(a), String(b)]);
+    },
+    'florentine': () => {
+        const edges = [['Acciaiuoli','Medici'],['Albizzi','Ginori'],['Albizzi','Guadagni'],['Albizzi','Medici'],
+            ['Barbadori','Castellani'],['Barbadori','Medici'],['Bischeri','Guadagni'],['Bischeri','Peruzzi'],['Bischeri','Strozzi'],
+            ['Castellani','Peruzzi'],['Castellani','Strozzi'],['Ginori','Medici'],['Guadagni','Lamberteschi'],['Guadagni','Tornabuoni'],
+            ['Medici','Ridolfi'],['Medici','Salviati'],['Medici','Tornabuoni'],['Pazzi','Salviati'],
+            ['Peruzzi','Strozzi'],['Ridolfi','Strozzi'],['Ridolfi','Tornabuoni'],['Salviati','Medici']];
+        return edges;
+    },
+    'star-anomaly': () => {
+        // Dense cluster + one mega-hub
+        const edges = [];
+        for(let i=1;i<=8;i++) for(let j=i+1;j<=8;j++) edges.push([String(i),String(j)]);
+        for(let i=9;i<=16;i++) for(let j=i+1;j<=16;j++) edges.push([String(i),String(j)]);
+        edges.push(['4','12']); // bridge
+        // Mega-hub connects to many
+        for(let i=1;i<=16;i++) edges.push(['HUB',String(i)]);
+        for(let i=17;i<=22;i++) { edges.push(['HUB',String(i)]); edges.push([String(i),String(i===22?17:i+1)]); }
+        return edges;
+    },
+    'bridge-anomaly': () => {
+        const edges = [];
+        for(let i=1;i<=6;i++) for(let j=i+1;j<=6;j++) edges.push([String(i),String(j)]);
+        for(let i=7;i<=12;i++) for(let j=i+1;j<=12;j++) edges.push([String(i),String(j)]);
+        edges.push(['BRIDGE','6'],['BRIDGE','7']); // single bridge node
+        return edges;
+    },
+    'cluster-outlier': () => {
+        const edges = [];
+        for(let i=1;i<=10;i++) for(let j=i+1;j<=10;j++) if(Math.random()<0.6) edges.push([String(i),String(j)]);
+        edges.push(['LONER','3']); // barely connected
+        edges.push(['HYPER','1'],['HYPER','2'],['HYPER','3'],['HYPER','4'],['HYPER','5'],['HYPER','6'],['HYPER','7'],['HYPER','8'],['HYPER','9'],['HYPER','10'],['HYPER','LONER']);
+        return edges;
+    },
+    'random-er': () => {
+        const n=25, p=0.15, edges=[];
+        for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(Math.random()<p) edges.push([String(i),String(j)]);
+        return edges;
+    },
+    'scale-free': () => {
+        const n=30, m=2, nodes=['0','1'], edges=[['0','1']], deg={0:1,1:1};
+        let totalDeg=2;
+        for(let i=2;i<n;i++){
+            const targets=new Set();
+            while(targets.size<Math.min(m,nodes.length)){
+                let r=Math.random()*totalDeg, cum=0;
+                for(const nd of nodes){ cum+=deg[nd]; if(cum>=r){ targets.add(nd); break; } }
+            }
+            const id=String(i); nodes.push(id); deg[id]=0;
+            for(const t of targets){ edges.push([id,t]); deg[id]++; deg[t]++; totalDeg+=2; }
+        }
+        return edges;
+    }
+};
+
+// ---- Graph data structures ----
+let nodes=[], adj={}, edgeList=[], nodeMetrics={}, anomalies=[], nodePositions={};
+let dragNode=null, panOff={x:0,y:0}, lastMouse={x:0,y:0}, isPanning=false;
+
+function buildGraph(edges){
+    const nodeSet=new Set();
+    adj={}; edgeList=[];
+    for(const [a,b] of edges){ nodeSet.add(a); nodeSet.add(b); if(!adj[a])adj[a]=[]; if(!adj[b])adj[b]=[]; adj[a].push(b); adj[b].push(a); edgeList.push([a,b]); }
+    nodes=Array.from(nodeSet);
+}
+
+// ---- Metric computations ----
+function computeDegree(){ const d={}; for(const n of nodes) d[n]=adj[n]?adj[n].length:0; return d; }
+
+function computeClustering(){
+    const c={};
+    for(const n of nodes){
+        const nb=adj[n]||[];
+        if(nb.length<2){ c[n]=0; continue; }
+        let tri=0; const s=new Set(nb);
+        for(let i=0;i<nb.length;i++) for(let j=i+1;j<nb.length;j++) if(s.has(nb[j]) && (adj[nb[i]]||[]).includes(nb[j])) tri++;
+        c[n]=2*tri/(nb.length*(nb.length-1));
+    }
+    return c;
+}
+
+function computeBetweenness(){
+    const bet={}; for(const n of nodes) bet[n]=0;
+    for(const s of nodes){
+        const stack=[], pred={}, sigma={}, dist={};
+        for(const n of nodes){ pred[n]=[]; sigma[n]=0; dist[n]=-1; }
+        sigma[s]=1; dist[s]=0;
+        const Q=[s];
+        while(Q.length){
+            const v=Q.shift(); stack.push(v);
+            for(const w of (adj[v]||[])){
+                if(dist[w]<0){ Q.push(w); dist[w]=dist[v]+1; }
+                if(dist[w]===dist[v]+1){ sigma[w]+=sigma[v]; pred[w].push(v); }
+            }
+        }
+        const delta={}; for(const n of nodes) delta[n]=0;
+        while(stack.length){
+            const w=stack.pop();
+            for(const v of pred[w]) delta[v]+=sigma[v]/sigma[w]*(1+delta[w]);
+            if(w!==s) bet[w]+=delta[w];
+        }
+    }
+    for(const n of nodes) bet[n]/=2;
+    return bet;
+}
+
+function computeCloseness(){
+    const c={};
+    for(const s of nodes){
+        const dist={};
+        for(const n of nodes) dist[n]=-1;
+        dist[s]=0; const Q=[s]; let total=0, reach=0;
+        while(Q.length){
+            const v=Q.shift();
+            for(const w of (adj[v]||[])) if(dist[w]<0){ dist[w]=dist[v]+1; Q.push(w); total+=dist[w]; reach++; }
+        }
+        c[s]=reach>0?(reach/total)*(reach/(nodes.length-1)):0;
+    }
+    return c;
+}
+
+function computePageRank(d=0.85, iter=30){
+    const pr={}, N=nodes.length, init=1/N;
+    for(const n of nodes) pr[n]=init;
+    for(let i=0;i<iter;i++){
+        const next={}; let sink=0;
+        for(const n of nodes) if(!adj[n]||adj[n].length===0) sink+=pr[n];
+        for(const n of nodes){
+            let s=(1-d)/N + d*sink/N;
+            for(const nb of nodes) if((adj[nb]||[]).includes(n)) s+=d*pr[nb]/adj[nb].length;
+            next[n]=s;
+        }
+        for(const n of nodes) pr[n]=next[n];
+    }
+    return pr;
+}
+
+// ---- Outlier detection ----
+function zScoreOutliers(values, threshold){
+    const vals=Object.values(values), mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const std=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length)||1;
+    const out={};
+    for(const [k,v] of Object.entries(values)){ const z=Math.abs(v-mean)/std; if(z>=threshold) out[k]=z; }
+    return {outliers:out, mean, std};
+}
+
+function iqrOutliers(values, mult){
+    const vals=Object.values(values).sort((a,b)=>a-b);
+    const q1=vals[Math.floor(vals.length*0.25)], q3=vals[Math.floor(vals.length*0.75)], iqr=q3-q1;
+    const lo=q1-mult*iqr, hi=q3+mult*iqr;
+    const out={};
+    for(const [k,v] of Object.entries(values)) if(v<lo||v>hi) out[k]=Math.max(Math.abs(v-lo),Math.abs(v-hi))/(iqr||1);
+    return {outliers:out, q1, q3, iqr, lo, hi};
+}
+
+function runDetection(){
+    const method=document.getElementById('methodSelect').value;
+    const zTh=parseFloat(document.getElementById('zThreshold').value);
+    const iqrM=parseFloat(document.getElementById('iqrMult').value);
+
+    const metrics={};
+    if(document.getElementById('chkDegree').checked) metrics.degree=computeDegree();
+    if(document.getElementById('chkClustering').checked) metrics.clustering=computeClustering();
+    if(document.getElementById('chkBetweenness').checked) metrics.betweenness=computeBetweenness();
+    if(document.getElementById('chkCloseness').checked) metrics.closeness=computeCloseness();
+    if(document.getElementById('chkPageRank').checked) metrics.pagerank=computePageRank();
+
+    nodeMetrics=metrics;
+    const nodeScores={}; // node → {metric → severity}
+    for(const [mName, mVals] of Object.entries(metrics)){
+        let outliers={};
+        if(method==='zscore'||method==='both') { const r=zScoreOutliers(mVals,zTh); for(const [k,v] of Object.entries(r.outliers)) outliers[k]=Math.max(outliers[k]||0,v); }
+        if(method==='iqr'||method==='both') { const r=iqrOutliers(mVals,iqrM); for(const [k,v] of Object.entries(r.outliers)) outliers[k]=Math.max(outliers[k]||0,v); }
+        for(const [node,score] of Object.entries(outliers)){
+            if(!nodeScores[node]) nodeScores[node]={};
+            nodeScores[node][mName]=score;
+        }
+    }
+
+    anomalies=Object.entries(nodeScores).map(([node,mScores])=>{
+        const maxScore=Math.max(...Object.values(mScores));
+        const count=Object.keys(mScores).length;
+        const severity=count>=3||maxScore>3?'critical':count>=2||maxScore>2.5?'high':maxScore>1.5?'medium':'low';
+        return {node, metrics:mScores, maxScore, count, severity};
+    }).sort((a,b)=>b.maxScore-a.maxScore);
+
+    renderAll();
+}
+
+// ---- Layout (force-directed) ----
+function layoutGraph(){
+    const pos={}; const N=nodes.length; if(!N) return pos;
+    // Init circle
+    for(let i=0;i<N;i++) pos[nodes[i]]={x:350+200*Math.cos(2*Math.PI*i/N),y:260+180*Math.sin(2*Math.PI*i/N)};
+    // Force iterations
+    const k=Math.sqrt(600*400/N), iter=120;
+    for(let t=0;t<iter;t++){
+        const disp={};
+        for(const n of nodes) disp[n]={x:0,y:0};
+        // Repulsion
+        for(let i=0;i<N;i++) for(let j=i+1;j<N;j++){
+            let dx=pos[nodes[i]].x-pos[nodes[j]].x, dy=pos[nodes[i]].y-pos[nodes[j]].y;
+            const d=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+            const f=k*k/d;
+            disp[nodes[i]].x+=dx/d*f; disp[nodes[i]].y+=dy/d*f;
+            disp[nodes[j]].x-=dx/d*f; disp[nodes[j]].y-=dy/d*f;
+        }
+        // Attraction
+        for(const [a,b] of edgeList){
+            let dx=pos[a].x-pos[b].x, dy=pos[a].y-pos[b].y;
+            const d=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+            const f=d*d/k;
+            disp[a].x-=dx/d*f; disp[a].y-=dy/d*f;
+            disp[b].x+=dx/d*f; disp[b].y+=dy/d*f;
+        }
+        const temp=0.1*(1-t/iter);
+        for(const n of nodes){
+            const d=Math.max(Math.sqrt(disp[n].x**2+disp[n].y**2),1);
+            pos[n].x+=disp[n].x/d*Math.min(d,temp*600);
+            pos[n].y+=disp[n].y/d*Math.min(d,temp*400);
+            pos[n].x=Math.max(30,Math.min(770,pos[n].x));
+            pos[n].y=Math.max(30,Math.min(490,pos[n].y));
+        }
+    }
+    return pos;
+}
+
+// ---- Rendering ----
+const SEV_COLORS={critical:'#f85149',high:'#d29922',medium:'#58a6ff',low:'#3fb950'};
+
+function renderGraph(){
+    const canvas=document.getElementById('graphCanvas');
+    const ctx=canvas.getContext('2d');
+    canvas.width=canvas.clientWidth; canvas.height=520;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const anomalySet=new Set(anomalies.map(a=>a.node));
+    const anomalyMap={}; for(const a of anomalies) anomalyMap[a.node]=a;
+
+    // Draw edges
+    ctx.lineWidth=1; ctx.strokeStyle='#30363d';
+    for(const [a,b] of edgeList){
+        ctx.beginPath(); ctx.moveTo(nodePositions[a].x,nodePositions[a].y); ctx.lineTo(nodePositions[b].x,nodePositions[b].y); ctx.stroke();
+    }
+    // Draw nodes
+    for(const n of nodes){
+        const p=nodePositions[n];
+        const isAnom=anomalySet.has(n);
+        const r=isAnom?10:6;
+        ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+        if(isAnom){
+            const col=SEV_COLORS[anomalyMap[n].severity];
+            ctx.fillStyle=col; ctx.fill();
+            ctx.lineWidth=2; ctx.strokeStyle=col+'88'; ctx.stroke();
+            // Glow
+            ctx.beginPath(); ctx.arc(p.x,p.y,r+4,0,Math.PI*2);
+            ctx.strokeStyle=col+'44'; ctx.lineWidth=3; ctx.stroke();
+        } else {
+            ctx.fillStyle='#8b949e'; ctx.fill();
+        }
+        // Label
+        ctx.fillStyle=isAnom?'#fff':'#8b949e'; ctx.font=isAnom?'bold 11px sans-serif':'10px sans-serif';
+        ctx.textAlign='center'; ctx.fillText(n,p.x,p.y-r-5);
+    }
+}
+
+function renderStats(){
+    const bar=document.getElementById('statsBar');
+    const total=nodes.length;
+    const critCount=anomalies.filter(a=>a.severity==='critical').length;
+    const highCount=anomalies.filter(a=>a.severity==='high').length;
+    const pct=total?((anomalies.length/total)*100).toFixed(1):0;
+    bar.innerHTML=`
+        <div class="stat-card"><div class="val">${total}</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="val">${edgeList.length}</div><div class="lbl">Edges</div></div>
+        <div class="stat-card ${anomalies.length>0?'alert':'ok'}"><div class="val">${anomalies.length}</div><div class="lbl">Anomalies</div></div>
+        <div class="stat-card ${critCount>0?'alert':'ok'}"><div class="val">${critCount}</div><div class="lbl">Critical</div></div>
+        <div class="stat-card ${highCount>0?'warn':'ok'}"><div class="val">${highCount}</div><div class="lbl">High</div></div>
+        <div class="stat-card"><div class="val">${pct}%</div><div class="lbl">Anomaly Rate</div></div>
+    `;
+}
+
+function renderTable(){
+    const body=document.getElementById('anomalyBody');
+    if(!anomalies.length){ body.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">No anomalies detected ✅</td></tr>'; return; }
+    body.innerHTML=anomalies.map((a,i)=>{
+        const metricList=Object.entries(a.metrics).map(([m,s])=>`<span style="color:${SEV_COLORS[s>2.5?'critical':s>1.5?'high':'medium']}">${m}</span>`).join(', ');
+        const deg=nodeMetrics.degree?nodeMetrics.degree[a.node]??'-':'-';
+        const cl=nodeMetrics.clustering?(nodeMetrics.clustering[a.node]?.toFixed(3)??'-'):'-';
+        const bt=nodeMetrics.betweenness?(nodeMetrics.betweenness[a.node]?.toFixed(2)??'-'):'-';
+        return `<tr><td>${i+1}</td><td><strong>${a.node}</strong></td><td><span class="severity-badge sev-${a.severity}">${a.severity}</span></td><td>${metricList}</td><td>${deg}</td><td>${cl}</td><td>${bt}</td></tr>`;
+    }).join('');
+}
+
+function renderDistribution(){
+    const canvas=document.getElementById('distCanvas');
+    const ctx=canvas.getContext('2d');
+    canvas.width=canvas.clientWidth; canvas.height=400;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const metric=document.getElementById('distMetric').value;
+    const vals=nodeMetrics[metric];
+    if(!vals) { ctx.fillStyle='#8b949e'; ctx.font='14px sans-serif'; ctx.fillText('Metric not computed',350,200); return; }
+
+    const entries=Object.entries(vals).sort((a,b)=>a[1]-b[1]);
+    const max=Math.max(...entries.map(e=>e[1]))||1;
+    const anomalySet=new Set(anomalies.map(a=>a.node));
+    const anomalyMap={}; for(const a of anomalies) anomalyMap[a.node]=a;
+
+    const barW=Math.max(2,Math.min(20,(canvas.width-80)/entries.length));
+    const startX=50, chartH=320, topY=40;
+
+    // Axes
+    ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(startX,topY); ctx.lineTo(startX,topY+chartH); ctx.lineTo(canvas.width-20,topY+chartH); ctx.stroke();
+    ctx.fillStyle='#8b949e'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(metric.charAt(0).toUpperCase()+metric.slice(1)+' Distribution',canvas.width/2,25);
+
+    // Bars
+    for(let i=0;i<entries.length;i++){
+        const [node,val]=entries[i];
+        const h=(val/max)*chartH;
+        const x=startX+5+i*(barW+1);
+        const isAnom=anomalySet.has(node);
+        ctx.fillStyle=isAnom?SEV_COLORS[anomalyMap[node]?.severity||'medium']+'cc':'#58a6ff44';
+        ctx.fillRect(x,topY+chartH-h,barW,h);
+        if(isAnom){
+            ctx.strokeStyle=SEV_COLORS[anomalyMap[node]?.severity||'medium'];
+            ctx.lineWidth=2; ctx.strokeRect(x,topY+chartH-h,barW,h);
+        }
+        // Label if few
+        if(entries.length<=30){
+            ctx.save(); ctx.translate(x+barW/2,topY+chartH+12); ctx.rotate(Math.PI/4);
+            ctx.fillStyle=isAnom?'#fff':'#6e7681'; ctx.font='9px sans-serif'; ctx.textAlign='left';
+            ctx.fillText(node,0,0); ctx.restore();
+        }
+    }
+    // Y-axis labels
+    ctx.fillStyle='#8b949e'; ctx.font='10px sans-serif'; ctx.textAlign='right';
+    for(let i=0;i<=4;i++){
+        const v=(max*i/4); const y=topY+chartH-chartH*i/4;
+        ctx.fillText(v.toFixed(2),startX-5,y+3);
+        ctx.strokeStyle='#30363d22'; ctx.beginPath(); ctx.moveTo(startX,y); ctx.lineTo(canvas.width-20,y); ctx.stroke();
+    }
+    // Mean line
+    const mean=Object.values(vals).reduce((a,b)=>a+b,0)/entries.length;
+    const my=topY+chartH-(mean/max)*chartH;
+    ctx.setLineDash([4,4]); ctx.strokeStyle='#58a6ff88'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(startX,my); ctx.lineTo(canvas.width-20,my); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle='#58a6ff'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('mean: '+mean.toFixed(3),canvas.width-100,my-5);
+}
+
+function renderFindings(){
+    const panel=document.getElementById('findingsPanel');
+    if(!anomalies.length){ panel.innerHTML='<div style="color:var(--text-muted);padding:16px;text-align:center;">🎉 No anomalies found. This graph looks structurally consistent.</div>'; return; }
+
+    const explanations={
+        degree: (n,v) => `Node "${n}" has degree ${v}, which is statistically unusual. This could indicate a hub, influencer, or potential single point of failure.`,
+        clustering: (n,v) => `Node "${n}" has clustering coefficient ${v.toFixed(3)}, deviating from the norm. Low values suggest a bridge/broker role; high values suggest a tightly-knit clique.`,
+        betweenness: (n,v) => `Node "${n}" has betweenness centrality ${v.toFixed(2)}, meaning it sits on an unusual number of shortest paths. High values identify critical bottlenecks.`,
+        closeness: (n,v) => `Node "${n}" has closeness centrality ${v.toFixed(3)}, indicating unusual reach. High values mean rapid information spread; low values mean isolation.`,
+        pagerank: (n,v) => `Node "${n}" has PageRank ${v.toFixed(4)}, suggesting unusual influence in the network's link structure.`
+    };
+
+    panel.innerHTML=anomalies.map(a=>{
+        const details=Object.entries(a.metrics).map(([m])=>{
+            const val=nodeMetrics[m]?.[a.node]??0;
+            return `<div class="finding-desc">• <strong>${m}:</strong> ${explanations[m]?explanations[m](a.node,val):`Anomalous in ${m} metric.`}</div>`;
+        }).join('');
+        return `<div class="finding"><div class="finding-title"><span class="severity-badge sev-${a.severity}">${a.severity}</span> Node: ${a.node} (${a.count} anomalous metric${a.count>1?'s':''})</div>${details}</div>`;
+    }).join('');
+}
+
+function renderSummary(){
+    const panel=document.getElementById('summaryPanel');
+    if(!anomalies.length){ panel.innerHTML='<span style="color:var(--green);">✅ No anomalies detected.</span>'; return; }
+    const crit=anomalies.filter(a=>a.severity==='critical').length;
+    const high=anomalies.filter(a=>a.severity==='high').length;
+    const med=anomalies.filter(a=>a.severity==='medium').length;
+    const low=anomalies.filter(a=>a.severity==='low').length;
+    panel.innerHTML=`
+        <div style="margin-bottom:8px;"><strong>${anomalies.length}</strong> anomalous node${anomalies.length>1?'s':''} detected:</div>
+        ${crit?`<div style="color:${SEV_COLORS.critical};">● ${crit} Critical</div>`:''}
+        ${high?`<div style="color:${SEV_COLORS.high};">● ${high} High</div>`:''}
+        ${med?`<div style="color:${SEV_COLORS.medium};">● ${med} Medium</div>`:''}
+        ${low?`<div style="color:${SEV_COLORS.low};">● ${low} Low</div>`:''}
+        <div style="margin-top:8px;font-size:12px;">Top anomaly: <strong>${anomalies[0].node}</strong> (${anomalies[0].severity}, z=${anomalies[0].maxScore.toFixed(2)})</div>
+    `;
+}
+
+function renderAll(){
+    renderGraph(); renderStats(); renderTable(); renderDistribution(); renderFindings(); renderSummary();
+}
+
+// ---- Events ----
+document.getElementById('presetSelect').addEventListener('change', function(){
+    document.getElementById('customInput').style.display=this.value==='custom'?'block':'none';
+});
+
+document.getElementById('loadBtn').addEventListener('click', function(){
+    const preset=document.getElementById('presetSelect').value;
+    let edges;
+    if(preset==='custom'){
+        const txt=document.getElementById('customInput').value.trim();
+        edges=txt.split('\n').map(l=>l.trim().split(/\s+/)).filter(p=>p.length>=2).map(p=>[p[0],p[1]]);
+    } else {
+        edges=PRESETS[preset]();
+    }
+    if(!edges.length) return;
+    buildGraph(edges);
+    nodePositions=layoutGraph();
+    runDetection();
+});
+
+document.querySelectorAll('.viz-tab').forEach(tab=>{
+    tab.addEventListener('click', function(){
+        document.querySelectorAll('.viz-tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.viz-panel').forEach(p=>p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('panel-'+this.dataset.tab).classList.add('active');
+        if(this.dataset.tab==='dist') renderDistribution();
+    });
+});
+
+['zThreshold','iqrMult'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',function(){
+        document.getElementById(id==='zThreshold'?'zVal':'iqrVal').textContent=this.value;
+    });
+});
+
+document.getElementById('distMetric').addEventListener('change',renderDistribution);
+
+// Re-detect on settings change
+['methodSelect','zThreshold','iqrMult','chkDegree','chkClustering','chkBetweenness','chkCloseness','chkPageRank'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>{ if(nodes.length) runDetection(); });
+});
+
+// Tooltip on graph hover
+const graphCanvas=document.getElementById('graphCanvas');
+const tooltip=document.getElementById('tooltip');
+graphCanvas.addEventListener('mousemove',function(e){
+    const rect=this.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    let found=null;
+    for(const n of nodes){
+        const p=nodePositions[n]; if(!p) continue;
+        if(Math.sqrt((mx-p.x)**2+(my-p.y)**2)<12){ found=n; break; }
+    }
+    if(found){
+        const lines=[`<strong>${found}</strong>`];
+        if(nodeMetrics.degree) lines.push(`Degree: ${nodeMetrics.degree[found]}`);
+        if(nodeMetrics.clustering) lines.push(`Clustering: ${nodeMetrics.clustering[found]?.toFixed(3)}`);
+        if(nodeMetrics.betweenness) lines.push(`Betweenness: ${nodeMetrics.betweenness[found]?.toFixed(2)}`);
+        if(nodeMetrics.closeness) lines.push(`Closeness: ${nodeMetrics.closeness[found]?.toFixed(3)}`);
+        if(nodeMetrics.pagerank) lines.push(`PageRank: ${nodeMetrics.pagerank[found]?.toFixed(4)}`);
+        const anomalyMap={}; for(const a of anomalies) anomalyMap[a.node]=a;
+        if(anomalyMap[found]) lines.push(`<span style="color:${SEV_COLORS[anomalyMap[found].severity]}">⚠ ${anomalyMap[found].severity} anomaly</span>`);
+        tooltip.innerHTML=lines.join('<br>');
+        tooltip.style.display='block';
+        tooltip.style.left=(e.clientX+12)+'px'; tooltip.style.top=(e.clientY-10)+'px';
+    } else {
+        tooltip.style.display='none';
+    }
+});
+graphCanvas.addEventListener('mouseleave',()=>{ tooltip.style.display='none'; });
+
+// Node dragging
+graphCanvas.addEventListener('mousedown',function(e){
+    const rect=this.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    for(const n of nodes){
+        const p=nodePositions[n]; if(!p) continue;
+        if(Math.sqrt((mx-p.x)**2+(my-p.y)**2)<12){ dragNode=n; return; }
+    }
+});
+graphCanvas.addEventListener('mousemove',function(e){
+    if(!dragNode) return;
+    const rect=this.getBoundingClientRect();
+    nodePositions[dragNode]={x:e.clientX-rect.left, y:e.clientY-rect.top};
+    renderGraph();
+});
+window.addEventListener('mouseup',()=>{ dragNode=null; });
+
+// Auto-load karate club
+window.addEventListener('load',()=>{
+    const edges=PRESETS['karate']();
+    buildGraph(edges);
+    nodePositions=layoutGraph();
+    runDetection();
+});
+</script>
+</main>
+</body>
+</html>
