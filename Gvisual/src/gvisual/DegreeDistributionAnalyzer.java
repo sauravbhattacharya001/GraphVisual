@@ -139,40 +139,43 @@ public class DegreeDistributionAnalyzer {
         medianDegree = computeMedian(degrees);
         modeDegree = computeMode();
 
-        // Variance, stddev
-        double sumSqDiff = 0.0;
-        for (int d : degrees) {
-            double diff = d - meanDegree;
-            sumSqDiff += diff * diff;
-        }
-        variance = n > 1 ? sumSqDiff / (n - 1) : 0.0;
-        stdDev = Math.sqrt(variance);
-
-        // Skewness (Fisher)
-        if (n > 2 && stdDev > 0) {
-            double sumCubed = 0.0;
+        // Variance, skewness, kurtosis — single-pass computation.
+        // Previous code iterated degrees 3 separate times (once each for
+        // variance, skewness, kurtosis). Fusing into one loop halves cache
+        // misses and eliminates redundant diff computations for large graphs.
+        {
+            double m2 = 0.0; // sum of (d - mean)^2
+            double m3 = 0.0; // sum of (d - mean)^3
+            double m4 = 0.0; // sum of (d - mean)^4
             for (int d : degrees) {
-                double diff = (d - meanDegree) / stdDev;
-                sumCubed += diff * diff * diff;
+                double diff = d - meanDegree;
+                double diff2 = diff * diff;
+                m2 += diff2;
+                m3 += diff2 * diff;
+                m4 += diff2 * diff2;
             }
-            skewness = (n * sumCubed) / ((n - 1.0) * (n - 2.0));
-        } else {
-            skewness = 0.0;
-        }
+            variance = n > 1 ? m2 / (n - 1) : 0.0;
+            stdDev = Math.sqrt(variance);
 
-        // Kurtosis (excess)
-        if (n > 3 && stdDev > 0) {
-            double sumFourth = 0.0;
-            for (int d : degrees) {
-                double diff = (d - meanDegree) / stdDev;
-                sumFourth += diff * diff * diff * diff;
+            // Fisher skewness: n / ((n-1)(n-2)) * sum[(d-mean)/s]^3
+            if (n > 2 && stdDev > 0) {
+                double s3 = stdDev * stdDev * stdDev;
+                skewness = (n * m3 / s3) / ((n - 1.0) * (n - 2.0));
+            } else {
+                skewness = 0.0;
             }
-            double raw = (n * (n + 1.0) * sumFourth) /
-                    ((n - 1.0) * (n - 2.0) * (n - 3.0));
-            kurtosis = raw - (3.0 * (n - 1.0) * (n - 1.0)) /
-                    ((n - 2.0) * (n - 3.0));
-        } else {
-            kurtosis = 0.0;
+
+            // Excess kurtosis
+            if (n > 3 && stdDev > 0) {
+                double s4 = variance * variance; // stdDev^4 = variance^2
+                double sumNormFourth = m4 / s4;
+                double raw = (n * (n + 1.0) * sumNormFourth) /
+                        ((n - 1.0) * (n - 2.0) * (n - 3.0));
+                kurtosis = raw - (3.0 * (n - 1.0) * (n - 1.0)) /
+                        ((n - 2.0) * (n - 3.0));
+            } else {
+                kurtosis = 0.0;
+            }
         }
 
         // ── 4. Percentiles ─────────────────────────────────────────
