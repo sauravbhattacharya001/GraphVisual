@@ -25,6 +25,9 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Publish](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/.github/dependabot.yml)
 [![2500+ Tests](https://img.shields.io/badge/Tests-2500%2B-brightgreen)](Gvisual/test/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-informational)](https://github.com/sauravbhattacharya001/GraphVisual)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/sauravbhattacharya001/GraphVisual/pulls)
+[![Maintained](https://img.shields.io/badge/Maintained-yes-green.svg)](https://github.com/sauravbhattacharya001/GraphVisual/commits/master)
 
 </div>
 
