@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maximum Matching — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .mm-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.8; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-list .step { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .history-list .step.active { background: var(--surface-hover); color: var(--accent); }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+        .speed-slider { width: 100%; }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link"><span class="icon">👑</span>Dominating Set</a>
+        <a href="vertex-cover.html" class="sidebar-link"><span class="icon">🛡️</span>Vertex Cover</a>
+        <a href="matching.html" class="sidebar-link active"><span class="icon">💍</span>Max Matching</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>💍 Maximum Matching Finder
+    <span class="subtitle">Find maximum matchings with augmenting path visualization</span>
+</h1>
+
+<p>A <strong>matching</strong> in a graph is a set of edges with no shared vertices. A <em>maximum matching</em> has the largest possible number of edges. This tool visualizes three algorithms: a simple <strong>Greedy</strong> heuristic, the <strong>Augmenting Path</strong> (Berge) method for general graphs, and <strong>Hopcroft-Karp</strong> for bipartite graphs.</p>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+    <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+    <div class="stat-card"><div class="val" id="statMatchSize">—</div><div class="lbl">Matching</div></div>
+    <div class="stat-card"><div class="val" id="statFree">—</div><div class="lbl">Free Vertices</div></div>
+    <div class="stat-card"><div class="val" id="statPerfect">—</div><div class="lbl">Perfect?</div></div>
+    <div class="stat-card"><div class="val" id="statSteps">0</div><div class="lbl">Steps</div></div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922;"></div> Matched edge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950;"></div> Matched vertex</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f85149;"></div> Augmenting path</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;"></div> Free vertex</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b949e;"></div> Normal</div>
+</div>
+
+<div class="mm-layout">
+<div class="controls-panel">
+
+    <div class="control-group">
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetRow"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Edge List</h3>
+        <textarea class="text-input" id="edgeInput" placeholder="0 1&#10;1 2&#10;2 3"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-secondary" onclick="loadFromText()">Load</button>
+            <button class="btn btn-secondary" onclick="exportText()">Export</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Algorithm</h3>
+        <div class="control-row">
+            <label>Method</label>
+            <select id="algoSelect">
+                <option value="greedy">Greedy</option>
+                <option value="augmenting" selected>Augmenting Path</option>
+                <option value="hopcroftkarp">Hopcroft-Karp (bipartite)</option>
+            </select>
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-primary" onclick="runAlgorithm()">▶ Run</button>
+            <button class="btn btn-secondary" onclick="stepForward()">Step ▶</button>
+            <button class="btn btn-secondary" onclick="resetMatching()">Reset</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Animation</h3>
+        <div class="control-row">
+            <label>Speed</label>
+            <input type="range" class="speed-slider" id="speedSlider" min="50" max="2000" value="500" step="50">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="playBtn" onclick="togglePlay()">⏵ Play</button>
+            <button class="btn btn-danger" onclick="stopAnimation()">⏹ Stop</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Graph Edit</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Click canvas to add node. Click two nodes to add edge. Right-click to delete.</p>
+        <div class="btn-row">
+            <button class="btn btn-danger" onclick="clearGraph()">Clear All</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Step History</h3>
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+</div>
+
+<div>
+    <canvas id="graphCanvas" width="900" height="600"></canvas>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+// ===== Graph Data =====
+let nodes = []; // {id, x, y}
+let edges = []; // {u, v}
+let matching = new Set(); // indices into edges[]
+let freeVerts = new Set();
+let augPath = []; // edge indices for current augmenting path highlight
+let steps = []; // recorded steps
+let stepIdx = -1;
+let animTimer = null;
+let playing = false;
+let nextId = 0;
+
+// Canvas
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+let dragging = null, dragOff = {x:0,y:0};
+let selectedNode = null;
+
+// ===== Presets =====
+const PRESETS = {
+    'K3': {n:[[150,200],[350,200],[250,80]],e:[[0,1],[1,2],[0,2]]},
+    'K3,3': {n:[[120,100],[120,250],[120,400],[380,100],[380,250],[380,400]],e:[[0,3],[0,4],[0,5],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5]]},
+    'Petersen': {n:function(){let o=[];for(let i=0;i<5;i++){let a=Math.PI/2+i*2*Math.PI/5;o.push([250+160*Math.cos(a),280-160*Math.sin(a)]);}for(let i=0;i<5;i++){let a=Math.PI/2+i*2*Math.PI/5;o.push([250+70*Math.cos(a),280-70*Math.sin(a)]);}return o;}(),e:[[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]]},
+    'P6': {n:[[80,300],[180,300],[280,300],[380,300],[480,300],[580,300]],e:[[0,1],[1,2],[2,3],[3,4],[4,5]]},
+    'C6': {n:function(){let o=[];for(let i=0;i<6;i++){let a=Math.PI/2+i*2*Math.PI/6;o.push([250+150*Math.cos(a),300-150*Math.sin(a)]);}return o;}(),e:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]},
+    'K1,5': {n:[[250,200],[100,400],[200,400],[300,400],[400,400],[500,400]],e:[[0,1],[0,2],[0,3],[0,4],[0,5]]},
+    '3×3 Grid': {n:function(){let o=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)o.push([130+c*140,130+r*140]);return o;}(),e:[[0,1],[1,2],[3,4],[4,5],[6,7],[7,8],[0,3],[3,6],[1,4],[4,7],[2,5],[5,8]]},
+    'Random': null
+};
+
+function initPresets(){
+    const row = document.getElementById('presetRow');
+    for(const name of Object.keys(PRESETS)){
+        const b = document.createElement('button');
+        b.className = 'preset-btn';
+        b.textContent = name;
+        b.onclick = () => loadPreset(name);
+        row.appendChild(b);
+    }
+}
+
+function loadPreset(name){
+    resetMatching();
+    nodes = []; edges = []; nextId = 0;
+    if(name === 'Random'){
+        const n = 10;
+        for(let i=0;i<n;i++) nodes.push({id:i,x:80+Math.random()*400,y:80+Math.random()*400});
+        nextId = n;
+        const pool = [];
+        for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) pool.push([i,j]);
+        pool.sort(()=>Math.random()-0.5);
+        for(let k=0;k<Math.min(15,pool.length);k++) edges.push({u:pool[k][0],v:pool[k][1]});
+    } else {
+        const p = PRESETS[name];
+        const pts = typeof p.n === 'function' ? p.n : p.n;
+        for(let i=0;i<pts.length;i++) nodes.push({id:i,x:pts[i][0],y:pts[i][1]});
+        nextId = pts.length;
+        for(const [u,v] of p.e) edges.push({u,v});
+    }
+    updateStats();
+    draw();
+}
+
+// ===== Text I/O =====
+function loadFromText(){
+    const txt = document.getElementById('edgeInput').value.trim();
+    if(!txt) return;
+    resetMatching();
+    nodes = []; edges = []; nextId = 0;
+    const seen = new Set();
+    for(const line of txt.split('\n')){
+        const parts = line.trim().split(/\s+/).map(Number);
+        if(parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])){
+            for(const id of [parts[0], parts[1]]) seen.add(id);
+            edges.push({u:parts[0], v:parts[1]});
+        }
+    }
+    const ids = [...seen].sort((a,b)=>a-b);
+    for(const id of ids){
+        nodes.push({id, x:100+Math.random()*400, y:100+Math.random()*350});
+        if(id >= nextId) nextId = id+1;
+    }
+    updateStats(); draw();
+}
+
+function exportText(){
+    document.getElementById('edgeInput').value = edges.map(e=>`${e.u} ${e.v}`).join('\n');
+}
+
+// ===== Graph Editing =====
+canvas.addEventListener('mousedown', e => {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width;
+    const mx = (e.clientX - r.left)*sx, my = (e.clientY - r.top)*sx;
+    if(e.button === 2){ // right click delete
+        const ni = findNode(mx,my);
+        if(ni >= 0){ deleteNode(ni); return; }
+        const ei = findEdge(mx,my);
+        if(ei >= 0){ edges.splice(ei,1); resetMatching(); updateStats(); draw(); }
+        return;
+    }
+    const ni = findNode(mx,my);
+    if(ni >= 0){
+        if(selectedNode !== null && selectedNode !== ni){
+            // add edge
+            const a = nodes[selectedNode].id, b = nodes[ni].id;
+            if(!edges.some(e=>(e.u===a&&e.v===b)||(e.u===b&&e.v===a))){
+                edges.push({u:a,v:b});
+                resetMatching(); updateStats();
+            }
+            selectedNode = null; draw(); return;
+        }
+        selectedNode = ni;
+        dragging = ni;
+        dragOff.x = mx - nodes[ni].x;
+        dragOff.y = my - nodes[ni].y;
+        draw(); return;
+    }
+    // add node
+    selectedNode = null;
+    nodes.push({id:nextId++, x:mx, y:my});
+    updateStats(); draw();
+});
+canvas.addEventListener('mousemove', e => {
+    if(dragging === null) return;
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width / r.width;
+    nodes[dragging].x = (e.clientX - r.left)*sx - dragOff.x;
+    nodes[dragging].y = (e.clientY - r.top)*sx - dragOff.y;
+    draw();
+});
+canvas.addEventListener('mouseup', () => { dragging = null; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function findNode(mx,my){
+    for(let i=nodes.length-1;i>=0;i--){
+        const dx=mx-nodes[i].x, dy=my-nodes[i].y;
+        if(dx*dx+dy*dy < 20*20) return i;
+    }
+    return -1;
+}
+function findEdge(mx,my){
+    for(let i=0;i<edges.length;i++){
+        const nu = nodeById(edges[i].u), nv = nodeById(edges[i].v);
+        if(!nu||!nv) continue;
+        const d = distToSeg(mx,my,nu.x,nu.y,nv.x,nv.y);
+        if(d < 8) return i;
+    }
+    return -1;
+}
+function distToSeg(px,py,x1,y1,x2,y2){
+    const dx=x2-x1, dy=y2-y1, len2=dx*dx+dy*dy;
+    if(len2===0) return Math.hypot(px-x1,py-y1);
+    let t=((px-x1)*dx+(py-y1)*dy)/len2;
+    t=Math.max(0,Math.min(1,t));
+    return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+function nodeById(id){ return nodes.find(n=>n.id===id); }
+function nodeIdx(id){ return nodes.findIndex(n=>n.id===id); }
+
+function deleteNode(ni){
+    const id = nodes[ni].id;
+    nodes.splice(ni,1);
+    edges = edges.filter(e=>e.u!==id && e.v!==id);
+    resetMatching(); updateStats(); draw();
+}
+function clearGraph(){ nodes=[]; edges=[]; nextId=0; resetMatching(); updateStats(); draw(); }
+
+// ===== Drawing =====
+function draw(){
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    const matchedSet = new Set([...matching]);
+    const augSet = new Set(augPath);
+    const matchedVerts = new Set();
+    for(const ei of matching){ matchedVerts.add(edges[ei].u); matchedVerts.add(edges[ei].v); }
+
+    // edges
+    for(let i=0;i<edges.length;i++){
+        const e=edges[i], nu=nodeById(e.u), nv=nodeById(e.v);
+        if(!nu||!nv) continue;
+        ctx.beginPath();
+        ctx.moveTo(nu.x, nu.y);
+        ctx.lineTo(nv.x, nv.y);
+        if(augSet.has(i)){
+            ctx.strokeStyle = '#f85149';
+            ctx.lineWidth = 4;
+        } else if(matchedSet.has(i)){
+            ctx.strokeStyle = '#d29922';
+            ctx.lineWidth = 4;
+        } else {
+            ctx.strokeStyle = '#8b949e';
+            ctx.lineWidth = 1.5;
+        }
+        ctx.stroke();
+    }
+
+    // nodes
+    for(let i=0;i<nodes.length;i++){
+        const n=nodes[i];
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 16, 0, Math.PI*2);
+        if(selectedNode === i){
+            ctx.fillStyle = '#58a6ff';
+        } else if(matchedVerts.has(n.id)){
+            ctx.fillStyle = '#3fb950';
+        } else {
+            ctx.fillStyle = '#58a6ff';
+        }
+        ctx.fill();
+        ctx.strokeStyle = '#30363d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.id, n.x, n.y);
+    }
+}
+
+// ===== Stats =====
+function updateStats(){
+    document.getElementById('statNodes').textContent = nodes.length;
+    document.getElementById('statEdges').textContent = edges.length;
+    const ms = matching.size;
+    document.getElementById('statMatchSize').textContent = ms || '—';
+    const matchedVerts = new Set();
+    for(const ei of matching){ matchedVerts.add(edges[ei].u); matchedVerts.add(edges[ei].v); }
+    const free = nodes.length - matchedVerts.size;
+    document.getElementById('statFree').textContent = matching.size > 0 ? free : '—';
+    document.getElementById('statPerfect').textContent = matching.size > 0 ? (free === 0 ? '✅ Yes' : '❌ No') : '—';
+    document.getElementById('statSteps').textContent = steps.length;
+}
+
+// ===== Algorithms =====
+function resetMatching(){
+    matching = new Set();
+    augPath = [];
+    steps = [];
+    stepIdx = -1;
+    stopAnimation();
+    document.getElementById('historyList').innerHTML = '';
+    updateStats(); draw();
+}
+
+function buildAdj(){
+    const adj = {};
+    for(const n of nodes) adj[n.id] = [];
+    for(let i=0;i<edges.length;i++){
+        adj[edges[i].u].push({to:edges[i].v, ei:i});
+        adj[edges[i].v].push({to:edges[i].u, ei:i});
+    }
+    return adj;
+}
+
+// Greedy
+function greedyMatching(){
+    resetMatching();
+    const used = new Set();
+    const allSteps = [];
+    for(let i=0;i<edges.length;i++){
+        const e = edges[i];
+        if(!used.has(e.u) && !used.has(e.v)){
+            used.add(e.u); used.add(e.v);
+            allSteps.push({type:'match', edge:i, desc:`Greedy: match edge ${e.u}—${e.v}`});
+        }
+    }
+    return allSteps;
+}
+
+// Augmenting Path (general graph, simple BFS for augmenting paths)
+function augmentingPathMatching(){
+    resetMatching();
+    const allSteps = [];
+    let mate = {}; // vertex -> matched vertex
+    for(const n of nodes) mate[n.id] = -1;
+
+    function findAugPath(){
+        const free = nodes.filter(n => mate[n.id] === -1).map(n=>n.id);
+        for(const start of free){
+            // BFS for augmenting path from free vertex
+            const parent = {}; parent[start] = {v:-1, ei:-1};
+            const queue = [start];
+            let found = -1;
+            while(queue.length > 0 && found === -1){
+                const u = queue.shift();
+                for(let i=0;i<edges.length;i++){
+                    const e = edges[i];
+                    let nb = -1;
+                    if(e.u === u) nb = e.v;
+                    else if(e.v === u) nb = e.u;
+                    else continue;
+                    if(nb in parent) continue;
+                    // Alternating: from free vertex, first edge is unmatched
+                    // even depth = looking for unmatched edge, odd depth = matched edge
+                    const depth = pathDepth(parent, u);
+                    const edgeIsMatched = isMatched(i, mate);
+                    if(depth % 2 === 0){ // need unmatched edge
+                        if(edgeIsMatched) continue;
+                        parent[nb] = {v:u, ei:i};
+                        if(mate[nb] === -1){ found = nb; break; }
+                        // must follow matched edge from nb
+                        const mEdge = findMatchedEdge(nb, mate);
+                        if(mEdge !== null){
+                            const mNb = edges[mEdge].u === nb ? edges[mEdge].v : edges[mEdge].u;
+                            if(!(mNb in parent)){
+                                parent[mNb] = {v:nb, ei:mEdge};
+                                queue.push(mNb);
+                            }
+                        }
+                    }
+                }
+            }
+            if(found !== -1){
+                // trace path
+                const pathEdges = [];
+                let cur = found;
+                while(parent[cur].v !== -1){
+                    pathEdges.push(parent[cur].ei);
+                    cur = parent[cur].v;
+                }
+                pathEdges.reverse();
+                return pathEdges;
+            }
+        }
+        return null;
+    }
+
+    function pathDepth(parent, v){
+        let d=0, cur=v;
+        while(parent[cur] && parent[cur].v !== -1){ d++; cur=parent[cur].v; }
+        return d;
+    }
+
+    function isMatched(ei, mate){
+        const e = edges[ei];
+        return mate[e.u] === e.v && mate[e.v] === e.u;
+    }
+
+    function findMatchedEdge(v, mate){
+        if(mate[v] === -1) return null;
+        for(let i=0;i<edges.length;i++){
+            if((edges[i].u===v && edges[i].v===mate[v]) || (edges[i].v===v && edges[i].u===mate[v]))
+                return i;
+        }
+        return null;
+    }
+
+    let iteration = 0;
+    while(true){
+        iteration++;
+        if(iteration > nodes.length + 10) break; // safety
+        const path = findAugPath();
+        if(!path) break;
+        const pathDesc = path.map(ei=>`${edges[ei].u}—${edges[ei].v}`).join(' → ');
+        allSteps.push({type:'augpath', edges:path, desc:`Aug path #${iteration}: ${pathDesc}`});
+        // flip matching along path
+        for(let k=0;k<path.length;k++){
+            const ei = path[k];
+            const e = edges[ei];
+            if(k % 2 === 0){ // was unmatched, now matched
+                mate[e.u] = e.v; mate[e.v] = e.u;
+                allSteps.push({type:'match', edge:ei, desc:`Match ${e.u}—${e.v}`});
+            } else { // was matched, now unmatched
+                mate[e.u] = -1; mate[e.v] = -1;
+                allSteps.push({type:'unmatch', edge:ei, desc:`Unmatch ${e.u}—${e.v}`});
+            }
+        }
+    }
+    return allSteps;
+}
+
+// Hopcroft-Karp (bipartite only)
+function hopcroftKarp(){
+    resetMatching();
+    // Check bipartite via BFS 2-coloring
+    const color = {};
+    for(const n of nodes) color[n.id] = -1;
+    const adj = buildAdj();
+    let bipartite = true;
+    for(const n of nodes){
+        if(color[n.id] !== -1) continue;
+        color[n.id] = 0;
+        const q = [n.id];
+        while(q.length > 0){
+            const u = q.shift();
+            for(const {to} of adj[u]){
+                if(color[to] === -1){ color[to] = 1-color[u]; q.push(to); }
+                else if(color[to] === color[u]){ bipartite = false; }
+            }
+        }
+    }
+    if(!bipartite){
+        return [{type:'error', desc:'Graph is not bipartite — Hopcroft-Karp requires bipartite graphs'}];
+    }
+
+    const left = nodes.filter(n=>color[n.id]===0).map(n=>n.id);
+    const right = nodes.filter(n=>color[n.id]===1).map(n=>n.id);
+    const NIL = -1;
+    let pairL = {}, pairR = {}, dist = {};
+    for(const u of left) pairL[u] = NIL;
+    for(const v of right) pairR[v] = NIL;
+
+    const allSteps = [];
+
+    function bfs(){
+        const queue = [];
+        for(const u of left){
+            if(pairL[u] === NIL){ dist[u] = 0; queue.push(u); }
+            else dist[u] = Infinity;
+        }
+        dist[NIL] = Infinity;
+        let head = 0;
+        while(head < queue.length){
+            const u = queue[head++];
+            if(dist[u] < dist[NIL]){
+                for(const {to} of adj[u]){
+                    if(dist[pairR[to]] === undefined || dist[pairR[to]] === Infinity){
+                        dist[pairR[to]] = dist[u] + 1;
+                        if(pairR[to] !== NIL) queue.push(pairR[to]);
+                    }
+                }
+            }
+        }
+        return dist[NIL] !== Infinity;
+    }
+
+    function dfs(u){
+        if(u !== NIL){
+            for(const {to, ei} of adj[u]){
+                if(dist[pairR[to]] === dist[u] + 1){
+                    if(dfs(pairR[to])){
+                        allSteps.push({type:'match', edge:ei, desc:`HK: match ${u}—${to}`});
+                        pairR[to] = u; pairL[u] = to;
+                        return true;
+                    }
+                }
+            }
+            dist[u] = Infinity;
+            return false;
+        }
+        return true;
+    }
+
+    let phase = 0;
+    while(bfs()){
+        phase++;
+        let added = 0;
+        for(const u of left){
+            if(pairL[u] === NIL){
+                if(dfs(u)) added++;
+            }
+        }
+        allSteps.push({type:'phase', desc:`HK phase ${phase}: found ${added} augmenting paths`});
+    }
+
+    // Convert pairL to matching set
+    const finalSteps = [];
+    for(const u of left){
+        if(pairL[u] !== NIL){
+            for(let i=0;i<edges.length;i++){
+                if((edges[i].u===u && edges[i].v===pairL[u]) || (edges[i].v===u && edges[i].u===pairL[u])){
+                    finalSteps.push(i);
+                    break;
+                }
+            }
+        }
+    }
+    allSteps.push({type:'final', matchEdges:finalSteps, desc:`Final matching: ${finalSteps.length} edges`});
+    return allSteps;
+}
+
+// ===== Step Execution =====
+function runAlgorithm(){
+    const algo = document.getElementById('algoSelect').value;
+    let result;
+    if(algo === 'greedy') result = greedyMatching();
+    else if(algo === 'augmenting') result = augmentingPathMatching();
+    else result = hopcroftKarp();
+
+    steps = result;
+    stepIdx = -1;
+    document.getElementById('historyList').innerHTML = '';
+    updateStats(); draw();
+}
+
+function applyStep(i){
+    const s = steps[i];
+    if(s.type === 'match'){
+        matching.add(s.edge);
+    } else if(s.type === 'unmatch'){
+        matching.delete(s.edge);
+    } else if(s.type === 'augpath'){
+        augPath = s.edges;
+    } else if(s.type === 'final'){
+        matching = new Set(s.matchEdges);
+    } else if(s.type === 'phase'){
+        // info only
+    } else if(s.type === 'error'){
+        // show error
+    }
+
+    // add to history
+    const div = document.createElement('div');
+    div.className = 'step' + (i === stepIdx ? ' active' : '');
+    div.textContent = `${i+1}. ${s.desc}`;
+    document.getElementById('historyList').appendChild(div);
+    document.getElementById('historyList').scrollTop = 9999;
+
+    // clear augpath after showing it briefly (next step will overwrite anyway)
+    if(s.type !== 'augpath') augPath = [];
+
+    updateStats(); draw();
+}
+
+function stepForward(){
+    if(steps.length === 0) runAlgorithm();
+    if(stepIdx < steps.length - 1){
+        stepIdx++;
+        applyStep(stepIdx);
+    }
+}
+
+function togglePlay(){
+    if(playing){ stopAnimation(); return; }
+    if(steps.length === 0) runAlgorithm();
+    playing = true;
+    document.getElementById('playBtn').textContent = '⏸ Pause';
+    playNext();
+}
+
+function playNext(){
+    if(!playing) return;
+    if(stepIdx >= steps.length - 1){ stopAnimation(); return; }
+    stepForward();
+    const speed = parseInt(document.getElementById('speedSlider').value);
+    animTimer = setTimeout(playNext, speed);
+}
+
+function stopAnimation(){
+    playing = false;
+    if(animTimer) clearTimeout(animTimer);
+    animTimer = null;
+    document.getElementById('playBtn').textContent = '⏵ Play';
+}
+
+// ===== Init =====
+initPresets();
+loadPreset('C6');
+</script>
+
+</body>
+</html>
