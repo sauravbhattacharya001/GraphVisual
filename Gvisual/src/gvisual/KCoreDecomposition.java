@@ -44,6 +44,7 @@ public class KCoreDecomposition {
     private Map<String, Integer> coreness;
     private int degeneracy;
     private boolean computed;
+    private SortedMap<Integer, List<String>> cachedShells;  // cached to avoid recomputation
 
     /**
      * Creates a new KCoreDecomposition for the given graph.
@@ -59,6 +60,7 @@ public class KCoreDecomposition {
         this.coreness = new LinkedHashMap<String, Integer>();
         this.degeneracy = 0;
         this.computed = false;
+        this.cachedShells = null;
     }
 
     // ── Core decomposition (Batagelj–Zaversnik) ────────────────────
@@ -208,6 +210,7 @@ public class KCoreDecomposition {
      */
     public SortedMap<Integer, List<String>> getCoreShells() {
         ensureComputed();
+        if (cachedShells != null) return cachedShells;
         SortedMap<Integer, List<String>> shells = new TreeMap<Integer, List<String>>();
         for (Map.Entry<String, Integer> entry : coreness.entrySet()) {
             int k = entry.getValue();
@@ -220,6 +223,7 @@ public class KCoreDecomposition {
         for (List<String> shell : shells.values()) {
             Collections.sort(shell);
         }
+        cachedShells = shells;
         return shells;
     }
 
@@ -299,35 +303,62 @@ public class KCoreDecomposition {
      * The density should increase as k grows, since higher cores are
      * progressively denser subgraphs.
      *
+     * <p>Uses an incremental approach: starts with all vertices (0-core)
+     * and removes vertices shell-by-shell from lowest to highest k,
+     * subtracting edges incident to removed vertices. This gives O(V + E)
+     * total work instead of the previous O(degeneracy × E) approach that
+     * re-scanned all edges per core level.</p>
+     *
      * @return list of CoreDensity objects, sorted by k ascending
      */
     public List<CoreDensity> getCoreDensityProfile() {
         ensureComputed();
         List<CoreDensity> profile = new ArrayList<CoreDensity>();
 
+        if (coreness.isEmpty()) return profile;
+
+        // Start with all vertices in the 0-core
+        Set<String> coreVertices = new HashSet<String>(coreness.keySet());
+
+        // Count all edges once (the 0-core edge count)
+        int edgeCount = graph.getEdgeCount();
+
+        SortedMap<Integer, List<String>> shells = getCoreShells();
+
         for (int k = 0; k <= degeneracy; k++) {
-            Set<String> coreVertices = new HashSet<String>();
-            for (Map.Entry<String, Integer> entry : coreness.entrySet()) {
-                if (entry.getValue() >= k) {
-                    coreVertices.add(entry.getKey());
-                }
-            }
-
-            if (coreVertices.isEmpty()) continue;
-
-            // Count edges within the k-core
-            int edgeCount = 0;
-            for (Edge e : graph.getEdges()) {
-                String v1 = graph.getEndpoints(e).getFirst();
-                String v2 = graph.getEndpoints(e).getSecond();
-                if (coreVertices.contains(v1) && coreVertices.contains(v2)) {
-                    edgeCount++;
-                }
-            }
+            if (coreVertices.isEmpty()) break;
 
             int v = coreVertices.size();
-            double density = v > 1 ? (2.0 * edgeCount) / (v * (v - 1)) : 0.0;
+            double density = v > 1 ? (2.0 * edgeCount) / ((long) v * (v - 1)) : 0.0;
             profile.add(new CoreDensity(k, v, edgeCount, density));
+
+            // Remove the k-shell vertices (coreness == k) to get the (k+1)-core.
+            // Count edges to subtract BEFORE removing vertices from the set.
+            List<String> shell = shells.get(k);
+            if (shell != null) {
+                Set<String> shellSet = new HashSet<String>(shell);
+
+                // Count edges from shell vertices to the rest of coreVertices.
+                // Each edge is counted once: either to a higher-core neighbor,
+                // or between two shell vertices (using compareTo tie-break).
+                for (String removed : shell) {
+                    for (String neighbor : GraphUtils.neighborsOf(graph, removed)) {
+                        if (!coreVertices.contains(neighbor)) continue;
+                        if (shellSet.contains(neighbor)) {
+                            // Intra-shell edge: count once using vertex ordering
+                            if (removed.compareTo(neighbor) < 0) {
+                                edgeCount--;
+                            }
+                        } else {
+                            // Edge to a vertex staying in the (k+1)-core
+                            edgeCount--;
+                        }
+                    }
+                }
+
+                // Now remove all shell vertices
+                coreVertices.removeAll(shellSet);
+            }
         }
 
         return profile;
