@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominating Set Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ds-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.8; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-list .step { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .history-list .step.active { background: var(--surface-hover); color: var(--accent); }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+        .speed-slider { width: 100%; }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; z-index: 50; display: none; max-width: 220px; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link active"><span class="icon">👑</span>Dominating Set</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>👑 Dominating Set Finder
+    <span class="subtitle">Find minimum dominating sets with greedy & exact algorithms</span>
+</h1>
+
+<p>A <strong>dominating set</strong> S of a graph G is a subset of vertices such that every vertex is either in S or adjacent to at least one vertex in S. Finding a <em>minimum</em> dominating set is NP-hard, but greedy approximation works well in practice. This tool lets you visualize both approaches step by step.</p>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+    <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+    <div class="stat-card"><div class="val" id="statDomSize">—</div><div class="lbl">Dom. Set Size</div></div>
+    <div class="stat-card"><div class="val" id="statDomRatio">—</div><div class="lbl">γ(G) / n</div></div>
+    <div class="stat-card"><div class="val" id="statSteps">0</div><div class="lbl">Steps</div></div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950;"></div> In dominating set</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;"></div> Dominated (covered)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b949e;"></div> Uncovered</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922;"></div> Current candidate</div>
+</div>
+
+<div class="ds-layout">
+<div class="controls-panel">
+
+    <div class="control-group">
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetRow">
+            <button class="preset-btn active" data-preset="petersen">Petersen</button>
+            <button class="preset-btn" data-preset="cycle8">Cycle (8)</button>
+            <button class="preset-btn" data-preset="star6">Star (6)</button>
+            <button class="preset-btn" data-preset="grid3x3">Grid 3×3</button>
+            <button class="preset-btn" data-preset="bipartite">K₃,₃</button>
+            <button class="preset-btn" data-preset="tree">Binary Tree</button>
+            <button class="preset-btn" data-preset="wheel7">Wheel (7)</button>
+            <button class="preset-btn" data-preset="random15">Random (15)</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Algorithm</h3>
+        <div class="control-row">
+            <label>Method</label>
+            <select id="algoSelect">
+                <option value="greedy">Greedy (fast)</option>
+                <option value="exact">Exact (backtracking)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label>Speed</label>
+            <input type="range" id="speedSlider" class="speed-slider" min="1" max="10" value="5">
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-primary" id="btnRun">▶ Run</button>
+            <button class="btn btn-secondary" id="btnStep">⏭ Step</button>
+            <button class="btn btn-secondary" id="btnReset">↺ Reset</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Custom Input</h3>
+        <textarea class="text-input" id="textInput" placeholder="Edge list (one per line):&#10;0 1&#10;1 2&#10;2 3"></textarea>
+        <button class="btn btn-secondary" id="btnLoad" style="margin-top:8px;width:100%;">Load Graph</button>
+    </div>
+
+    <div class="control-group">
+        <h3>Step History</h3>
+        <div class="history-list" id="historyList">
+            <div class="step" style="color:var(--text-muted);">No steps yet — run an algorithm</div>
+        </div>
+    </div>
+
+</div>
+
+<div>
+    <canvas id="graphCanvas" width="900" height="640"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+</div>
+</div>
+
+<h2 style="margin-top:32px;">About Dominating Sets</h2>
+
+<div class="card-grid" style="margin-top:16px;">
+    <div class="card">
+        <div class="icon">📡</div>
+        <h4>Wireless Networks</h4>
+        <p>Dominating sets model optimal placement of relay nodes — every device is within one hop of a relay.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🏥</div>
+        <h4>Facility Location</h4>
+        <p>Place facilities (hospitals, fire stations) so every community is adjacent to at least one.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🔒</div>
+        <h4>Network Monitoring</h4>
+        <p>Position sensors to observe all network links — a dominating set monitors every neighbor.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🧬</div>
+        <h4>Biological Networks</h4>
+        <p>Identify essential proteins in PPI networks: a dominating set covers all interaction partners.</p>
+    </div>
+</div>
+
+<footer>
+    <p>
+        Built by <a href="https://github.com/sauravbhattacharya001">Saurav Bhattacharya</a> •
+        <a href="https://github.com/sauravbhattacharya001/GraphVisual">GitHub</a> •
+        Licensed under MIT
+    </p>
+</footer>
+
+</div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // ===== Graph Data =====
+    let nodes = [], edges = [], adj = {};
+    let domSet = new Set(), dominated = new Set(), candidate = -1;
+    let steps = [], stepIdx = -1, running = false, animTimer = null;
+
+    // ===== Presets =====
+    const PRESETS = {
+        petersen: () => {
+            const n = [{id:0},{id:1},{id:2},{id:3},{id:4},{id:5},{id:6},{id:7},{id:8},{id:9}];
+            const e = [[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]];
+            // Circular layout: outer ring 0-4, inner ring 5-9
+            for (let i = 0; i < 5; i++) {
+                const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+                n[i].x = 0.5 + 0.38 * Math.cos(a);
+                n[i].y = 0.5 + 0.38 * Math.sin(a);
+            }
+            for (let i = 0; i < 5; i++) {
+                const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+                n[i + 5].x = 0.5 + 0.18 * Math.cos(a);
+                n[i + 5].y = 0.5 + 0.18 * Math.sin(a);
+            }
+            return { nodes: n, edges: e };
+        },
+        cycle8: () => {
+            const n = []; const e = [];
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+                n.push({ id: i, x: 0.5 + 0.35 * Math.cos(a), y: 0.5 + 0.35 * Math.sin(a) });
+                e.push([i, (i + 1) % 8]);
+            }
+            return { nodes: n, edges: e };
+        },
+        star6: () => {
+            const n = [{ id: 0, x: 0.5, y: 0.5 }]; const e = [];
+            for (let i = 1; i <= 6; i++) {
+                const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+                n.push({ id: i, x: 0.5 + 0.35 * Math.cos(a), y: 0.5 + 0.35 * Math.sin(a) });
+                e.push([0, i]);
+            }
+            return { nodes: n, edges: e };
+        },
+        'grid3x3': () => {
+            const n = []; const e = [];
+            for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+                const id = r * 3 + c;
+                n.push({ id, x: 0.25 + c * 0.25, y: 0.25 + r * 0.25 });
+                if (c < 2) e.push([id, id + 1]);
+                if (r < 2) e.push([id, id + 3]);
+            }
+            return { nodes: n, edges: e };
+        },
+        bipartite: () => {
+            const n = []; const e = [];
+            for (let i = 0; i < 3; i++) {
+                n.push({ id: i, x: 0.3, y: 0.25 + i * 0.25 });
+                n.push({ id: i + 3, x: 0.7, y: 0.25 + i * 0.25 });
+            }
+            for (let i = 0; i < 3; i++) for (let j = 3; j < 6; j++) e.push([i, j]);
+            return { nodes: n, edges: e };
+        },
+        tree: () => {
+            const n = []; const e = [];
+            // Full binary tree depth 3 (15 nodes)
+            for (let i = 0; i < 15; i++) n.push({ id: i, x: 0, y: 0 });
+            for (let i = 0; i < 7; i++) { e.push([i, 2*i+1]); e.push([i, 2*i+2]); }
+            // Layout
+            const layers = [[0],[1,2],[3,4,5,6],[7,8,9,10,11,12,13,14]];
+            layers.forEach((l, li) => {
+                l.forEach((id, idx) => {
+                    n[id].x = 0.1 + (idx + 0.5) / l.length * 0.8;
+                    n[id].y = 0.12 + li * 0.24;
+                });
+            });
+            return { nodes: n, edges: e };
+        },
+        wheel7: () => {
+            const n = [{ id: 0, x: 0.5, y: 0.5 }]; const e = [];
+            for (let i = 1; i <= 7; i++) {
+                const a = (i / 7) * Math.PI * 2 - Math.PI / 2;
+                n.push({ id: i, x: 0.5 + 0.35 * Math.cos(a), y: 0.5 + 0.35 * Math.sin(a) });
+                e.push([0, i]);
+                e.push([i, i < 7 ? i + 1 : 1]);
+            }
+            return { nodes: n, edges: e };
+        },
+        random15: () => {
+            const n = []; const e = []; const N = 15;
+            for (let i = 0; i < N; i++) n.push({ id: i, x: 0.1 + Math.random() * 0.8, y: 0.1 + Math.random() * 0.8 });
+            // Ensure connected: random spanning tree + random edges
+            const perm = [...Array(N).keys()].sort(() => Math.random() - 0.5);
+            for (let i = 1; i < N; i++) {
+                const p = perm[Math.floor(Math.random() * i)];
+                e.push([perm[i], p]);
+            }
+            // Add random extra edges
+            for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+                if (Math.random() < 0.15 && !e.some(([a,b]) => (a===i&&b===j)||(a===j&&b===i))) {
+                    e.push([i, j]);
+                }
+            }
+            return { nodes: n, edges: e };
+        }
+    };
+
+    function loadGraph(data) {
+        nodes = data.nodes; edges = data.edges;
+        adj = {};
+        nodes.forEach(n => adj[n.id] = []);
+        edges.forEach(([u, v]) => { adj[u].push(v); adj[v].push(u); });
+        resetState();
+        updateStats();
+        draw();
+    }
+
+    function resetState() {
+        domSet.clear(); dominated.clear(); candidate = -1;
+        steps = []; stepIdx = -1; running = false;
+        if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+        document.getElementById('historyList').innerHTML = '<div class="step" style="color:var(--text-muted);">No steps yet — run an algorithm</div>';
+    }
+
+    // ===== Algorithms =====
+    function greedyDominating() {
+        const stepsArr = [];
+        const dom = new Set(), covered = new Set();
+        const uncoveredCount = {}; // how many uncovered vertices v can cover (itself + uncovered neighbors)
+        nodes.forEach(n => {
+            uncoveredCount[n.id] = 1 + adj[n.id].length; // covers itself + all neighbors
+        });
+
+        while (covered.size < nodes.length) {
+            // Pick vertex that covers the most uncovered vertices
+            let best = -1, bestCover = -1;
+            nodes.forEach(n => {
+                if (dom.has(n.id)) return;
+                let cover = covered.has(n.id) ? 0 : 1;
+                adj[n.id].forEach(nb => { if (!covered.has(nb)) cover++; });
+                if (cover > bestCover) { bestCover = cover; best = n.id; }
+            });
+            if (best === -1) break;
+
+            stepsArr.push({ type: 'candidate', node: best, msg: `Evaluating node ${best} (covers ${bestCover} uncovered)` });
+
+            dom.add(best);
+            covered.add(best);
+            adj[best].forEach(nb => covered.add(nb));
+
+            stepsArr.push({
+                type: 'add',
+                node: best,
+                domSet: new Set(dom),
+                dominated: new Set(covered),
+                msg: `Added node ${best} to dominating set (now covers ${covered.size}/${nodes.length})`
+            });
+        }
+
+        stepsArr.push({ type: 'done', domSet: new Set(dom), dominated: new Set(covered), msg: `Greedy dominating set found: size ${dom.size}` });
+        return stepsArr;
+    }
+
+    function exactDominating() {
+        const n = nodes.length;
+        if (n > 20) {
+            return [{ type: 'done', domSet: new Set(), dominated: new Set(), msg: 'Exact solver limited to ≤20 nodes (NP-hard!)' }];
+        }
+        const stepsArr = [];
+        let bestSet = null;
+
+        function covers(s) {
+            const cov = new Set(s);
+            s.forEach(v => adj[v].forEach(nb => cov.add(nb)));
+            return cov;
+        }
+
+        function backtrack(idx, current) {
+            if (bestSet && current.size >= bestSet.size) return; // prune
+
+            const cov = covers(current);
+            if (cov.size === n) {
+                bestSet = new Set(current);
+                stepsArr.push({ type: 'solution', domSet: new Set(current), dominated: new Set(cov), msg: `Found solution of size ${current.size}` });
+                return;
+            }
+
+            if (idx >= n) return;
+
+            // Find first uncovered vertex
+            let uncov = -1;
+            for (const nd of nodes) { if (!cov.has(nd.id)) { uncov = nd.id; break; } }
+            if (uncov === -1) return;
+
+            // Try adding uncov or one of its neighbors
+            const candidates = [uncov, ...adj[uncov]].filter(v => !current.has(v));
+            for (const c of candidates) {
+                stepsArr.push({ type: 'candidate', node: c, msg: `Trying node ${c} (to cover ${uncov})` });
+                current.add(c);
+                stepsArr.push({ type: 'add', node: c, domSet: new Set(current), dominated: covers(current), msg: `Branch: added ${c}, set size = ${current.size}` });
+                backtrack(idx + 1, current);
+                current.delete(c);
+                stepsArr.push({ type: 'remove', node: c, domSet: new Set(current), dominated: covers(current), msg: `Backtrack: removed ${c}` });
+            }
+        }
+
+        backtrack(0, new Set());
+        if (bestSet) {
+            stepsArr.push({ type: 'done', domSet: bestSet, dominated: covers(bestSet), msg: `Minimum dominating set: size ${bestSet.size}` });
+        } else {
+            stepsArr.push({ type: 'done', domSet: new Set(), dominated: new Set(), msg: 'No solution found' });
+        }
+        return stepsArr;
+    }
+
+    // ===== Animation =====
+    function getDelay() {
+        const v = parseInt(document.getElementById('speedSlider').value);
+        return Math.max(50, 1100 - v * 100);
+    }
+
+    function applyStep(idx) {
+        if (idx < 0 || idx >= steps.length) return;
+        const s = steps[idx];
+        candidate = s.type === 'candidate' ? s.node : -1;
+        if (s.domSet) domSet = new Set(s.domSet);
+        if (s.dominated) dominated = new Set(s.dominated);
+        if (s.type === 'remove') candidate = -1;
+
+        // Update history
+        const hl = document.getElementById('historyList');
+        if (idx === 0) hl.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'step' + (idx === stepIdx ? ' active' : '');
+        div.textContent = `${idx + 1}. ${s.msg}`;
+        hl.appendChild(div);
+        hl.scrollTop = hl.scrollHeight;
+
+        updateStats();
+        draw();
+    }
+
+    function runAnim() {
+        if (!running || stepIdx >= steps.length - 1) {
+            running = false;
+            return;
+        }
+        stepIdx++;
+        applyStep(stepIdx);
+        animTimer = setTimeout(runAnim, getDelay());
+    }
+
+    // ===== Canvas Drawing =====
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    let drag = -1, hovered = -1;
+
+    function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * devicePixelRatio;
+        canvas.height = 640 * devicePixelRatio;
+        canvas.style.height = '640px';
+        draw();
+    }
+
+    function toScreen(n) {
+        return { x: n.x * canvas.width, y: n.y * canvas.height };
+    }
+
+    function draw() {
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const r = 18 * devicePixelRatio;
+
+        // Draw edges
+        ctx.lineWidth = 1.5 * devicePixelRatio;
+        edges.forEach(([u, v]) => {
+            const a = toScreen(nodes.find(n => n.id === u));
+            const b = toScreen(nodes.find(n => n.id === v));
+            const bothDom = domSet.has(u) && domSet.has(v);
+            ctx.strokeStyle = bothDom ? '#3fb95080' : '#30363d';
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        });
+
+        // Draw nodes
+        nodes.forEach(n => {
+            const p = toScreen(n);
+            let fill = '#8b949e'; // uncovered
+            if (domSet.has(n.id)) fill = '#3fb950';
+            else if (dominated.has(n.id)) fill = '#58a6ff';
+            if (n.id === candidate) fill = '#d29922';
+
+            ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = fill; ctx.fill();
+            ctx.strokeStyle = n.id === hovered ? '#fff' : '#30363d';
+            ctx.lineWidth = (n.id === hovered ? 3 : 1.5) * devicePixelRatio;
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = domSet.has(n.id) || n.id === candidate ? '#000' : '#e6edf3';
+            ctx.font = `bold ${12 * devicePixelRatio}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(n.id, p.x, p.y);
+        });
+    }
+
+    function updateStats() {
+        document.getElementById('statNodes').textContent = nodes.length;
+        document.getElementById('statEdges').textContent = edges.length;
+        document.getElementById('statDomSize').textContent = domSet.size || '—';
+        document.getElementById('statDomRatio').textContent = domSet.size ? (domSet.size / nodes.length).toFixed(2) : '—';
+        document.getElementById('statSteps').textContent = Math.max(0, stepIdx + 1);
+    }
+
+    // ===== Mouse Interaction =====
+    function getNodeAt(mx, my) {
+        const r = 18;
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i];
+            const sx = n.x * (canvas.width / devicePixelRatio);
+            const sy = n.y * (canvas.height / devicePixelRatio);
+            if (Math.hypot(mx - sx, my - sy) < r) return i;
+        }
+        return -1;
+    }
+
+    canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect();
+        const idx = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+        if (idx >= 0) drag = idx;
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        if (drag >= 0) {
+            nodes[drag].x = mx / (canvas.width / devicePixelRatio) * (canvas.width / canvas.width);
+            nodes[drag].y = my / (canvas.height / devicePixelRatio);
+            // Clamp
+            nodes[drag].x = Math.max(0.05, Math.min(0.95, nodes[drag].x));
+            nodes[drag].y = Math.max(0.05, Math.min(0.95, nodes[drag].y));
+            draw();
+        } else {
+            const old = hovered;
+            const idx = getNodeAt(mx, my);
+            hovered = idx >= 0 ? nodes[idx].id : -1;
+            if (hovered !== old) {
+                draw();
+                const tip = document.getElementById('tooltip');
+                if (hovered >= 0) {
+                    const nd = nodes.find(n => n.id === hovered);
+                    const deg = adj[hovered] ? adj[hovered].length : 0;
+                    const inDom = domSet.has(hovered);
+                    tip.innerHTML = `<b>Node ${hovered}</b><br>Degree: ${deg}<br>` +
+                        (inDom ? '✅ In dominating set' : dominated.has(hovered) ? '🔵 Dominated' : '⚪ Uncovered');
+                    tip.style.left = (e.clientX + 12) + 'px';
+                    tip.style.top = (e.clientY - 10) + 'px';
+                    tip.style.display = 'block';
+                } else {
+                    tip.style.display = 'none';
+                }
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => { drag = -1; });
+    canvas.addEventListener('mouseleave', () => {
+        drag = -1; hovered = -1;
+        document.getElementById('tooltip').style.display = 'none';
+        draw();
+    });
+
+    // ===== Controls =====
+    document.getElementById('btnRun').addEventListener('click', () => {
+        resetState();
+        const algo = document.getElementById('algoSelect').value;
+        steps = algo === 'greedy' ? greedyDominating() : exactDominating();
+        running = true; stepIdx = -1;
+        runAnim();
+    });
+
+    document.getElementById('btnStep').addEventListener('click', () => {
+        if (steps.length === 0) {
+            const algo = document.getElementById('algoSelect').value;
+            steps = algo === 'greedy' ? greedyDominating() : exactDominating();
+        }
+        running = false;
+        if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+        if (stepIdx < steps.length - 1) {
+            stepIdx++;
+            applyStep(stepIdx);
+        }
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+        resetState();
+        updateStats();
+        draw();
+    });
+
+    // Presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const key = btn.dataset.preset;
+            if (PRESETS[key]) loadGraph(PRESETS[key]());
+        });
+    });
+
+    // Text input
+    document.getElementById('btnLoad').addEventListener('click', () => {
+        const txt = document.getElementById('textInput').value.trim();
+        if (!txt) return;
+        const idSet = new Set();
+        const edgeList = [];
+        txt.split('\n').forEach(line => {
+            const parts = line.trim().split(/[\s,]+/).map(Number);
+            if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                idSet.add(parts[0]); idSet.add(parts[1]);
+                edgeList.push([parts[0], parts[1]]);
+            }
+        });
+        const ids = [...idSet].sort((a,b) => a - b);
+        const n = ids.length;
+        const nodesList = ids.map((id, i) => {
+            const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+            return { id, x: 0.5 + 0.35 * Math.cos(a), y: 0.5 + 0.35 * Math.sin(a) };
+        });
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        loadGraph({ nodes: nodesList, edges: edgeList });
+    });
+
+    // Init
+    window.addEventListener('resize', resize);
+    loadGraph(PRESETS.petersen());
+    resize();
+})();
+</script>
+</body>
+</html>
