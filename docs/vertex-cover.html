@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertex Cover Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .vc-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.8; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-list .step { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .history-list .step.active { background: var(--surface-hover); color: var(--accent); }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+        .speed-slider { width: 100%; }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+        .compare-table th, .compare-table td { padding: 8px 12px; border: 1px solid var(--border); text-align: center; }
+        .compare-table th { background: var(--surface-hover); color: var(--accent); font-weight: 600; text-transform: uppercase; font-size: 11px; }
+        .compare-table td { color: var(--text); }
+        .compare-table tr:hover td { background: var(--surface-hover); }
+        .best-cell { color: var(--green) !important; font-weight: 700; }
+        .warn-msg { background: #d2992233; border: 1px solid #d29922; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #d29922; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link"><span class="icon">👑</span>Dominating Set</a>
+        <a href="vertex-cover.html" class="sidebar-link active"><span class="icon">🛡️</span>Vertex Cover</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🛡️ Minimum Vertex Cover Finder
+    <span class="subtitle">Find minimum vertex covers with greedy, exact &amp; König algorithms</span>
+</h1>
+
+<p>A <strong>vertex cover</strong> of a graph G is a set S of vertices such that every edge has at least one endpoint in S. Finding a <em>minimum</em> vertex cover is NP-hard, but a simple greedy 2-approximation exists. For bipartite graphs, König's theorem gives an exact solution in polynomial time via maximum matching.</p>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+    <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+    <div class="stat-card"><div class="val" id="statCoverSize">—</div><div class="lbl">Cover Size</div></div>
+    <div class="stat-card"><div class="val" id="statBipartite">—</div><div class="lbl">Bipartite</div></div>
+    <div class="stat-card"><div class="val" id="statSteps">0</div><div class="lbl">Steps</div></div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922;"></div> In vertex cover</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950;"></div> Covered edge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f85149;"></div> Uncovered edge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;"></div> Current candidate</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b949e;"></div> Normal</div>
+</div>
+
+<div class="vc-layout">
+<div class="controls-panel">
+
+    <div class="control-group">
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetRow"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Adjacency List</h3>
+        <textarea class="text-input" id="adjInput" placeholder="0: 1 2&#10;1: 0 2&#10;2: 0 1"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-secondary" onclick="loadFromText()">Load</button>
+            <button class="btn btn-secondary" onclick="exportText()">Export</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Algorithm</h3>
+        <div class="control-row">
+            <label>Method</label>
+            <select id="algoSelect">
+                <option value="greedy">Greedy 2-Approx</option>
+                <option value="exact">Exact (Backtrack)</option>
+                <option value="konig">König (Bipartite)</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label>Speed</label>
+            <input type="range" class="speed-slider" id="speedSlider" min="1" max="20" value="10">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnRun" onclick="runAlgo()">▶ Run</button>
+            <button class="btn btn-secondary" id="btnStep" onclick="stepAlgo()">⏭ Step</button>
+            <button class="btn btn-secondary" id="btnPause" onclick="pauseAlgo()">⏸ Pause</button>
+            <button class="btn btn-danger" onclick="resetAlgo()">↺ Reset</button>
+        </div>
+        <div class="warn-msg" id="warnMsg"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Compare All</h3>
+        <button class="btn btn-primary" onclick="compareAll()" style="width:100%;">Run All Algorithms</button>
+        <table class="compare-table" id="compareTable" style="display:none;">
+            <thead><tr><th>Algorithm</th><th>Cover Size</th><th>Time (ms)</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="control-group">
+        <h3>Step History</h3>
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Results</h3>
+        <div id="resultsPanel" style="font-size:12px; color: var(--text-muted);">Run an algorithm to see results.</div>
+    </div>
+
+    <div class="control-group">
+        <h3>Graph Editor</h3>
+        <p style="font-size:12px; color: var(--text-muted); margin:0;">Click canvas to add node. Click two nodes to add edge. Right-click to delete. Drag to move.</p>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-danger" onclick="clearGraph()">Clear All</button>
+        </div>
+    </div>
+
+</div>
+
+<div>
+    <canvas id="graphCanvas" width="900" height="620"></canvas>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+// === State ===
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+let nodes = []; // {id, x, y}
+let edges = []; // {u, v}
+let nextId = 0;
+let coverSet = new Set();
+let coveredEdges = new Set(); // indices
+let candidateNodes = new Set();
+let candidateEdge = -1;
+let steps = [];
+let stepIdx = -1;
+let playing = false;
+let playTimer = null;
+let dragNode = null;
+let selectedNode = null;
+let dpr = window.devicePixelRatio || 1;
+
+// === Presets ===
+const PRESETS = {
+    'Triangle': { n:[[200,200],[400,200],[300,380]], e:[[0,1],[1,2],[0,2]] },
+    'K5': (() => { const n=[]; for(let i=0;i<5;i++){const a=2*Math.PI*i/5-Math.PI/2; n.push([400+150*Math.cos(a),310+150*Math.sin(a)]);} const e=[]; for(let i=0;i<5;i++) for(let j=i+1;j<5;j++) e.push([i,j]); return {n,e}; })(),
+    'Petersen': (() => { const n=[]; for(let i=0;i<5;i++){const a=2*Math.PI*i/5-Math.PI/2; n.push([400+180*Math.cos(a),310+180*Math.sin(a)]);} for(let i=0;i<5;i++){const a=2*Math.PI*i/5-Math.PI/2; n.push([400+80*Math.cos(a),310+80*Math.sin(a)]);} const e=[[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]]; return {n,e}; })(),
+    'Star K1,6': (() => { const n=[[400,310]]; for(let i=0;i<6;i++){const a=2*Math.PI*i/6; n.push([400+170*Math.cos(a),310+170*Math.sin(a)]);} const e=[]; for(let i=1;i<=6;i++) e.push([0,i]); return {n,e}; })(),
+    'Cycle C7': (() => { const n=[]; for(let i=0;i<7;i++){const a=2*Math.PI*i/7-Math.PI/2; n.push([400+170*Math.cos(a),310+170*Math.sin(a)]);} const e=[]; for(let i=0;i<7;i++) e.push([i,(i+1)%7]); return {n,e}; })(),
+    'K3,3': (() => { const n=[]; for(let i=0;i<3;i++) n.push([250,180+i*120]); for(let i=0;i<3;i++) n.push([550,180+i*120]); const e=[]; for(let i=0;i<3;i++) for(let j=3;j<6;j++) e.push([i,j]); return {n,e}; })(),
+    'Tree': { n:[[400,120],[250,240],[550,240],[170,370],[330,370],[470,370],[630,370]], e:[[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]] },
+    'Grid 3×3': (() => { const n=[]; for(let r=0;r<3;r++) for(let c=0;c<3;c++) n.push([250+c*150,180+r*150]); const e=[]; for(let r=0;r<3;r++) for(let c=0;c<3;c++){const i=r*3+c; if(c<2) e.push([i,i+1]); if(r<2) e.push([i,i+3]);} return {n,e}; })(),
+};
+
+function initPresets() {
+    const row = document.getElementById('presetRow');
+    for (const name of Object.keys(PRESETS)) {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.textContent = name;
+        btn.onclick = () => loadPreset(name);
+        row.appendChild(btn);
+    }
+}
+
+function loadPreset(name) {
+    const p = PRESETS[name];
+    nodes = p.n.map((c,i) => ({id:i, x:c[0], y:c[1]}));
+    edges = p.e.map(e => ({u:e[0], v:e[1]}));
+    nextId = nodes.length;
+    resetAlgo();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.textContent===name));
+}
+
+// === Text I/O ===
+function loadFromText() {
+    const txt = document.getElementById('adjInput').value.trim();
+    if (!txt) return;
+    const nodeMap = {};
+    const newEdges = [];
+    txt.split('\n').forEach(line => {
+        const parts = line.split(':');
+        if (parts.length < 2) return;
+        const u = parseInt(parts[0].trim());
+        if (isNaN(u)) return;
+        if (!(u in nodeMap)) nodeMap[u] = Object.keys(nodeMap).length;
+        parts[1].trim().split(/\s+/).forEach(v => {
+            const vi = parseInt(v);
+            if (isNaN(vi)) return;
+            if (!(vi in nodeMap)) nodeMap[vi] = Object.keys(nodeMap).length;
+            if (u < vi) newEdges.push([nodeMap[u], nodeMap[vi]]);
+        });
+    });
+    const n = Object.keys(nodeMap).length;
+    nodes = []; nextId = 0;
+    for (let i = 0; i < n; i++) {
+        const a = 2 * Math.PI * i / n - Math.PI / 2;
+        nodes.push({id: nextId++, x: 400 + 180 * Math.cos(a), y: 310 + 180 * Math.sin(a)});
+    }
+    edges = newEdges.map(e => ({u: e[0], v: e[1]}));
+    resetAlgo();
+}
+
+function exportText() {
+    const adj = {};
+    nodes.forEach(n => adj[n.id] = []);
+    edges.forEach(e => { adj[nodes[e.u].id].push(nodes[e.v].id); adj[nodes[e.v].id].push(nodes[e.u].id); });
+    document.getElementById('adjInput').value = Object.entries(adj).map(([k,v]) => `${k}: ${v.join(' ')}`).join('\n');
+}
+
+// === Canvas ===
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function draw() {
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+
+    // edges
+    edges.forEach((e, i) => {
+        const a = nodes[e.u], b = nodes[e.v];
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        if (i === candidateEdge) {
+            ctx.strokeStyle = '#58a6ff';
+            ctx.lineWidth = 3;
+        } else if (coveredEdges.has(i)) {
+            ctx.strokeStyle = '#3fb950';
+            ctx.lineWidth = 2;
+        } else if (stepIdx >= 0) {
+            ctx.strokeStyle = '#f85149';
+            ctx.lineWidth = 2;
+        } else {
+            ctx.strokeStyle = '#8b949e';
+            ctx.lineWidth = 1.5;
+        }
+        ctx.stroke();
+    });
+
+    // nodes
+    nodes.forEach((n, i) => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 18, 0, Math.PI * 2);
+        if (coverSet.has(i)) {
+            ctx.fillStyle = '#d29922';
+        } else if (candidateNodes.has(i)) {
+            ctx.fillStyle = '#58a6ff';
+        } else if (i === selectedNode) {
+            ctx.fillStyle = '#58a6ff';
+        } else {
+            ctx.fillStyle = '#21262d';
+        }
+        ctx.fill();
+        ctx.strokeStyle = coverSet.has(i) ? '#e3b341' : '#8b949e';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#e6edf3';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i, n.x, n.y);
+    });
+}
+
+// === Mouse ===
+function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function hitNode(pos) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const dx = nodes[i].x - pos.x, dy = nodes[i].y - pos.y;
+        if (dx*dx + dy*dy < 400) return i;
+    }
+    return -1;
+}
+
+canvas.addEventListener('mousedown', e => {
+    const pos = getMousePos(e);
+    const hit = hitNode(pos);
+    if (e.button === 2) { // right-click delete
+        if (hit >= 0) {
+            edges = edges.filter(ed => ed.u !== hit && ed.v !== hit).map(ed => ({
+                u: ed.u > hit ? ed.u - 1 : ed.u,
+                v: ed.v > hit ? ed.v - 1 : ed.v
+            }));
+            nodes.splice(hit, 1);
+            nodes.forEach((n, i) => n.id = i);
+            nextId = nodes.length;
+            selectedNode = null;
+            resetAlgo();
+        }
+        return;
+    }
+    if (hit >= 0) {
+        if (selectedNode !== null && selectedNode !== hit) {
+            // add edge
+            const exists = edges.some(ed => (ed.u===selectedNode&&ed.v===hit)||(ed.u===hit&&ed.v===selectedNode));
+            if (!exists) edges.push({u: selectedNode, v: hit});
+            selectedNode = null;
+            resetAlgo();
+        } else {
+            selectedNode = hit;
+            dragNode = hit;
+        }
+    } else {
+        // add node
+        nodes.push({id: nextId, x: pos.x, y: pos.y});
+        nextId++;
+        selectedNode = null;
+        resetAlgo();
+    }
+    draw();
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (dragNode === null) return;
+    const pos = getMousePos(e);
+    nodes[dragNode].x = pos.x;
+    nodes[dragNode].y = pos.y;
+    draw();
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (dragNode !== null) { dragNode = null; draw(); }
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// === Algorithms ===
+function adjList() {
+    const adj = Array.from({length: nodes.length}, () => []);
+    edges.forEach((e, i) => { adj[e.u].push({to: e.v, ei: i}); adj[e.v].push({to: e.u, ei: i}); });
+    return adj;
+}
+
+function isBipartite() {
+    const n = nodes.length;
+    if (n === 0) return { yes: false, sides: null };
+    const color = new Array(n).fill(-1);
+    const adj = adjList();
+    for (let s = 0; s < n; s++) {
+        if (color[s] >= 0) continue;
+        color[s] = 0;
+        const q = [s];
+        while (q.length) {
+            const u = q.shift();
+            for (const {to} of adj[u]) {
+                if (color[to] < 0) { color[to] = 1 - color[u]; q.push(to); }
+                else if (color[to] === color[u]) return { yes: false, sides: null };
+            }
+        }
+    }
+    const L = [], R = [];
+    color.forEach((c, i) => (c === 0 ? L : R).push(i));
+    return { yes: true, sides: [L, R], color };
+}
+
+// Greedy 2-approx: pick arbitrary uncovered edge, add both endpoints
+function greedyVC() {
+    const stps = [];
+    const cover = new Set();
+    const covered = new Set();
+    for (let i = 0; i < edges.length; i++) {
+        if (covered.has(i)) continue;
+        const {u, v} = edges[i];
+        if (cover.has(u) || cover.has(v)) { covered.add(i); continue; }
+        stps.push({type:'consider', edge:i, msg:`Consider edge (${u},${v})`});
+        cover.add(u); cover.add(v);
+        // mark all newly covered edges
+        const newCov = new Set();
+        edges.forEach((e, j) => { if (!covered.has(j) && (cover.has(e.u)||cover.has(e.v))) { covered.add(j); newCov.add(j); } });
+        stps.push({type:'add', nodes:[u,v], coveredEdges: new Set(covered), coverSet: new Set(cover), msg:`Add vertices ${u} & ${v} → cover ${newCov.size} edges`});
+    }
+    stps.push({type:'done', coverSet: new Set(cover), coveredEdges: new Set(covered), msg:`Greedy cover: size ${cover.size}`});
+    return stps;
+}
+
+// Exact backtracking
+function exactVC() {
+    const n = nodes.length, m = edges.length;
+    if (m === 0) return [{type:'done', coverSet: new Set(), coveredEdges: new Set(), msg:'No edges — empty cover'}];
+    let bestCover = null;
+    const stps = [];
+    function uncoveredEdge(cov) {
+        for (let i = 0; i < m; i++) {
+            if (!cov.has(edges[i].u) && !cov.has(edges[i].v)) return i;
+        }
+        return -1;
+    }
+    function solve(cov, depth) {
+        const ue = uncoveredEdge(cov);
+        if (ue < 0) {
+            if (!bestCover || cov.size < bestCover.size) {
+                bestCover = new Set(cov);
+                stps.push({type:'improve', coverSet: new Set(cov), msg:`New best: size ${cov.size}`});
+            }
+            return;
+        }
+        if (bestCover && cov.size + 1 >= bestCover.size) return; // prune
+        const {u, v} = edges[ue];
+        stps.push({type:'branch', edge:ue, msg:`Branch on edge (${u},${v}), depth ${depth}`});
+        // branch u
+        cov.add(u);
+        stps.push({type:'try', node:u, msg:`Try adding ${u}`});
+        solve(cov, depth + 1);
+        cov.delete(u);
+        // branch v
+        cov.add(v);
+        stps.push({type:'try', node:v, msg:`Try adding ${v}`});
+        solve(cov, depth + 1);
+        cov.delete(v);
+    }
+    solve(new Set(), 0);
+    if (!bestCover) bestCover = new Set();
+    const covEdges = new Set();
+    edges.forEach((e,i) => { if(bestCover.has(e.u)||bestCover.has(e.v)) covEdges.add(i); });
+    stps.push({type:'done', coverSet: new Set(bestCover), coveredEdges: covEdges, msg:`Exact minimum cover: size ${bestCover.size}`});
+    return stps;
+}
+
+// König: max matching → min vertex cover for bipartite
+function konigVC() {
+    const stps = [];
+    const bip = isBipartite();
+    if (!bip.yes) {
+        stps.push({type:'done', coverSet: new Set(), coveredEdges: new Set(), msg:'Graph is not bipartite — König does not apply'});
+        return stps;
+    }
+    const [L, R] = bip.sides;
+    const n = nodes.length;
+    const adj = adjList();
+    // Hopcroft-style augmenting path matching
+    const matchL = new Array(n).fill(-1);
+    const matchR = new Array(n).fill(-1);
+    function augment(u, visited) {
+        for (const {to} of adj[u]) {
+            if (visited.has(to)) continue;
+            visited.add(to);
+            if (matchR[to] < 0 || augment(matchR[to], visited)) {
+                matchL[u] = to; matchR[to] = u; return true;
+            }
+        }
+        return false;
+    }
+    let matchSize = 0;
+    for (const u of L) {
+        if (augment(u, new Set())) matchSize++;
+    }
+    stps.push({type:'match', msg:`Maximum matching size: ${matchSize}`});
+    // König: find min vertex cover from matching
+    // Unmatched L nodes → BFS alternating paths → cover = matched L not in Z ∪ unmatched R in Z
+    const freeL = new Set(L.filter(u => matchL[u] < 0));
+    const Z_L = new Set(), Z_R = new Set();
+    const queue = [...freeL];
+    for (const u of freeL) Z_L.add(u);
+    while (queue.length) {
+        const u = queue.shift();
+        if (L.includes(u)) {
+            // go to R neighbors not through matching
+            for (const {to} of adj[u]) {
+                if (!Z_R.has(to)) {
+                    Z_R.add(to);
+                    queue.push(to);
+                }
+            }
+        } else {
+            // u is in R, follow matching edge
+            const mate = matchR[u];
+            if (mate >= 0 && !Z_L.has(mate)) {
+                Z_L.add(mate);
+                queue.push(mate);
+            }
+        }
+    }
+    const cover = new Set();
+    for (const u of L) { if (!Z_L.has(u)) cover.add(u); }
+    for (const u of R) { if (Z_R.has(u)) cover.add(u); }
+    const covEdges = new Set();
+    edges.forEach((e,i) => { if(cover.has(e.u)||cover.has(e.v)) covEdges.add(i); });
+    stps.push({type:'done', coverSet: cover, coveredEdges: covEdges, msg:`König vertex cover: size ${cover.size} (= max matching ${matchSize})`});
+    return stps;
+}
+
+// === Run ===
+function resetAlgo() {
+    pauseAlgo();
+    steps = []; stepIdx = -1;
+    coverSet = new Set(); coveredEdges = new Set();
+    candidateNodes = new Set(); candidateEdge = -1;
+    document.getElementById('historyList').innerHTML = '';
+    document.getElementById('statCoverSize').textContent = '—';
+    document.getElementById('statSteps').textContent = '0';
+    const bip = nodes.length > 0 ? isBipartite() : {yes: false};
+    document.getElementById('statBipartite').textContent = nodes.length > 0 ? (bip.yes ? 'Yes' : 'No') : '—';
+    updateStats();
+    document.getElementById('warnMsg').style.display = 'none';
+    draw();
+}
+
+function updateStats() {
+    document.getElementById('statNodes').textContent = nodes.length;
+    document.getElementById('statEdges').textContent = edges.length;
+}
+
+function runAlgo() {
+    resetAlgo();
+    const algo = document.getElementById('algoSelect').value;
+    if (algo === 'greedy') steps = greedyVC();
+    else if (algo === 'exact') {
+        if (nodes.length > 25) { showWarn('Exact algorithm limited to 25 nodes for performance.'); return; }
+        steps = exactVC();
+    }
+    else if (algo === 'konig') {
+        if (!isBipartite().yes) { showWarn('Graph is not bipartite — König\'s theorem does not apply.'); return; }
+        steps = konigVC();
+    }
+    playing = true;
+    playNext();
+}
+
+function showWarn(msg) {
+    const el = document.getElementById('warnMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+function playNext() {
+    if (!playing || stepIdx >= steps.length - 1) { playing = false; return; }
+    stepIdx++;
+    applyStep(stepIdx);
+    const speed = document.getElementById('speedSlider').value;
+    const ms = 1100 - speed * 50;
+    playTimer = setTimeout(playNext, ms);
+}
+
+function stepAlgo() {
+    if (steps.length === 0) runAlgoOnce();
+    if (stepIdx >= steps.length - 1) return;
+    pauseAlgo();
+    stepIdx++;
+    applyStep(stepIdx);
+}
+
+function runAlgoOnce() {
+    const algo = document.getElementById('algoSelect').value;
+    if (algo === 'greedy') steps = greedyVC();
+    else if (algo === 'exact') steps = exactVC();
+    else if (algo === 'konig') steps = konigVC();
+}
+
+function pauseAlgo() {
+    playing = false;
+    if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+}
+
+function applyStep(idx) {
+    const s = steps[idx];
+    candidateNodes = new Set();
+    candidateEdge = -1;
+    if (s.type === 'consider' || s.type === 'branch') {
+        candidateEdge = s.edge;
+        candidateNodes.add(edges[s.edge].u);
+        candidateNodes.add(edges[s.edge].v);
+    }
+    if (s.type === 'try') {
+        candidateNodes.add(s.node);
+    }
+    if (s.type === 'add' || s.type === 'done' || s.type === 'improve') {
+        if (s.coverSet) coverSet = new Set(s.coverSet);
+        if (s.coveredEdges) coveredEdges = new Set(s.coveredEdges);
+    }
+    document.getElementById('statSteps').textContent = idx + 1;
+    if (s.type === 'done' || s.type === 'improve') {
+        document.getElementById('statCoverSize').textContent = coverSet.size;
+    }
+    // history
+    const hl = document.getElementById('historyList');
+    const div = document.createElement('div');
+    div.className = 'step' + (idx === stepIdx ? ' active' : '');
+    div.textContent = `${idx + 1}. ${s.msg}`;
+    hl.appendChild(div);
+    hl.scrollTop = hl.scrollHeight;
+
+    if (s.type === 'done') {
+        showResults();
+    }
+    draw();
+}
+
+function showResults() {
+    const panel = document.getElementById('resultsPanel');
+    const verts = [...coverSet].sort((a,b)=>a-b).join(', ');
+    panel.innerHTML = `<strong>Cover vertices:</strong> {${verts}}<br><strong>Size:</strong> ${coverSet.size}<br><strong>Edges covered:</strong> ${coveredEdges.size} / ${edges.length}`;
+}
+
+// === Compare ===
+function compareAll() {
+    const tbody = document.querySelector('#compareTable tbody');
+    tbody.innerHTML = '';
+    const tbl = document.getElementById('compareTable');
+    tbl.style.display = 'table';
+    const results = [];
+    // Greedy
+    let t0 = performance.now();
+    const gs = greedyVC();
+    const gt = performance.now() - t0;
+    const gCover = gs[gs.length-1].coverSet || new Set();
+    results.push({name:'Greedy 2-Approx', size: gCover.size, time: gt.toFixed(1)});
+    // Exact
+    if (nodes.length <= 25) {
+        t0 = performance.now();
+        const es = exactVC();
+        const et = performance.now() - t0;
+        const eCover = es[es.length-1].coverSet || new Set();
+        results.push({name:'Exact', size: eCover.size, time: et.toFixed(1)});
+    } else {
+        results.push({name:'Exact', size: '—', time: 'n>25'});
+    }
+    // König
+    const bip = isBipartite();
+    if (bip.yes) {
+        t0 = performance.now();
+        const ks = konigVC();
+        const kt = performance.now() - t0;
+        const kCover = ks[ks.length-1].coverSet || new Set();
+        results.push({name:'König', size: kCover.size, time: kt.toFixed(1)});
+    } else {
+        results.push({name:'König', size: 'N/A', time: '—'});
+    }
+    const bestSize = Math.min(...results.map(r => typeof r.size === 'number' ? r.size : Infinity));
+    results.forEach(r => {
+        const tr = document.createElement('tr');
+        const cls = (typeof r.size === 'number' && r.size === bestSize) ? ' class="best-cell"' : '';
+        tr.innerHTML = `<td>${r.name}</td><td${cls}>${r.size}</td><td>${r.time}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function clearGraph() {
+    nodes = []; edges = []; nextId = 0;
+    resetAlgo();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+// Init
+initPresets();
+loadPreset('Triangle');
+setTimeout(resizeCanvas, 50);
+</script>
+
+</body>
+</html>
