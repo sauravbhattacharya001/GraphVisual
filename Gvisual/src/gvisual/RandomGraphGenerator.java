@@ -3,6 +3,7 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Generator for random graphs using classic models from network science.
@@ -37,7 +38,16 @@ public final class RandomGraphGenerator {
 
     private RandomGraphGenerator() { /* utility class */ }
 
-    private static int edgeId = 0;
+    /**
+     * Thread-safe monotonic counter for unique Edge identifiers.
+     * Unlike the previous non-atomic {@code int edgeId} with manual
+     * {@code resetEdgeId()} calls, this counter is never reset —
+     * uniqueness only requires that no two edges share an ID, not
+     * that IDs start from zero. This eliminates the race condition
+     * where concurrent generator calls would reset each other's
+     * counters mid-generation.
+     */
+    private static final AtomicInteger EDGE_ID = new AtomicInteger();
 
     /**
      * Creates a new Edge with a unique generated type code and placeholder
@@ -45,17 +55,11 @@ public final class RandomGraphGenerator {
      * {@code Graph.addEdge(edge, v1, v2)} — the Edge constructor values
      * here serve only as identifiers for equals/hashCode.
      *
-     * <p>Note: {@code edgeId} is a static counter, so this is not
-     * thread-safe. All public generator methods should be called from
-     * a single thread, or externally synchronized.</p>
+     * <p>Thread-safe: uses an {@link AtomicInteger} for ID generation.</p>
      */
     private static Edge newEdge() {
-        int id = edgeId++;
+        int id = EDGE_ID.getAndIncrement();
         return new Edge("gen", "_" + id + "a", "_" + id + "b");
-    }
-
-    private static void resetEdgeId() {
-        edgeId = 0;
     }
 
     /**
@@ -87,7 +91,7 @@ public final class RandomGraphGenerator {
     }
 
     public static Graph<String, Edge> erdosRenyi(int n, double p, Random rng) {
-        resetEdgeId();
+
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         List<String> verts = addVertices(g, n, "v");
         for (int i = 0; i < n; i++) {
@@ -114,7 +118,7 @@ public final class RandomGraphGenerator {
     }
 
     public static Graph<String, Edge> barabasiAlbert(int n, int m, Random rng) {
-        resetEdgeId();
+
         if (m < 1) m = 1;
         if (n < m + 1) n = m + 1;
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
@@ -173,7 +177,7 @@ public final class RandomGraphGenerator {
     }
 
     public static Graph<String, Edge> wattsStrogatz(int n, int k, double beta, Random rng) {
-        resetEdgeId();
+
         if (n < 3) n = 3;
         if (k < 2) k = 2;
         if (k % 2 != 0) k++;
@@ -258,7 +262,7 @@ public final class RandomGraphGenerator {
     }
 
     private static Graph<String, Edge> tryRandomRegular(int n, int k, Random rng) {
-        resetEdgeId();
+
         // Create k copies of each vertex index
         List<Integer> stubs = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -289,7 +293,7 @@ public final class RandomGraphGenerator {
      * @return grid graph with rows × cols vertices
      */
     public static Graph<String, Edge> grid(int rows, int cols) {
-        resetEdgeId();
+
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String[][] grid = new String[rows][cols];
         for (int r = 0; r < rows; r++) {
@@ -318,7 +322,7 @@ public final class RandomGraphGenerator {
     }
 
     public static Graph<String, Edge> randomTree(int n, Random rng) {
-        resetEdgeId();
+
         if (n < 2) n = 2;
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         List<String> verts = addVertices(g, n, "v");
@@ -363,7 +367,7 @@ public final class RandomGraphGenerator {
      * @return complete graph
      */
     public static Graph<String, Edge> complete(int n) {
-        resetEdgeId();
+
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         List<String> verts = addVertices(g, n, "v");
         for (int i = 0; i < n; i++) {
@@ -381,7 +385,7 @@ public final class RandomGraphGenerator {
      * @return star graph
      */
     public static Graph<String, Edge> star(int n) {
-        resetEdgeId();
+
         if (n < 2) n = 2;
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         String center = "hub";
