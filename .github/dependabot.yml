@@ -17,3 +17,21 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
+  # Keep Maven dependencies up to date
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    labels:
+      - "dependencies"
+      - "java"
+    commit-message:
+      prefix: "deps"
+    groups:
+      maven-minor:
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 10
