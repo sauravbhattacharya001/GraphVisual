@@ -34,11 +34,6 @@ import java.util.*;
 public class NetworkReportGenerator {
 
     private final Graph<String, Edge> graph;
-    private final List<Edge> friendEdges;
-    private final List<Edge> fsEdges;
-    private final List<Edge> classmateEdges;
-    private final List<Edge> strangerEdges;
-    private final List<Edge> studyGEdges;
     private final Map<String, List<Edge>> edgesByType;
     private String title = "Network Analysis Report";
 
@@ -60,12 +55,6 @@ public class NetworkReportGenerator {
                 this.edgesByType.put(e.getKey(), e.getValue() != null ? e.getValue() : Collections.<Edge>emptyList());
             }
         }
-        // Maintain backward-compatible field access for subclasses/tests
-        this.friendEdges = this.edgesByType.containsKey("f") ? this.edgesByType.get("f") : Collections.<Edge>emptyList();
-        this.fsEdges = this.edgesByType.containsKey("fs") ? this.edgesByType.get("fs") : Collections.<Edge>emptyList();
-        this.classmateEdges = this.edgesByType.containsKey("c") ? this.edgesByType.get("c") : Collections.<Edge>emptyList();
-        this.strangerEdges = this.edgesByType.containsKey("s") ? this.edgesByType.get("s") : Collections.<Edge>emptyList();
-        this.studyGEdges = this.edgesByType.containsKey("sg") ? this.edgesByType.get("sg") : Collections.<Edge>emptyList();
     }
 
     /**
@@ -162,8 +151,8 @@ public class NetworkReportGenerator {
         int totalEdgeTypes = 0;
         for (int c : edgeTypeCounts) totalEdgeTypes += c;
 
-        // Components (simple BFS)
-        int componentCount = countComponents();
+        // Components
+        int componentCount = GraphUtils.findComponents(graph).size();
 
         // Network health score (0-100)
         int healthScore = computeHealthScore(nodeCount, edgeCount, density, isolatedCount, componentCount);
@@ -254,29 +243,6 @@ public class NetworkReportGenerator {
         sb.append("</body>\n</html>");
 
         return sb.toString();
-    }
-
-    private int countComponents() {
-        Set<String> visited = new HashSet<String>();
-        int components = 0;
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                components++;
-                Queue<String> queue = new ArrayDeque<String>();
-                queue.add(v);
-                visited.add(v);
-                while (!queue.isEmpty()) {
-                    String curr = queue.poll();
-                    for (String neighbor : graph.getNeighbors(curr)) {
-                        if (!visited.contains(neighbor)) {
-                            visited.add(neighbor);
-                            queue.add(neighbor);
-                        }
-                    }
-                }
-            }
-        }
-        return components;
     }
 
     private int computeHealthScore(int nodes, int edges, double density, int isolated, int components) {

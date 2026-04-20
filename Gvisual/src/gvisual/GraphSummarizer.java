@@ -28,11 +28,6 @@ public class GraphSummarizer {
     private final Graph<String, Edge> graph;
     private final GraphStats stats;
     private final CommunityDetector communities;
-    private final List<Edge> friendEdges;
-    private final List<Edge> fsEdges;
-    private final List<Edge> classmateEdges;
-    private final List<Edge> strangerEdges;
-    private final List<Edge> studyGEdges;
 
     /**
      * Creates a new GraphSummarizer.
@@ -55,13 +50,12 @@ public class GraphSummarizer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
-        this.friendEdges = friendEdges != null ? friendEdges : new ArrayList<Edge>();
-        this.fsEdges = fsEdges != null ? fsEdges : new ArrayList<Edge>();
-        this.classmateEdges = classmateEdges != null ? classmateEdges : new ArrayList<Edge>();
-        this.strangerEdges = strangerEdges != null ? strangerEdges : new ArrayList<Edge>();
-        this.studyGEdges = studyGEdges != null ? studyGEdges : new ArrayList<Edge>();
-        this.stats = new GraphStats(graph, this.friendEdges, this.fsEdges,
-                this.classmateEdges, this.strangerEdges, this.studyGEdges);
+        List<Edge> fe = friendEdges != null ? friendEdges : new ArrayList<Edge>();
+        List<Edge> fse = fsEdges != null ? fsEdges : new ArrayList<Edge>();
+        List<Edge> ce = classmateEdges != null ? classmateEdges : new ArrayList<Edge>();
+        List<Edge> se = strangerEdges != null ? strangerEdges : new ArrayList<Edge>();
+        List<Edge> sge = studyGEdges != null ? studyGEdges : new ArrayList<Edge>();
+        this.stats = new GraphStats(graph, fe, fse, ce, se, sge);
         this.communities = new CommunityDetector(graph);
     }
 
