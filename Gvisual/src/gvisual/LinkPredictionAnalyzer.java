@@ -31,6 +31,15 @@ public class LinkPredictionAnalyzer {
     private final Graph<String, Edge> graph;
 
     /**
+     * Lazily cached adjacency map — built once on first use and reused
+     * across predict(), predictEnsemble(), and score() calls.  Previously
+     * each method independently called GraphUtils.buildAdjacencyMap(),
+     * resulting in O(V+E) redundant work per call on the same analyzer
+     * instance.
+     */
+    private Map<String, Set<String>> cachedAdjacency;
+
+    /**
      * Create a new link prediction analyzer.
      *
      * @param graph the JUNG graph to analyze (must not be null)
@@ -41,6 +50,16 @@ public class LinkPredictionAnalyzer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
+    }
+
+    /**
+     * Returns the cached adjacency map, building it on first access.
+     */
+    private Map<String, Set<String>> adjacency() {
+        if (cachedAdjacency == null) {
+            cachedAdjacency = GraphUtils.buildAdjacencyMap(graph);
+        }
+        return cachedAdjacency;
     }
 
     // ── Score methods ───────────────────────────────────────────
@@ -170,7 +189,7 @@ public class LinkPredictionAnalyzer {
         int n = vertices.size();
         int existingEdges = graph.getEdgeCount();
         long possibleEdges = (long) n * (n - 1) / 2;
-        Map<String, Set<String>> adjacency = GraphUtils.buildAdjacencyMap(graph);
+        Map<String, Set<String>> adjacency = adjacency();
 
         List<String> vertexList = new ArrayList<String>(vertices);
 
@@ -250,7 +269,7 @@ public class LinkPredictionAnalyzer {
         int n = vertices.size();
         int existingEdges = graph.getEdgeCount();
         long possibleEdges = (long) n * (n - 1) / 2;
-        Map<String, Set<String>> adjacency = GraphUtils.buildAdjacencyMap(graph);
+        Map<String, Set<String>> adjacency = adjacency();
         List<String> vertexList = new ArrayList<String>(vertices);
 
         Method[] methods = {
@@ -380,7 +399,7 @@ public class LinkPredictionAnalyzer {
         int n = vertices.size();
         int existingEdges = graph.getEdgeCount();
         long possibleEdges = (long) n * (n - 1) / 2;
-        Map<String, Set<String>> adjacency = buildAdjacency(vertices);
+        Map<String, Set<String>> adjacency = adjacency();
 
         List<String> vertexList = new ArrayList<String>(vertices);
         List<String[]> pairs = new ArrayList<String[]>();
@@ -437,10 +456,6 @@ public class LinkPredictionAnalyzer {
     }
 
     // ── Helpers ─────────────────────────────────────────────────
-
-    private Map<String, Set<String>> buildAdjacency(Collection<String> vertices) {
-        return GraphUtils.buildAdjacencyMap(graph);
-    }
 
     private Set<String> getCommonNeighbors(Map<String, Set<String>> adjacency,
                                            String u, String v) {
