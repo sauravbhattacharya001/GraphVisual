@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Evolution Simulator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .evo-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 500px; }
+        .control-panel { width: 320px; }
+        #evo-canvas {
+            width: 100%; height: 520px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px;
+        }
+        .evo-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .evo-btn:hover { background: var(--surface-hover); }
+        .evo-btn.active { border-color: var(--accent); color: var(--accent); }
+        .evo-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .evo-btn.primary:hover { background: var(--accent-hover); }
+        .evo-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .stat-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 0.85rem; }
+        .stat-label { color: var(--text-muted); }
+        .model-select { margin-bottom: 1rem; }
+        .model-select label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-muted); }
+        .model-select select, .model-select input {
+            width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); font-size: 0.85rem;
+        }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+        .speed-control input { flex: 1; }
+        .speed-control span { font-size: 0.8rem; color: var(--text-muted); min-width: 40px; }
+        .degree-chart { height: 140px; position: relative; margin-top: 0.5rem; }
+        .degree-bar {
+            position: absolute; bottom: 0; background: var(--accent); border-radius: 3px 3px 0 0;
+            min-width: 6px; transition: height 0.3s;
+        }
+        .event-log {
+            font-family: 'Courier New', monospace; font-size: 0.78rem;
+            max-height: 160px; overflow-y: auto; padding: 0.5rem;
+            background: var(--bg); border-radius: 4px; border: 1px solid var(--border);
+        }
+        .event-log .log-entry { margin: 2px 0; }
+        .event-log .log-time { color: var(--text-muted); }
+        .metric-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .metric-mini .info-card { margin-bottom: 0; text-align: center; }
+        .phase-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;
+            font-weight: 600; margin-left: 6px;
+        }
+        .phase-sparse { background: #fef3c7; color: #92400e; }
+        .phase-growing { background: #d1fae5; color: #065f46; }
+        .phase-dense { background: #dbeafe; color: #1e40af; }
+        .phase-saturated { background: #fce7f3; color: #9d174d; }
+        .timeline-bar {
+            height: 30px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 6px; position: relative; overflow: hidden; margin-bottom: 1rem; cursor: pointer;
+        }
+        .timeline-fill { height: 100%; background: var(--accent); opacity: 0.3; transition: width 0.2s; }
+        .timeline-label {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 0.8rem; font-weight: 600; color: var(--text);
+        }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-title">Interactive Tools</div>
+        <a href="editor.html" class="sidebar-link">Graph Editor</a>
+        <a href="random-walk.html" class="sidebar-link">Random Walk</a>
+        <a href="bipartite.html" class="sidebar-link">Bipartite Checker</a>
+        <a href="euler.html" class="sidebar-link">Euler Paths</a>
+        <a href="bridges.html" class="sidebar-link">Bridges & APs</a>
+        <a href="toposort.html" class="sidebar-link">Topological Sort</a>
+        <a href="isomorphism.html" class="sidebar-link">Isomorphism</a>
+        <a href="scc.html" class="sidebar-link">SCC Finder</a>
+        <a href="resilience.html" class="sidebar-link">Resilience</a>
+        <a href="planarity.html" class="sidebar-link">Planarity</a>
+        <a href="crossing-game.html" class="sidebar-link">Crossing Game</a>
+        <a href="clique.html" class="sidebar-link">Max Clique</a>
+        <a href="matching.html" class="sidebar-link">Max Matching</a>
+        <a href="dominating-set.html" class="sidebar-link">Dominating Set</a>
+        <a href="vertex-cover.html" class="sidebar-link">Vertex Cover</a>
+        <a href="anomaly.html" class="sidebar-link">Anomaly Detector</a>
+        <a href="layout-optimizer.html" class="sidebar-link">Layout Optimizer</a>
+        <a href="graph-advisor.html" class="sidebar-link">Graph Advisor</a>
+        <a href="graph-evolution.html" class="sidebar-link active">Evolution Sim</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-title">References</div>
+        <a href="guide.html" class="sidebar-link">User Guide</a>
+        <a href="api.html" class="sidebar-link">Java API</a>
+        <a href="cookbook.html" class="sidebar-link">Cookbook</a>
+        <a href="architecture.html" class="sidebar-link">Architecture</a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="content-header">
+        <h1>🧬 Graph Evolution Simulator</h1>
+        <p>Watch networks grow step-by-step using classic network growth models. Observe how different mechanisms produce different topologies — from random graphs to scale-free networks.</p>
+    </div>
+
+    <div class="evo-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <button class="evo-btn primary" id="btn-play" onclick="togglePlay()">▶ Play</button>
+                <button class="evo-btn" id="btn-step" onclick="stepOnce()">⏭ Step</button>
+                <button class="evo-btn danger" id="btn-reset" onclick="resetSim()">↺ Reset</button>
+                <button class="evo-btn" onclick="exportSnapshot()">📸 Snapshot</button>
+                <button class="evo-btn" onclick="exportJSON()">💾 Export</button>
+            </div>
+            <canvas id="evo-canvas"></canvas>
+            <div class="timeline-bar" id="timeline" onclick="seekTimeline(event)">
+                <div class="timeline-fill" id="timeline-fill"></div>
+                <div class="timeline-label" id="timeline-label">Step 0 / 100</div>
+            </div>
+        </div>
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>Growth Model</h3>
+                <div class="model-select">
+                    <select id="model-type" onchange="onModelChange()">
+                        <option value="ba">Barabási-Albert (Preferential Attachment)</option>
+                        <option value="er">Erdős-Rényi (Random)</option>
+                        <option value="ws">Watts-Strogatz (Small World)</option>
+                        <option value="price">Price's Model (Citation Network)</option>
+                        <option value="fitness">Bianconi-Barabási (Fitness Model)</option>
+                    </select>
+                </div>
+                <div id="model-params"></div>
+                <div class="model-select">
+                    <label>Target Nodes</label>
+                    <input type="number" id="target-nodes" value="100" min="10" max="500">
+                </div>
+                <div class="speed-control">
+                    <span>Speed</span>
+                    <input type="range" id="speed" min="1" max="20" value="5">
+                    <span id="speed-label">5</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Network Phase <span class="phase-badge phase-sparse" id="phase-badge">Sparse</span></h3>
+                <div class="metric-mini">
+                    <div class="info-card"><div class="stat-value" id="stat-nodes">0</div><div class="stat-label">Nodes</div></div>
+                    <div class="info-card"><div class="stat-value" id="stat-edges">0</div><div class="stat-label">Edges</div></div>
+                    <div class="info-card"><div class="stat-value" id="stat-density">0</div><div class="stat-label">Density</div></div>
+                    <div class="info-card"><div class="stat-value" id="stat-components">0</div><div class="stat-label">Components</div></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Degree Distribution</h3>
+                <div class="degree-chart" id="degree-chart"></div>
+            </div>
+
+            <div class="info-card">
+                <h3>Metrics Over Time</h3>
+                <canvas id="metrics-canvas" width="280" height="100" style="width:100%;height:100px;border-radius:4px;"></canvas>
+            </div>
+
+            <div class="info-card">
+                <h3>Event Log</h3>
+                <div class="event-log" id="event-log"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ─── State ───
+let nodes = [], edges = [], adj = {};
+let step = 0, playing = false, animFrame = null, lastTick = 0;
+let targetNodes = 100;
+let metricsHistory = { density: [], avgDeg: [], components: [] };
+
+// ─── Canvas ───
+const canvas = document.getElementById('evo-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+    const r = canvas.parentElement.getBoundingClientRect();
+    canvas.width = r.width; canvas.height = 520;
+}
+resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+
+// ─── Model Parameters ───
+const modelParams = {
+    ba: { m: { label: 'Edges per new node (m)', value: 2, min: 1, max: 10 }, m0: { label: 'Initial clique size', value: 3, min: 2, max: 10 } },
+    er: { p: { label: 'Edge probability (p)', value: 0.05, min: 0.01, max: 0.5, step: 0.01 }, batch: { label: 'Nodes per step', value: 1, min: 1, max: 5 } },
+    ws: { k: { label: 'Neighbors (k, even)', value: 4, min: 2, max: 10, step: 2 }, beta: { label: 'Rewire prob (β)', value: 0.3, min: 0, max: 1, step: 0.05 } },
+    price: { m: { label: 'Citations per paper (m)', value: 2, min: 1, max: 8 }, a: { label: 'Appeal (a)', value: 1, min: 0, max: 5, step: 0.5 } },
+    fitness: { m: { label: 'Edges per new node (m)', value: 2, min: 1, max: 10 }, dist: { label: 'Fitness dist', value: 'uniform', options: ['uniform', 'exponential', 'power-law'] } }
+};
+
+function onModelChange() {
+    const model = document.getElementById('model-type').value;
+    const container = document.getElementById('model-params');
+    container.innerHTML = '';
+    const params = modelParams[model];
+    for (const [key, cfg] of Object.entries(params)) {
+        const div = document.createElement('div');
+        div.className = 'model-select';
+        if (cfg.options) {
+            div.innerHTML = `<label>${cfg.label}</label><select id="param-${key}">${cfg.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+        } else {
+            div.innerHTML = `<label>${cfg.label}</label><input type="number" id="param-${key}" value="${cfg.value}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step||1}">`;
+        }
+        container.appendChild(div);
+    }
+}
+onModelChange();
+
+function getParam(key) {
+    const el = document.getElementById('param-'+key);
+    if (!el) return null;
+    if (el.tagName === 'SELECT') return el.value;
+    return parseFloat(el.value);
+}
+
+// ─── Graph Ops ───
+function addNode(x, y, fitness) {
+    const id = nodes.length;
+    nodes.push({ id, x: x||Math.random()*canvas.width, y: y||Math.random()*canvas.height, vx: 0, vy: 0, fitness: fitness||1 });
+    adj[id] = new Set();
+    return id;
+}
+function addEdge(a, b) {
+    if (a===b || adj[a].has(b)) return false;
+    edges.push([a,b]);
+    adj[a].add(b); adj[b].add(a);
+    return true;
+}
+function degree(n) { return adj[n] ? adj[n].size : 0; }
+
+// ─── Growth Models ───
+function initBA() {
+    const m0 = getParam('m0')||3;
+    for (let i=0;i<m0;i++) addNode();
+    for (let i=0;i<m0;i++) for (let j=i+1;j<m0;j++) addEdge(i,j);
+    log('Init BA: clique of '+m0);
+}
+function stepBA() {
+    const m = getParam('m')||2;
+    const id = addNode();
+    const totalDeg = edges.length*2||1;
+    const connected = new Set();
+    let attempts = 0;
+    while (connected.size < Math.min(m, nodes.length-1) && attempts < 1000) {
+        attempts++;
+        let r = Math.random()*totalDeg, cum=0;
+        for (let i=0;i<nodes.length-1;i++) {
+            cum += degree(i)||0;
+            if (cum >= r && !connected.has(i)) { connected.add(i); addEdge(id, i); break; }
+        }
+    }
+    log(`+Node ${id} → ${connected.size} edges (pref. attach.)`);
+}
+
+function initER() { addNode(); log('Init ER: 1 node'); }
+function stepER() {
+    const p = getParam('p')||0.05;
+    const batch = getParam('batch')||1;
+    for (let b=0;b<batch;b++) {
+        const id = addNode();
+        let ec = 0;
+        for (let i=0;i<id;i++) { if (Math.random()<p) { addEdge(id,i); ec++; } }
+        log(`+Node ${id} → ${ec} random edges (p=${p})`);
+    }
+}
+
+function initWS() {
+    const n = parseInt(document.getElementById('target-nodes').value)||100;
+    const k = getParam('k')||4;
+    for (let i=0;i<n;i++) {
+        const angle = (2*Math.PI*i)/n;
+        addNode(canvas.width/2+180*Math.cos(angle), canvas.height/2+180*Math.sin(angle));
+    }
+    for (let i=0;i<n;i++) for (let j=1;j<=k/2;j++) addEdge(i,(i+j)%n);
+    log(`Init WS: ring of ${n}, k=${k}`);
+}
+function stepWS() {
+    const beta = getParam('beta')||0.3;
+    const n = nodes.length;
+    // Rewire one random edge per step
+    if (edges.length === 0) return;
+    const idx = Math.floor(Math.random()*edges.length);
+    const [u,v] = edges[idx];
+    if (Math.random() < beta) {
+        let w; let attempts=0;
+        do { w = Math.floor(Math.random()*n); attempts++; } while ((w===u||adj[u].has(w))&&attempts<100);
+        if (attempts<100) {
+            adj[u].delete(v); adj[v].delete(u);
+            edges[idx] = [u,w]; adj[u].add(w); adj[w].add(u);
+            log(`Rewire: ${u}-${v} → ${u}-${w}`);
+        }
+    }
+}
+
+function initPrice() { addNode(); log('Init Price: node 0 (root paper)'); }
+function stepPrice() {
+    const m = getParam('m')||2;
+    const a = getParam('a')||1;
+    const id = addNode();
+    const connected = new Set();
+    let attempts = 0;
+    while (connected.size < Math.min(m, nodes.length-1) && attempts < 1000) {
+        attempts++;
+        // Probability proportional to in-degree + a
+        const weights = [];
+        let total = 0;
+        for (let i=0;i<nodes.length-1;i++) { const w = degree(i)+a; weights.push(w); total+=w; }
+        let r = Math.random()*total, cum=0;
+        for (let i=0;i<weights.length;i++) {
+            cum += weights[i];
+            if (cum >= r && !connected.has(i)) { connected.add(i); addEdge(id, i); break; }
+        }
+    }
+    log(`+Paper ${id} cites ${connected.size} (appeal=${a})`);
+}
+
+function initFitness() {
+    const m0 = 3;
+    for (let i=0;i<m0;i++) addNode(0,0,genFitness());
+    for (let i=0;i<m0;i++) for (let j=i+1;j<m0;j++) addEdge(i,j);
+    log('Init Fitness: clique of '+m0);
+}
+function genFitness() {
+    const dist = getParam('dist')||'uniform';
+    if (dist==='uniform') return Math.random();
+    if (dist==='exponential') return -Math.log(1-Math.random());
+    return 1/Math.pow(1-Math.random(),0.5); // power-law
+}
+function stepFitness() {
+    const m = getParam('m')||2;
+    const f = genFitness();
+    const id = addNode(0,0,f);
+    const connected = new Set();
+    let attempts=0;
+    while (connected.size < Math.min(m, nodes.length-1) && attempts<1000) {
+        attempts++;
+        let total=0;
+        for (let i=0;i<nodes.length-1;i++) total += nodes[i].fitness * degree(i);
+        if (total===0) { if (nodes.length>1) { const t=Math.floor(Math.random()*(nodes.length-1)); connected.add(t); addEdge(id,t); } break; }
+        let r=Math.random()*total, cum=0;
+        for (let i=0;i<nodes.length-1;i++) {
+            cum += nodes[i].fitness*degree(i);
+            if (cum>=r && !connected.has(i)) { connected.add(i); addEdge(id,i); break; }
+        }
+    }
+    log(`+Node ${id} (fit=${f.toFixed(2)}) → ${connected.size} edges`);
+}
+
+const models = {
+    ba: { init: initBA, step: stepBA, continuous: true },
+    er: { init: initER, step: stepER, continuous: true },
+    ws: { init: initWS, step: stepWS, continuous: false },
+    price: { init: initPrice, step: stepPrice, continuous: true },
+    fitness: { init: initFitness, step: stepFitness, continuous: true }
+};
+
+// ─── Simulation ───
+function resetSim() {
+    playing = false; step = 0;
+    nodes = []; edges = []; adj = {};
+    metricsHistory = { density: [], avgDeg: [], components: [] };
+    document.getElementById('event-log').innerHTML = '';
+    document.getElementById('btn-play').textContent = '▶ Play';
+    targetNodes = parseInt(document.getElementById('target-nodes').value)||100;
+    const model = document.getElementById('model-type').value;
+    models[model].init();
+    layoutInit();
+    updateStats();
+    draw();
+}
+
+function stepOnce() {
+    const model = document.getElementById('model-type').value;
+    const m = models[model];
+    if (m.continuous && nodes.length >= targetNodes) { log('Target reached!'); playing=false; return; }
+    if (!m.continuous && step >= targetNodes) { log('Steps complete!'); playing=false; return; }
+    m.step();
+    step++;
+    layoutStep();
+    updateStats();
+    recordMetrics();
+    draw();
+    updateTimeline();
+}
+
+function togglePlay() {
+    playing = !playing;
+    document.getElementById('btn-play').textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing) requestAnimationFrame(tick);
+}
+
+function tick(ts) {
+    if (!playing) return;
+    const speed = parseInt(document.getElementById('speed').value)||5;
+    document.getElementById('speed-label').textContent = speed;
+    const interval = Math.max(20, 300 - speed*25);
+    if (ts - lastTick > interval) {
+        stepOnce();
+        lastTick = ts;
+        const model = document.getElementById('model-type').value;
+        const m = models[model];
+        if ((m.continuous && nodes.length >= targetNodes) || (!m.continuous && step >= targetNodes)) {
+            playing = false;
+            document.getElementById('btn-play').textContent = '▶ Play';
+            log('✅ Evolution complete!');
+            detectPhaseTransitions();
+            return;
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+// ─── Force Layout ───
+function layoutInit() {
+    const cx = canvas.width/2, cy = canvas.height/2;
+    nodes.forEach((n,i) => {
+        if (n.x===0&&n.y===0) { n.x = cx+Math.random()*200-100; n.y = cy+Math.random()*200-100; }
+        n.vx = 0; n.vy = 0;
+    });
+}
+function layoutStep() {
+    const cx = canvas.width/2, cy = canvas.height/2;
+    const k = Math.sqrt((canvas.width*canvas.height)/Math.max(nodes.length,1));
+    // Place newest node near its neighbors
+    const newest = nodes[nodes.length-1];
+    if (newest && adj[newest.id] && adj[newest.id].size>0) {
+        let sx=0,sy=0,c=0;
+        adj[newest.id].forEach(nid => { sx+=nodes[nid].x; sy+=nodes[nid].y; c++; });
+        newest.x = sx/c + (Math.random()-0.5)*50;
+        newest.y = sy/c + (Math.random()-0.5)*50;
+    }
+    // Quick force iteration
+    for (let iter=0; iter<3; iter++) {
+        // Repulsion
+        for (let i=0;i<nodes.length;i++) {
+            for (let j=i+1;j<nodes.length;j++) {
+                let dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+                let d=Math.sqrt(dx*dx+dy*dy)||1;
+                let f = k*k/(d*d)*0.5;
+                let fx=dx/d*f, fy=dy/d*f;
+                nodes[i].vx-=fx; nodes[i].vy-=fy;
+                nodes[j].vx+=fx; nodes[j].vy+=fy;
+            }
+        }
+        // Attraction
+        edges.forEach(([a,b])=>{
+            let dx=nodes[b].x-nodes[a].x, dy=nodes[b].y-nodes[a].y;
+            let d=Math.sqrt(dx*dx+dy*dy)||1;
+            let f=d/k*0.3;
+            let fx=dx/d*f, fy=dy/d*f;
+            nodes[a].vx+=fx; nodes[a].vy+=fy;
+            nodes[b].vx-=fx; nodes[b].vy-=fy;
+        });
+        // Gravity
+        nodes.forEach(n=>{
+            n.vx+=(cx-n.x)*0.001; n.vy+=(cy-n.y)*0.001;
+            n.x+=n.vx*0.3; n.y+=n.vy*0.3;
+            n.vx*=0.8; n.vy*=0.8;
+            n.x=Math.max(20,Math.min(canvas.width-20,n.x));
+            n.y=Math.max(20,Math.min(canvas.height-20,n.y));
+        });
+    }
+}
+
+// ─── Drawing ───
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Edges
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border')||'#444';
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.4;
+    edges.forEach(([a,b])=>{
+        ctx.beginPath(); ctx.moveTo(nodes[a].x,nodes[a].y); ctx.lineTo(nodes[b].x,nodes[b].y); ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    // Nodes
+    const maxDeg = Math.max(1,...nodes.map(n=>degree(n.id)));
+    nodes.forEach((n,i)=>{
+        const d = degree(n.id);
+        const r = 3 + (d/maxDeg)*8;
+        const hue = (d/maxDeg)*240; // blue(low) → red(high)
+        ctx.fillStyle = `hsl(${240-hue},70%,55%)`;
+        ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); ctx.fill();
+        // Label hubs
+        if (d > maxDeg*0.7 && nodes.length < 200) {
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text')||'#eee';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(n.id, n.x+r+2, n.y+3);
+        }
+    });
+    // Newest node highlight
+    if (nodes.length > 0) {
+        const n = nodes[nodes.length-1];
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(n.x,n.y,12,0,Math.PI*2); ctx.stroke();
+    }
+}
+
+// ─── Stats ───
+function countComponents() {
+    const visited = new Set();
+    let count = 0;
+    for (let i=0;i<nodes.length;i++) {
+        if (visited.has(i)) continue;
+        count++;
+        const stack = [i];
+        while (stack.length) {
+            const v = stack.pop();
+            if (visited.has(v)) continue;
+            visited.add(v);
+            adj[v].forEach(u => { if (!visited.has(u)) stack.push(u); });
+        }
+    }
+    return count;
+}
+function updateStats() {
+    const n = nodes.length, e = edges.length;
+    const density = n>1 ? (2*e/(n*(n-1))).toFixed(4) : '0';
+    const comp = countComponents();
+    document.getElementById('stat-nodes').textContent = n;
+    document.getElementById('stat-edges').textContent = e;
+    document.getElementById('stat-density').textContent = density;
+    document.getElementById('stat-components').textContent = comp;
+    // Phase
+    const d = parseFloat(density);
+    const badge = document.getElementById('phase-badge');
+    if (d < 0.01) { badge.textContent='Sparse'; badge.className='phase-badge phase-sparse'; }
+    else if (d < 0.05) { badge.textContent='Growing'; badge.className='phase-badge phase-growing'; }
+    else if (d < 0.2) { badge.textContent='Dense'; badge.className='phase-badge phase-dense'; }
+    else { badge.textContent='Saturated'; badge.className='phase-badge phase-saturated'; }
+    // Degree distribution
+    updateDegreeChart();
+}
+function recordMetrics() {
+    const n = nodes.length, e = edges.length;
+    metricsHistory.density.push(n>1?2*e/(n*(n-1)):0);
+    metricsHistory.avgDeg.push(n>0?2*e/n:0);
+    metricsHistory.components.push(countComponents());
+    drawMetrics();
+}
+function updateDegreeChart() {
+    const chart = document.getElementById('degree-chart');
+    const degs = {};
+    nodes.forEach(n=>{ const d=degree(n.id); degs[d]=(degs[d]||0)+1; });
+    const maxK = Math.max(0,...Object.keys(degs).map(Number));
+    const maxC = Math.max(1,...Object.values(degs));
+    chart.innerHTML = '';
+    const w = chart.clientWidth;
+    const barW = Math.max(4, Math.min(20, w/(maxK+2)));
+    for (let k=0;k<=Math.min(maxK,40);k++) {
+        const c = degs[k]||0;
+        const bar = document.createElement('div');
+        bar.className = 'degree-bar';
+        bar.style.left = (k*barW+2)+'px';
+        bar.style.width = (barW-2)+'px';
+        bar.style.height = (c/maxC*130)+'px';
+        bar.title = `k=${k}: ${c} nodes`;
+        chart.appendChild(bar);
+    }
+}
+function drawMetrics() {
+    const mc = document.getElementById('metrics-canvas');
+    const mctx = mc.getContext('2d');
+    mc.width = mc.clientWidth; mc.height = 100;
+    mctx.clearRect(0,0,mc.width,mc.height);
+    const series = [
+        { data: metricsHistory.density, color: '#3b82f6', label: 'density' },
+        { data: metricsHistory.avgDeg.map(v=>v/20), color: '#10b981', label: 'avgDeg/20' }
+    ];
+    series.forEach(s => {
+        if (s.data.length < 2) return;
+        const max = Math.max(0.001,...s.data);
+        mctx.strokeStyle = s.color; mctx.lineWidth = 1.5; mctx.beginPath();
+        s.data.forEach((v,i)=>{
+            const x = i/(s.data.length-1)*mc.width;
+            const y = mc.height - (v/max)*(mc.height-10) - 5;
+            i===0 ? mctx.moveTo(x,y) : mctx.lineTo(x,y);
+        });
+        mctx.stroke();
+    });
+}
+
+// ─── Phase Transition Detection ───
+function detectPhaseTransitions() {
+    const h = metricsHistory.components;
+    if (h.length < 10) return;
+    // Find giant component emergence: biggest drop in component count
+    let maxDrop = 0, maxIdx = 0;
+    for (let i=1;i<h.length;i++) {
+        const drop = h[i-1]-h[i];
+        if (drop > maxDrop) { maxDrop=drop; maxIdx=i; }
+    }
+    if (maxDrop > 2) log(`🔍 Phase transition: giant component emerged ~step ${maxIdx} (components dropped by ${maxDrop})`);
+    // Check for power-law degree dist
+    const degs = nodes.map(n=>degree(n.id)).filter(d=>d>0);
+    const avgD = degs.reduce((a,b)=>a+b,0)/degs.length;
+    const maxD = Math.max(...degs);
+    if (maxD > avgD * 5) log(`🔍 Scale-free signature: max degree ${maxD} >> avg ${avgD.toFixed(1)}`);
+}
+
+// ─── Timeline ───
+function updateTimeline() {
+    const model = document.getElementById('model-type').value;
+    const total = models[model].continuous ? targetNodes : targetNodes;
+    const current = models[model].continuous ? nodes.length : step;
+    const pct = Math.min(100, current/total*100);
+    document.getElementById('timeline-fill').style.width = pct+'%';
+    document.getElementById('timeline-label').textContent = `Step ${step} — ${nodes.length} nodes / ${targetNodes}`;
+}
+
+// ─── Logging ───
+function log(msg) {
+    const el = document.getElementById('event-log');
+    const t = document.createElement('div');
+    t.className = 'log-entry';
+    t.innerHTML = `<span class="log-time">[${step}]</span> ${msg}`;
+    el.prepend(t);
+    if (el.children.length > 200) el.removeChild(el.lastChild);
+}
+
+// ─── Export ───
+function exportSnapshot() {
+    const link = document.createElement('a');
+    link.download = `graph-evolution-step${step}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    log('📸 Snapshot saved');
+}
+function exportJSON() {
+    const data = {
+        model: document.getElementById('model-type').value,
+        step, nodes: nodes.map(n=>({id:n.id,x:n.x,y:n.y,degree:degree(n.id),fitness:n.fitness})),
+        edges: edges.map(([a,b])=>({source:a,target:b})),
+        metrics: metricsHistory
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const link = document.createElement('a');
+    link.download = `graph-evolution-${data.model}-step${step}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    log('💾 JSON exported');
+}
+
+function seekTimeline(e) {
+    // Seek not supported in live mode — just informational
+}
+
+// ─── Init ───
+resetSim();
+document.getElementById('speed').addEventListener('input', e => {
+    document.getElementById('speed-label').textContent = e.target.value;
+});
+</script>
+</body>
+</html>
