@@ -45,13 +45,31 @@ public class RandomWalkAnalyzer {
         validateNode(graph, target, "target");
         if (source.equals(target)) return 0.0;
 
+        // Use IndexedGraph for cache-friendly int[][] adjacency traversal,
+        // consistent with hittingTimesFrom/coverTime (was previously using
+        // raw Collection<V> neighbor iteration via simulateWalkToTarget).
+        IndexedGraph<V> ig = buildIndexedGraph(graph, graph.getVertices());
+        int sourceIdx = ig.indexOf(source);
+        int targetIdx = ig.indexOf(target);
+        int maxSteps = ig.size * ig.size * 10;
+
         long totalSteps = 0;
         int reached = 0;
-        int maxSteps = graph.getVertexCount() * graph.getVertexCount() * 10;
 
         for (int sim = 0; sim < defaultSimulations; sim++) {
-            int steps = simulateWalkToTarget(graph, source, target, maxSteps);
-            if (steps >= 0) { totalSteps += steps; reached++; }
+            int currentIdx = sourceIdx;
+            boolean found = false;
+            for (int step = 1; step <= maxSteps; step++) {
+                int[] nbrs = ig.adj[currentIdx];
+                if (nbrs.length == 0) break;
+                currentIdx = nbrs[rng.nextInt(nbrs.length)];
+                if (currentIdx == targetIdx) {
+                    totalSteps += step;
+                    reached++;
+                    found = true;
+                    break;
+                }
+            }
         }
         return reached == 0 ? Double.POSITIVE_INFINITY : (double) totalSteps / reached;
     }
@@ -192,10 +210,27 @@ public class RandomWalkAnalyzer {
         validateGraph(graph);
         validateNode(graph, node, "node");
         if (graph.degree(node) == 0) return Double.POSITIVE_INFINITY;
+
+        // Use IndexedGraph for cache-friendly int[][] adjacency traversal,
+        // consistent with hittingTimesFrom/coverTime (was previously using
+        // raw Collection<V> neighbor iteration via simulateReturnWalk).
+        IndexedGraph<V> ig = buildIndexedGraph(graph, graph.getVertices());
+        int nodeIdx = ig.indexOf(node);
+        int maxSteps = ig.size * ig.size * 10;
+
         long totalSteps = 0;
-        int maxSteps = graph.getVertexCount() * graph.getVertexCount() * 10;
         for (int sim = 0; sim < defaultSimulations; sim++) {
-            totalSteps += simulateReturnWalk(graph, node, maxSteps);
+            int[] nbrs = ig.adj[nodeIdx];
+            if (nbrs.length == 0) { totalSteps += maxSteps; continue; }
+            int currentIdx = nbrs[rng.nextInt(nbrs.length)];
+            int steps = maxSteps;
+            for (int step = 2; step <= maxSteps; step++) {
+                if (currentIdx == nodeIdx) { steps = step; break; }
+                int[] curNbrs = ig.adj[currentIdx];
+                if (curNbrs.length == 0) break;
+                currentIdx = curNbrs[rng.nextInt(curNbrs.length)];
+            }
+            totalSteps += steps;
         }
         return (double) totalSteps / defaultSimulations;
     }
@@ -341,25 +376,6 @@ public class RandomWalkAnalyzer {
 
     // ── Private Helpers ────────────────────────────────────────────────
 
-    private <V, E> int simulateWalkToTarget(Graph<V, E> graph, V source, V target, int maxSteps) {
-        V current = source;
-        for (int step = 1; step <= maxSteps; step++) {
-            Collection<V> nbrs = graph.getNeighbors(current);
-            if (nbrs == null || nbrs.isEmpty()) return -1;
-            // Skip to a random neighbor without copying the full collection.
-            int idx = rng.nextInt(nbrs.size());
-            V next = null;
-            if (nbrs instanceof List) {
-                next = ((List<V>) nbrs).get(idx);
-            } else {
-                for (V v : nbrs) { if (idx-- == 0) { next = v; break; } }
-            }
-            current = next;
-            if (current.equals(target)) return step;
-        }
-        return -1;
-    }
-
     /** BFS to find all vertices reachable from {@code source}. */
     private <V, E> Set<V> bfsReachable(Graph<V, E> graph, V source) {
         Set<V> reachable = new HashSet<>();
@@ -373,19 +389,6 @@ public class RandomWalkAnalyzer {
             }
         }
         return reachable;
-    }
-
-    private <V, E> long simulateReturnWalk(Graph<V, E> graph, V node, int maxSteps) {
-        Collection<V> nbrs = graph.getNeighbors(node);
-        if (nbrs == null || nbrs.isEmpty()) return maxSteps;
-        V current = pickRandom(nbrs);
-        for (int step = 2; step <= maxSteps; step++) {
-            if (current.equals(node)) return step;
-            nbrs = graph.getNeighbors(current);
-            if (nbrs == null || nbrs.isEmpty()) return maxSteps;
-            current = pickRandom(nbrs);
-        }
-        return maxSteps;
     }
 
     /** Pick a random element from a collection without copying it. */
