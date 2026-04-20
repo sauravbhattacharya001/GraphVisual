@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Storyteller — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .story-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .preset-btn { padding: 6px 10px; font-size: 12px; background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+        .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+        textarea { width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .control-row input[type=range] { flex: 1; }
+        #graphCanvas { width: 100%; height: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        .story-panel { display: flex; flex-direction: column; gap: 16px; }
+        .story-output { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px 32px; min-height: 400px; font-size: 15px; line-height: 1.8; color: var(--text); }
+        .story-output h2 { color: var(--accent); margin: 24px 0 12px 0; font-size: 18px; }
+        .story-output h2:first-child { margin-top: 0; }
+        .story-output .stat { color: var(--accent); font-weight: 700; }
+        .story-output .node-pill { display: inline-block; background: var(--accent); color: #000; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .story-output .node-pill:hover { opacity: 0.8; }
+        .story-placeholder { color: var(--text-muted); font-style: italic; }
+        .export-row { display: flex; gap: 8px; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Spectrum</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="centrality-radar.html" class="sidebar-link"><span class="icon">🎯</span>Centrality Radar</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="crossing-game.html" class="sidebar-link"><span class="icon">🔀</span>Crossing Game</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link"><span class="icon">👑</span>Dominating Set</a>
+        <a href="vertex-cover.html" class="sidebar-link"><span class="icon">🛡️</span>Vertex Cover</a>
+        <a href="matching.html" class="sidebar-link"><span class="icon">💍</span>Max Matching</a>
+        <a href="graph-advisor.html" class="sidebar-link"><span class="icon">🧠</span>Graph Advisor</a>
+        <a href="graph-evolution.html" class="sidebar-link"><span class="icon">🧬</span>Evolution Sim</a>
+        <a href="storyteller.html" class="sidebar-link active"><span class="icon">📖</span>Graph Storyteller</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>📖 Graph Storyteller
+    <span class="subtitle">Autonomous narrative analysis of graph structure</span>
+</h1>
+<p>Enter a graph and let the Storyteller autonomously analyze its structure, identify key players, discover communities, and weave it all into an engaging narrative.</p>
+
+<div class="story-layout">
+    <div class="controls-panel">
+        <div class="control-group">
+            <h3>Graph Input</h3>
+            <textarea id="edgeInput" placeholder="Enter edges, one per line:&#10;A-B&#10;B-C&#10;C-D&#10;A-D"></textarea>
+            <div style="margin-top:12px">
+                <h3>Presets</h3>
+                <div class="btn-row" style="flex-wrap:wrap; gap:6px;">
+                    <button class="preset-btn" onclick="loadPreset('star')">⭐ Star</button>
+                    <button class="preset-btn" onclick="loadPreset('ring')">💍 Ring</button>
+                    <button class="preset-btn" onclick="loadPreset('k6')">🔗 K6</button>
+                    <button class="preset-btn" onclick="loadPreset('tree')">🌳 Tree</button>
+                    <button class="preset-btn" onclick="loadPreset('petersen')">⬡ Petersen</button>
+                    <button class="preset-btn" onclick="loadPreset('grid')">▦ Grid 4×4</button>
+                    <button class="preset-btn" onclick="loadPreset('karate')">🥋 Karate</button>
+                    <button class="preset-btn" onclick="loadPreset('random')">🎲 Random</button>
+                </div>
+            </div>
+        </div>
+        <div class="control-group">
+            <h3>Settings</h3>
+            <div class="control-row">
+                <label>Speed</label>
+                <input type="range" id="speedSlider" min="1" max="50" value="20">
+            </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="tellStory()">📖 Tell the Story</button>
+        <div class="export-row">
+            <button class="btn btn-secondary" onclick="copyStory()">📋 Copy Text</button>
+            <button class="btn btn-secondary" onclick="downloadMd()">⬇️ Download MD</button>
+        </div>
+    </div>
+
+    <div class="story-panel">
+        <canvas id="graphCanvas"></canvas>
+        <div class="story-output" id="storyOutput">
+            <p class="story-placeholder">Load a graph and click "Tell the Story" to generate an autonomous narrative analysis.</p>
+        </div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// ===== Graph Parsing =====
+function parseGraph(text) {
+    const adj = {};
+    const edges = [];
+    text.trim().split('\n').forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return;
+        const sep = line.includes('-') ? '-' : line.includes(' ') ? ' ' : null;
+        if (!sep) return;
+        const parts = line.split(sep).map(s => s.trim()).filter(Boolean);
+        if (parts.length < 2) return;
+        const [a, b] = parts;
+        if (!adj[a]) adj[a] = new Set();
+        if (!adj[b]) adj[b] = new Set();
+        adj[a].add(b);
+        adj[b].add(a);
+        edges.push([a, b]);
+    });
+    return { adj, edges, nodes: Object.keys(adj) };
+}
+
+// ===== Presets =====
+const PRESETS = {
+    star: () => Array.from({length:8},(_,i)=>`Center-Leaf${i+1}`).join('\n'),
+    ring: () => { const n=[]; for(let i=0;i<12;i++) n.push(`N${i}-N${(i+1)%12}`); return n.join('\n'); },
+    k6: () => { const e=[]; for(let i=0;i<6;i++) for(let j=i+1;j<6;j++) e.push(`V${i}-V${j}`); return e.join('\n'); },
+    tree: () => { const e=[]; for(let i=0;i<15;i++){if(2*i+1<15)e.push(`N${i}-N${2*i+1}`);if(2*i+2<15)e.push(`N${i}-N${2*i+2}`);} return e.join('\n'); },
+    petersen: () => [
+        '0-1','1-2','2-3','3-4','4-0',
+        '5-7','7-9','9-6','6-8','8-5',
+        '0-5','1-6','2-7','3-8','4-9'
+    ].join('\n'),
+    grid: () => { const e=[]; for(let r=0;r<4;r++) for(let c=0;c<4;c++){const n=`G${r}${c}`;if(c<3)e.push(`${n}-G${r}${c+1}`);if(r<3)e.push(`${n}-G${r+1}${c}`);} return e.join('\n'); },
+    karate: () => [
+        '1-2','1-3','1-4','1-5','1-6','1-7','1-8','1-9','1-11','1-12','1-13','1-14','1-18','1-20','1-22','1-32',
+        '2-3','2-4','2-8','2-14','2-18','2-20','2-22','2-31',
+        '3-4','3-8','3-9','3-10','3-14','3-28','3-29','3-33',
+        '4-8','4-13','4-14','5-7','5-11','6-7','6-11','6-17','7-17',
+        '9-31','9-33','9-34','10-34','14-34','15-33','15-34','16-33','16-34',
+        '19-33','19-34','20-34','21-33','21-34','23-33','23-34',
+        '24-26','24-28','24-30','24-33','24-34',
+        '25-26','25-28','25-32','26-32',
+        '27-30','27-34','28-34','29-32','29-34',
+        '30-33','30-34','31-33','31-34','32-33','32-34','33-34'
+    ].join('\n'),
+    random: () => {
+        const e = new Set();
+        while(e.size < 25) { const a=Math.floor(Math.random()*15), b=Math.floor(Math.random()*15); if(a!==b) e.add(`R${Math.min(a,b)}-R${Math.max(a,b)}`); }
+        return [...e].join('\n');
+    }
+};
+
+function loadPreset(name) { document.getElementById('edgeInput').value = PRESETS[name](); }
+
+// ===== Analysis =====
+function analyze(g) {
+    const {adj, edges, nodes} = g;
+    const n = nodes.length, m = edges.length;
+    const density = n > 1 ? (2*m)/(n*(n-1)) : 0;
+
+    // Degree
+    const deg = {}; nodes.forEach(v => deg[v] = adj[v].size);
+    const sorted = [...nodes].sort((a,b)=>deg[b]-deg[a]);
+    const hubs = sorted.slice(0, Math.min(3, n));
+    const isolates = nodes.filter(v => deg[v] === 0);
+
+    // BFS components
+    const visited = new Set();
+    const components = [];
+    function bfs(start) {
+        const q=[start], comp=[]; visited.add(start);
+        while(q.length){const v=q.shift(); comp.push(v); for(const u of adj[v]) if(!visited.has(u)){visited.add(u);q.push(u);}}
+        return comp;
+    }
+    nodes.forEach(v => { if(!visited.has(v)) components.push(bfs(v)); });
+
+    // Diameter (largest component)
+    let diameter = 0;
+    if(components.length > 0) {
+        const lc = components.reduce((a,b)=>a.length>b.length?a:b);
+        const lcSet = new Set(lc);
+        function bfsDist(s) {
+            const dist = {[s]:0}; const q=[s];
+            while(q.length){const v=q.shift(); for(const u of adj[v]) if(lcSet.has(u)&&dist[u]===undefined){dist[u]=dist[v]+1;q.push(u);}}
+            return dist;
+        }
+        lc.forEach(v => { const d=bfsDist(v); Object.values(d).forEach(x=>{if(x>diameter)diameter=x;}); });
+    }
+
+    // Clustering coefficient
+    let ccSum = 0, ccCount = 0;
+    nodes.forEach(v => {
+        const nb = [...adj[v]]; const k = nb.length;
+        if(k < 2) return;
+        let tri = 0;
+        for(let i=0;i<k;i++) for(let j=i+1;j<k;j++) if(adj[nb[i]].has(nb[j])) tri++;
+        ccSum += (2*tri)/(k*(k-1)); ccCount++;
+    });
+    const avgCC = ccCount > 0 ? ccSum/ccCount : 0;
+
+    // Bipartite check
+    let bipartite = true;
+    const color = {};
+    for(const comp of components) {
+        const q = [comp[0]]; color[comp[0]] = 0;
+        while(q.length) {
+            const v = q.shift();
+            for(const u of adj[v]) {
+                if(color[u] === undefined) { color[u] = 1-color[v]; q.push(u); }
+                else if(color[u] === color[v]) { bipartite = false; break; }
+            }
+            if(!bipartite) break;
+        }
+        if(!bipartite) break;
+    }
+
+    // Bridges (Tarjan)
+    const bridges = [];
+    const disc = {}, low = {}; let timer = 0;
+    const bridgeVisited = new Set();
+    function dfsB(u, parent) {
+        bridgeVisited.add(u); disc[u] = low[u] = timer++;
+        for(const v of adj[u]) {
+            if(!bridgeVisited.has(v)) { dfsB(v, u); low[u] = Math.min(low[u], low[v]); if(low[v]>disc[u]) bridges.push([u,v]); }
+            else if(v !== parent) low[u] = Math.min(low[u], disc[v]);
+        }
+    }
+    nodes.forEach(v => { if(!bridgeVisited.has(v)) dfsB(v, null); });
+
+    // Articulation points
+    const aps = new Set();
+    const apVisited = new Set(); const apDisc = {}, apLow = {}; let apTime = 0;
+    function dfsAP(u, parent) {
+        apVisited.add(u); apDisc[u] = apLow[u] = apTime++; let children = 0;
+        for(const v of adj[u]) {
+            if(!apVisited.has(v)) {
+                children++; dfsAP(v, u); apLow[u] = Math.min(apLow[u], apLow[v]);
+                if(parent === null && children > 1) aps.add(u);
+                if(parent !== null && apLow[v] >= apDisc[u]) aps.add(u);
+            } else if(v !== parent) apLow[u] = Math.min(apLow[u], apDisc[v]);
+        }
+    }
+    nodes.forEach(v => { if(!apVisited.has(v)) dfsAP(v, null); });
+
+    // Label propagation communities
+    const labels = {}; nodes.forEach((v,i) => labels[v] = i);
+    for(let iter = 0; iter < 20; iter++) {
+        let changed = false;
+        const order = [...nodes].sort(()=>Math.random()-0.5);
+        for(const v of order) {
+            const freq = {};
+            for(const u of adj[v]) { freq[labels[u]] = (freq[labels[u]]||0) + 1; }
+            const max = Math.max(...Object.values(freq), 0);
+            if(max === 0) continue;
+            const best = Object.keys(freq).filter(k=>freq[k]===max);
+            const pick = parseInt(best[Math.floor(Math.random()*best.length)]);
+            if(pick !== labels[v]) { labels[v] = pick; changed = true; }
+        }
+        if(!changed) break;
+    }
+    const commMap = {};
+    nodes.forEach(v => { const l = labels[v]; if(!commMap[l]) commMap[l] = []; commMap[l].push(v); });
+    const communities = Object.values(commMap).sort((a,b)=>b.length-a.length);
+
+    return { n, m, density, deg, hubs, isolates, components, diameter, avgCC, bipartite, bridges, aps:[...aps], communities, sorted };
+}
+
+// ===== Narrative Generation =====
+function generateNarrative(r) {
+    const {n, m, density, deg, hubs, isolates, components, diameter, avgCC, bipartite, bridges, aps, communities, sorted} = r;
+    let md = '';
+
+    // Opening
+    md += `## 🌐 The Overview\n\n`;
+    md += `This network consists of <span class="stat">${n}</span> nodes connected by <span class="stat">${m}</span> edges. `;
+    md += density > 0.6 ? `With a density of <span class="stat">${(density*100).toFixed(1)}%</span>, this is a remarkably dense network — most nodes know most others. ` :
+           density > 0.3 ? `At <span class="stat">${(density*100).toFixed(1)}%</span> density, the network is moderately connected — enough pathways for information to flow, but not so dense that structure is lost. ` :
+           `With only <span class="stat">${(density*100).toFixed(1)}%</span> density, this is a sparse network — connections are selective and deliberate. `;
+    md += components.length === 1 ? `The entire graph forms one connected component, meaning every node can reach every other.` :
+           `The network is fragmented into <span class="stat">${components.length}</span> separate components — islands that cannot communicate with each other.`;
+    md += '\n\n';
+
+    // Characters
+    md += `## 🎭 The Characters\n\n`;
+    if(hubs.length > 0) {
+        md += `**The Protagonists:** `;
+        md += hubs.map(h => `<span class="node-pill" data-node="${h}">${h}</span> (${deg[h]} connections)`).join(', ');
+        md += `. `;
+        md += deg[hubs[0]] > n*0.5 ? `${hubs[0]} is a super-connector, linked to more than half the network. This node holds enormous influence.` :
+               `These are the most connected nodes — the social hubs that hold the fabric together.`;
+        md += '\n\n';
+    }
+    if(isolates.length > 0) {
+        md += `**The Loners:** ${isolates.length} node${isolates.length>1?'s':''} ${isolates.length>1?'sit':'sits'} completely disconnected — `;
+        md += isolates.slice(0,3).map(v=>`<span class="node-pill" data-node="${v}">${v}</span>`).join(', ');
+        md += isolates.length > 3 ? ` and ${isolates.length-3} more` : '';
+        md += `. They exist in the network but participate in nothing.\n\n`;
+    }
+
+    // Communities
+    md += `## 🏘️ The Neighborhoods\n\n`;
+    if(communities.length === 1) {
+        md += `The entire network functions as one cohesive group. There are no clear faction lines — everyone mingles with everyone.\n\n`;
+    } else {
+        md += `Label propagation reveals <span class="stat">${communities.length}</span> distinct communities:\n\n`;
+        communities.slice(0, 5).forEach((c, i) => {
+            md += `- **Community ${i+1}** (${c.length} members): ${c.slice(0,5).map(v=>`<span class="node-pill" data-node="${v}">${v}</span>`).join(', ')}${c.length>5?` +${c.length-5} more`:''}\n`;
+        });
+        if(communities.length > 5) md += `- ...and ${communities.length-5} smaller groups\n`;
+        md += '\n';
+    }
+
+    // Structure
+    md += `## 🏛️ The Architecture\n\n`;
+    md += `The network's diameter is <span class="stat">${diameter}</span> — `;
+    md += diameter <= 2 ? `extremely compact, everyone is just a hop or two away from everyone else.` :
+           diameter <= 5 ? `reasonably tight, information can traverse the whole network in just a few steps.` :
+           `quite elongated, messages must pass through many intermediaries to reach the far side.`;
+    md += ` The average clustering coefficient is <span class="stat">${avgCC.toFixed(3)}</span>`;
+    md += avgCC > 0.5 ? ` — impressively cliquish. Friends of friends tend to also be friends.` :
+           avgCC > 0.2 ? ` — moderate clustering. Some triangles form naturally but the network isn't overly tribal.` :
+           ` — low clustering. Relationships here are more like spokes than triangles.`;
+    md += bipartite ? ` Interestingly, this graph is <span class="stat">bipartite</span> — nodes can be split into two groups where connections only cross between groups, never within.` : '';
+    md += '\n\n';
+
+    // Drama
+    md += `## ⚡ The Vulnerabilities\n\n`;
+    if(bridges.length === 0 && aps.length === 0) {
+        md += `This network is structurally robust — no single edge or node removal would disconnect it. A resilient topology.\n\n`;
+    } else {
+        if(bridges.length > 0) {
+            md += `**Bridge edges** (removing these splits the graph): `;
+            md += bridges.slice(0,5).map(([a,b])=>`<span class="node-pill" data-node="${a}">${a}</span>–<span class="node-pill" data-node="${b}">${b}</span>`).join(', ');
+            md += bridges.length > 5 ? ` and ${bridges.length-5} more` : '';
+            md += `. These are the fragile lifelines.\n\n`;
+        }
+        if(aps.length > 0) {
+            md += `**Articulation points** (single points of failure): `;
+            md += aps.slice(0,5).map(v=>`<span class="node-pill" data-node="${v}">${v}</span>`).join(', ');
+            md += aps.length > 5 ? ` and ${aps.length-5} more` : '';
+            md += `. Remove any one of these and the network fractures.\n\n`;
+        }
+    }
+
+    // Prediction
+    md += `## 🔮 The Forecast\n\n`;
+    const maxDeg = deg[hubs[0]] || 0;
+    const avgDeg = n > 0 ? (2*m/n) : 0;
+    if(maxDeg > avgDeg * 3) {
+        md += `The degree distribution is highly skewed — a classic rich-get-richer pattern. If this network grows, expect preferential attachment: new nodes will flock to ${hubs[0]}, making it even more dominant. The risk? A single-point-of-failure hub.`;
+    } else if(density > 0.5) {
+        md += `With high density, growth will likely add redundant paths. The network is approaching saturation — future evolution might involve pruning rather than adding.`;
+    } else {
+        md += `The relatively even degree distribution suggests organic, decentralized growth. Future expansion would likely maintain this egalitarian structure, with new communities emerging naturally.`;
+    }
+    md += '\n\n';
+
+    // Verdict
+    md += `## 🏷️ The Verdict\n\n`;
+    let verdict = '';
+    if(density > 0.6) verdict = 'A tightly-knit clique where everyone knows everyone.';
+    else if(bridges.length > m*0.3) verdict = 'A fragile chain — one bad day away from falling apart.';
+    else if(maxDeg > n*0.4) verdict = 'A hub-and-spoke empire — powerful but brittle at the center.';
+    else if(bipartite) verdict = 'A two-sided world — two tribes connected across a divide.';
+    else if(avgCC > 0.5 && communities.length > 2) verdict = 'A small-world network — clustered neighborhoods with short paths between them.';
+    else if(components.length > 2) verdict = 'An archipelago — scattered islands floating in isolation.';
+    else verdict = 'A balanced, resilient network — no single ruler, no single weakness.';
+    md += `> **"${verdict}"**\n`;
+
+    return md;
+}
+
+// ===== Canvas Visualization =====
+let currentGraph = null;
+let nodePositions = {};
+let highlightNodes = new Set();
+
+function drawGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    ctx.clearRect(0, 0, W, H);
+    if(!currentGraph) return;
+
+    const {adj, nodes, edges} = currentGraph;
+    // Force-directed layout (simple spring)
+    if(Object.keys(nodePositions).length !== nodes.length) {
+        nodePositions = {};
+        nodes.forEach(v => { nodePositions[v] = { x: W*0.2 + Math.random()*W*0.6, y: H*0.2 + Math.random()*H*0.6, vx:0, vy:0 }; });
+        for(let iter = 0; iter < 200; iter++) {
+            nodes.forEach(v => { nodePositions[v].vx = 0; nodePositions[v].vy = 0; });
+            // Repulsion
+            for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++) {
+                const a = nodePositions[nodes[i]], b = nodePositions[nodes[j]];
+                let dx = a.x-b.x, dy = a.y-b.y;
+                let d = Math.sqrt(dx*dx+dy*dy) || 1;
+                const f = 800 / (d*d);
+                a.vx += dx/d*f; a.vy += dy/d*f;
+                b.vx -= dx/d*f; b.vy -= dy/d*f;
+            }
+            // Attraction
+            edges.forEach(([u,v]) => {
+                const a = nodePositions[u], b = nodePositions[v];
+                let dx = b.x-a.x, dy = b.y-a.y;
+                let d = Math.sqrt(dx*dx+dy*dy) || 1;
+                const f = (d - 60) * 0.01;
+                a.vx += dx/d*f; a.vy += dy/d*f;
+                b.vx -= dx/d*f; b.vy -= dy/d*f;
+            });
+            // Apply
+            nodes.forEach(v => {
+                const p = nodePositions[v];
+                p.x = Math.max(20, Math.min(W-20, p.x + p.vx*0.3));
+                p.y = Math.max(20, Math.min(H-20, p.y + p.vy*0.3));
+            });
+        }
+    }
+
+    // Draw edges
+    ctx.strokeStyle = 'rgba(88,166,255,0.3)'; ctx.lineWidth = 1;
+    edges.forEach(([u,v]) => {
+        ctx.beginPath(); ctx.moveTo(nodePositions[u].x, nodePositions[u].y);
+        ctx.lineTo(nodePositions[v].x, nodePositions[v].y); ctx.stroke();
+    });
+    // Draw nodes
+    nodes.forEach(v => {
+        const p = nodePositions[v]; const hl = highlightNodes.has(v);
+        ctx.beginPath(); ctx.arc(p.x, p.y, hl?8:5, 0, Math.PI*2);
+        ctx.fillStyle = hl ? '#f0883e' : '#58a6ff'; ctx.fill();
+        if(hl) { ctx.strokeStyle='#f0883e'; ctx.lineWidth=2; ctx.stroke(); }
+    });
+}
+
+// ===== Story Rendering =====
+let storyMd = '';
+let typingTimer = null;
+
+function tellStory() {
+    const text = document.getElementById('edgeInput').value;
+    if(!text.trim()) return;
+    currentGraph = parseGraph(text);
+    nodePositions = {};
+    drawGraph();
+    const results = analyze(currentGraph);
+    storyMd = generateNarrative(results);
+
+    // Render with typing effect
+    const output = document.getElementById('storyOutput');
+    output.innerHTML = '';
+    const speed = 51 - parseInt(document.getElementById('speedSlider').value);
+    let i = 0;
+    let inTag = false;
+    if(typingTimer) clearInterval(typingTimer);
+    typingTimer = setInterval(() => {
+        if(i >= storyMd.length) { clearInterval(typingTimer); attachPillListeners(); return; }
+        // Skip through HTML tags quickly
+        if(storyMd[i] === '<') inTag = true;
+        if(inTag) { while(i < storyMd.length && storyMd[i-1] !== '>') i++; inTag = false; }
+        else i += 3;
+        i = Math.min(i, storyMd.length);
+        output.innerHTML = storyMd.substring(0, i) + (i < storyMd.length ? '▌' : '');
+        output.scrollTop = output.scrollHeight;
+    }, speed);
+}
+
+function attachPillListeners() {
+    document.querySelectorAll('.node-pill').forEach(el => {
+        el.addEventListener('mouseenter', () => { highlightNodes = new Set([el.dataset.node]); drawGraph(); });
+        el.addEventListener('mouseleave', () => { highlightNodes = new Set(); drawGraph(); });
+    });
+}
+
+// ===== Export =====
+function getPlainText() { return storyMd.replace(/<[^>]+>/g, '').replace(/##/g, '##'); }
+function copyStory() { navigator.clipboard.writeText(getPlainText()); }
+function downloadMd() {
+    const blob = new Blob([getPlainText()], {type:'text/markdown'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'graph-story.md'; a.click();
+}
+
+// Init
+window.addEventListener('resize', drawGraph);
+</script>
+</body>
+</html>
