@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Comparison Tool — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .compare-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        .graph-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .graph-panel h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .panel-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        canvas.graph-canvas { width: 100%; height: 300px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: grab; }
+        canvas.graph-canvas:active { cursor: grabbing; }
+        textarea.adj-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 50px; margin-top: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .preset-btn { padding: 5px 10px; font-size: 11px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .results-section { margin-top: 24px; }
+        .metrics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .metrics-table th, .metrics-table td { padding: 8px 12px; border: 1px solid var(--border); text-align: center; }
+        .metrics-table th { background: var(--surface); color: var(--accent); font-size: 11px; text-transform: uppercase; }
+        .metrics-table td { background: var(--bg); color: var(--text); }
+        .metrics-table td.diff { color: var(--red, #f87171); font-weight: 600; }
+        .metrics-table td.same { color: var(--green, #4ade80); }
+        .similarity-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+        .sim-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; min-width: 180px; text-align: center; flex: 1; }
+        .sim-card .score { font-size: 28px; font-weight: 700; color: var(--accent); }
+        .sim-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .degree-chart { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .degree-chart canvas { width: 100%; height: 200px; }
+        .export-row { margin-top: 16px; display: flex; gap: 8px; }
+        @media (max-width: 800px) { .compare-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="graph-compare.html" class="sidebar-link active"><span class="icon">⚖️</span>Graph Compare</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>⚖️ Graph Comparison Tool
+    <span class="subtitle">Compare two graphs side by side with structural similarity analysis</span>
+</h1>
+
+<div class="compare-layout">
+    <div class="graph-panel">
+        <h3>Graph A</h3>
+        <div class="panel-controls">
+            <button class="preset-btn" onclick="loadPreset('A','petersen')">Petersen</button>
+            <button class="preset-btn" onclick="loadPreset('A','k4')">K4</button>
+            <button class="preset-btn" onclick="loadPreset('A','k33')">K3,3</button>
+            <button class="preset-btn" onclick="loadPreset('A','cube')">Cube</button>
+            <button class="preset-btn" onclick="loadPreset('A','cycle6')">Cycle-6</button>
+            <button class="preset-btn" onclick="loadPreset('A','star5')">Star-5</button>
+            <button class="preset-btn" onclick="loadPreset('A','path5')">Path-5</button>
+            <button class="preset-btn" onclick="loadPreset('A','random')">Random</button>
+        </div>
+        <canvas class="graph-canvas" id="canvasA" width="500" height="300"></canvas>
+        <textarea class="adj-input" id="inputA" placeholder="Enter edges: 0-1, 0-2, 1-3 ...">0-1, 0-2, 1-2, 2-3, 3-4</textarea>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="parseAndRender('A')">Load Graph A</button>
+    </div>
+    <div class="graph-panel">
+        <h3>Graph B</h3>
+        <div class="panel-controls">
+            <button class="preset-btn" onclick="loadPreset('B','petersen')">Petersen</button>
+            <button class="preset-btn" onclick="loadPreset('B','k4')">K4</button>
+            <button class="preset-btn" onclick="loadPreset('B','k33')">K3,3</button>
+            <button class="preset-btn" onclick="loadPreset('B','cube')">Cube</button>
+            <button class="preset-btn" onclick="loadPreset('B','cycle6')">Cycle-6</button>
+            <button class="preset-btn" onclick="loadPreset('B','star5')">Star-5</button>
+            <button class="preset-btn" onclick="loadPreset('B','path5')">Path-5</button>
+            <button class="preset-btn" onclick="loadPreset('B','random')">Random</button>
+        </div>
+        <canvas class="graph-canvas" id="canvasB" width="500" height="300"></canvas>
+        <textarea class="adj-input" id="inputB" placeholder="Enter edges: 0-1, 0-2, 1-3 ...">0-1, 1-2, 2-3, 3-0</textarea>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="parseAndRender('B')">Load Graph B</button>
+    </div>
+</div>
+
+<div style="margin-top:16px; text-align:center;">
+    <button class="btn btn-primary" onclick="compareGraphs()" style="padding:12px 32px; font-size:15px;">⚖️ Compare Graphs</button>
+</div>
+
+<div class="results-section" id="resultsSection" style="display:none;">
+    <h2 style="margin-bottom:16px;">📊 Comparison Results</h2>
+
+    <table class="metrics-table" id="metricsTable">
+        <thead><tr><th>Metric</th><th>Graph A</th><th>Graph B</th><th>Difference</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="similarity-cards" id="simCards"></div>
+
+    <div class="degree-chart">
+        <h3 style="font-size:14px; color:var(--accent); margin-bottom:12px;">Degree Distribution Comparison</h3>
+        <canvas id="degreeCanvas" width="700" height="200"></canvas>
+    </div>
+
+    <div class="export-row">
+        <button class="btn btn-secondary" onclick="exportJSON()">📥 Export JSON</button>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// Graph data structures
+const graphs = { A: { nodes: [], edges: [], adj: {} }, B: { nodes: [], edges: [], adj: {} } };
+const positions = { A: {}, B: {} };
+let dragState = { active: false, panel: null, node: null };
+
+// Presets
+const PRESETS = {
+    petersen: '0-1,1-2,2-3,3-4,4-0,0-5,1-6,2-7,3-8,4-9,5-7,7-9,9-6,6-8,8-5',
+    k4: '0-1,0-2,0-3,1-2,1-3,2-3',
+    k33: '0-3,0-4,0-5,1-3,1-4,1-5,2-3,2-4,2-5',
+    cube: '0-1,1-2,2-3,3-0,4-5,5-6,6-7,7-4,0-4,1-5,2-6,3-7',
+    cycle6: '0-1,1-2,2-3,3-4,4-5,5-0',
+    star5: '0-1,0-2,0-3,0-4,0-5',
+    path5: '0-1,1-2,2-3,3-4',
+    random: null
+};
+
+function generateRandom(n=8, m=12) {
+    const edges = new Set();
+    while (edges.size < m) {
+        const a = Math.floor(Math.random()*n), b = Math.floor(Math.random()*n);
+        if (a !== b) edges.add(Math.min(a,b)+'-'+Math.max(a,b));
+    }
+    return [...edges].join(',');
+}
+
+function loadPreset(panel, name) {
+    const text = name === 'random' ? generateRandom() : PRESETS[name];
+    document.getElementById('input'+panel).value = text;
+    parseAndRender(panel);
+}
+
+function parseEdges(text) {
+    const edges = [], nodeSet = new Set(), adj = {};
+    text.split(/[,;\n]+/).forEach(s => {
+        const m = s.trim().match(/(\d+)\s*[-–]\s*(\d+)/);
+        if (!m) return;
+        const a = parseInt(m[1]), b = parseInt(m[2]);
+        nodeSet.add(a); nodeSet.add(b);
+        edges.push([a,b]);
+        if (!adj[a]) adj[a] = [];
+        if (!adj[b]) adj[b] = [];
+        adj[a].push(b); adj[b].push(a);
+    });
+    const nodes = [...nodeSet].sort((a,b)=>a-b);
+    // Ensure isolated nodes from adjacency list are included
+    return { nodes, edges, adj };
+}
+
+function initPositions(panel) {
+    const g = graphs[panel], n = g.nodes.length;
+    const pos = {};
+    g.nodes.forEach((v, i) => {
+        const angle = (2*Math.PI*i)/n;
+        pos[v] = { x: 250 + 100*Math.cos(angle), y: 150 + 80*Math.sin(angle) };
+    });
+    positions[panel] = pos;
+    // Simple force-directed relaxation
+    for (let iter = 0; iter < 80; iter++) {
+        const disp = {};
+        g.nodes.forEach(v => { disp[v] = {x:0, y:0}; });
+        // Repulsion
+        for (let i = 0; i < g.nodes.length; i++) {
+            for (let j = i+1; j < g.nodes.length; j++) {
+                const u = g.nodes[i], v = g.nodes[j];
+                let dx = pos[u].x - pos[v].x, dy = pos[u].y - pos[v].y;
+                const dist = Math.max(Math.sqrt(dx*dx+dy*dy), 1);
+                const force = 5000 / (dist*dist);
+                disp[u].x += (dx/dist)*force; disp[u].y += (dy/dist)*force;
+                disp[v].x -= (dx/dist)*force; disp[v].y -= (dy/dist)*force;
+            }
+        }
+        // Attraction
+        g.edges.forEach(([u,v]) => {
+            let dx = pos[v].x - pos[u].x, dy = pos[v].y - pos[u].y;
+            const dist = Math.max(Math.sqrt(dx*dx+dy*dy), 1);
+            const force = dist * 0.01;
+            disp[u].x += (dx/dist)*force; disp[u].y += (dy/dist)*force;
+            disp[v].x -= (dx/dist)*force; disp[v].y -= (dy/dist)*force;
+        });
+        // Apply
+        g.nodes.forEach(v => {
+            pos[v].x = Math.max(30, Math.min(470, pos[v].x + disp[v].x*0.1));
+            pos[v].y = Math.max(30, Math.min(270, pos[v].y + disp[v].y*0.1));
+        });
+    }
+}
+
+function renderGraph(panel) {
+    const canvas = document.getElementById('canvas'+panel);
+    const ctx = canvas.getContext('2d');
+    const g = graphs[panel], pos = positions[panel];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Edges
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+    g.edges.forEach(([u,v]) => {
+        if (!pos[u] || !pos[v]) return;
+        ctx.beginPath();
+        ctx.moveTo(pos[u].x, pos[u].y);
+        ctx.lineTo(pos[v].x, pos[v].y);
+        ctx.stroke();
+    });
+    // Nodes
+    g.nodes.forEach(v => {
+        if (!pos[v]) return;
+        const deg = (g.adj[v]||[]).length;
+        const hue = (deg * 40) % 360;
+        ctx.beginPath();
+        ctx.arc(pos[v].x, pos[v].y, 12, 0, 2*Math.PI);
+        ctx.fillStyle = `hsl(${hue}, 70%, 55%)`;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(v, pos[v].x, pos[v].y);
+    });
+}
+
+function parseAndRender(panel) {
+    const text = document.getElementById('input'+panel).value;
+    const parsed = parseEdges(text);
+    graphs[panel] = parsed;
+    initPositions(panel);
+    renderGraph(panel);
+}
+
+// Drag support
+['A','B'].forEach(panel => {
+    const canvas = document.getElementById('canvas'+panel);
+    canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+        const mx = (e.clientX - rect.left)*sx, my = (e.clientY - rect.top)*sy;
+        const pos = positions[panel];
+        for (const v of graphs[panel].nodes) {
+            if (!pos[v]) continue;
+            const dx = pos[v].x - mx, dy = pos[v].y - my;
+            if (dx*dx+dy*dy < 200) { dragState = {active:true, panel, node:v}; break; }
+        }
+    });
+    canvas.addEventListener('mousemove', e => {
+        if (!dragState.active || dragState.panel !== panel) return;
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+        positions[panel][dragState.node] = {
+            x: (e.clientX - rect.left)*sx,
+            y: (e.clientY - rect.top)*sy
+        };
+        renderGraph(panel);
+    });
+    canvas.addEventListener('mouseup', () => { dragState.active = false; });
+    canvas.addEventListener('mouseleave', () => { dragState.active = false; });
+});
+
+// Metrics computation
+function computeMetrics(g) {
+    const n = g.nodes.length, m = g.edges.length;
+    const degrees = g.nodes.map(v => (g.adj[v]||[]).length);
+    const maxDeg = Math.max(...degrees, 0), minDeg = Math.min(...degrees, 0);
+    const avgDeg = n > 0 ? (degrees.reduce((a,b)=>a+b,0)/n) : 0;
+    const density = n > 1 ? (2*m)/(n*(n-1)) : 0;
+
+    // BFS for diameter, radius, components
+    function bfs(start) {
+        const dist = {}; dist[start] = 0;
+        const queue = [start];
+        while (queue.length) {
+            const u = queue.shift();
+            for (const v of (g.adj[u]||[])) {
+                if (dist[v] === undefined) { dist[v] = dist[u]+1; queue.push(v); }
+            }
+        }
+        return dist;
+    }
+    let components = 0, diameter = 0, eccentricities = [];
+    const visited = new Set();
+    for (const v of g.nodes) {
+        if (visited.has(v)) continue;
+        components++;
+        const dist = bfs(v);
+        Object.keys(dist).forEach(u => visited.add(parseInt(u)));
+        // Only compute diameter within this component
+        for (const u of Object.keys(dist)) {
+            const d2 = bfs(parseInt(u));
+            const maxD = Math.max(...Object.values(d2));
+            eccentricities.push(maxD);
+            diameter = Math.max(diameter, maxD);
+        }
+    }
+    const radius = eccentricities.length > 0 ? Math.min(...eccentricities) : 0;
+
+    // Clustering coefficient
+    let ccSum = 0;
+    g.nodes.forEach(v => {
+        const neighbors = g.adj[v]||[];
+        const k = neighbors.length;
+        if (k < 2) return;
+        let triangles = 0;
+        for (let i = 0; i < k; i++)
+            for (let j = i+1; j < k; j++)
+                if ((g.adj[neighbors[i]]||[]).includes(neighbors[j])) triangles++;
+        ccSum += (2*triangles)/(k*(k-1));
+    });
+    const clusterCoeff = n > 0 ? ccSum/n : 0;
+
+    // Bipartite check
+    function isBipartite() {
+        const color = {};
+        for (const start of g.nodes) {
+            if (color[start] !== undefined) continue;
+            color[start] = 0;
+            const queue = [start];
+            while (queue.length) {
+                const u = queue.shift();
+                for (const v of (g.adj[u]||[])) {
+                    if (color[v] === undefined) { color[v] = 1-color[u]; queue.push(v); }
+                    else if (color[v] === color[u]) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // Greedy chromatic number
+    function greedyChromatic() {
+        const colors = {};
+        const sorted = [...g.nodes].sort((a,b) => (g.adj[b]||[]).length - (g.adj[a]||[]).length);
+        sorted.forEach(v => {
+            const used = new Set((g.adj[v]||[]).map(u => colors[u]).filter(c => c !== undefined));
+            let c = 0; while (used.has(c)) c++;
+            colors[v] = c;
+        });
+        return Math.max(...Object.values(colors), -1) + 1;
+    }
+
+    return {
+        nodes: n, edges: m, density: density.toFixed(3), avgDeg: avgDeg.toFixed(2),
+        maxDeg, minDeg, diameter, radius, components,
+        clusterCoeff: clusterCoeff.toFixed(3), bipartite: isBipartite() ? 'Yes' : 'No',
+        chromatic: n > 0 ? greedyChromatic() : 0, degrees
+    };
+}
+
+// Similarity scoring
+function degreeSeqSimilarity(dA, dB) {
+    const a = [...dA].sort((x,y)=>x-y), b = [...dB].sort((x,y)=>x-y);
+    const maxLen = Math.max(a.length, b.length);
+    if (maxLen === 0) return 100;
+    while (a.length < maxLen) a.push(0);
+    while (b.length < maxLen) b.push(0);
+    let diff = 0, maxPossible = 0;
+    for (let i = 0; i < maxLen; i++) {
+        diff += Math.abs(a[i]-b[i]);
+        maxPossible += Math.max(a[i], b[i]);
+    }
+    return maxPossible > 0 ? ((1 - diff/maxPossible)*100) : 100;
+}
+
+function spectralSimilarity(gA, gB) {
+    // Compute top eigenvalues via power iteration on adjacency matrix
+    function topEigenvalues(g, k=5) {
+        const n = g.nodes.length;
+        if (n === 0) return [];
+        const nodeIdx = {}; g.nodes.forEach((v,i) => nodeIdx[v]=i);
+        function matVec(vec) {
+            const result = new Array(n).fill(0);
+            g.edges.forEach(([u,v]) => {
+                result[nodeIdx[u]] += vec[nodeIdx[v]];
+                result[nodeIdx[v]] += vec[nodeIdx[u]];
+            });
+            return result;
+        }
+        const eigenvalues = [];
+        let deflationVecs = [];
+        for (let ev = 0; ev < Math.min(k, n); ev++) {
+            let vec = Array.from({length:n}, ()=>Math.random()-0.5);
+            for (let iter = 0; iter < 100; iter++) {
+                let mv = matVec(vec);
+                // Deflate
+                for (const prev of deflationVecs) {
+                    const dot = mv.reduce((s,x,i)=>s+x*prev.vec[i],0);
+                    mv = mv.map((x,i)=>x - dot*prev.vec[i]);
+                }
+                const norm = Math.sqrt(mv.reduce((s,x)=>s+x*x,0));
+                if (norm < 1e-10) break;
+                vec = mv.map(x=>x/norm);
+            }
+            const mv = matVec(vec);
+            const lambda = vec.reduce((s,x,i)=>s+x*mv[i],0);
+            eigenvalues.push(Math.abs(lambda));
+            deflationVecs.push({vec, lambda});
+        }
+        return eigenvalues.sort((a,b)=>b-a);
+    }
+    const eA = topEigenvalues(gA), eB = topEigenvalues(gB);
+    const maxLen = Math.max(eA.length, eB.length);
+    if (maxLen === 0) return 100;
+    while (eA.length < maxLen) eA.push(0);
+    while (eB.length < maxLen) eB.push(0);
+    const l2 = Math.sqrt(eA.reduce((s,x,i)=>s+(x-eB[i])**2,0));
+    const maxNorm = Math.sqrt(Math.max(eA.reduce((s,x)=>s+x*x,0), eB.reduce((s,x)=>s+x*x,0)));
+    return maxNorm > 0 ? Math.max(0, (1-l2/maxNorm)*100) : 100;
+}
+
+function editDistEstimate(mA, mB) {
+    const nodeDiff = Math.abs(mA.nodes - mB.nodes);
+    const edgeDiff = Math.abs(mA.edges - mB.edges);
+    const maxN = Math.max(mA.nodes, mB.nodes, 1);
+    const maxE = Math.max(mA.edges, mB.edges, 1);
+    const score = 1 - 0.5*(nodeDiff/maxN) - 0.5*(edgeDiff/maxE);
+    return Math.max(0, score*100);
+}
+
+function compareGraphs() {
+    const mA = computeMetrics(graphs.A), mB = computeMetrics(graphs.B);
+
+    // Populate metrics table
+    const tbody = document.querySelector('#metricsTable tbody');
+    tbody.innerHTML = '';
+    const metrics = [
+        ['Nodes', mA.nodes, mB.nodes],
+        ['Edges', mA.edges, mB.edges],
+        ['Density', mA.density, mB.density],
+        ['Avg Degree', mA.avgDeg, mB.avgDeg],
+        ['Max Degree', mA.maxDeg, mB.maxDeg],
+        ['Min Degree', mA.minDeg, mB.minDeg],
+        ['Diameter', mA.diameter, mB.diameter],
+        ['Radius', mA.radius, mB.radius],
+        ['Components', mA.components, mB.components],
+        ['Clustering Coeff', mA.clusterCoeff, mB.clusterCoeff],
+        ['Bipartite', mA.bipartite, mB.bipartite],
+        ['Chromatic # (greedy)', mA.chromatic, mB.chromatic],
+    ];
+    metrics.forEach(([name, a, b]) => {
+        const diff = a === b ? '=' : (typeof a === 'number' ? (a-b).toFixed(2) : '≠');
+        const cls = a == b ? 'same' : 'diff';
+        tbody.innerHTML += `<tr><td>${name}</td><td>${a}</td><td>${b}</td><td class="${cls}">${diff}</td></tr>`;
+    });
+
+    // Similarity scores
+    const degSim = degreeSeqSimilarity(mA.degrees, mB.degrees);
+    const specSim = spectralSimilarity(graphs.A, graphs.B);
+    const editSim = editDistEstimate(mA, mB);
+    const overall = (0.4*degSim + 0.35*specSim + 0.25*editSim);
+
+    document.getElementById('simCards').innerHTML = `
+        <div class="sim-card"><div class="score">${degSim.toFixed(1)}%</div><div class="label">Degree Sequence</div></div>
+        <div class="sim-card"><div class="score">${specSim.toFixed(1)}%</div><div class="label">Spectral</div></div>
+        <div class="sim-card"><div class="score">${editSim.toFixed(1)}%</div><div class="label">Edit Distance</div></div>
+        <div class="sim-card" style="border-color:var(--accent)"><div class="score">${overall.toFixed(1)}%</div><div class="label">Overall Similarity</div></div>
+    `;
+
+    // Degree distribution chart
+    drawDegreeChart(mA.degrees, mB.degrees);
+
+    document.getElementById('resultsSection').style.display = 'block';
+    window._lastComparison = { metricsA: mA, metricsB: mB, similarity: { degreeSequence: degSim, spectral: specSim, editDistance: editSim, overall } };
+}
+
+function drawDegreeChart(degsA, degsB) {
+    const canvas = document.getElementById('degreeCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const maxDeg = Math.max(...degsA, ...degsB, 1);
+    const countA = new Array(maxDeg+1).fill(0), countB = new Array(maxDeg+1).fill(0);
+    degsA.forEach(d => countA[d]++);
+    degsB.forEach(d => countB[d]++);
+    const maxCount = Math.max(...countA, ...countB, 1);
+    const barW = Math.min(30, (canvas.width-60)/(2*(maxDeg+1)));
+    const chartH = canvas.height - 40;
+
+    for (let d = 0; d <= maxDeg; d++) {
+        const x = 40 + d*(barW*2+8);
+        const hA = (countA[d]/maxCount)*chartH, hB = (countB[d]/maxCount)*chartH;
+        ctx.fillStyle = 'hsl(200, 70%, 55%)';
+        ctx.fillRect(x, chartH-hA+20, barW, hA);
+        ctx.fillStyle = 'hsl(340, 70%, 55%)';
+        ctx.fillRect(x+barW+2, chartH-hB+20, barW, hB);
+        ctx.fillStyle = '#888';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d, x+barW, chartH+34);
+    }
+    // Legend
+    ctx.fillStyle = 'hsl(200, 70%, 55%)';
+    ctx.fillRect(canvas.width-160, 10, 12, 12);
+    ctx.fillStyle = '#ccc'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Graph A', canvas.width-144, 20);
+    ctx.fillStyle = 'hsl(340, 70%, 55%)';
+    ctx.fillRect(canvas.width-80, 10, 12, 12);
+    ctx.fillStyle = '#ccc';
+    ctx.fillText('Graph B', canvas.width-64, 20);
+    // Axis label
+    ctx.fillStyle = '#888'; ctx.textAlign = 'center';
+    ctx.fillText('Degree', canvas.width/2, canvas.height-2);
+}
+
+function exportJSON() {
+    if (!window._lastComparison) return;
+    const blob = new Blob([JSON.stringify(window._lastComparison, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'graph-comparison.json';
+    a.click();
+}
+
+// Initial render
+parseAndRender('A');
+parseAndRender('B');
+</script>
+</body>
+</html>
