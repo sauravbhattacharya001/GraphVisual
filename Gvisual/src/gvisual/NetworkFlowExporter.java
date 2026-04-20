@@ -116,7 +116,7 @@ public class NetworkFlowExporter {
         for (int i = 0; i < nodes.size(); i++) {
             FlowNode nd = nodes.get(i);
             if (i > 0) nodesJson.append(",");
-            nodesJson.append(String.format("{id:%d,x:%.0f,y:%.0f,label:'%s'}", i, nd.x, nd.y, nd.label));
+            nodesJson.append(String.format("{id:%d,x:%.0f,y:%.0f,label:%s}", i, nd.x, nd.y, ExportUtils.jsonString(nd.label)));
         }
         nodesJson.append("]");
 
