@@ -162,6 +162,9 @@ public class GraphNetworkProfiler {
 
     private static final int SAMPLE_SIZE = 50;
 
+    /** Pre-computed degree for every vertex — built once, reused everywhere. */
+    private Map<String, Integer> degreeMap;
+
     public GraphNetworkProfiler(Graph<String, Edge> graph) {
         this(graph, new Random(42));
     }
@@ -184,6 +187,12 @@ public class GraphNetworkProfiler {
             setEmptyDefaults();
             analyzed = true;
             return;
+        }
+
+        // Pre-compute vertex degrees once — O(V) — then reuse across all metric methods
+        degreeMap = new HashMap<>(n * 2);
+        for (String v : graph.getVertices()) {
+            degreeMap.put(v, graph.degree(v));
         }
 
         computeDensity(n, m);
@@ -212,10 +221,9 @@ public class GraphNetworkProfiler {
     private void computeDegreeStats(int n) {
         double sum = 0, sumSq = 0;
         int maxDeg = 0;
-        for (String v : graph.getVertices()) {
-            int d = graph.degree(v);
+        for (int d : degreeMap.values()) {
             sum += d;
-            sumSq += d * d;
+            sumSq += (long) d * d;
             if (d > maxDeg) maxDeg = d;
         }
         avgDegree = sum / n;
@@ -333,10 +341,8 @@ public class GraphNetworkProfiler {
         double sumProd = 0, sumI = 0, sumJ = 0, sumISq = 0, sumJSq = 0;
         int m = graph.getEdgeCount();
         for (Edge e : graph.getEdges()) {
-            String v1 = e.getVertex1();
-            String v2 = e.getVertex2();
-            long di = graph.degree(v1);
-            long dj = graph.degree(v2);
+            long di = degreeMap.get(e.getVertex1());
+            long dj = degreeMap.get(e.getVertex2());
             sumProd += di * dj;   // use long to avoid int overflow on dense graphs
             sumI += di;
             sumJ += dj;
@@ -351,8 +357,7 @@ public class GraphNetworkProfiler {
 
     private void computePowerLawExponent() {
         List<Integer> degrees = new ArrayList<>();
-        for (String v : graph.getVertices()) {
-            int d = graph.degree(v);
+        for (int d : degreeMap.values()) {
             if (d > 0) degrees.add(d);
         }
         if (degrees.size() < 3) { powerLawExponent = 0; return; }
