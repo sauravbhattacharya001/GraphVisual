@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Time Machine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column}
+header{background:#16213e;padding:16px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #6c63ff33}
+header h1{font-size:1.4rem;color:#6c63ff}
+.container{display:grid;grid-template-columns:1fr 260px 1fr;gap:12px;padding:12px;flex:1;min-height:0}
+.panel{background:#16213e;border-radius:8px;padding:12px;display:flex;flex-direction:column;overflow:hidden}
+.panel h2{font-size:.9rem;color:#6c63ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+canvas{background:#0f0f23;border-radius:6px;cursor:crosshair;width:100%;flex:1;min-height:200px}
+.btn{background:#6c63ff;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:.8rem}
+.btn:hover{background:#5a52d5}
+.btn-sm{padding:4px 8px;font-size:.7rem}
+.btn-danger{background:#e74c3c}
+.snapshot-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.snap-item{background:#1a1a2e;padding:8px;border-radius:4px;cursor:pointer;font-size:.75rem;border:1px solid transparent}
+.snap-item:hover{border-color:#6c63ff}
+.snap-item .name{font-weight:600;color:#fff}
+.snap-item .meta{color:#888;margin-top:2px}
+.badges{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.badge{padding:1px 5px;border-radius:3px;font-size:.6rem;font-weight:600}
+.badge-red{background:#e74c3c33;color:#e74c3c}
+.badge-yellow{background:#f39c1233;color:#f1c40f}
+.badge-green{background:#2ecc7033;color:#2ecc71}
+.diff-summary{font-size:.75rem;margin-top:8px;background:#1a1a2e;padding:8px;border-radius:4px}
+.diff-summary td{padding:2px 8px}
+.diff-summary .added{color:#2ecc71}
+.diff-summary .removed{color:#e74c3c}
+.health-timeline{background:#16213e;border-radius:8px;padding:12px;margin:0 12px 12px}
+.health-timeline h2{font-size:.9rem;color:#6c63ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.sparklines{display:flex;gap:16px;flex-wrap:wrap}
+.sparkline-box{display:flex;flex-direction:column;align-items:center;gap:4px}
+.sparkline-box label{font-size:.65rem;color:#888}
+.sparkline-box canvas{background:#0f0f23;border-radius:4px}
+select{background:#1a1a2e;color:#e0e0e0;border:1px solid #6c63ff55;padding:4px;border-radius:4px;font-size:.75rem}
+.presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.instructions{font-size:.7rem;color:#888;margin-top:auto;padding-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<header>
+<span style="font-size:1.6rem">&#9200;</span>
+<h1>Graph Time Machine</h1>
+<div style="margin-left:auto;display:flex;gap:8px">
+<button class="btn btn-sm" onclick="exportHistory()">Export JSON</button>
+<button class="btn btn-sm" onclick="document.getElementById('importFile').click()">Import JSON</button>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importHistory(event)">
+</div>
+</header>
+<div class="container">
+<div class="panel">
+<h2>Graph Editor</h2>
+<div class="presets">
+<button class="btn btn-sm" onclick="loadPreset('petersen')">Petersen</button>
+<button class="btn btn-sm" onclick="loadPreset('k5')">K5</button>
+<button class="btn btn-sm" onclick="loadPreset('c8')">Cycle C8</button>
+<button class="btn btn-sm" onclick="loadPreset('star')">Star S6</button>
+<button class="btn btn-sm" onclick="loadPreset('grid')">Grid 3x3</button>
+<button class="btn btn-sm" onclick="loadPreset('tree')">Binary Tree</button>
+<button class="btn btn-sm" onclick="loadPreset('barbell')">Barbell</button>
+<button class="btn btn-sm" onclick="loadPreset('random')">Random</button>
+</div>
+<canvas id="editorCanvas"></canvas>
+<div class="instructions"><b>Controls:</b> Click = add node | Click node then another = add edge | Right-click = delete | Drag = move</div>
+</div>
+<div class="panel">
+<h2>Snapshots</h2>
+<div style="display:flex;gap:6px;margin-bottom:8px">
+<button class="btn" onclick="takeSnapshot()">Snapshot</button>
+<button class="btn btn-danger btn-sm" onclick="clearSnapshots()">Clear</button>
+</div>
+<div class="snapshot-list" id="snapList"></div>
+</div>
+<div class="panel">
+<h2>Visual Diff</h2>
+<div style="display:flex;gap:4px;margin-bottom:8px">
+<select id="diffA" onchange="renderDiff()"><option value="">A</option></select>
+<select id="diffB" onchange="renderDiff()"><option value="">B</option></select>
+</div>
+<canvas id="diffCanvas"></canvas>
+<div class="diff-summary" id="diffSummary"></div>
+</div>
+</div>
+<div class="health-timeline">
+<h2>Health Timeline</h2>
+<div class="sparklines">
+<div class="sparkline-box"><canvas id="spkNodes" width="120" height="40"></canvas><label>Nodes</label></div>
+<div class="sparkline-box"><canvas id="spkEdges" width="120" height="40"></canvas><label>Edges</label></div>
+<div class="sparkline-box"><canvas id="spkDensity" width="120" height="40"></canvas><label>Density</label></div>
+<div class="sparkline-box"><canvas id="spkComponents" width="120" height="40"></canvas><label>Components</label></div>
+<div class="sparkline-box"><canvas id="spkDiameter" width="120" height="40"></canvas><label>Diameter</label></div>
+<div class="sparkline-box"><canvas id="spkClustering" width="120" height="40"></canvas><label>Clustering</label></div>
+</div>
+</div>
+<script>
+var nodes=[],edges=[],snapshots=[],nextId=1,selectedNode=null,dragging=null,dragOff={x:0,y:0};
+var editorCanvas=document.getElementById('editorCanvas');
+var diffCanvas=document.getElementById('diffCanvas');
+var ectx=editorCanvas.getContext('2d');
+var dctx=diffCanvas.getContext('2d');
+function resize(){[editorCanvas,diffCanvas].forEach(function(c){c.width=c.clientWidth;c.height=c.clientHeight;});renderEditor();renderDiff();}
+window.addEventListener('resize',resize);setTimeout(resize,50);
+function renderEditor(){var c=editorCanvas,ctx=ectx;ctx.clearRect(0,0,c.width,c.height);edges.forEach(function(e){var a=nodes.find(function(n){return n.id===e[0];}),b=nodes.find(function(n){return n.id===e[1];});if(!a||!b)return;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle='#6c63ff88';ctx.lineWidth=2;ctx.stroke();});nodes.forEach(function(n){ctx.beginPath();ctx.arc(n.x,n.y,14,0,Math.PI*2);ctx.fillStyle=n.id===selectedNode?'#f39c12':'#6c63ff';ctx.fill();ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.label,n.x,n.y);});}
+function nodeAt(x,y){return nodes.find(function(n){return Math.hypot(n.x-x,n.y-y)<16;});}
+editorCanvas.addEventListener('mousedown',function(e){var r=editorCanvas.getBoundingClientRect();var x=e.offsetX*(editorCanvas.width/r.width),y=e.offsetY*(editorCanvas.height/r.height);if(e.button===2){var n=nodeAt(x,y);if(n){nodes=nodes.filter(function(nn){return nn!==n;});edges=edges.filter(function(ed){return ed[0]!==n.id&&ed[1]!==n.id;});if(selectedNode===n.id)selectedNode=null;renderEditor();}return;}var n2=nodeAt(x,y);if(n2){if(selectedNode&&selectedNode!==n2.id){var key=[Math.min(selectedNode,n2.id),Math.max(selectedNode,n2.id)];if(!edges.find(function(e2){return e2[0]===key[0]&&e2[1]===key[1];}))edges.push(key);selectedNode=null;}else{selectedNode=n2.id;dragging=n2;dragOff={x:n2.x-x,y:n2.y-y};}renderEditor();}else{nodes.push({id:nextId,x:x,y:y,label:String(nextId)});nextId++;selectedNode=null;renderEditor();}});
+editorCanvas.addEventListener('mousemove',function(e){if(!dragging)return;var r=editorCanvas.getBoundingClientRect();dragging.x=e.offsetX*(editorCanvas.width/r.width)+dragOff.x;dragging.y=e.offsetY*(editorCanvas.height/r.height)+dragOff.y;renderEditor();});
+editorCanvas.addEventListener('mouseup',function(){dragging=null;});
+editorCanvas.addEventListener('contextmenu',function(e){e.preventDefault();});
+function computeMetrics(ns,es){var n=ns.length,m=es.length;if(n===0)return{nodes:0,edges:0,density:0,components:0,avgDegree:0,diameter:0,clustering:0};var adj={};ns.forEach(function(nd){adj[nd.id]=[];});es.forEach(function(e){if(adj[e[0]])adj[e[0]].push(e[1]);if(adj[e[1]])adj[e[1]].push(e[0]);});var density=n>1?2*m/(n*(n-1)):0;var visited={},comp=0;ns.forEach(function(nd){if(!visited[nd.id]){comp++;var q=[nd.id];visited[nd.id]=true;while(q.length){var c=q.shift();(adj[c]||[]).forEach(function(nb){if(!visited[nb]){visited[nb]=true;q.push(nb);}});}}});var diameter=0;if(comp===1){ns.forEach(function(src){var dist={};dist[src.id]=0;var q=[src.id];while(q.length){var c=q.shift();(adj[c]||[]).forEach(function(nb){if(dist[nb]===undefined){dist[nb]=dist[c]+1;q.push(nb);}});}Object.keys(dist).forEach(function(k){if(dist[k]>diameter)diameter=dist[k];});});}else{diameter=-1;}var triangles=0,triples=0;ns.forEach(function(nd){var nb=adj[nd.id];var k=nb.length;if(k<2)return;triples+=k*(k-1)/2;for(var i=0;i<nb.length;i++)for(var j=i+1;j<nb.length;j++)if(adj[nb[i]]&&adj[nb[i]].indexOf(nb[j])>=0)triangles++;});var clustering=triples>0?triangles/triples:0;return{nodes:n,edges:m,density:+density.toFixed(4),components:comp,avgDegree:+(2*m/n).toFixed(2),diameter:diameter,clustering:+clustering.toFixed(4)};}
+function takeSnapshot(){var ns=JSON.parse(JSON.stringify(nodes)),es=JSON.parse(JSON.stringify(edges));var metrics=computeMetrics(ns,es);var snap={name:'v'+(snapshots.length+1),time:new Date().toLocaleTimeString(),nodes:ns,edges:es,metrics:metrics,alerts:[]};if(snapshots.length>0){var prev=snapshots[snapshots.length-1].metrics;if(metrics.components>prev.components)snap.alerts.push({type:'red',msg:'Connectivity lost'});if(prev.density>0&&(prev.density-metrics.density)/prev.density>0.2)snap.alerts.push({type:'yellow',msg:'Density drop >20%'});if(prev.diameter>0&&metrics.diameter>prev.diameter)snap.alerts.push({type:'yellow',msg:'Diameter increased'});if(prev.clustering>0&&(prev.clustering-metrics.clustering)/prev.clustering>0.3)snap.alerts.push({type:'red',msg:'Clustering drop >30%'});if(snap.alerts.length===0)snap.alerts.push({type:'green',msg:'Healthy'});}snapshots.push(snap);renderSnapList();updateDiffSelects();renderSparklines();}
+function renderSnapList(){document.getElementById('snapList').innerHTML=snapshots.map(function(s,i){return '<div class="snap-item" onclick="restoreSnap('+i+')"><div class="name">'+s.name+'</div><div class="meta">'+s.time+' | '+s.metrics.nodes+'N '+s.metrics.edges+'E</div><div class="badges">'+s.alerts.map(function(a){return '<span class="badge badge-'+a.type+'">'+a.msg+'</span>';}).join('')+'</div></div>';}).join('');}
+function restoreSnap(i){nodes=JSON.parse(JSON.stringify(snapshots[i].nodes));edges=JSON.parse(JSON.stringify(snapshots[i].edges));nextId=Math.max.apply(null,nodes.map(function(n){return n.id;}).concat([0]))+1;selectedNode=null;renderEditor();}
+function clearSnapshots(){snapshots=[];renderSnapList();updateDiffSelects();renderSparklines();document.getElementById('diffSummary').innerHTML='';}
+function updateDiffSelects(){['diffA','diffB'].forEach(function(id){var sel=document.getElementById(id);var val=sel.value;sel.innerHTML='<option value="">--</option>'+snapshots.map(function(_,i){return '<option value="'+i+'">v'+(i+1)+'</option>';}).join('');sel.value=val;});}
+function renderDiff(){var c=diffCanvas,ctx=dctx;ctx.clearRect(0,0,c.width,c.height);var ai=document.getElementById('diffA').value,bi=document.getElementById('diffB').value;if(ai===''||bi==='')return;var a=snapshots[+ai],b=snapshots[+bi];var aNodeIds={},bNodeIds={};a.nodes.forEach(function(n){aNodeIds[n.id]=true;});b.nodes.forEach(function(n){bNodeIds[n.id]=true;});var aEdgeKeys={},bEdgeKeys={};a.edges.forEach(function(e){aEdgeKeys[e[0]+'-'+e[1]]=true;});b.edges.forEach(function(e){bEdgeKeys[e[0]+'-'+e[1]]=true;});var allNodes={};a.nodes.forEach(function(n){allNodes[n.id]={x:n.x,y:n.y,label:n.label,inA:true,inB:false};});b.nodes.forEach(function(n){if(allNodes[n.id]){allNodes[n.id].inB=true;allNodes[n.id].x=(allNodes[n.id].x+n.x)/2;allNodes[n.id].y=(allNodes[n.id].y+n.y)/2;}else{allNodes[n.id]={x:n.x,y:n.y,label:n.label,inA:false,inB:true};}});var allEdgeKeys={};a.edges.forEach(function(e){allEdgeKeys[e[0]+'-'+e[1]]=true;});b.edges.forEach(function(e){allEdgeKeys[e[0]+'-'+e[1]]=true;});Object.keys(allEdgeKeys).forEach(function(key){var parts=key.split('-');var s=allNodes[parts[0]],t=allNodes[parts[1]];if(!s||!t)return;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);var inA=!!aEdgeKeys[key],inB=!!bEdgeKeys[key];ctx.strokeStyle=inA&&inB?'#555':inB?'#2ecc71':'#e74c3c';ctx.lineWidth=2;ctx.stroke();});Object.keys(allNodes).forEach(function(id){var n=allNodes[id];ctx.beginPath();ctx.arc(n.x,n.y,12,0,Math.PI*2);ctx.fillStyle=n.inA&&n.inB?'#555':n.inB?'#2ecc71':'#e74c3c';ctx.fill();ctx.fillStyle='#fff';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.label,n.x,n.y);});var na=0,nr=0,ea=0,er=0;Object.keys(bNodeIds).forEach(function(id){if(!aNodeIds[id])na++;});Object.keys(aNodeIds).forEach(function(id){if(!bNodeIds[id])nr++;});Object.keys(bEdgeKeys).forEach(function(k){if(!aEdgeKeys[k])ea++;});Object.keys(aEdgeKeys).forEach(function(k){if(!bEdgeKeys[k])er++;});document.getElementById('diffSummary').innerHTML='<table><tr><td>Nodes</td><td class="added">+'+na+'</td><td class="removed">-'+nr+'</td></tr><tr><td>Edges</td><td class="added">+'+ea+'</td><td class="removed">-'+er+'</td></tr><tr><td>Density</td><td colspan="2">'+a.metrics.density+' &rarr; '+b.metrics.density+'</td></tr><tr><td>Components</td><td colspan="2">'+a.metrics.components+' &rarr; '+b.metrics.components+'</td></tr><tr><td>Diameter</td><td colspan="2">'+a.metrics.diameter+' &rarr; '+b.metrics.diameter+'</td></tr><tr><td>Clustering</td><td colspan="2">'+a.metrics.clustering+' &rarr; '+b.metrics.clustering+'</td></tr></table>';}
+function renderSparklines(){var metrics=['nodes','edges','density','components','diameter','clustering'];var ids=['spkNodes','spkEdges','spkDensity','spkComponents','spkDiameter','spkClustering'];metrics.forEach(function(m,i){var canvas=document.getElementById(ids[i]);var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);var vals=snapshots.map(function(s){return s.metrics[m];});if(vals.length<2)return;var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),range=mx-mn||1;ctx.beginPath();ctx.strokeStyle='#6c63ff';ctx.lineWidth=1.5;vals.forEach(function(v,j){var x=j/(vals.length-1)*canvas.width;var y=canvas.height-((v-mn)/range)*(canvas.height-8)-4;j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();});}
+function loadPreset(name){nodes=[];edges=[];selectedNode=null;nextId=1;var cx=editorCanvas.width/2||300,cy=editorCanvas.height/2||200;function circle(n,r){var arr=[];for(var i=0;i<n;i++)arr.push({id:nextId++,x:cx+r*Math.cos(2*Math.PI*i/n-Math.PI/2),y:cy+r*Math.sin(2*Math.PI*i/n-Math.PI/2),label:String(nextId-1)});return arr;}if(name==='petersen'){var outer=circle(5,120),inner=circle(5,55);nodes=outer.concat(inner);for(var i=0;i<5;i++){edges.push([outer[i].id,outer[(i+1)%5].id].sort(function(a,b){return a-b;}));edges.push([outer[i].id,inner[i].id].sort(function(a,b){return a-b;}));edges.push([inner[i].id,inner[(i+2)%5].id].sort(function(a,b){return a-b;}));}}else if(name==='k5'){nodes=circle(5,100);for(var i=0;i<5;i++)for(var j=i+1;j<5;j++)edges.push([nodes[i].id,nodes[j].id]);}else if(name==='c8'){nodes=circle(8,110);for(var i=0;i<8;i++)edges.push([nodes[i].id,nodes[(i+1)%8].id]);}else if(name==='star'){nodes=[{id:nextId++,x:cx,y:cy,label:'1'}];for(var i=0;i<6;i++){var nd={id:nextId++,x:cx+100*Math.cos(2*Math.PI*i/6),y:cy+100*Math.sin(2*Math.PI*i/6),label:String(nextId-1)};nodes.push(nd);edges.push([1,nd.id]);}}else if(name==='grid'){for(var r=0;r<3;r++)for(var c=0;c<3;c++)nodes.push({id:nextId++,x:cx-80+c*80,y:cy-80+r*80,label:String(nextId-1)});for(var r=0;r<3;r++)for(var c=0;c<3;c++){var id=r*3+c+1;if(c<2)edges.push([id,id+1]);if(r<2)edges.push([id,id+3]);}}else if(name==='tree'){nodes=[{id:1,x:cx,y:cy-90,label:'1'}];nextId=2;var positions=[[cx-100,cy-20],[cx+100,cy-20],[cx-150,cy+70],[cx-50,cy+70],[cx+50,cy+70],[cx+100,cy+70]];positions.forEach(function(p){nodes.push({id:nextId,x:p[0],y:p[1],label:String(nextId)});nextId++;});edges=[[1,2],[1,3],[2,4],[2,5],[3,6],[3,7]];}else if(name==='barbell'){var left=[],right=[];for(var i=0;i<4;i++){left.push({id:nextId++,x:cx-120+30*Math.cos(2*Math.PI*i/4),y:cy+30*Math.sin(2*Math.PI*i/4),label:String(nextId-1)});right.push({id:nextId++,x:cx+120+30*Math.cos(2*Math.PI*i/4),y:cy+30*Math.sin(2*Math.PI*i/4),label:String(nextId-1)});}nodes=left.concat(right);for(var i=0;i<4;i++)for(var j=i+1;j<4;j++){edges.push([left[i].id,left[j].id]);edges.push([right[i].id,right[j].id]);}edges.push([left[0].id,right[0].id]);}else if(name==='random'){for(var i=0;i<8;i++)nodes.push({id:nextId++,x:cx+(Math.random()-0.5)*220,y:cy+(Math.random()-0.5)*180,label:String(nextId-1)});for(var i=0;i<8;i++)for(var j=i+1;j<8;j++)if(Math.random()<0.3)edges.push([nodes[i].id,nodes[j].id]);}renderEditor();}
+function exportHistory(){var blob=new Blob([JSON.stringify({snapshots:snapshots},null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='graph-time-machine.json';a.click();}
+function importHistory(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);snapshots=d.snapshots||[];renderSnapList();updateDiffSelects();renderSparklines();}catch(err){alert('Invalid JSON');}};r.readAsText(f);}
+loadPreset('petersen');
+</script>
+</body>
+</html>
