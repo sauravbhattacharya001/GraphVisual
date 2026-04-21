@@ -389,22 +389,25 @@ public class InfluenceSpreadSimulator {
         Map<String, Integer> infectionFrequency = new LinkedHashMap<>();
 
         for (int i = 0; i < numTrials; i++) {
-            SimulationResult result;
+            // Use lightweight simulation (no snapshots/timeline) to avoid
+            // O(rounds × V) deep-copy overhead per trial. Monte Carlo only
+            // needs final state + round count, not per-round snapshots.
+            LightweightResult lr;
             switch (model) {
                 case INDEPENDENT_CASCADE:
-                    result = simulateIC(seeds, probability, maxRounds); break;
+                    lr = simulateICLightweight(seeds, probability, maxRounds); break;
                 case LINEAR_THRESHOLD:
-                    result = simulateLT(seeds, maxRounds); break;
+                    lr = simulateLTLightweight(seeds, maxRounds); break;
                 case SIR:
-                    result = simulateSIR(seeds, probability, recoveryRate, maxRounds); break;
+                    lr = simulateSIRLightweight(seeds, probability, recoveryRate, maxRounds); break;
                 default:
                     throw new IllegalArgumentException("Unknown model: " + model);
             }
 
-            spreads.add(result.getTotalInfected());
-            durations.add(result.getRoundCount());
+            spreads.add(lr.totalInfected);
+            durations.add(lr.rounds);
 
-            for (Map.Entry<String, NodeState> entry : result.getFinalState().entrySet()) {
+            for (Map.Entry<String, NodeState> entry : lr.finalState.entrySet()) {
                 if (entry.getValue() == NodeState.INFECTED ||
                     entry.getValue() == NodeState.RECOVERED) {
                     infectionFrequency.merge(entry.getKey(), 1, Integer::sum);
@@ -507,6 +510,124 @@ public class InfluenceSpreadSimulator {
                 (double) totalEdgesBlocked / totalEdges : 0.0;
 
         return new VaccinationStrategy(targets, totalEdgesBlocked, coverageRatio);
+    }
+
+    // ─── Lightweight simulation (Monte Carlo fast path) ───────────
+
+    /**
+     * Minimal result for Monte Carlo: final state + round count only.
+     * Avoids the per-round LinkedHashMap deep-copies and InfectionEvent
+     * timeline that {@link SimulationResult} carries.
+     */
+    private static class LightweightResult {
+        final Map<String, NodeState> finalState;
+        final int rounds;
+        final int totalInfected;
+
+        LightweightResult(Map<String, NodeState> finalState, int rounds) {
+            this.finalState = finalState;
+            this.rounds = rounds;
+            int cnt = 0;
+            for (NodeState s : finalState.values())
+                if (s == NodeState.INFECTED || s == NodeState.RECOVERED) cnt++;
+            this.totalInfected = cnt;
+        }
+    }
+
+    private LightweightResult simulateICLightweight(Collection<String> seeds,
+                                                     double probability, int maxRounds) {
+        Map<String, NodeState> state = initState(seeds);
+        Set<String> newlyInfected = new LinkedHashSet<>();
+        for (String seed : seeds)
+            if (graph.containsVertex(seed)) newlyInfected.add(seed);
+        int round = 0;
+
+        while (!newlyInfected.isEmpty()) {
+            round++;
+            if (maxRounds > 0 && round > maxRounds) break;
+            Set<String> nextInfected = new LinkedHashSet<>();
+            for (String node : newlyInfected) {
+                for (String neighbor : getNeighbors(node)) {
+                    if (state.get(neighbor) == NodeState.SUSCEPTIBLE) {
+                        double edgeProb = getEdgeProbability(node, neighbor, probability);
+                        if (random.nextDouble() < edgeProb) {
+                            state.put(neighbor, NodeState.INFECTED);
+                            nextInfected.add(neighbor);
+                        }
+                    }
+                }
+            }
+            for (String node : newlyInfected) state.put(node, NodeState.RECOVERED);
+            newlyInfected = nextInfected;
+        }
+        return new LightweightResult(state, round);
+    }
+
+    private LightweightResult simulateLTLightweight(Collection<String> seeds, int maxRounds) {
+        Map<String, NodeState> state = initState(seeds);
+        Map<String, Double> thresholds = new HashMap<>();
+        for (String node : graph.getVertices()) thresholds.put(node, random.nextDouble());
+
+        int round = 0;
+        boolean changed = true;
+        while (changed) {
+            round++;
+            if (maxRounds > 0 && round > maxRounds) break;
+            changed = false;
+            List<String> toActivate = new ArrayList<>();
+            for (String node : graph.getVertices()) {
+                if (state.get(node) != NodeState.SUSCEPTIBLE) continue;
+                Collection<String> influencers = getPredecessors(node);
+                if (influencers.isEmpty()) continue;
+                int active = 0;
+                for (String nb : influencers)
+                    if (state.get(nb) == NodeState.INFECTED || state.get(nb) == NodeState.RECOVERED)
+                        active++;
+                if ((double) active / influencers.size() >= thresholds.get(node))
+                    toActivate.add(node);
+            }
+            for (String node : toActivate) {
+                state.put(node, NodeState.INFECTED);
+                changed = true;
+            }
+        }
+        return new LightweightResult(state, round);
+    }
+
+    private LightweightResult simulateSIRLightweight(Collection<String> seeds,
+                                                      double infectionRate,
+                                                      double recoveryRate, int maxRounds) {
+        Map<String, NodeState> state = initState(seeds);
+        Set<String> currentlyInfected = new LinkedHashSet<>();
+        for (String seed : seeds)
+            if (graph.containsVertex(seed)) currentlyInfected.add(seed);
+        int round = 0;
+
+        while (!currentlyInfected.isEmpty()) {
+            round++;
+            if (maxRounds > 0 && round > maxRounds) break;
+            Set<String> toInfect = new LinkedHashSet<>();
+            Set<String> toRecover = new LinkedHashSet<>();
+            for (String node : currentlyInfected) {
+                for (String neighbor : getNeighbors(node)) {
+                    if (state.get(neighbor) == NodeState.SUSCEPTIBLE && !toInfect.contains(neighbor)) {
+                        double edgeProb = getEdgeProbability(node, neighbor, infectionRate);
+                        if (random.nextDouble() < edgeProb) toInfect.add(neighbor);
+                    }
+                }
+            }
+            for (String node : currentlyInfected)
+                if (random.nextDouble() < recoveryRate) toRecover.add(node);
+            for (String node : toInfect) {
+                state.put(node, NodeState.INFECTED);
+                currentlyInfected.add(node);
+            }
+            for (String node : toRecover) {
+                state.put(node, NodeState.RECOVERED);
+                currentlyInfected.remove(node);
+            }
+        }
+        return new LightweightResult(state, round);
     }
 
     // ─── Helpers ────────────────────────────────────────────────
