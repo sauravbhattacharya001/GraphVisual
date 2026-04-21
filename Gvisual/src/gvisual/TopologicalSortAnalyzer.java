@@ -33,6 +33,12 @@ public class TopologicalSortAnalyzer {
 
     private final Graph<String, Edge> graph;
 
+    /** Lazily-computed directed adjacency — avoids rebuilding O(V+E) per method call. */
+    private GraphUtils.DirectedAdj cachedAdj;
+
+    /** Lazily-computed full analysis result — reused by generateSummary, countChoicePoints, analyzeDependencies. */
+    private TopologicalSortResult cachedResult;
+
     /**
      * Create a new analyzer for the given graph.
      *
@@ -188,7 +194,10 @@ public class TopologicalSortAnalyzer {
      * adjacency builder extracted from this class.
      */
     private GraphUtils.DirectedAdj buildDirectedAdj() {
-        return GraphUtils.buildDirectedAdjacencyMap(graph);
+        if (cachedAdj == null) {
+            cachedAdj = GraphUtils.buildDirectedAdjacencyMap(graph);
+        }
+        return cachedAdj;
     }
 
     // ── Core algorithms ─────────────────────────────────────────
@@ -206,6 +215,9 @@ public class TopologicalSortAnalyzer {
      * @return complete topological sort analysis
      */
     public TopologicalSortResult analyze() {
+        if (cachedResult != null) {
+            return cachedResult;
+        }
         GraphUtils.DirectedAdj adj = buildDirectedAdj();
         Map<String, Set<String>> successors = adj.successors;
         Map<String, Set<String>> predecessors = adj.predecessors;
@@ -301,9 +313,10 @@ public class TopologicalSortAnalyzer {
             criticalPath = reconstructCriticalPath(depthMap, predecessors, longestPathLength);
         }
 
-        return new TopologicalSortResult(isDAG, sortedOrder, cycles, depthMap,
+        cachedResult = new TopologicalSortResult(isDAG, sortedOrder, cycles, depthMap,
                 dependencyCount, dependentCount, roots, leaves,
                 longestPathLength, criticalPath);
+        return cachedResult;
     }
 
     /**
