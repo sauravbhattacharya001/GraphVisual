@@ -223,12 +223,18 @@ public class InfluenceSpreadSimulator {
     // ─── Linear Threshold ───────────────────────────────────────
 
     /**
-     * Linear Threshold simulation.
+     * Linear Threshold simulation using a candidate-frontier approach.
      *
-     * <p>Uses synchronous activation: all nodes are evaluated against
+     * <p>Uses synchronous activation: all candidates are evaluated against
      * the current round's state, and newly activated nodes only become
      * visible in the next round.  This prevents activation order within
      * a single round from affecting results.</p>
+     *
+     * <p>Maintains an incremental active-predecessor count per node and a
+     * frontier of susceptible candidates (nodes with ≥1 active predecessor).
+     * Each round only evaluates candidates instead of all V vertices,
+     * reducing per-round cost from O(V × avg_pred_degree) to
+     * O(|candidates| + activated × avg_degree).</p>
      */
     public SimulationResult simulateLT(Collection<String> seeds, int maxRounds) {
         validateSeeds(seeds);
@@ -242,55 +248,73 @@ public class InfluenceSpreadSimulator {
             thresholds.put(node, random.nextDouble());
         }
 
+        // Pre-compute predecessor sizes
+        Map<String, Integer> predSize = new HashMap<>();
+        for (String node : graph.getVertices()) {
+            predSize.put(node, getPredecessors(node).size());
+        }
+
+        // Track active-predecessor count per node incrementally
+        Map<String, Integer> activePredCount = new HashMap<>();
+        // Track which active predecessor triggered each node (for timeline)
+        Map<String, String> activePredSource = new HashMap<>();
+
+        // Build initial candidate frontier from seed neighbors
+        Set<String> candidates = new LinkedHashSet<>();
+        for (String seed : seeds) {
+            if (!graph.containsVertex(seed)) continue;
+            for (String succ : getNeighbors(seed)) {
+                if (state.get(succ) == NodeState.SUSCEPTIBLE) {
+                    int prev = activePredCount.getOrDefault(succ, 0);
+                    if (prev == 0) activePredSource.put(succ, seed);
+                    activePredCount.put(succ, prev + 1);
+                    candidates.add(succ);
+                }
+            }
+        }
+
         int round = 0;
         snapshots.add(createSnapshot(round, state));
-        boolean changed = true;
 
-        while (changed) {
+        while (!candidates.isEmpty()) {
             round++;
             if (maxRounds > 0 && round > maxRounds) break;
-            changed = false;
 
             // Collect all activations for this round before applying any
             List<String> toActivate = new ArrayList<>();
             Map<String, String> activatedBy = new LinkedHashMap<>();
 
-            for (String node : graph.getVertices()) {
-                if (state.get(node) != NodeState.SUSCEPTIBLE) continue;
-
-                // LT uses predecessors (incoming edges): a node activates
-                // when enough nodes pointing TO it are active.
-                Collection<String> influencers = getPredecessors(node);
-                if (influencers.isEmpty()) continue;
-
-                int activeNeighbors = 0;
-                String anActiveNeighbor = null;
-                for (String neighbor : influencers) {
-                    if (state.get(neighbor) == NodeState.INFECTED ||
-                        state.get(neighbor) == NodeState.RECOVERED) {
-                        activeNeighbors++;
-                        if (anActiveNeighbor == null) {
-                            anActiveNeighbor = neighbor;
-                        }
-                    }
-                }
-
-                double fraction = (double) activeNeighbors / influencers.size();
-                if (fraction >= thresholds.get(node)) {
+            for (String node : candidates) {
+                int ps = predSize.get(node);
+                if (ps == 0) continue;
+                int ac = activePredCount.getOrDefault(node, 0);
+                if ((double) ac / ps >= thresholds.get(node)) {
                     toActivate.add(node);
-                    if (anActiveNeighbor != null) {
-                        activatedBy.put(node, anActiveNeighbor);
+                    String source = activePredSource.get(node);
+                    if (source != null) {
+                        activatedBy.put(node, source);
                     }
                 }
             }
 
-            // Apply all activations simultaneously
+            if (toActivate.isEmpty()) break;
+
+            // Apply all activations simultaneously and propagate frontier
             for (String node : toActivate) {
                 state.put(node, NodeState.INFECTED);
-                changed = true;
+                candidates.remove(node);
                 String source = activatedBy.get(node);
                 if (source != null) {
                     timeline.add(new InfectionEvent(source, node, round));
+                }
+                // Propagate: successors of newly activated node become candidates
+                for (String succ : getNeighbors(node)) {
+                    if (state.get(succ) == NodeState.SUSCEPTIBLE) {
+                        int prev = activePredCount.getOrDefault(succ, 0);
+                        if (prev == 0) activePredSource.put(succ, node);
+                        activePredCount.put(succ, prev + 1);
+                        candidates.add(succ);
+                    }
                 }
             }
 
@@ -563,33 +587,81 @@ public class InfluenceSpreadSimulator {
         return new LightweightResult(state, round);
     }
 
+    /**
+     * Lightweight LT simulation using a candidate frontier instead of
+     * scanning all V vertices every round.
+     *
+     * <p>Maintains a set of susceptible "candidates" — nodes with at least
+     * one active predecessor. Each round only evaluates candidates (not all
+     * vertices), and when a node activates, its successors are added to the
+     * candidate set for the next round. Pre-computes predecessor sizes and
+     * tracks per-node active-predecessor counts incrementally, avoiding
+     * redundant inner-loop counting.</p>
+     *
+     * <p>Complexity drops from O(rounds × V × avg_predecessor_degree) to
+     * O(rounds × |candidates| + total_activations × avg_degree), which is
+     * dramatically faster when activation is sparse relative to graph size.</p>
+     */
     private LightweightResult simulateLTLightweight(Collection<String> seeds, int maxRounds) {
         Map<String, NodeState> state = initState(seeds);
         Map<String, Double> thresholds = new HashMap<>();
         for (String node : graph.getVertices()) thresholds.put(node, random.nextDouble());
 
+        // Pre-compute predecessor sizes (immutable per simulation)
+        Map<String, Integer> predSize = new HashMap<>();
+        for (String node : graph.getVertices()) {
+            predSize.put(node, getPredecessors(node).size());
+        }
+
+        // Track active-predecessor count per node incrementally
+        Map<String, Integer> activePredCount = new HashMap<>();
+
+        // Build initial candidate frontier: susceptible nodes with ≥1 active predecessor
+        Set<String> candidates = new LinkedHashSet<>();
+        for (String seed : seeds) {
+            if (!graph.containsVertex(seed)) continue;
+            // Each seed's successors (neighbors in undirected) become candidates
+            for (String succ : getNeighbors(seed)) {
+                if (state.get(succ) == NodeState.SUSCEPTIBLE) {
+                    activePredCount.merge(succ, 1, Integer::sum);
+                    candidates.add(succ);
+                }
+            }
+        }
+
         int round = 0;
-        boolean changed = true;
-        while (changed) {
+        while (!candidates.isEmpty()) {
             round++;
             if (maxRounds > 0 && round > maxRounds) break;
-            changed = false;
+
             List<String> toActivate = new ArrayList<>();
-            for (String node : graph.getVertices()) {
-                if (state.get(node) != NodeState.SUSCEPTIBLE) continue;
-                Collection<String> influencers = getPredecessors(node);
-                if (influencers.isEmpty()) continue;
-                int active = 0;
-                for (String nb : influencers)
-                    if (state.get(nb) == NodeState.INFECTED || state.get(nb) == NodeState.RECOVERED)
-                        active++;
-                if ((double) active / influencers.size() >= thresholds.get(node))
+            for (String node : candidates) {
+                int ps = predSize.get(node);
+                if (ps == 0) continue;
+                int ac = activePredCount.getOrDefault(node, 0);
+                if ((double) ac / ps >= thresholds.get(node)) {
                     toActivate.add(node);
+                }
             }
+
+            if (toActivate.isEmpty()) break;
+
+            // Remove activated nodes from candidates, propagate to their successors
+            Set<String> nextCandidates = new LinkedHashSet<>();
             for (String node : toActivate) {
                 state.put(node, NodeState.INFECTED);
-                changed = true;
+                candidates.remove(node);
+                // Propagate: successors of newly activated node may become candidates
+                for (String succ : getNeighbors(node)) {
+                    if (state.get(succ) == NodeState.SUSCEPTIBLE) {
+                        activePredCount.merge(succ, 1, Integer::sum);
+                        nextCandidates.add(succ);
+                    }
+                }
             }
+
+            // Merge remaining old candidates with new ones
+            candidates.addAll(nextCandidates);
         }
         return new LightweightResult(state, round);
     }
