@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diffusion Simulator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .diff-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 480px; }
+        .control-panel { width: 310px; }
+        #graph-canvas { width: 100%; height: 480px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: crosshair; }
+        #curve-canvas { width: 100%; height: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 0.5rem; }
+        .d-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); cursor: pointer; font-size: .85rem; transition: background .15s; }
+        .d-btn:hover { background: var(--surface-hover); }
+        .d-btn.active { border-color: var(--accent); color: var(--accent); }
+        .d-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .d-btn.primary:hover { background: var(--accent-hover); }
+        .d-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .75rem; margin-bottom: .75rem; }
+        .info-card h3 { font-size: .85rem; color: var(--text-muted); margin-bottom: .4rem; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+        .stat-row { display: flex; gap: 1rem; }
+        .stat-item { text-align: center; flex: 1; }
+        .stat-item .label { font-size: .7rem; color: var(--text-muted); }
+        .stat-item .val { font-size: 1rem; font-weight: 700; }
+        .slider-group { margin-bottom: .6rem; }
+        .slider-group label { font-size: .8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+        .slider-group input[type=range] { width: 100%; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem; font-size: .8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .rec-list { font-size: .8rem; max-height: 180px; overflow-y: auto; }
+        .rec-item { padding: .4rem .5rem; margin: .3rem 0; background: var(--bg); border-radius: 4px; border-left: 3px solid var(--accent); }
+        .rec-item.warn { border-left-color: var(--red); }
+        .presets { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+        select.d-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: .85rem; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="coloring-game.html" class="sidebar-link"><span class="icon">🧩</span>Coloring Game</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="diffusion.html" class="sidebar-link active"><span class="icon">🦠</span>Diffusion Sim</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <div class="page-header">
+        <h1>🦠 Graph Diffusion Simulator</h1>
+        <p>Simulate epidemic and information spreading on networks using SIR, SIS, and Independent Cascade models. Click nodes to infect them, then watch the contagion spread.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Susceptible</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> Infected</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Recovered</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div> Removed</div>
+    </div>
+
+    <div class="diff-container">
+        <div class="canvas-panel">
+            <div class="toolbar">
+                <select class="d-select" id="model-select" onchange="changeModel()">
+                    <option value="SIR">SIR (Epidemic)</option>
+                    <option value="SIS">SIS (Recurring)</option>
+                    <option value="IC">Independent Cascade</option>
+                </select>
+                <button class="d-btn primary" id="btn-play" onclick="togglePlay()">▶ Play</button>
+                <button class="d-btn" onclick="stepSim()">⏭ Step</button>
+                <button class="d-btn" onclick="resetSim()">🔄 Reset</button>
+                <button class="d-btn danger" onclick="clearInfections()">💉 Clear Infections</button>
+                <button class="d-btn" onclick="exportJSON()">📥 Export</button>
+            </div>
+            <div class="presets">
+                <button class="d-btn" onclick="loadPreset('karate')">🥋 Karate Club</button>
+                <button class="d-btn" onclick="loadPreset('smallworld')">🌐 Small World</button>
+                <button class="d-btn" onclick="loadPreset('random')">🎲 Random (ER)</button>
+                <button class="d-btn" onclick="loadPreset('scalefree')">📡 Scale-Free</button>
+                <button class="d-btn" onclick="loadPreset('grid')">▦ Grid</button>
+                <button class="d-btn" onclick="loadPreset('star')">⭐ Star</button>
+                <button class="d-btn" onclick="loadPreset('complete')">🔶 Complete K8</button>
+            </div>
+            <canvas id="graph-canvas"></canvas>
+            <canvas id="curve-canvas"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div class="info-card">
+                <h3>📊 Current State (t = <span id="step-num">0</span>)</h3>
+                <div class="stat-row">
+                    <div class="stat-item"><div class="val" style="color:#58a6ff" id="s-count">0</div><div class="label">Susceptible</div></div>
+                    <div class="stat-item"><div class="val" style="color:#f85149" id="i-count">0</div><div class="label">Infected</div></div>
+                    <div class="stat-item"><div class="val" style="color:#3fb950" id="r-count">0</div><div class="label">Recovered</div></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>⚙️ Parameters</h3>
+                <div class="slider-group" id="beta-group">
+                    <label>Infection rate β <span id="beta-val">0.30</span></label>
+                    <input type="range" id="beta" min="0" max="100" value="30" oninput="updateParam()">
+                </div>
+                <div class="slider-group" id="gamma-group">
+                    <label>Recovery rate γ <span id="gamma-val">0.10</span></label>
+                    <input type="range" id="gamma" min="0" max="100" value="10" oninput="updateParam()">
+                </div>
+                <div class="slider-group" id="prob-group" style="display:none">
+                    <label>Propagation prob p <span id="prob-val">0.40</span></label>
+                    <input type="range" id="prob" min="0" max="100" value="40" oninput="updateParam()">
+                </div>
+                <div class="slider-group">
+                    <label>Speed <span id="speed-val">5</span> steps/sec</label>
+                    <input type="range" id="speed" min="1" max="20" value="5" oninput="updateParam()">
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📈 Metrics</h3>
+                <div class="stat-row">
+                    <div class="stat-item"><div class="val" id="r0-val">—</div><div class="label">R₀ est.</div></div>
+                    <div class="stat-item"><div class="val" id="peak-val">—</div><div class="label">Peak I</div></div>
+                    <div class="stat-item"><div class="val" id="peak-t">—</div><div class="label">Peak t</div></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🧠 Proactive Recommendations</h3>
+                <div class="rec-list" id="rec-list">
+                    <div class="rec-item">Click nodes to set patient zero, then press Play.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+/* ===== Graph State ===== */
+const COLORS = { S: '#58a6ff', I: '#f85149', R: '#3fb950', X: '#8b949e' };
+let nodes = [], edges = [], adj = {};
+let simState = []; // per-node: 'S','I','R'
+let history = []; // [{S,I,R}]
+let newlyInfected = new Set(); // for IC model
+let step = 0, playing = false, timer = null;
+
+/* ===== Canvas setup ===== */
+const gc = document.getElementById('graph-canvas');
+const gctx = gc.getContext('2d');
+const cc = document.getElementById('curve-canvas');
+const cctx = cc.getContext('2d');
+let W, H, CW, CH;
+
+function resize() {
+    const r1 = gc.getBoundingClientRect(); W = gc.width = r1.width; H = gc.height = r1.height;
+    const r2 = cc.getBoundingClientRect(); CW = cc.width = r2.width; CH = cc.height = r2.height;
+}
+window.addEventListener('resize', () => { resize(); draw(); });
+
+/* ===== Force layout ===== */
+let dragging = null, dragOff = {x:0,y:0};
+
+function layoutForce(iterations) {
+    const k = Math.sqrt((W * H) / Math.max(nodes.length, 1)) * 0.4;
+    for (let iter = 0; iter < iterations; iter++) {
+        // repulsion
+        for (let i = 0; i < nodes.length; i++) {
+            nodes[i].fx = 0; nodes[i].fy = 0;
+            for (let j = 0; j < nodes.length; j++) {
+                if (i === j) continue;
+                let dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+                let d = Math.sqrt(dx*dx + dy*dy) || 1;
+                let f = (k*k) / d;
+                nodes[i].fx += (dx/d)*f; nodes[i].fy += (dy/d)*f;
+            }
+        }
+        // attraction
+        for (const e of edges) {
+            let a = nodes[e[0]], b = nodes[e[1]];
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d = Math.sqrt(dx*dx + dy*dy) || 1;
+            let f = (d*d) / k * 0.05;
+            a.fx += (dx/d)*f; a.fy += (dy/d)*f;
+            b.fx -= (dx/d)*f; b.fy -= (dy/d)*f;
+        }
+        // apply with damping
+        const temp = 0.1 * (1 - iter/iterations);
+        for (const n of nodes) {
+            if (n === dragging) continue;
+            n.x += Math.max(-10, Math.min(10, n.fx * temp));
+            n.y += Math.max(-10, Math.min(10, n.fy * temp));
+            n.x = Math.max(30, Math.min(W-30, n.x));
+            n.y = Math.max(30, Math.min(H-30, n.y));
+        }
+    }
+}
+
+/* ===== Drawing ===== */
+function draw() {
+    gctx.clearRect(0, 0, W, H);
+    // edges
+    gctx.strokeStyle = 'rgba(139,148,158,0.3)'; gctx.lineWidth = 1.5;
+    for (const [a,b] of edges) {
+        gctx.beginPath(); gctx.moveTo(nodes[a].x, nodes[a].y); gctx.lineTo(nodes[b].x, nodes[b].y); gctx.stroke();
+    }
+    // nodes
+    for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i], s = simState[i] || 'S';
+        const r = 6 + (adj[i] ? adj[i].length : 0) * 0.5;
+        gctx.beginPath(); gctx.arc(n.x, n.y, Math.min(r, 16), 0, Math.PI*2);
+        gctx.fillStyle = COLORS[s]; gctx.fill();
+        gctx.strokeStyle = '#0d1117'; gctx.lineWidth = 1.5; gctx.stroke();
+        // label
+        gctx.fillStyle = '#c9d1d9'; gctx.font = '9px sans-serif'; gctx.textAlign = 'center';
+        gctx.fillText(i, n.x, n.y - Math.min(r, 16) - 3);
+    }
+    drawCurve();
+}
+
+function drawCurve() {
+    cctx.clearRect(0, 0, CW, CH);
+    if (history.length < 2) { cctx.fillStyle = '#8b949e'; cctx.font = '12px sans-serif'; cctx.textAlign = 'center'; cctx.fillText('Epidemic curve will appear here', CW/2, CH/2); return; }
+    const pad = 35, pw = CW - pad*2, ph = CH - pad - 20;
+    const maxT = history.length - 1, maxN = nodes.length || 1;
+    // axes
+    cctx.strokeStyle = '#30363d'; cctx.lineWidth = 1;
+    cctx.beginPath(); cctx.moveTo(pad, 10); cctx.lineTo(pad, CH-pad); cctx.lineTo(CW-10, CH-pad); cctx.stroke();
+    cctx.fillStyle = '#8b949e'; cctx.font = '9px sans-serif'; cctx.textAlign = 'center';
+    cctx.fillText('t=' + maxT, CW-pad, CH-pad+12); cctx.fillText('0', pad, CH-pad+12);
+    cctx.save(); cctx.translate(10, CH/2); cctx.rotate(-Math.PI/2); cctx.fillText('Count', 0, 0); cctx.restore();
+    // lines
+    for (const [key, color] of [['S','#58a6ff'],['I','#f85149'],['R','#3fb950']]) {
+        cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.beginPath();
+        for (let t = 0; t < history.length; t++) {
+            const x = pad + (t/maxT)*pw, y = (CH-pad) - (history[t][key]/maxN)*ph;
+            t === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+        }
+        cctx.stroke();
+    }
+    // legend
+    let lx = pad + 5;
+    for (const [lbl, col] of [['S','#58a6ff'],['I','#f85149'],['R','#3fb950']]) {
+        cctx.fillStyle = col; cctx.fillRect(lx, 5, 10, 10); cctx.fillStyle = '#c9d1d9'; cctx.font = '9px sans-serif'; cctx.textAlign = 'left'; cctx.fillText(lbl, lx+13, 14); lx += 35;
+    }
+}
+
+/* ===== Graph presets ===== */
+function buildAdj() {
+    adj = {};
+    for (let i = 0; i < nodes.length; i++) adj[i] = [];
+    for (const [a,b] of edges) { adj[a].push(b); adj[b].push(a); }
+}
+
+function makeNodes(n) {
+    nodes = []; edges = [];
+    for (let i = 0; i < n; i++) nodes.push({x: W/2 + (Math.random()-0.5)*W*0.6, y: H/2 + (Math.random()-0.5)*H*0.6});
+}
+
+function addEdge(a,b) { if (a !== b) edges.push([a,b]); }
+
+function loadPreset(name) {
+    stopPlay();
+    switch(name) {
+        case 'karate': karateClub(); break;
+        case 'smallworld': smallWorld(30, 4, 0.2); break;
+        case 'random': erdosRenyi(25, 0.15); break;
+        case 'scalefree': barabasiAlbert(30, 2); break;
+        case 'grid': gridGraph(5,5); break;
+        case 'star': starGraph(12); break;
+        case 'complete': completeGraph(8); break;
+    }
+    buildAdj(); initSim(); layoutForce(200); draw();
+}
+
+function karateClub() {
+    makeNodes(34);
+    const e = [[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];
+    for (const [a,b] of e) addEdge(a,b);
+}
+
+function smallWorld(n, k, p) {
+    makeNodes(n);
+    for (let i = 0; i < n; i++) for (let j = 1; j <= k/2; j++) addEdge(i, (i+j)%n);
+    // rewire
+    for (let i = edges.length - 1; i >= 0; i--) {
+        if (Math.random() < p) { edges[i][1] = Math.floor(Math.random() * n); }
+    }
+}
+
+function erdosRenyi(n, p) { makeNodes(n); for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) if (Math.random() < p) addEdge(i,j); }
+
+function barabasiAlbert(n, m) {
+    makeNodes(n);
+    for (let i = 0; i < m+1; i++) for (let j = i+1; j < m+1; j++) addEdge(i,j);
+    const deg = new Array(n).fill(0);
+    for (const [a,b] of edges) { deg[a]++; deg[b]++; }
+    for (let i = m+1; i < n; i++) {
+        const totalDeg = deg.reduce((s,d) => s+d, 0) || 1;
+        const targets = new Set();
+        while (targets.size < m) {
+            let r = Math.random() * totalDeg, cum = 0;
+            for (let j = 0; j < i; j++) { cum += deg[j]; if (cum >= r) { targets.add(j); break; } }
+        }
+        for (const t of targets) { addEdge(i, t); deg[i]++; deg[t]++; }
+    }
+}
+
+function gridGraph(rows, cols) {
+    makeNodes(rows*cols);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const i = r*cols+c;
+        if (c < cols-1) addEdge(i, i+1);
+        if (r < rows-1) addEdge(i, i+cols);
+    }
+}
+
+function starGraph(n) { makeNodes(n); for (let i = 1; i < n; i++) addEdge(0, i); }
+
+function completeGraph(n) { makeNodes(n); for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) addEdge(i,j); }
+
+/* ===== Simulation ===== */
+function getModel() { return document.getElementById('model-select').value; }
+function getBeta() { return document.getElementById('beta').value / 100; }
+function getGamma() { return document.getElementById('gamma').value / 100; }
+function getProb() { return document.getElementById('prob').value / 100; }
+function getSpeed() { return parseInt(document.getElementById('speed').value); }
+
+function initSim() {
+    simState = nodes.map(() => 'S');
+    history = []; step = 0; newlyInfected = new Set();
+    recordHistory(); updateUI();
+}
+
+function recordHistory() {
+    let S=0, I=0, R=0;
+    for (const s of simState) { if(s==='S') S++; else if(s==='I') I++; else R++; }
+    history.push({S,I,R});
+}
+
+function stepSim() {
+    const model = getModel();
+    const beta = getBeta(), gamma = getGamma(), prob = getProb();
+    const next = [...simState];
+
+    if (model === 'IC') {
+        // Independent Cascade: newly infected try to activate neighbors once
+        const nextNew = new Set();
+        for (const i of newlyInfected) {
+            for (const j of (adj[i]||[])) {
+                if (simState[j] === 'S' && Math.random() < prob) { next[j] = 'I'; nextNew.add(j); }
+            }
+        }
+        // nodes that failed to spread become Recovered
+        for (const i of newlyInfected) { if (!nextNew.has(i)) next[i] = 'R'; }
+        newlyInfected = nextNew;
+    } else {
+        // SIR / SIS
+        for (let i = 0; i < nodes.length; i++) {
+            if (simState[i] === 'I') {
+                // try to infect neighbors
+                for (const j of (adj[i]||[])) {
+                    if (simState[j] === 'S' && Math.random() < beta) next[j] = 'I';
+                }
+                // recovery
+                if (Math.random() < gamma) next[i] = model === 'SIR' ? 'R' : 'S';
+            }
+        }
+    }
+    simState = next; step++;
+    recordHistory(); draw(); updateUI(); updateRecommendations();
+
+    // auto-stop if no infected
+    if (!simState.includes('I')) stopPlay();
+}
+
+function resetSim() { stopPlay(); initSim(); draw(); updateRecommendations(); }
+function clearInfections() { resetSim(); }
+
+function togglePlay() {
+    if (playing) { stopPlay(); } else { playing = true; document.getElementById('btn-play').textContent = '⏸ Pause'; runTimer(); }
+}
+function stopPlay() { playing = false; document.getElementById('btn-play').textContent = '▶ Play'; if(timer) { clearTimeout(timer); timer = null; } }
+function runTimer() { if (!playing) return; stepSim(); timer = setTimeout(runTimer, 1000 / getSpeed()); }
+
+function updateParam() {
+    document.getElementById('beta-val').textContent = getBeta().toFixed(2);
+    document.getElementById('gamma-val').textContent = getGamma().toFixed(2);
+    document.getElementById('prob-val').textContent = getProb().toFixed(2);
+    document.getElementById('speed-val').textContent = getSpeed();
+}
+
+function changeModel() {
+    const m = getModel();
+    document.getElementById('beta-group').style.display = m === 'IC' ? 'none' : '';
+    document.getElementById('gamma-group').style.display = m === 'IC' ? 'none' : '';
+    document.getElementById('prob-group').style.display = m === 'IC' ? '' : 'none';
+    resetSim();
+}
+
+function updateUI() {
+    const last = history[history.length-1] || {S:0,I:0,R:0};
+    document.getElementById('s-count').textContent = last.S;
+    document.getElementById('i-count').textContent = last.I;
+    document.getElementById('r-count').textContent = last.R;
+    document.getElementById('step-num').textContent = step;
+    // R0 estimate
+    if (history.length >= 3) {
+        const totalInfected = nodes.length - last.S;
+        const firstI = history[1] ? history[1].I - (history[0].I||0) : 0;
+        // simple: total infected / initial infected
+        const initialI = simState.filter((s,i) => history[0] && true).length; // approx
+        const gamma = getGamma() || 0.1;
+        const beta = getBeta();
+        const avgDeg = edges.length * 2 / (nodes.length || 1);
+        const r0 = getModel() === 'IC' ? (getProb() * avgDeg).toFixed(2) : (beta / gamma * avgDeg * 0.5).toFixed(2);
+        document.getElementById('r0-val').textContent = r0;
+    }
+    // peak
+    let peakI = 0, peakT = 0;
+    for (let t = 0; t < history.length; t++) { if (history[t].I > peakI) { peakI = history[t].I; peakT = t; } }
+    document.getElementById('peak-val').textContent = peakI || '—';
+    document.getElementById('peak-t').textContent = peakI ? 't=' + peakT : '—';
+}
+
+/* ===== Betweenness centrality (Brandes BFS) ===== */
+function betweennessCentrality() {
+    const n = nodes.length, C = new Array(n).fill(0);
+    for (let s = 0; s < n; s++) {
+        const S = [], P = Array.from({length:n}, ()=>[]);
+        const sigma = new Array(n).fill(0); sigma[s] = 1;
+        const d = new Array(n).fill(-1); d[s] = 0;
+        const Q = [s];
+        while (Q.length) {
+            const v = Q.shift();
+            S.push(v);
+            for (const w of (adj[v]||[])) {
+                if (d[w] < 0) { Q.push(w); d[w] = d[v]+1; }
+                if (d[w] === d[v]+1) { sigma[w] += sigma[v]; P[w].push(v); }
+            }
+        }
+        const delta = new Array(n).fill(0);
+        while (S.length) {
+            const w = S.pop();
+            for (const v of P[w]) delta[v] += (sigma[v]/sigma[w])*(1+delta[w]);
+            if (w !== s) C[w] += delta[w];
+        }
+    }
+    // normalize
+    for (let i = 0; i < n; i++) C[i] /= 2;
+    return C;
+}
+
+/* ===== Recommendations ===== */
+function updateRecommendations() {
+    const el = document.getElementById('rec-list');
+    const recs = [];
+    const infected = simState.map((s,i) => s==='I'?i:-1).filter(i=>i>=0);
+    const susceptible = simState.map((s,i) => s==='S'?i:-1).filter(i=>i>=0);
+
+    if (infected.length === 0 && step === 0) {
+        el.innerHTML = '<div class="rec-item">Click nodes to set patient zero, then press Play.</div>';
+        return;
+    }
+    if (infected.length === 0) {
+        el.innerHTML = '<div class="rec-item">Simulation complete. ' + (history[history.length-1]||{R:0}).R + ' nodes reached.</div>';
+        return;
+    }
+
+    // super-spreaders among infected
+    const bc = betweennessCentrality();
+    const infectedBC = infected.map(i => ({id:i, bc:bc[i]})).sort((a,b) => b.bc - a.bc);
+    if (infectedBC.length > 0) {
+        recs.push({warn: true, text: '🔴 Super-spreader: Node ' + infectedBC[0].id + ' (BC=' + infectedBC[0].bc.toFixed(1) + ') — highest bridging potential among infected.'});
+    }
+
+    // vaccination targets (top-3 susceptible by degree)
+    const degSusc = susceptible.map(i => ({id:i, deg: (adj[i]||[]).length, bc: bc[i]})).sort((a,b) => b.bc - a.bc);
+    if (degSusc.length >= 3) {
+        const top3 = degSusc.slice(0,3).map(d => d.id);
+        recs.push({text: '💉 Vaccinate nodes ' + top3.join(', ') + ' — highest betweenness among susceptible.'});
+    }
+
+    // containment estimate: removing top-3 nodes
+    if (infected.length > 0 && susceptible.length > 0) {
+        const top3ids = new Set(degSusc.slice(0,3).map(d=>d.id));
+        let blocked = 0, totalExposed = 0;
+        for (const i of infected) {
+            for (const j of (adj[i]||[])) {
+                if (simState[j] === 'S') { totalExposed++; if (top3ids.has(j)) blocked++; }
+            }
+        }
+        const pct = totalExposed ? Math.round(blocked/totalExposed*100) : 0;
+        recs.push({text: '🛡️ Containment: removing top-3 targets blocks ~' + pct + '% of active exposure edges.'});
+    }
+
+    // alert if R0 > 1
+    const avgDeg = edges.length * 2 / (nodes.length || 1);
+    const model = getModel();
+    const effR0 = model === 'IC' ? getProb() * avgDeg : getBeta() / (getGamma()||0.01) * avgDeg * 0.5;
+    if (effR0 > 2) recs.push({warn:true, text:'⚠️ R₀ ≈ ' + effR0.toFixed(1) + ' — epidemic is spreading rapidly!'});
+    else if (effR0 > 1) recs.push({text:'📊 R₀ ≈ ' + effR0.toFixed(1) + ' — infection is spreading but manageable.'});
+    else recs.push({text:'✅ R₀ ≈ ' + effR0.toFixed(1) + ' — infection will die out.'});
+
+    el.innerHTML = recs.map(r => '<div class="rec-item' + (r.warn?' warn':'') + '">' + r.text + '</div>').join('');
+}
+
+/* ===== Mouse interaction ===== */
+gc.addEventListener('mousedown', e => {
+    const rect = gc.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    for (let i = 0; i < nodes.length; i++) {
+        const dx = nodes[i].x - mx, dy = nodes[i].y - my;
+        if (dx*dx+dy*dy < 300) {
+            if (e.shiftKey || (!playing && step === 0)) {
+                // toggle infection
+                if (simState[i] === 'S') { simState[i] = 'I'; newlyInfected.add(i); }
+                else if (simState[i] === 'I') { simState[i] = 'S'; newlyInfected.delete(i); }
+                recordHistory(); draw(); updateUI(); updateRecommendations();
+                return;
+            }
+            dragging = nodes[i]; dragOff = {x: dx, y: dy}; return;
+        }
+    }
+});
+gc.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = gc.getBoundingClientRect();
+    dragging.x = e.clientX - rect.left - dragOff.x;
+    dragging.y = e.clientY - rect.top - dragOff.y;
+    draw();
+});
+gc.addEventListener('mouseup', () => { dragging = null; });
+gc.addEventListener('mouseleave', () => { dragging = null; });
+
+/* ===== Export ===== */
+function exportJSON() {
+    const data = { model: getModel(), params: { beta: getBeta(), gamma: getGamma(), prob: getProb() }, nodes: nodes.length, edges: edges.length, steps: step, history, finalState: simState };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diffusion-sim.json'; a.click();
+}
+
+/* ===== Init ===== */
+resize();
+loadPreset('karate');
+</script>
+</body>
+</html>
