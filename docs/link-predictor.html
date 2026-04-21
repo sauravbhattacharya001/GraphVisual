@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Link Predictor — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .lp-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .control-row select, .control-row input[type=number], .control-row input[type=range] { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; height: 500px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 100px; text-align: center; }
+        .stat-card .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .insights-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .insights-panel h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; }
+        .insight { padding: 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .insight:last-child { border-bottom: none; }
+        .insight .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+        .tag-likely { background: #3fb95022; color: #3fb950; border: 1px solid #3fb950; }
+        .tag-hub { background: #58a6ff22; color: #58a6ff; border: 1px solid #58a6ff; }
+        .tag-bridge { background: #d2992222; color: #d29922; border: 1px solid #d29922; }
+        .pred-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+        .pred-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; user-select: none; }
+        .pred-table th:hover { color: var(--text); }
+        .pred-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+        .pred-table tr:hover { background: var(--surface-hover); }
+        .score-bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; margin-left: 6px; }
+        .tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; z-index: 200; display: none; max-width: 260px; color: var(--text); }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
+        .checkbox-row input[type=checkbox] { accent-color: var(--accent); }
+        .table-wrap { max-height: 350px; overflow-y: auto; margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+        @media (max-width: 900px) { .lp-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="link-predictor.html" class="sidebar-link active"><span class="icon">🔮</span>Link Predictor</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">📝</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <h1>🔮 Graph Link Predictor</h1>
+    <p>Predict missing or future edges using multiple link prediction algorithms. The autonomous
+    analyzer runs all methods, finds consensus predictions, and surfaces proactive insights about
+    your graph's likely evolution.</p>
+
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-card"><div class="val" id="sNodes">0</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="val" id="sEdges">0</div><div class="lbl">Edges</div></div>
+        <div class="stat-card"><div class="val" id="sDensity">0</div><div class="lbl">Density</div></div>
+        <div class="stat-card"><div class="val" id="sPredictions">0</div><div class="lbl">Predictions</div></div>
+        <div class="stat-card"><div class="val" id="sConsensus">0</div><div class="lbl">Consensus</div></div>
+    </div>
+
+    <div class="lp-layout">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>📐 Graph Input</h3>
+                <div class="control-row">
+                    <label>Preset</label>
+                    <select id="presetSelect">
+                        <option value="social">Social Network</option>
+                        <option value="citation">Citation Network</option>
+                        <option value="protein">Protein Interaction</option>
+                        <option value="airline">Airline Routes</option>
+                        <option value="collab">Collaboration</option>
+                        <option value="internet">Internet Topology</option>
+                        <option value="foodweb">Food Web</option>
+                        <option value="karate">Karate Club</option>
+                        <option value="custom">Custom (text)</option>
+                    </select>
+                </div>
+                <textarea id="customInput" rows="4" placeholder="Enter edges: A-B, B-C, C-D" style="display:none;width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="btn btn-primary" id="loadBtn">Load Graph</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🔧 Prediction Settings</h3>
+                <h4 style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Algorithms</h4>
+                <div class="checkbox-row"><input type="checkbox" id="chkCN" checked><label for="chkCN">Common Neighbors</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkJC" checked><label for="chkJC">Jaccard Coefficient</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkAA" checked><label for="chkAA">Adamic-Adar Index</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkPA" checked><label for="chkPA">Preferential Attachment</label></div>
+                <div class="control-row" style="margin-top:12px;">
+                    <label>Top-K</label>
+                    <input type="range" id="topK" min="5" max="50" step="1" value="15">
+                    <span id="topKVal" style="font-size:12px;min-width:30px;">15</span>
+                </div>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="btn btn-primary" id="predictBtn">Predict Links</button>
+                    <button class="btn btn-secondary" id="autoBtn">🤖 Auto-Analyze</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>💾 Export</h3>
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="exportJSON">JSON</button>
+                    <button class="btn btn-secondary" id="exportCSV">CSV</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="flex:1;min-width:0;">
+            <canvas id="graphCanvas" width="800" height="500"></canvas>
+            <div id="insightsPanel" class="insights-panel" style="display:none;">
+                <h3>🤖 Autonomous Insights</h3>
+                <div id="insightsList"></div>
+            </div>
+            <div class="table-wrap" id="tableWrap" style="display:none;">
+                <table class="pred-table">
+                    <thead><tr>
+                        <th data-col="rank">#</th>
+                        <th data-col="edge">Edge</th>
+                        <th data-col="cn">Common N.</th>
+                        <th data-col="jc">Jaccard</th>
+                        <th data-col="aa">Adamic-Adar</th>
+                        <th data-col="pa">Pref. Attach.</th>
+                        <th data-col="consensus">Consensus</th>
+                    </tr></thead>
+                    <tbody id="predBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+</main>
+
+<script>
+(function(){
+    // ---- State ----
+    let nodes = [], edges = [], nodeMap = {}, adjList = {};
+    let predictions = [], currentAlgo = 'consensus';
+    let positions = {}, velocities = {};
+    let pan = {x:0, y:0}, zoom = 1, dragging = null, panning = false, panStart = {};
+    let animId = null;
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+
+    // ---- Presets ----
+    const PRESETS = {
+        social: {nodes:'Alice,Bob,Carol,Dave,Eve,Frank,Grace,Heidi,Ivan,Judy'.split(','),
+            edges:'Alice-Bob,Alice-Carol,Bob-Carol,Bob-Dave,Carol-Eve,Dave-Eve,Dave-Frank,Frank-Grace,Grace-Heidi,Heidi-Ivan,Ivan-Judy,Judy-Grace,Eve-Frank,Alice-Dave'.split(',')},
+        citation: {nodes:'P1,P2,P3,P4,P5,P6,P7,P8,P9,P10'.split(','),
+            edges:'P1-P2,P1-P3,P2-P4,P3-P4,P4-P5,P5-P6,P6-P7,P7-P8,P8-P9,P9-P10,P3-P5,P6-P10,P2-P7'.split(',')},
+        protein: {nodes:'AKT1,EGFR,TP53,BRCA1,KRAS,MYC,PIK3CA,PTEN,RB1,BRAF'.split(','),
+            edges:'AKT1-PIK3CA,AKT1-PTEN,EGFR-KRAS,EGFR-PIK3CA,TP53-BRCA1,TP53-RB1,KRAS-BRAF,MYC-TP53,PTEN-TP53,BRCA1-RB1,PIK3CA-KRAS,BRAF-MYC'.split(',')},
+        airline: {nodes:'SEA,SFO,LAX,DEN,ORD,ATL,JFK,MIA,DFW,PHX'.split(','),
+            edges:'SEA-SFO,SFO-LAX,LAX-PHX,PHX-DEN,DEN-ORD,ORD-ATL,ATL-MIA,ATL-JFK,JFK-ORD,DFW-ATL,DFW-LAX,SEA-DEN,SFO-DEN,MIA-JFK'.split(',')},
+        collab: {nodes:'A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12'.split(','),
+            edges:'A1-A2,A1-A3,A2-A3,A2-A4,A3-A5,A4-A5,A5-A6,A6-A7,A7-A8,A8-A9,A9-A10,A10-A11,A11-A12,A12-A7,A6-A8,A1-A4'.split(',')},
+        internet: {nodes:'R1,R2,R3,R4,R5,R6,R7,R8,R9,R10'.split(','),
+            edges:'R1-R2,R1-R3,R1-R4,R2-R5,R3-R5,R4-R6,R5-R6,R5-R7,R6-R8,R7-R8,R7-R9,R8-R10,R9-R10,R3-R6'.split(',')},
+        foodweb: {nodes:'Grass,Rabbit,Fox,Deer,Wolf,Hawk,Mouse,Snake,Frog,Insect'.split(','),
+            edges:'Grass-Rabbit,Grass-Deer,Grass-Mouse,Grass-Insect,Rabbit-Fox,Rabbit-Hawk,Deer-Wolf,Mouse-Snake,Mouse-Hawk,Insect-Frog,Frog-Snake,Snake-Hawk,Fox-Wolf'.split(',')},
+        karate: {nodes: Array.from({length:15},(_,i)=>'N'+(i+1)),
+            edges:'N1-N2,N1-N3,N1-N4,N2-N3,N2-N4,N3-N4,N1-N5,N1-N6,N5-N6,N5-N7,N6-N7,N7-N8,N8-N9,N8-N10,N9-N10,N10-N11,N11-N12,N12-N13,N13-N14,N14-N15,N12-N15,N1-N8,N3-N7,N4-N9'.split(',')}
+    };
+
+    // ---- Graph building ----
+    function buildGraph(nodeList, edgeList) {
+        nodes = [...nodeList]; edges = []; nodeMap = {}; adjList = {};
+        nodes.forEach((n,i) => { nodeMap[n] = i; adjList[n] = new Set(); });
+        edgeList.forEach(e => {
+            const [a,b] = e.split('-');
+            if(a && b && nodeMap[a] !== undefined && nodeMap[b] !== undefined) {
+                edges.push([a,b]);
+                adjList[a].add(b); adjList[b].add(a);
+            }
+        });
+        initPositions();
+        predictions = [];
+        updateStats();
+        hideResults();
+    }
+
+    function initPositions() {
+        positions = {}; velocities = {};
+        const cx = canvas.width/2, cy = canvas.height/2;
+        nodes.forEach((n,i) => {
+            const angle = (2*Math.PI*i)/nodes.length;
+            positions[n] = {x: cx + 150*Math.cos(angle) + (Math.random()-0.5)*40, y: cy + 150*Math.sin(angle) + (Math.random()-0.5)*40};
+            velocities[n] = {x:0, y:0};
+        });
+        runLayout(80);
+    }
+
+    function runLayout(iters) {
+        const k = Math.sqrt((canvas.width*canvas.height)/nodes.length);
+        for(let t=0;t<iters;t++){
+            const disp = {};
+            nodes.forEach(n => disp[n] = {x:0, y:0});
+            // repulsion
+            for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+                const a=nodes[i], b=nodes[j];
+                let dx=positions[a].x-positions[b].x, dy=positions[a].y-positions[b].y;
+                const dist=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+                const f=k*k/dist;
+                disp[a].x+=dx/dist*f; disp[a].y+=dy/dist*f;
+                disp[b].x-=dx/dist*f; disp[b].y-=dy/dist*f;
+            }
+            // attraction
+            edges.forEach(([a,b])=>{
+                let dx=positions[a].x-positions[b].x, dy=positions[a].y-positions[b].y;
+                const dist=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+                const f=dist*dist/k;
+                disp[a].x-=dx/dist*f; disp[a].y-=dy/dist*f;
+                disp[b].x+=dx/dist*f; disp[b].y+=dy/dist*f;
+            });
+            const temp = 10*(1-t/iters);
+            nodes.forEach(n=>{
+                const d=Math.max(Math.sqrt(disp[n].x**2+disp[n].y**2),1);
+                positions[n].x+=disp[n].x/d*Math.min(d,temp);
+                positions[n].y+=disp[n].y/d*Math.min(d,temp);
+                positions[n].x=Math.max(40,Math.min(canvas.width-40,positions[n].x));
+                positions[n].y=Math.max(40,Math.min(canvas.height-40,positions[n].y));
+            });
+        }
+    }
+
+    // ---- Link Prediction Algorithms ----
+    function neighbors(n) { return adjList[n] || new Set(); }
+    function intersection(a,b) { const r=new Set(); a.forEach(x=>{if(b.has(x))r.add(x);}); return r; }
+    function union(a,b) { const r=new Set(a); b.forEach(x=>r.add(x)); return r; }
+
+    function commonNeighbors(u,v) { return intersection(neighbors(u),neighbors(v)).size; }
+    function jaccardCoeff(u,v) { const un=union(neighbors(u),neighbors(v)); return un.size===0?0:intersection(neighbors(u),neighbors(v)).size/un.size; }
+    function adamicAdar(u,v) {
+        let s=0;
+        intersection(neighbors(u),neighbors(v)).forEach(w=>{
+            const deg=neighbors(w).size;
+            if(deg>1) s+=1/Math.log(deg);
+        });
+        return s;
+    }
+    function prefAttach(u,v) { return neighbors(u).size*neighbors(v).size; }
+
+    function edgeExists(u,v) { return adjList[u] && adjList[u].has(v); }
+
+    function predictLinks(algos) {
+        const pairs = [];
+        for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+            const u=nodes[i], v=nodes[j];
+            if(!edgeExists(u,v)){
+                const scores = {};
+                if(algos.cn) scores.cn = commonNeighbors(u,v);
+                if(algos.jc) scores.jc = jaccardCoeff(u,v);
+                if(algos.aa) scores.aa = adamicAdar(u,v);
+                if(algos.pa) scores.pa = prefAttach(u,v);
+                pairs.push({u,v,scores});
+            }
+        }
+        // normalize each algo 0-1
+        const keys = Object.keys(algos).filter(k=>algos[k]);
+        keys.forEach(k=>{
+            const max = Math.max(...pairs.map(p=>p.scores[k]||0),0.001);
+            pairs.forEach(p=>{ if(p.scores[k]!==undefined) p.scores[k+'_norm']=p.scores[k]/max; });
+        });
+        // consensus = avg of normalized scores
+        pairs.forEach(p=>{
+            let s=0, c=0;
+            keys.forEach(k=>{ if(p.scores[k+'_norm']!==undefined){s+=p.scores[k+'_norm'];c++;} });
+            p.consensus = c>0?s/c:0;
+            p.algoCount = keys.filter(k=>(p.scores[k]||0)>0).length;
+        });
+        pairs.sort((a,b)=>b.consensus-a.consensus);
+        return pairs;
+    }
+
+    // ---- Autonomous Insights ----
+    function generateInsights(preds) {
+        const insights = [];
+        if(preds.length>0){
+            const top = preds[0];
+            insights.push({tag:'likely',tagClass:'tag-likely',text:`Most likely missing link: ${top.u} ↔ ${top.v} (consensus score: ${top.consensus.toFixed(3)})`});
+        }
+        // highest degree node
+        let maxDeg=0, hub='';
+        nodes.forEach(n=>{ const d=neighbors(n).size; if(d>maxDeg){maxDeg=d;hub=n;} });
+        if(hub){
+            const hubPreds = preds.filter(p=>p.u===hub||p.v===hub).length;
+            insights.push({tag:'hub',tagClass:'tag-hub',text:`Hub node "${hub}" (degree ${maxDeg}) has ${hubPreds} potential new connections — likely to gain edges`});
+        }
+        // isolated clusters detection
+        const visited = new Set();
+        const components = [];
+        nodes.forEach(n=>{
+            if(!visited.has(n)){
+                const comp = []; const q=[n]; visited.add(n);
+                while(q.length){const c=q.shift();comp.push(c);neighbors(c).forEach(nb=>{if(!visited.has(nb)){visited.add(nb);q.push(nb);}});}
+                components.push(comp);
+            }
+        });
+        if(components.length>=2){
+            insights.push({tag:'bridge',tagClass:'tag-bridge',text:`${components.length} disconnected clusters detected. Bridging predictions may indicate emerging connections between communities.`});
+        } else {
+            // find weakly connected regions via low-degree bridges
+            const bridges = preds.filter(p=>p.algoCount>=2).slice(0,3);
+            if(bridges.length>0){
+                insights.push({tag:'bridge',tagClass:'tag-bridge',text:`Top consensus links (${bridges.map(b=>b.u+'↔'+b.v).join(', ')}) predicted by multiple algorithms — high confidence`});
+            }
+        }
+        // structural similarity insight
+        if(preds.length>=2){
+            const p = preds.find(p=>p.scores.jc_norm && p.scores.jc_norm>0.7);
+            if(p) insights.push({tag:'likely',tagClass:'tag-likely',text:`"${p.u}" and "${p.v}" share very similar neighborhoods (Jaccard=${(p.scores.jc||0).toFixed(3)}) — structurally equivalent, connection likely`});
+        }
+        return insights;
+    }
+
+    // ---- Rendering ----
+    function render() {
+        const w=canvas.width, h=canvas.height;
+        ctx.clearRect(0,0,w,h);
+        ctx.save();
+        ctx.translate(pan.x,pan.y);
+        ctx.scale(zoom,zoom);
+
+        const topK = parseInt(document.getElementById('topK').value);
+        const shown = predictions.slice(0,topK);
+
+        // predicted edges (dashed)
+        shown.forEach(p=>{
+            const pa=positions[p.u], pb=positions[p.v];
+            if(!pa||!pb) return;
+            ctx.beginPath();
+            ctx.setLineDash([6,4]);
+            const alpha = 0.2 + 0.8*p.consensus;
+            ctx.strokeStyle = `rgba(88,166,255,${alpha})`;
+            ctx.lineWidth = 1+2*p.consensus;
+            ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+
+        // existing edges
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        edges.forEach(([a,b])=>{
+            const pa=positions[a], pb=positions[b];
+            ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
+        });
+
+        // nodes
+        nodes.forEach(n=>{
+            const p=positions[n];
+            const deg=neighbors(n).size;
+            const r=Math.max(6,4+deg*1.2);
+            ctx.beginPath(); ctx.arc(p.x,p.y,r,0,2*Math.PI);
+            ctx.fillStyle='#58a6ff'; ctx.fill();
+            ctx.strokeStyle='#0d1117'; ctx.lineWidth=2; ctx.stroke();
+            ctx.fillStyle='#e6edf3'; ctx.font='11px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText(n,p.x,p.y-r-4);
+        });
+
+        ctx.restore();
+    }
+
+    // ---- Canvas interaction ----
+    canvas.addEventListener('mousedown',e=>{
+        const rect=canvas.getBoundingClientRect();
+        const mx=(e.clientX-rect.left-pan.x)/zoom, my=(e.clientY-rect.top-pan.y)/zoom;
+        let found=null;
+        nodes.forEach(n=>{
+            const dx=positions[n].x-mx, dy=positions[n].y-my;
+            if(Math.sqrt(dx*dx+dy*dy)<15) found=n;
+        });
+        if(found){ dragging=found; }
+        else { panning=true; panStart={x:e.clientX-pan.x,y:e.clientY-pan.y}; }
+    });
+    canvas.addEventListener('mousemove',e=>{
+        const rect=canvas.getBoundingClientRect();
+        if(dragging){
+            positions[dragging].x=(e.clientX-rect.left-pan.x)/zoom;
+            positions[dragging].y=(e.clientY-rect.top-pan.y)/zoom;
+            render();
+        } else if(panning){
+            pan.x=e.clientX-panStart.x; pan.y=e.clientY-panStart.y;
+            render();
+        } else {
+            // tooltip for predicted edges
+            const mx=(e.clientX-rect.left-pan.x)/zoom, my=(e.clientY-rect.top-pan.y)/zoom;
+            const topK=parseInt(document.getElementById('topK').value);
+            const shown=predictions.slice(0,topK);
+            let hit=null;
+            shown.forEach(p=>{
+                const pa=positions[p.u], pb=positions[p.v]; if(!pa||!pb)return;
+                const dx=pb.x-pa.x, dy=pb.y-pa.y, len=Math.sqrt(dx*dx+dy*dy);
+                if(len<1)return;
+                const t=Math.max(0,Math.min(1,((mx-pa.x)*dx+(my-pa.y)*dy)/(len*len)));
+                const px=pa.x+t*dx, py=pa.y+t*dy;
+                if(Math.sqrt((mx-px)**2+(my-py)**2)<8) hit=p;
+            });
+            if(hit){
+                tooltip.style.display='block';
+                tooltip.style.left=(e.clientX+12)+'px'; tooltip.style.top=(e.clientY-10)+'px';
+                let html=`<strong>${hit.u} ↔ ${hit.v}</strong><br>`;
+                if(hit.scores.cn!==undefined) html+=`Common N.: ${hit.scores.cn}<br>`;
+                if(hit.scores.jc!==undefined) html+=`Jaccard: ${hit.scores.jc.toFixed(4)}<br>`;
+                if(hit.scores.aa!==undefined) html+=`Adamic-Adar: ${hit.scores.aa.toFixed(4)}<br>`;
+                if(hit.scores.pa!==undefined) html+=`Pref. Attach.: ${hit.scores.pa}<br>`;
+                html+=`<strong>Consensus: ${hit.consensus.toFixed(4)}</strong>`;
+                tooltip.innerHTML=html;
+            } else { tooltip.style.display='none'; }
+        }
+    });
+    canvas.addEventListener('mouseup',()=>{ dragging=null; panning=false; });
+    canvas.addEventListener('mouseleave',()=>{ dragging=null; panning=false; tooltip.style.display='none'; });
+    canvas.addEventListener('wheel',e=>{
+        e.preventDefault();
+        const d=e.deltaY>0?0.9:1.1;
+        zoom=Math.max(0.2,Math.min(5,zoom*d));
+        render();
+    },{passive:false});
+
+    // ---- UI ----
+    function updateStats(){
+        document.getElementById('sNodes').textContent=nodes.length;
+        document.getElementById('sEdges').textContent=edges.length;
+        const maxE=nodes.length*(nodes.length-1)/2;
+        document.getElementById('sDensity').textContent=maxE>0?(edges.length/maxE).toFixed(3):'0';
+        document.getElementById('sPredictions').textContent=predictions.length;
+        document.getElementById('sConsensus').textContent=predictions.filter(p=>p.algoCount>=2).length;
+    }
+
+    function hideResults(){ document.getElementById('insightsPanel').style.display='none'; document.getElementById('tableWrap').style.display='none'; }
+
+    function showResults(){
+        const topK=parseInt(document.getElementById('topK').value);
+        const shown=predictions.slice(0,topK);
+        // table
+        const tbody=document.getElementById('predBody');
+        tbody.innerHTML='';
+        shown.forEach((p,i)=>{
+            const tr=document.createElement('tr');
+            tr.innerHTML=`<td>${i+1}</td><td><strong>${p.u} ↔ ${p.v}</strong></td>
+                <td>${p.scores.cn!==undefined?p.scores.cn:'-'}</td>
+                <td>${p.scores.jc!==undefined?p.scores.jc.toFixed(4):'-'}</td>
+                <td>${p.scores.aa!==undefined?p.scores.aa.toFixed(4):'-'}</td>
+                <td>${p.scores.pa!==undefined?p.scores.pa:'-'}</td>
+                <td>${p.consensus.toFixed(4)} <span class="score-bar" style="width:${Math.round(p.consensus*60)}px;background:${p.algoCount>=3?'#3fb950':p.algoCount>=2?'#58a6ff':'#8b949e'}"></span></td>`;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('tableWrap').style.display='block';
+        updateStats();
+        render();
+    }
+
+    function showInsights(){
+        const insights=generateInsights(predictions);
+        const el=document.getElementById('insightsList');
+        el.innerHTML='';
+        insights.forEach(ins=>{
+            const d=document.createElement('div'); d.className='insight';
+            d.innerHTML=`<span class="tag ${ins.tagClass}">${ins.tag}</span> ${ins.text}`;
+            el.appendChild(d);
+        });
+        document.getElementById('insightsPanel').style.display=insights.length?'block':'none';
+    }
+
+    // ---- Event handlers ----
+    document.getElementById('presetSelect').addEventListener('change',function(){
+        document.getElementById('customInput').style.display=this.value==='custom'?'block':'none';
+    });
+
+    document.getElementById('loadBtn').addEventListener('click',function(){
+        const sel=document.getElementById('presetSelect').value;
+        if(sel==='custom'){
+            const txt=document.getElementById('customInput').value.trim();
+            const parts=txt.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean);
+            const ns=new Set();
+            parts.forEach(p=>{ const [a,b]=p.split('-'); if(a)ns.add(a.trim()); if(b)ns.add(b.trim()); });
+            buildGraph([...ns], parts.map(p=>p.trim()));
+        } else {
+            const p=PRESETS[sel];
+            buildGraph(p.nodes, p.edges);
+        }
+        pan={x:0,y:0}; zoom=1;
+        render();
+    });
+
+    document.getElementById('topK').addEventListener('input',function(){
+        document.getElementById('topKVal').textContent=this.value;
+        if(predictions.length) showResults();
+    });
+
+    document.getElementById('predictBtn').addEventListener('click',function(){
+        const algos={cn:document.getElementById('chkCN').checked,jc:document.getElementById('chkJC').checked,
+            aa:document.getElementById('chkAA').checked,pa:document.getElementById('chkPA').checked};
+        if(!Object.values(algos).some(Boolean)){alert('Select at least one algorithm');return;}
+        predictions=predictLinks(algos);
+        showResults();
+    });
+
+    document.getElementById('autoBtn').addEventListener('click',function(){
+        predictions=predictLinks({cn:true,jc:true,aa:true,pa:true});
+        document.getElementById('chkCN').checked=true;
+        document.getElementById('chkJC').checked=true;
+        document.getElementById('chkAA').checked=true;
+        document.getElementById('chkPA').checked=true;
+        showResults();
+        showInsights();
+    });
+
+    // sorting
+    document.querySelectorAll('.pred-table th').forEach(th=>{
+        th.addEventListener('click',()=>{
+            const col=th.dataset.col;
+            const map={cn:'cn',jc:'jc',aa:'aa',pa:'pa',consensus:'consensus',rank:'consensus'};
+            const key=map[col];
+            if(!key)return;
+            predictions.sort((a,b)=>(b.scores[key]||b[key]||0)-(a.scores[key]||a[key]||0));
+            showResults();
+        });
+    });
+
+    // export
+    document.getElementById('exportJSON').addEventListener('click',()=>{
+        const topK=parseInt(document.getElementById('topK').value);
+        const data=predictions.slice(0,topK).map((p,i)=>({rank:i+1,source:p.u,target:p.v,...p.scores,consensus:p.consensus}));
+        const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='link-predictions.json'; a.click();
+    });
+    document.getElementById('exportCSV').addEventListener('click',()=>{
+        const topK=parseInt(document.getElementById('topK').value);
+        const shown=predictions.slice(0,topK);
+        let csv='Rank,Source,Target,CommonNeighbors,Jaccard,AdamicAdar,PrefAttachment,Consensus\n';
+        shown.forEach((p,i)=>{
+            csv+=`${i+1},${p.u},${p.v},${p.scores.cn||''},${p.scores.jc?p.scores.jc.toFixed(4):''},${p.scores.aa?p.scores.aa.toFixed(4):''},${p.scores.pa||''},${p.consensus.toFixed(4)}\n`;
+        });
+        const blob=new Blob([csv],{type:'text/csv'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='link-predictions.csv'; a.click();
+    });
+
+    // ---- Init ----
+    function resizeCanvas(){
+        const rect=canvas.parentElement.getBoundingClientRect();
+        canvas.width=Math.max(400,rect.width);
+        canvas.height=500;
+        render();
+    }
+    window.addEventListener('resize',resizeCanvas);
+
+    // load default
+    const p=PRESETS.social;
+    buildGraph(p.nodes,p.edges);
+    pan={x:0,y:0}; zoom=1;
+    setTimeout(()=>{ resizeCanvas(); render(); },100);
+})();
+</script>
+</body>
+</html>
