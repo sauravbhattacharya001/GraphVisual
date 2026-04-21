@@ -828,10 +828,7 @@ public class GraphAlgorithmAnimator {
     }
 
     private static String escapeJS(String s) {
-        return "\"" + s.replace("\\", "\\\\")
-                       .replace("\"", "\\\"")
-                       .replace("\n", "\\n")
-                       .replace("\r", "") + "\"";
+        return "\"" + ExportUtils.escapeJs(s) + "\"";
     }
 
     // Union-Find for Kruskal

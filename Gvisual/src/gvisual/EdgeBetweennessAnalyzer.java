@@ -400,7 +400,7 @@ public class EdgeBetweennessAnalyzer {
     }
 
     private String escapeHtml(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return ExportUtils.escapeHtml(s);
     }
 
     private String getCSS() {

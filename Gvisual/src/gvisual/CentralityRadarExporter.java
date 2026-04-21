@@ -79,8 +79,7 @@ public class CentralityRadarExporter {
     }
 
     private String escapeJson(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"")
-                .replace("\n", "\\n").replace("\r", "\\r");
+        return ExportUtils.escapeJs(s);
     }
 
     private String buildHtml(String nodesJson, int totalNodes) {

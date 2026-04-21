@@ -104,6 +104,38 @@ public final class ExportUtils {
     }
 
     /**
+     * Escapes HTML special characters for safe embedding in HTML content.
+     *
+     * @param s the input string
+     * @return HTML-escaped string
+     */
+    public static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;");
+    }
+
+    /**
+     * Escapes a string for safe embedding inside a JavaScript string literal
+     * within an HTML {@code <script>} block.  Does <em>not</em> add surrounding
+     * quotes — callers decide between single and double quotes.
+     *
+     * <p>Escapes backslashes, double-quotes, newlines, carriage returns, tabs,
+     * and angle brackets (as hex escapes) to prevent script injection.</p>
+     *
+     * @param s the input string
+     * @return JS-escaped string (without surrounding quotes)
+     */
+    public static String escapeJs(String s) {
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "")
+                .replace("\t", "\\t")
+                .replace("<", "\\x3c")
+                .replace(">", "\\x3e");
+    }
+
+    /**
      * Validates that an output file path is safe to write to.
      *
      * <p>The resolved (canonical) path must reside within the current

@@ -360,7 +360,7 @@ public class GraphDiffHtmlExporter {
     }
 
     private static String escapeHtml(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return ExportUtils.escapeHtml(s);
     }
 
     /**
@@ -373,11 +373,6 @@ public class GraphDiffHtmlExporter {
      * breaking out of the script context (CWE-79 / XSS via script breakout).
      */
     private static String escapeJs(String s) {
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "")
-                .replace("<", "\\x3c")
-                .replace(">", "\\x3e");
+        return ExportUtils.escapeJs(s);
     }
 }
