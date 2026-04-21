@@ -101,6 +101,11 @@ public class EdgeBetweennessAnalyzer {
 
     /**
      * Compute edge betweenness centrality using Brandes' algorithm (BFS variant).
+     *
+     * <p>Uses lazy initialization: only vertices reachable from each BFS source
+     * are initialized, avoiding the O(V) per-source setup cost that made total
+     * initialization O(V²). For sparse or disconnected graphs this is a major
+     * win since each BFS touches only its connected component.</p>
      */
     public void compute() {
         betweenness.clear();
@@ -111,19 +116,17 @@ public class EdgeBetweennessAnalyzer {
         Collection<String> vertices = graph.getVertices();
 
         for (String s : vertices) {
-            // BFS from s
-            Stack<String> stack = new Stack<>();
+            // BFS from s — lazy init: only reachable vertices are tracked.
+            // predecessors/dist/sigma use containsKey checks instead of
+            // pre-populating entries for every vertex in the graph.
+            ArrayDeque<String> stack = new ArrayDeque<>();
             Map<String, List<String>> predecessors = new HashMap<>();
             Map<String, Integer> dist = new HashMap<>();
             Map<String, Double> sigma = new HashMap<>();
 
-            for (String v : vertices) {
-                predecessors.put(v, new ArrayList<>());
-                dist.put(v, -1);
-                sigma.put(v, 0.0);
-            }
             dist.put(s, 0);
             sigma.put(s, 1.0);
+            predecessors.put(s, new ArrayList<>());
 
             Queue<String> queue = new ArrayDeque<>();
             queue.add(s);
@@ -131,34 +134,38 @@ public class EdgeBetweennessAnalyzer {
             while (!queue.isEmpty()) {
                 String v = queue.poll();
                 stack.push(v);
+                int distV = dist.get(v);
+                double sigmaV = sigma.get(v);
                 for (String w : graph.getNeighbors(v)) {
-                    // First visit?
-                    if (dist.get(w) < 0) {
-                        dist.put(w, dist.get(v) + 1);
+                    // First visit? (not yet in dist map)
+                    if (!dist.containsKey(w)) {
+                        dist.put(w, distV + 1);
+                        sigma.put(w, 0.0);
+                        predecessors.put(w, new ArrayList<>());
                         queue.add(w);
                     }
                     // Shortest path via v?
-                    if (dist.get(w) == dist.get(v) + 1) {
-                        sigma.put(w, sigma.get(w) + sigma.get(v));
+                    if (dist.get(w) == distV + 1) {
+                        sigma.put(w, sigma.get(w) + sigmaV);
                         predecessors.get(w).add(v);
                     }
                 }
             }
 
-            // Back-propagation
-            Map<String, Double> delta = new HashMap<>();
-            for (String v : vertices) delta.put(v, 0.0);
+            // Back-propagation — only over vertices in the stack (reachable from s)
+            Map<String, Double> delta = new HashMap<>(stack.size() * 2);
 
             while (!stack.isEmpty()) {
                 String w = stack.pop();
+                double deltaW = delta.getOrDefault(w, 0.0);
                 for (String v : predecessors.get(w)) {
-                    double c = (sigma.get(v) / sigma.get(w)) * (1.0 + delta.get(w));
+                    double c = (sigma.get(v) / sigma.get(w)) * (1.0 + deltaW);
                     // Find the edge between v and w
                     Edge edge = findEdge(v, w);
                     if (edge != null) {
                         betweenness.put(edge, betweenness.getOrDefault(edge, 0.0) + c);
                     }
-                    delta.put(v, delta.get(v) + c);
+                    delta.merge(v, c, Double::sum);
                 }
             }
         }
