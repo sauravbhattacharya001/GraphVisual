@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Merge Workshop — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .merge-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        .graph-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .graph-panel h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .panel-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        canvas.graph-canvas { width: 100%; height: 280px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: crosshair; }
+        textarea.adj-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 50px; margin-top: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-op { padding: 10px 20px; font-size: 14px; font-weight: 700; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--surface); color: var(--text); transition: all 0.2s; }
+        .btn-op:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-op.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .preset-btn { padding: 5px 10px; font-size: 11px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .ops-bar { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+        .result-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        canvas.result-canvas { width: 100%; height: 360px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+        .stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+        .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; flex: 1; min-width: 120px; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+        .insight-box { background: var(--bg); border-left: 3px solid var(--purple); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-top: 16px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+        .insight-box strong { color: var(--purple); }
+        .legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+        .legend span { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .export-row { margin-top: 12px; display: flex; gap: 8px; }
+        .help-text { font-size: 12px; color: var(--text-subtle); margin-top: 6px; }
+        @media (max-width: 800px) { .merge-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="graph-compare.html" class="sidebar-link"><span class="icon">⚖️</span>Graph Compare</a>
+        <a href="graph-merge.html" class="sidebar-link active"><span class="icon">🔀</span>Merge Workshop</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Resources</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📡</span>API Reference</a>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">💾</span>Database</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">📖</span>Cookbook</a>
+    </div>
+</nav>
+
+<main class="content">
+    <h1>🔀 Graph Merge Workshop</h1>
+    <p>Combine two graphs using set operations — <strong>Union</strong>, <strong>Intersection</strong>, <strong>Difference</strong>, and <strong>Symmetric Difference</strong>. Click canvas to add nodes, click two nodes to add an edge, or load a preset.</p>
+
+    <div class="merge-layout">
+        <!-- Graph 1 -->
+        <div class="graph-panel" id="panel1">
+            <h3>🔵 Graph G₁</h3>
+            <div class="panel-controls">
+                <button class="preset-btn" onclick="loadPreset(1,'triangle')">△ Triangle</button>
+                <button class="preset-btn" onclick="loadPreset(1,'square')">□ Square</button>
+                <button class="preset-btn" onclick="loadPreset(1,'k5')">★ K5</button>
+                <button class="preset-btn" onclick="loadPreset(1,'path')">— Path P5</button>
+                <button class="preset-btn" onclick="loadPreset(1,'cycle')">⭕ Cycle C6</button>
+                <button class="preset-btn" onclick="loadPreset(1,'petersen')">⬠ Petersen</button>
+                <button class="preset-btn" onclick="randomGraph(1)">🎲 Random</button>
+                <button class="preset-btn" onclick="clearGraph(1)">✕ Clear</button>
+            </div>
+            <canvas class="graph-canvas" id="canvas1" width="600" height="280"></canvas>
+            <p class="help-text">Click to add node · Click two nodes to connect · Drag to move</p>
+            <textarea class="adj-input" id="adj1" placeholder="Adjacency list: A-B, B-C, C-A" oninput="parseAdj(1)"></textarea>
+        </div>
+        <!-- Graph 2 -->
+        <div class="graph-panel" id="panel2">
+            <h3>🟢 Graph G₂</h3>
+            <div class="panel-controls">
+                <button class="preset-btn" onclick="loadPreset(2,'triangle')">△ Triangle</button>
+                <button class="preset-btn" onclick="loadPreset(2,'square')">□ Square</button>
+                <button class="preset-btn" onclick="loadPreset(2,'k5')">★ K5</button>
+                <button class="preset-btn" onclick="loadPreset(2,'path')">— Path P5</button>
+                <button class="preset-btn" onclick="loadPreset(2,'cycle')">⭕ Cycle C6</button>
+                <button class="preset-btn" onclick="loadPreset(2,'petersen')">⬠ Petersen</button>
+                <button class="preset-btn" onclick="randomGraph(2)">🎲 Random</button>
+                <button class="preset-btn" onclick="clearGraph(2)">✕ Clear</button>
+            </div>
+            <canvas class="graph-canvas" id="canvas2" width="600" height="280"></canvas>
+            <p class="help-text">Click to add node · Click two nodes to connect · Drag to move</p>
+            <textarea class="adj-input" id="adj2" placeholder="Adjacency list: C-D, D-E, E-C" oninput="parseAdj(2)"></textarea>
+        </div>
+    </div>
+
+    <!-- Operations -->
+    <div class="ops-bar">
+        <button class="btn-op" onclick="doOp('union')" id="op-union">G₁ ∪ G₂ &nbsp;Union</button>
+        <button class="btn-op" onclick="doOp('intersection')" id="op-intersection">G₁ ∩ G₂ &nbsp;Intersection</button>
+        <button class="btn-op" onclick="doOp('difference')" id="op-difference">G₁ \ G₂ &nbsp;Difference</button>
+        <button class="btn-op" onclick="doOp('symdiff')" id="op-symdiff">G₁ △ G₂ &nbsp;Sym. Difference</button>
+    </div>
+
+    <!-- Result -->
+    <div class="result-section" id="result-section" style="display:none">
+        <h3 style="color:var(--accent);font-size:14px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px" id="result-title">Result</h3>
+        <canvas class="result-canvas" id="resultCanvas" width="900" height="360"></canvas>
+        <div class="legend">
+            <span><span class="legend-dot" style="background:#58a6ff"></span> G₁ only</span>
+            <span><span class="legend-dot" style="background:#3fb950"></span> G₂ only</span>
+            <span><span class="legend-dot" style="background:#bc8cff"></span> Both</span>
+        </div>
+        <div class="stats-row" id="stats-row"></div>
+        <div class="insight-box" id="insight-box"></div>
+        <div class="export-row">
+            <button class="btn btn-secondary" onclick="exportResult()">📋 Copy JSON</button>
+        </div>
+    </div>
+</main>
+
+<script>
+// ---- Graph data structures ----
+const graphs = { 1: { nodes: {}, edges: [] }, 2: { nodes: {}, edges: [] } };
+let selectedNode = { 1: null, 2: null };
+let dragging = { node: null, gid: null };
+let nextLabel = { 1: 65, 2: 65 }; // ASCII 'A'
+let resultGraph = null;
+let resultPositions = {};
+let resultNodeColors = {};
+let resultEdgeColors = {};
+let animProgress = 0;
+let animFrame = null;
+
+const PRESETS = {
+    triangle: { nodes: ['A','B','C'], edges: [['A','B'],['B','C'],['C','A']] },
+    square: { nodes: ['A','B','C','D'], edges: [['A','B'],['B','C'],['C','D'],['D','A']] },
+    k5: { nodes: ['A','B','C','D','E'], edges: [['A','B'],['A','C'],['A','D'],['A','E'],['B','C'],['B','D'],['B','E'],['C','D'],['C','E'],['D','E']] },
+    path: { nodes: ['A','B','C','D','E'], edges: [['A','B'],['B','C'],['C','D'],['D','E']] },
+    cycle: { nodes: ['A','B','C','D','E','F'], edges: [['A','B'],['B','C'],['C','D'],['D','E'],['E','F'],['F','A']] },
+    petersen: { nodes: ['A','B','C','D','E','F','G','H','I','J'], edges: [['A','B'],['B','C'],['C','D'],['D','E'],['E','A'],['A','F'],['B','G'],['C','H'],['D','I'],['E','J'],['F','H'],['H','J'],['J','G'],['G','I'],['I','F']] }
+};
+
+function circleLayout(names, cx, cy, r) {
+    const pos = {};
+    names.forEach((n, i) => {
+        const a = (2 * Math.PI * i / names.length) - Math.PI / 2;
+        pos[n] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    });
+    return pos;
+}
+
+function loadPreset(gid, name) {
+    const p = PRESETS[name];
+    const canvas = document.getElementById('canvas' + gid);
+    const cx = canvas.width / 2, cy = canvas.height / 2, r = Math.min(cx, cy) * 0.65;
+    const pos = circleLayout(p.nodes, cx, cy, r);
+    graphs[gid] = { nodes: { ...pos }, edges: p.edges.map(e => [...e]) };
+    nextLabel[gid] = 65 + p.nodes.length;
+    selectedNode[gid] = null;
+    syncAdj(gid);
+    drawGraph(gid);
+}
+
+function clearGraph(gid) {
+    graphs[gid] = { nodes: {}, edges: [] };
+    nextLabel[gid] = 65;
+    selectedNode[gid] = null;
+    document.getElementById('adj' + gid).value = '';
+    drawGraph(gid);
+}
+
+function randomGraph(gid) {
+    const n = 5 + Math.floor(Math.random() * 4);
+    const names = [];
+    for (let i = 0; i < n; i++) names.push(String.fromCharCode(65 + i));
+    const canvas = document.getElementById('canvas' + gid);
+    const pos = circleLayout(names, canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.32);
+    const edges = [];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        if (Math.random() < 0.35) edges.push([names[i], names[j]]);
+    }
+    graphs[gid] = { nodes: pos, edges };
+    nextLabel[gid] = 65 + n;
+    selectedNode[gid] = null;
+    syncAdj(gid);
+    drawGraph(gid);
+}
+
+function syncAdj(gid) {
+    document.getElementById('adj' + gid).value = graphs[gid].edges.map(e => e[0] + '-' + e[1]).join(', ');
+}
+
+function parseAdj(gid) {
+    const text = document.getElementById('adj' + gid).value.trim();
+    if (!text) { graphs[gid] = { nodes: {}, edges: [] }; drawGraph(gid); return; }
+    const parts = text.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    const nodeSet = new Set();
+    const edges = [];
+    for (const p of parts) {
+        const m = p.match(/^(\w+)\s*[-–—]\s*(\w+)$/);
+        if (m) {
+            nodeSet.add(m[1]); nodeSet.add(m[2]);
+            edges.push([m[1], m[2]]);
+        }
+    }
+    const names = [...nodeSet];
+    const canvas = document.getElementById('canvas' + gid);
+    const existing = graphs[gid].nodes;
+    const pos = circleLayout(names, canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.32);
+    // Keep existing positions for nodes that already exist
+    for (const n of names) { if (existing[n]) pos[n] = existing[n]; }
+    graphs[gid] = { nodes: pos, edges };
+    drawGraph(gid);
+}
+
+function edgeKey(a, b) { return a < b ? a + '-' + b : b + '-' + a; }
+
+function drawGraph(gid) {
+    const canvas = document.getElementById('canvas' + gid);
+    const ctx = canvas.getContext('2d');
+    const g = graphs[gid];
+    const color = gid === 1 ? '#58a6ff' : '#3fb950';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Edges
+    ctx.strokeStyle = color + '66';
+    ctx.lineWidth = 2;
+    for (const [a, b] of g.edges) {
+        if (g.nodes[a] && g.nodes[b]) {
+            ctx.beginPath(); ctx.moveTo(g.nodes[a].x, g.nodes[a].y); ctx.lineTo(g.nodes[b].x, g.nodes[b].y); ctx.stroke();
+        }
+    }
+    // Nodes
+    for (const [name, pos] of Object.entries(g.nodes)) {
+        ctx.beginPath(); ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = name === selectedNode[gid] ? '#fff' : color;
+        ctx.fill();
+        ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#0d1117'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(name, pos.x, pos.y);
+    }
+}
+
+// Canvas interaction
+for (const gid of [1, 2]) {
+    const canvas = document.getElementById('canvas' + gid);
+    canvas.addEventListener('mousedown', function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+        const g = graphs[gid];
+        // Find clicked node
+        let hit = null;
+        for (const [name, pos] of Object.entries(g.nodes)) {
+            if (Math.hypot(mx - pos.x, my - pos.y) < 16) { hit = name; break; }
+        }
+        if (hit) {
+            if (selectedNode[gid] && selectedNode[gid] !== hit) {
+                // Add edge
+                const ek = edgeKey(selectedNode[gid], hit);
+                const exists = g.edges.some(e => edgeKey(e[0], e[1]) === ek);
+                if (!exists) g.edges.push([selectedNode[gid], hit]);
+                selectedNode[gid] = null;
+                syncAdj(gid); drawGraph(gid);
+            } else {
+                selectedNode[gid] = hit;
+                dragging.node = hit; dragging.gid = gid;
+                drawGraph(gid);
+            }
+        } else {
+            // Add new node
+            const label = String.fromCharCode(nextLabel[gid]++);
+            g.nodes[label] = { x: mx, y: my };
+            selectedNode[gid] = null;
+            syncAdj(gid); drawGraph(gid);
+        }
+    });
+    canvas.addEventListener('mousemove', function(e) {
+        if (dragging.node && dragging.gid === gid) {
+            const rect = canvas.getBoundingClientRect();
+            const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+            graphs[gid].nodes[dragging.node] = { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+            drawGraph(gid);
+        }
+    });
+    canvas.addEventListener('mouseup', () => { dragging.node = null; dragging.gid = null; });
+    canvas.addEventListener('mouseleave', () => { dragging.node = null; dragging.gid = null; });
+}
+
+// ---- Set Operations ----
+function doOp(op) {
+    document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('active'));
+    document.getElementById('op-' + op).classList.add('active');
+
+    const g1 = graphs[1], g2 = graphs[2];
+    const n1 = new Set(Object.keys(g1.nodes)), n2 = new Set(Object.keys(g2.nodes));
+    const e1 = new Set(g1.edges.map(e => edgeKey(e[0], e[1])));
+    const e2 = new Set(g2.edges.map(e => edgeKey(e[0], e[1])));
+
+    let rNodes = new Set(), rEdges = new Set();
+    const nodeColors = {}, edgeColors = {};
+
+    switch (op) {
+        case 'union':
+            rNodes = new Set([...n1, ...n2]);
+            rEdges = new Set([...e1, ...e2]);
+            break;
+        case 'intersection':
+            for (const n of n1) if (n2.has(n)) rNodes.add(n);
+            for (const e of e1) if (e2.has(e)) rEdges.add(e);
+            break;
+        case 'difference':
+            for (const n of n1) if (!n2.has(n)) rNodes.add(n);
+            for (const e of e1) if (!e2.has(e)) rEdges.add(e);
+            // Also include nodes that are endpoints of kept edges
+            for (const ek of rEdges) { const [a, b] = ek.split('-'); rNodes.add(a); rNodes.add(b); }
+            break;
+        case 'symdiff':
+            rNodes = new Set([...n1, ...n2]);
+            for (const e of e1) if (!e2.has(e)) rEdges.add(e);
+            for (const e of e2) if (!e1.has(e)) rEdges.add(e);
+            // Only keep nodes with at least one edge
+            const usedNodes = new Set();
+            for (const ek of rEdges) { const [a, b] = ek.split('-'); usedNodes.add(a); usedNodes.add(b); }
+            rNodes = usedNodes;
+            break;
+    }
+
+    // Color assignment
+    for (const n of rNodes) {
+        if (n1.has(n) && n2.has(n)) nodeColors[n] = '#bc8cff';
+        else if (n1.has(n)) nodeColors[n] = '#58a6ff';
+        else nodeColors[n] = '#3fb950';
+    }
+    for (const ek of rEdges) {
+        if (e1.has(ek) && e2.has(ek)) edgeColors[ek] = '#bc8cff';
+        else if (e1.has(ek)) edgeColors[ek] = '#58a6ff';
+        else edgeColors[ek] = '#3fb950';
+    }
+
+    // Build result
+    const nodesArr = [...rNodes];
+    const edgesArr = [...rEdges].map(ek => ek.split('-'));
+    const canvas = document.getElementById('resultCanvas');
+    const pos = circleLayout(nodesArr, canvas.width / 2, canvas.height / 2, Math.min(canvas.width / 2, canvas.height / 2) * 0.7);
+
+    resultGraph = { nodes: nodesArr, edges: edgesArr };
+    resultPositions = pos;
+    resultNodeColors = nodeColors;
+    resultEdgeColors = edgeColors;
+
+    // Force layout (simple spring simulation)
+    forceLayout(nodesArr, edgesArr, pos, canvas.width, canvas.height, () => {
+        document.getElementById('result-section').style.display = 'block';
+        animateResult(op);
+        showStats(nodesArr, edgesArr);
+        showInsights(op, g1, g2, nodesArr, edgesArr, n1, n2, e1, e2, rEdges);
+    });
+}
+
+function forceLayout(nodes, edges, pos, w, h, cb) {
+    const adj = {};
+    for (const n of nodes) adj[n] = [];
+    for (const [a, b] of edges) { if (adj[a]) adj[a].push(b); if (adj[b]) adj[b].push(a); }
+    let iter = 0;
+    function step() {
+        for (let s = 0; s < 5; s++) {
+            // Repulsion
+            for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+                const a = nodes[i], b = nodes[j];
+                let dx = pos[a].x - pos[b].x, dy = pos[a].y - pos[b].y;
+                let d = Math.max(Math.hypot(dx, dy), 1);
+                let f = 8000 / (d * d);
+                pos[a].x += dx / d * f * 0.05; pos[a].y += dy / d * f * 0.05;
+                pos[b].x -= dx / d * f * 0.05; pos[b].y -= dy / d * f * 0.05;
+            }
+            // Attraction
+            for (const [a, b] of edges) {
+                let dx = pos[b].x - pos[a].x, dy = pos[b].y - pos[a].y;
+                let d = Math.max(Math.hypot(dx, dy), 1);
+                let f = (d - 100) * 0.01;
+                pos[a].x += dx / d * f; pos[a].y += dy / d * f;
+                pos[b].x -= dx / d * f; pos[b].y -= dy / d * f;
+            }
+            // Centering
+            for (const n of nodes) {
+                pos[n].x = Math.max(30, Math.min(w - 30, pos[n].x));
+                pos[n].y = Math.max(30, Math.min(h - 30, pos[n].y));
+            }
+        }
+        iter++;
+        if (iter < 60) requestAnimationFrame(step); else cb();
+    }
+    step();
+}
+
+function animateResult(op) {
+    if (animFrame) cancelAnimationFrame(animFrame);
+    animProgress = 0;
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    const total = resultGraph.nodes.length;
+    const opLabels = { union: 'G₁ ∪ G₂', intersection: 'G₁ ∩ G₂', difference: 'G₁ \\ G₂', symdiff: 'G₁ △ G₂' };
+    document.getElementById('result-title').textContent = '🔀 Result: ' + (opLabels[op] || op);
+
+    function frame() {
+        animProgress = Math.min(animProgress + 0.04, 1);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const visCount = Math.ceil(animProgress * total);
+
+        // Edges (fade in after nodes)
+        const edgeAlpha = Math.max(0, (animProgress - 0.3) / 0.7);
+        for (const [a, b] of resultGraph.edges) {
+            if (!resultPositions[a] || !resultPositions[b]) continue;
+            const ek = edgeKey(a, b);
+            ctx.globalAlpha = edgeAlpha;
+            ctx.strokeStyle = resultEdgeColors[ek] || '#58a6ff';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(resultPositions[a].x, resultPositions[a].y);
+            ctx.lineTo(resultPositions[b].x, resultPositions[b].y); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // Nodes
+        for (let i = 0; i < visCount && i < total; i++) {
+            const name = resultGraph.nodes[i];
+            const p = resultPositions[name]; if (!p) continue;
+            const nodeAlpha = Math.min(1, (animProgress * total - i) / 2);
+            const scale = Math.min(1, nodeAlpha * 1.2);
+            ctx.globalAlpha = Math.max(0, nodeAlpha);
+            ctx.beginPath(); ctx.arc(p.x, p.y, 16 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = resultNodeColors[name] || '#58a6ff';
+            ctx.fill();
+            ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#0d1117'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(name, p.x, p.y);
+        }
+        ctx.globalAlpha = 1;
+
+        if (animProgress < 1) animFrame = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function showStats(nodes, edges) {
+    // Count components via BFS
+    const adj = {};
+    for (const n of nodes) adj[n] = [];
+    for (const [a, b] of edges) { if (adj[a]) adj[a].push(b); if (adj[b]) adj[b].push(a); }
+    const visited = new Set();
+    let comps = 0;
+    for (const n of nodes) {
+        if (visited.has(n)) continue;
+        comps++;
+        const q = [n]; visited.add(n);
+        while (q.length) { const c = q.shift(); for (const nb of (adj[c]||[])) { if (!visited.has(nb)) { visited.add(nb); q.push(nb); } } }
+    }
+    const nn = nodes.length, ne = edges.length;
+    const maxE = nn > 1 ? nn * (nn - 1) / 2 : 0;
+    const density = maxE > 0 ? (ne / maxE).toFixed(3) : '0';
+    document.getElementById('stats-row').innerHTML =
+        `<div class="stat-card"><div class="val">${nn}</div><div class="lbl">Nodes</div></div>` +
+        `<div class="stat-card"><div class="val">${ne}</div><div class="lbl">Edges</div></div>` +
+        `<div class="stat-card"><div class="val">${comps}</div><div class="lbl">Components</div></div>` +
+        `<div class="stat-card"><div class="val">${density}</div><div class="lbl">Density</div></div>`;
+}
+
+function showInsights(op, g1, g2, nodes, edges, n1, n2, e1, e2, rEdges) {
+    const box = document.getElementById('insight-box');
+    const insights = [];
+    const nn = nodes.length, ne = edges.length;
+
+    if (nn === 0 && ne === 0) {
+        insights.push('⚠️ The result is <strong>empty</strong> — the two graphs share no common structure for this operation.');
+    }
+
+    if (op === 'union') {
+        const shared = [...e1].filter(e => e2.has(e)).length;
+        const newConns = ne - Math.max(e1.size, e2.size);
+        if (shared > 0) insights.push(`🔗 <strong>${shared} shared edge${shared>1?'s':''}</strong> found — these appear in both graphs.`);
+        if (newConns > 0) insights.push(`✨ The union created <strong>${newConns} new connection${newConns>1?'s':''}</strong> beyond the larger graph.`);
+        const sharedNodes = [...n1].filter(n => n2.has(n)).length;
+        if (sharedNodes > 0) insights.push(`🤝 <strong>${sharedNodes} node${sharedNodes>1?'s':''}</strong> bridging both graphs — potential merge points.`);
+        insights.push('💡 <strong>Try Intersection</strong> next to see just the shared core structure.');
+    } else if (op === 'intersection') {
+        if (ne > 0) insights.push(`🎯 The intersection preserves <strong>${ne} edge${ne>1?'s':''}</strong> — the structural overlap.`);
+        if (ne === 0 && nn > 0) insights.push('🔍 Nodes overlap but <strong>no edges are shared</strong> — the graphs connect differently.');
+        insights.push('💡 <strong>Try Symmetric Difference</strong> to see what makes each graph unique.');
+    } else if (op === 'difference') {
+        insights.push(`🔪 Removed G₂'s influence: <strong>${ne} edge${ne>1?'s':''}</strong> are unique to G₁.`);
+        if (ne === 0) insights.push('⚠️ G₁ has <strong>no unique edges</strong> — every edge in G₁ also exists in G₂.');
+        insights.push('💡 <strong>Try swapping</strong> the graphs to see G₂ \\ G₁ instead.');
+    } else if (op === 'symdiff') {
+        const fromG1 = [...rEdges].filter(e => e1.has(e)).length;
+        const fromG2 = [...rEdges].filter(e => e2.has(e)).length;
+        insights.push(`🔀 <strong>${fromG1}</strong> edge${fromG1!==1?'s':''} unique to G₁, <strong>${fromG2}</strong> unique to G₂.`);
+        if (Math.abs(fromG1 - fromG2) > 3) insights.push('📊 Significant asymmetry — one graph has much more unique structure.');
+        insights.push('💡 <strong>Try Union</strong> to see the complete merged picture.');
+    }
+
+    box.innerHTML = insights.map(i => '<div style="margin-bottom:6px">' + i + '</div>').join('');
+}
+
+function exportResult() {
+    if (!resultGraph) return;
+    const adj = {};
+    for (const n of resultGraph.nodes) adj[n] = [];
+    for (const [a, b] of resultGraph.edges) { adj[a].push(b); adj[b].push(a); }
+    const json = JSON.stringify(adj, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+        const btn = document.querySelector('.export-row .btn');
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = '📋 Copy JSON', 1500);
+    });
+}
+
+// Initial draw
+drawGraph(1); drawGraph(2);
+
+// Load defaults for demo
+loadPreset(1, 'triangle');
+loadPreset(2, 'square');
+</script>
+</body>
+</html>
