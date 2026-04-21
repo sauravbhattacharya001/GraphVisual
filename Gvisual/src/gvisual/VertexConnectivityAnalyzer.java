@@ -469,7 +469,8 @@ public class VertexConnectivityAnalyzer {
         Map<String, Map<String, Integer>> capacity = buildVertexSplitNetwork(s, t);
         String source = s + "_out";
         String sink = t + "_in";
-        return edmondsKarp(capacity, source, sink);
+        Map<String, Map<String, Integer>> residual = buildResidual(capacity);
+        return runMaxFlow(residual, source, sink);
     }
 
     private Map<String, Map<String, Integer>> buildVertexSplitNetwork(String s, String t) {
@@ -502,11 +503,18 @@ public class VertexConnectivityAnalyzer {
     }
 
     private int maxFlowEdge(String s, String t) {
+        Map<String, Map<String, Integer>> residual = buildResidual(buildEdgeCapacity());
+        return runMaxFlow(residual, s, t);
+    }
+
+    /**
+     * Build a unit-capacity edge network (no vertex splitting).
+     */
+    private Map<String, Map<String, Integer>> buildEdgeCapacity() {
         Map<String, Map<String, Integer>> cap = new HashMap<>();
         for (String v : graph.getVertices()) {
             cap.putIfAbsent(v, new HashMap<>());
         }
-
         for (Edge e : graph.getEdges()) {
             Collection<String> endpoints = graph.getEndpoints(e);
             Iterator<String> it = endpoints.iterator();
@@ -515,11 +523,15 @@ public class VertexConnectivityAnalyzer {
             addCapacity(cap, u, v, 1);
             addCapacity(cap, v, u, 1);
         }
-
-        return edmondsKarp(cap, s, t);
+        return cap;
     }
 
-    private int edmondsKarp(Map<String, Map<String, Integer>> capacity, String source, String sink) {
+    /**
+     * Build a mutable residual graph from a capacity map.
+     * Ensures all reverse-edge nodes exist.
+     */
+    private Map<String, Map<String, Integer>> buildResidual(
+            Map<String, Map<String, Integer>> capacity) {
         Map<String, Map<String, Integer>> residual = new HashMap<>();
         for (Map.Entry<String, Map<String, Integer>> entry : capacity.entrySet()) {
             residual.put(entry.getKey(), new HashMap<>(entry.getValue()));
@@ -529,100 +541,102 @@ public class VertexConnectivityAnalyzer {
                 residual.putIfAbsent(neighbor, new HashMap<>());
             }
         }
+        return residual;
+    }
 
+    /**
+     * Run Edmonds-Karp max-flow on a mutable residual graph.
+     * Modifies the residual in place and returns total flow.
+     */
+    private int runMaxFlow(Map<String, Map<String, Integer>> residual,
+                           String source, String sink) {
         int totalFlow = 0;
         while (true) {
-            Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new ArrayDeque<>();
-            queue.add(source);
-            parent.put(source, null);
-
-            while (!queue.isEmpty() && !parent.containsKey(sink)) {
-                String u = queue.poll();
-                Map<String, Integer> neighbors = residual.getOrDefault(u, Collections.emptyMap());
-                for (Map.Entry<String, Integer> nb : neighbors.entrySet()) {
-                    String v = nb.getKey();
-                    if (nb.getValue() > 0 && !parent.containsKey(v)) {
-                        parent.put(v, u);
-                        queue.add(v);
-                    }
-                }
-            }
-
-            if (!parent.containsKey(sink)) break;
+            List<String> augPath = bfsFindPath(residual, source, sink);
+            if (augPath == null) break;
 
             int pathFlow = Integer.MAX_VALUE;
-            String v = sink;
-            while (!v.equals(source)) {
-                String u = parent.get(v);
-                pathFlow = Math.min(pathFlow, residual.get(u).getOrDefault(v, 0));
-                v = u;
+            for (int i = 0; i < augPath.size() - 1; i++) {
+                pathFlow = Math.min(pathFlow,
+                        residual.get(augPath.get(i)).getOrDefault(augPath.get(i + 1), 0));
             }
-
-            v = sink;
-            while (!v.equals(source)) {
-                String u = parent.get(v);
-                residual.get(u).merge(v, -pathFlow, Integer::sum);
-                residual.get(v).merge(u, pathFlow, Integer::sum);
-                v = u;
-            }
-
+            applyAugmentation(residual, augPath, pathFlow);
             totalFlow += pathFlow;
         }
         return totalFlow;
     }
 
-    private Set<String> extractVertexCut(String s, String t) {
-        Map<String, Map<String, Integer>> capacity = buildVertexSplitNetwork(s, t);
-        String source = s + "_out";
-        String sink = t + "_in";
+    /**
+     * BFS to find an augmenting path in the residual graph.
+     * Returns the path as a list of nodes (source → sink), or null if none exists.
+     */
+    private List<String> bfsFindPath(Map<String, Map<String, Integer>> residual,
+                                     String source, String sink) {
+        Map<String, String> parent = new HashMap<>();
+        Queue<String> queue = new ArrayDeque<>();
+        queue.add(source);
+        parent.put(source, null);
 
-        Map<String, Map<String, Integer>> residual = new HashMap<>();
-        for (Map.Entry<String, Map<String, Integer>> entry : capacity.entrySet()) {
-            residual.put(entry.getKey(), new HashMap<>(entry.getValue()));
-        }
-        for (String node : new ArrayList<>(residual.keySet())) {
-            for (String neighbor : new ArrayList<>(residual.get(node).keySet())) {
-                residual.putIfAbsent(neighbor, new HashMap<>());
-            }
-        }
-
-        // Run max flow
-        while (true) {
-            Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new ArrayDeque<>();
-            queue.add(source);
-            parent.put(source, null);
-            while (!queue.isEmpty() && !parent.containsKey(sink)) {
-                String u = queue.poll();
-                for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
-                    if (nb.getValue() > 0 && !parent.containsKey(nb.getKey())) {
-                        parent.put(nb.getKey(), u);
-                        queue.add(nb.getKey());
-                    }
+        while (!queue.isEmpty() && !parent.containsKey(sink)) {
+            String u = queue.poll();
+            for (Map.Entry<String, Integer> nb :
+                    residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
+                if (nb.getValue() > 0 && !parent.containsKey(nb.getKey())) {
+                    parent.put(nb.getKey(), u);
+                    queue.add(nb.getKey());
                 }
             }
-            if (!parent.containsKey(sink)) break;
-            int pf = Integer.MAX_VALUE;
-            String v = sink;
-            while (!v.equals(source)) { String u = parent.get(v); pf = Math.min(pf, residual.get(u).getOrDefault(v, 0)); v = u; }
-            v = sink;
-            while (!v.equals(source)) { String u = parent.get(v); residual.get(u).merge(v, -pf, Integer::sum); residual.get(v).merge(u, pf, Integer::sum); v = u; }
         }
 
-        // BFS from source in residual
+        if (!parent.containsKey(sink)) return null;
+
+        List<String> path = new ArrayList<>();
+        String v = sink;
+        while (v != null) { path.add(v); v = parent.get(v); }
+        Collections.reverse(path);
+        return path;
+    }
+
+    /**
+     * Apply flow augmentation along a path in the residual graph.
+     */
+    private void applyAugmentation(Map<String, Map<String, Integer>> residual,
+                                   List<String> path, int flow) {
+        for (int i = 0; i < path.size() - 1; i++) {
+            residual.get(path.get(i)).merge(path.get(i + 1), -flow, Integer::sum);
+            residual.get(path.get(i + 1)).merge(path.get(i), flow, Integer::sum);
+        }
+    }
+
+    /**
+     * BFS reachability from source in a residual graph (positive-capacity edges).
+     */
+    private Set<String> bfsReachable(Map<String, Map<String, Integer>> residual,
+                                     String source) {
         Set<String> reachable = new HashSet<>();
         Queue<String> queue = new ArrayDeque<>();
         queue.add(source);
         reachable.add(source);
         while (!queue.isEmpty()) {
             String u = queue.poll();
-            for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
+            for (Map.Entry<String, Integer> nb :
+                    residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
                 if (nb.getValue() > 0 && reachable.add(nb.getKey())) {
                     queue.add(nb.getKey());
                 }
             }
         }
+        return reachable;
+    }
+
+    private Set<String> extractVertexCut(String s, String t) {
+        Map<String, Map<String, Integer>> residual =
+                buildResidual(buildVertexSplitNetwork(s, t));
+        String source = s + "_out";
+        String sink = t + "_in";
+
+        runMaxFlow(residual, source, sink);
+        Set<String> reachable = bfsReachable(residual, source);
 
         // Cut vertices: v_in reachable but v_out not
         Set<String> cut = new LinkedHashSet<>();
@@ -636,63 +650,9 @@ public class VertexConnectivityAnalyzer {
     }
 
     private Set<Edge> extractEdgeCut(String s, String t) {
-        Map<String, Map<String, Integer>> cap = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            cap.putIfAbsent(v, new HashMap<>());
-        }
-        for (Edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            Iterator<String> it = endpoints.iterator();
-            String u = it.next();
-            String v = it.next();
-            addCapacity(cap, u, v, 1);
-            addCapacity(cap, v, u, 1);
-        }
-
-        Map<String, Map<String, Integer>> residual = new HashMap<>();
-        for (Map.Entry<String, Map<String, Integer>> entry : cap.entrySet()) {
-            residual.put(entry.getKey(), new HashMap<>(entry.getValue()));
-        }
-        for (String node : new ArrayList<>(residual.keySet())) {
-            for (String neighbor : new ArrayList<>(residual.get(node).keySet())) {
-                residual.putIfAbsent(neighbor, new HashMap<>());
-            }
-        }
-
-        while (true) {
-            Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new ArrayDeque<>();
-            queue.add(s);
-            parent.put(s, null);
-            while (!queue.isEmpty() && !parent.containsKey(t)) {
-                String u = queue.poll();
-                for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
-                    if (nb.getValue() > 0 && !parent.containsKey(nb.getKey())) {
-                        parent.put(nb.getKey(), u);
-                        queue.add(nb.getKey());
-                    }
-                }
-            }
-            if (!parent.containsKey(t)) break;
-            int pf = Integer.MAX_VALUE;
-            String v = t;
-            while (!v.equals(s)) { String u = parent.get(v); pf = Math.min(pf, residual.get(u).getOrDefault(v, 0)); v = u; }
-            v = t;
-            while (!v.equals(s)) { String u = parent.get(v); residual.get(u).merge(v, -pf, Integer::sum); residual.get(v).merge(u, pf, Integer::sum); v = u; }
-        }
-
-        Set<String> reachable = new HashSet<>();
-        Queue<String> queue = new ArrayDeque<>();
-        queue.add(s);
-        reachable.add(s);
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
-                if (nb.getValue() > 0 && reachable.add(nb.getKey())) {
-                    queue.add(nb.getKey());
-                }
-            }
-        }
+        Map<String, Map<String, Integer>> residual = buildResidual(buildEdgeCapacity());
+        runMaxFlow(residual, s, t);
+        Set<String> reachable = bfsReachable(residual, s);
 
         Set<Edge> cutEdges = new LinkedHashSet<>();
         for (Edge e : graph.getEdges()) {
@@ -712,52 +672,22 @@ public class VertexConnectivityAnalyzer {
      * Find vertex-disjoint paths between s and t (Menger's theorem).
      */
     public List<List<String>> findVertexDisjointPaths(String s, String t) {
-        Map<String, Map<String, Integer>> capacity = buildVertexSplitNetwork(s, t);
+        Map<String, Map<String, Integer>> residual =
+                buildResidual(buildVertexSplitNetwork(s, t));
         String source = s + "_out";
         String sink = t + "_in";
 
-        Map<String, Map<String, Integer>> residual = new HashMap<>();
-        for (Map.Entry<String, Map<String, Integer>> entry : capacity.entrySet()) {
-            residual.put(entry.getKey(), new HashMap<>(entry.getValue()));
-        }
-        for (String node : new ArrayList<>(residual.keySet())) {
-            for (String neighbor : new ArrayList<>(residual.get(node).keySet())) {
-                residual.putIfAbsent(neighbor, new HashMap<>());
-            }
-        }
-
         List<List<String>> paths = new ArrayList<>();
-
-        while (true) {
-            Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new ArrayDeque<>();
-            queue.add(source);
-            parent.put(source, null);
-            while (!queue.isEmpty() && !parent.containsKey(sink)) {
-                String u = queue.poll();
-                for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
-                    if (nb.getValue() > 0 && !parent.containsKey(nb.getKey())) {
-                        parent.put(nb.getKey(), u);
-                        queue.add(nb.getKey());
-                    }
-                }
-            }
-            if (!parent.containsKey(sink)) break;
-
-            List<String> rawPath = new ArrayList<>();
-            String v = sink;
-            while (v != null) { rawPath.add(v); v = parent.get(v); }
-            Collections.reverse(rawPath);
-
+        List<String> rawPath;
+        while ((rawPath = bfsFindPath(residual, source, sink)) != null) {
             int pf = Integer.MAX_VALUE;
             for (int i = 0; i < rawPath.size() - 1; i++) {
-                pf = Math.min(pf, residual.get(rawPath.get(i)).getOrDefault(rawPath.get(i + 1), 0));
+                pf = Math.min(pf,
+                        residual.get(rawPath.get(i)).getOrDefault(rawPath.get(i + 1), 0));
             }
-            for (int i = 0; i < rawPath.size() - 1; i++) {
-                residual.get(rawPath.get(i)).merge(rawPath.get(i + 1), -pf, Integer::sum);
-                residual.get(rawPath.get(i + 1)).merge(rawPath.get(i), pf, Integer::sum);
-            }
+            applyAugmentation(residual, rawPath, pf);
 
+            // Convert split-node path back to original vertex names
             List<String> path = new ArrayList<>();
             for (String node : rawPath) {
                 String orig = node.endsWith("_in") ? node.substring(0, node.length() - 3) :
@@ -775,58 +705,12 @@ public class VertexConnectivityAnalyzer {
      * Find Edge-disjoint paths between s and t.
      */
     public List<List<String>> findEdgeDisjointPaths(String s, String t) {
-        Map<String, Map<String, Integer>> cap = new HashMap<>();
-        for (String v : graph.getVertices()) {
-            cap.putIfAbsent(v, new HashMap<>());
-        }
-        for (Edge e : graph.getEdges()) {
-            Collection<String> endpoints = graph.getEndpoints(e);
-            Iterator<String> it = endpoints.iterator();
-            String u = it.next();
-            String v = it.next();
-            addCapacity(cap, u, v, 1);
-            addCapacity(cap, v, u, 1);
-        }
-
-        Map<String, Map<String, Integer>> residual = new HashMap<>();
-        for (Map.Entry<String, Map<String, Integer>> entry : cap.entrySet()) {
-            residual.put(entry.getKey(), new HashMap<>(entry.getValue()));
-        }
-        for (String node : new ArrayList<>(residual.keySet())) {
-            for (String neighbor : new ArrayList<>(residual.get(node).keySet())) {
-                residual.putIfAbsent(neighbor, new HashMap<>());
-            }
-        }
+        Map<String, Map<String, Integer>> residual = buildResidual(buildEdgeCapacity());
 
         List<List<String>> paths = new ArrayList<>();
-
-        while (true) {
-            Map<String, String> parent = new HashMap<>();
-            Queue<String> queue = new ArrayDeque<>();
-            queue.add(s);
-            parent.put(s, null);
-            while (!queue.isEmpty() && !parent.containsKey(t)) {
-                String u = queue.poll();
-                for (Map.Entry<String, Integer> nb : residual.getOrDefault(u, Collections.emptyMap()).entrySet()) {
-                    if (nb.getValue() > 0 && !parent.containsKey(nb.getKey())) {
-                        parent.put(nb.getKey(), u);
-                        queue.add(nb.getKey());
-                    }
-                }
-            }
-            if (!parent.containsKey(t)) break;
-
-            List<String> path = new ArrayList<>();
-            String v = t;
-            while (v != null) { path.add(v); v = parent.get(v); }
-            Collections.reverse(path);
-
-            for (int i = 0; i < path.size() - 1; i++) {
-                String u = path.get(i);
-                String w = path.get(i + 1);
-                residual.get(u).merge(w, -1, Integer::sum);
-                residual.get(w).merge(u, 1, Integer::sum);
-            }
+        List<String> path;
+        while ((path = bfsFindPath(residual, s, t)) != null) {
+            applyAugmentation(residual, path, 1);
             paths.add(path);
         }
         return paths;
