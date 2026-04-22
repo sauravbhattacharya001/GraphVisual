@@ -213,7 +213,7 @@ public class FeedbackVertexSetAnalyzer {
     }
 
     private int countComponents() {
-        return GraphUtils.findComponents(graph).size();
+        return GraphUtils.countComponents(graph);
     }
 
     // ── Bounds ────────────────────────────────────────────────────

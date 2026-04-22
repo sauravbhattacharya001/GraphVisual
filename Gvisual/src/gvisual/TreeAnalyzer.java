@@ -776,7 +776,7 @@ public class TreeAnalyzer {
     }
 
     private int countComponents() {
-        return GraphUtils.findComponents(graph).size();
+        return GraphUtils.countComponents(graph);
     }
 
     private void computeSubtreeSizes(String root, Map<String, Integer> subtreeSize,

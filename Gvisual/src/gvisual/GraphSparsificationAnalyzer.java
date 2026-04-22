@@ -271,7 +271,7 @@ public class GraphSparsificationAnalyzer {
     }
 
     private int countComponents(Graph<String, Edge> g) {
-        return GraphUtils.findComponents(g).size();
+        return GraphUtils.countComponents(g);
     }
 
     private double degreeCorr(Graph<String, Edge> g1, Graph<String, Edge> g2) {

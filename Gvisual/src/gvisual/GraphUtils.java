@@ -172,6 +172,41 @@ public final class GraphUtils {
     }
 
     /**
+     * Counts the number of connected components without building or sorting
+     * the full component list.  Use this instead of
+     * {@code findComponents(graph).size()} when only the count is needed.
+     *
+     * @param graph the JUNG graph
+     * @return number of connected components
+     */
+    public static int countComponents(Graph<String, Edge> graph) {
+        Set<String> visited = new HashSet<String>();
+        int count = 0;
+        for (String vertex : graph.getVertices()) {
+            if (!visited.contains(vertex)) {
+                count++;
+                // Inline BFS to mark visited without building a component set
+                ArrayDeque<String> queue = new ArrayDeque<String>();
+                visited.add(vertex);
+                queue.add(vertex);
+                while (!queue.isEmpty()) {
+                    String current = queue.poll();
+                    Collection<Edge> incident = graph.getIncidentEdges(current);
+                    if (incident == null) continue;
+                    for (Edge e : incident) {
+                        String neighbor = getOtherEnd(e, current);
+                        if (neighbor != null && !visited.contains(neighbor)) {
+                            visited.add(neighbor);
+                            queue.add(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
      * Finds the largest connected component.
      *
      * @param graph the JUNG graph

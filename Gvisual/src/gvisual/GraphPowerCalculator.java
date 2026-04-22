@@ -69,21 +69,7 @@ public class GraphPowerCalculator {
     }
 
     private Map<String, Integer> bfsDistances(String source) {
-        Map<String, Integer> dist = new LinkedHashMap<>();
-        Queue<String> queue = new ArrayDeque<>();
-        dist.put(source, 0);
-        queue.add(source);
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            int d = dist.get(current);
-            for (String neighbor : graph.getNeighbors(current)) {
-                if (!dist.containsKey(neighbor)) {
-                    dist.put(neighbor, d + 1);
-                    queue.add(neighbor);
-                }
-            }
-        }
-        return dist;
+        return GraphUtils.bfsDistances(graph, source);
     }
 
     /**

@@ -324,8 +324,7 @@ public class GraphResilienceAnalyzer {
     }
 
     private int countComponents(Graph<String, Edge> g) {
-        if (g.getVertexCount() == 0) return 0;
-        return GraphUtils.findComponents(g).size();
+        return GraphUtils.countComponents(g);
     }
 
     private double globalEfficiency(Graph<String, Edge> g) {
