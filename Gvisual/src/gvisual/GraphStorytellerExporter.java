@@ -272,23 +272,7 @@ public class GraphStorytellerExporter {
     }
 
     private double computeAvgClustering() {
-        double total = 0;
-        int count = 0;
-        for (String v : graph.getVertices()) {
-            Collection<String> neighbors = graph.getNeighbors(v);
-            int k = neighbors.size();
-            if (k < 2) continue;
-            List<String> nbList = new ArrayList<>(neighbors);
-            int links = 0;
-            for (int i = 0; i < nbList.size(); i++) {
-                for (int j = i + 1; j < nbList.size(); j++) {
-                    if (graph.isNeighbor(nbList.get(i), nbList.get(j))) links++;
-                }
-            }
-            total += (2.0 * links) / (k * (k - 1));
-            count++;
-        }
-        return count > 0 ? total / count : 0;
+        return GraphUtils.avgClusteringCoefficient(graph);
     }
 
     private long countTriangles() {

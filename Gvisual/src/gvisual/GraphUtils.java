@@ -333,6 +333,49 @@ public final class GraphUtils {
         return edges - vertices.size() + comps;
     }
 
+    // ── Clustering coefficient ────────────────────────────────────────
+
+    /**
+     * Computes the local clustering coefficient for a single vertex.
+     * <p>C(v) = 2 * triangles(v) / (deg(v) * (deg(v) - 1))</p>
+     *
+     * @param graph the JUNG graph
+     * @param v     the vertex
+     * @return clustering coefficient in [0, 1], or 0 if degree &lt; 2
+     */
+    public static double clusteringCoefficient(
+            Graph<String, Edge> graph, String v) {
+        Collection<String> neighbors = graph.getNeighbors(v);
+        if (neighbors == null) return 0.0;
+        List<String> nList = new ArrayList<String>(neighbors);
+        int k = nList.size();
+        if (k < 2) return 0.0;
+        int links = 0;
+        for (int i = 0; i < k; i++) {
+            for (int j = i + 1; j < k; j++) {
+                if (graph.isNeighbor(nList.get(i), nList.get(j))) links++;
+            }
+        }
+        return (2.0 * links) / (k * (k - 1));
+    }
+
+    /**
+     * Computes the average clustering coefficient across all vertices.
+     *
+     * @param graph the JUNG graph
+     * @return average clustering coefficient, or 0 if the graph is empty
+     */
+    public static double avgClusteringCoefficient(
+            Graph<String, Edge> graph) {
+        int n = graph.getVertexCount();
+        if (n == 0) return 0.0;
+        double sum = 0.0;
+        for (String v : graph.getVertices()) {
+            sum += clusteringCoefficient(graph, v);
+        }
+        return sum / n;
+    }
+
     // ── Graph copy ──────────────────────────────────────────────────────
 
     /**

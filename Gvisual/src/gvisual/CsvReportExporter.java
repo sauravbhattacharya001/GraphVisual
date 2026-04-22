@@ -257,22 +257,7 @@ public class CsvReportExporter {
     private Map<String, Double> computeClusteringCoefficients() {
         Map<String, Double> result = new LinkedHashMap<String, Double>();
         for (String v : graph.getVertices()) {
-            Collection<String> neighbors = graph.getNeighbors(v);
-            List<String> nList = new ArrayList<String>(neighbors);
-            int k = nList.size();
-            if (k < 2) {
-                result.put(v, 0.0);
-                continue;
-            }
-            int triangles = 0;
-            for (int i = 0; i < k; i++) {
-                for (int j = i + 1; j < k; j++) {
-                    if (graph.isNeighbor(nList.get(i), nList.get(j))) {
-                        triangles++;
-                    }
-                }
-            }
-            result.put(v, (2.0 * triangles) / (k * (k - 1)));
+            result.put(v, GraphUtils.clusteringCoefficient(graph, v));
         }
         return result;
     }

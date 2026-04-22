@@ -84,18 +84,7 @@ public class GraphStatsDashboard {
     }
 
     private double clusteringCoefficient(String v) {
-        Collection<String> neighbors = graph.getNeighbors(v);
-        if (neighbors == null) return 0;
-        List<String> nList = new ArrayList<>(neighbors);
-        int k = nList.size();
-        if (k < 2) return 0;
-        int links = 0;
-        for (int i = 0; i < k; i++) {
-            for (int j = i + 1; j < k; j++) {
-                if (graph.isNeighbor(nList.get(i), nList.get(j))) links++;
-            }
-        }
-        return (2.0 * links) / (k * (k - 1));
+        return GraphUtils.clusteringCoefficient(graph, v);
     }
 
     private Map<String, Integer> edgeTypeBreakdown() {
@@ -121,30 +110,11 @@ public class GraphStatsDashboard {
     }
 
     private double avgClusteringCoefficient() {
-        if (graph.getVertexCount() == 0) return 0;
-        double sum = 0;
-        for (String v : graph.getVertices()) sum += clusteringCoefficient(v);
-        return sum / graph.getVertexCount();
+        return GraphUtils.avgClusteringCoefficient(graph);
     }
 
     private int connectedComponents() {
-        Set<String> visited = new HashSet<>();
-        int count = 0;
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                count++;
-                Queue<String> queue = new ArrayDeque<>();
-                queue.add(v);
-                visited.add(v);
-                while (!queue.isEmpty()) {
-                    String cur = queue.poll();
-                    for (String nb : graph.getNeighbors(cur)) {
-                        if (visited.add(nb)) queue.add(nb);
-                    }
-                }
-            }
-        }
-        return count;
+        return GraphUtils.findComponents(graph).size();
     }
 
     // ── clustering coefficient histogram bins ────────────────────────

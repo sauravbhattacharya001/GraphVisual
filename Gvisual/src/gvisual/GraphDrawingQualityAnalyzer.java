@@ -498,26 +498,8 @@ public class GraphDrawingQualityAnalyzer {
         if (distCache != null) return;
         distCache = new HashMap<>();
         for (String s : verts) {
-            distCache.put(s, bfs(s));
+            distCache.put(s, GraphUtils.bfsDistances(graph, s));
         }
-    }
-
-    private Map<String, Integer> bfs(String source) {
-        Map<String, Integer> dist = new HashMap<>();
-        dist.put(source, 0);
-        Queue<String> queue = new ArrayDeque<>();
-        queue.add(source);
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            int d = dist.get(u);
-            for (String nbr : graph.getNeighbors(u)) {
-                if (!dist.containsKey(nbr)) {
-                    dist.put(nbr, d + 1);
-                    queue.add(nbr);
-                }
-            }
-        }
-        return dist;
     }
 
     private static double convexHullArea(List<Point2D> points) {
