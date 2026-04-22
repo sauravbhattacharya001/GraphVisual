@@ -38,6 +38,25 @@ public class IndependentSetAnalyzer {
     private final Graph<String, Edge> graph;
 
     /**
+     * Cached full-vertex adjacency map, built lazily on first use.
+     * Avoids rebuilding the same O(V+E) structure in every method call;
+     * before this change, {@link #fullReport()} triggered 7+ redundant
+     * rebuilds via greedyIndependentSet (×2), exactMaximumIndependentSet,
+     * allMaximalIndependentSets, kernelReduction, and independencePolynomial.
+     */
+    private Map<String, Set<String>> cachedAdj;
+
+    /**
+     * Returns the full-vertex adjacency map, building it once and caching.
+     */
+    private Map<String, Set<String>> adjacency() {
+        if (cachedAdj == null) {
+            cachedAdj = GraphUtils.buildAdjacencyMap(graph);
+        }
+        return cachedAdj;
+    }
+
+    /**
      * Constructs an analyzer for the given undirected graph.
      *
      * @param graph the graph to analyze (should be undirected)
@@ -105,7 +124,7 @@ public class IndependentSetAnalyzer {
     public Set<String> greedyIndependentSet() {
         Set<String> result = new LinkedHashSet<>();
         Set<String> remaining = new HashSet<>(graph.getVertices());
-        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, remaining);
+        Map<String, Set<String>> adjMap = adjacency();
 
         while (!remaining.isEmpty()) {
             // Pick vertex with minimum degree among remaining
@@ -142,7 +161,7 @@ public class IndependentSetAnalyzer {
     public Set<String> greedyMaxDegreeIndependentSet() {
         Set<String> result = new LinkedHashSet<>();
         Set<String> remaining = new HashSet<>(graph.getVertices());
-        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, remaining);
+        Map<String, Set<String>> adjMap = adjacency();
 
         while (!remaining.isEmpty()) {
             String maxVertex = null;
@@ -220,7 +239,7 @@ public class IndependentSetAnalyzer {
 
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
+        Map<String, Set<String>> adjMap = adjacency();
 
         int[] bestSize = {0};
         Set<String> bestSet = new LinkedHashSet<>();
@@ -288,7 +307,7 @@ public class IndependentSetAnalyzer {
     public List<Set<String>> allMaximalIndependentSets(int maxCount) {
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-        Map<String, Set<String>> adjMap = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
+        Map<String, Set<String>> adjMap = adjacency();
 
         // Build complement adjacency
         Map<String, Set<String>> compAdj = new HashMap<>();
@@ -388,7 +407,7 @@ public class IndependentSetAnalyzer {
     public KernelResult kernelReduction() {
         Set<String> forced = new LinkedHashSet<>();
         Set<String> remaining = new LinkedHashSet<>(graph.getVertices());
-        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph, remaining);
+        Map<String, Set<String>> adj = adjacency();
         List<String> log = new ArrayList<>();
         int rules = 0;
 
@@ -572,7 +591,7 @@ public class IndependentSetAnalyzer {
 
         List<String> vertices = new ArrayList<>(graph.getVertices());
         Collections.sort(vertices);
-        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph, new HashSet<>(vertices));
+        Map<String, Set<String>> adj = adjacency();
 
         int[] counts = new int[n + 1];
         counts[0] = 1; // empty set
