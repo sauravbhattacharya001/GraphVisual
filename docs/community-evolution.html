@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Evolution Tracker — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .evo-container { display: grid; grid-template-columns: 1fr 360px; gap: 20px; padding: 20px; min-height: calc(100vh - 60px); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; overflow-y: auto; }
+        .right-col { display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 100px); }
+        .canvas-wrap { position: relative; min-height: 500px; }
+        #graphCanvas { width: 100%; height: 100%; background: var(--bg); border-radius: 8px; display: block; }
+        select, button, input[type=range], input[type=number] { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+        select { width: 100%; margin-bottom: 8px; }
+        button:hover { background: var(--surface-hover); border-color: var(--accent); }
+        button.primary { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
+        button.primary:hover { background: var(--accent-hover); }
+        .btn-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+        .btn-row button { flex: 1; min-width: 60px; font-size: 13px; padding: 6px 10px; }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+        .controls-grid label { color: var(--text-muted); font-size: 12px; }
+        .controls-grid input[type=range] { width: 100%; padding: 4px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+        .stat-row .label { color: var(--text-muted); }
+        .stat-row .value { font-weight: 600; }
+        .event-log { max-height: 220px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+        .event-item { padding: 4px 8px; border-left: 3px solid var(--border); margin: 4px 0; border-radius: 0 4px 4px 0; background: var(--bg); line-height: 1.4; }
+        .event-item.birth { border-left-color: var(--green); }
+        .event-item.death { border-left-color: var(--red); }
+        .event-item.merge { border-left-color: var(--purple); }
+        .event-item.split { border-left-color: var(--orange); }
+        .event-item.growth { border-left-color: var(--blue); }
+        .event-item.shrink { border-left-color: var(--gray); }
+        .insight { background: var(--bg); border-left: 3px solid var(--accent); padding: 8px 12px; margin: 6px 0; border-radius: 0 6px 6px 0; font-size: 12px; line-height: 1.5; }
+        .insight.warning { border-left-color: var(--orange); }
+        .insight.danger { border-left-color: var(--red); }
+        .insight.info { border-left-color: var(--accent); }
+        #miniChart { width: 100%; height: 120px; background: var(--bg); border-radius: 6px; }
+        .timeline-bar { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+        .timeline-bar input[type=range] { flex: 1; }
+        .timeline-bar span { font-size: 13px; color: var(--text-muted); min-width: 60px; text-align: center; }
+        @media (max-width: 900px) { .evo-container { grid-template-columns: 1fr; } .right-col { max-height: none; } }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="community-evolution.html" class="sidebar-link active"><span class="icon">🧬</span>Community Evolution</a>
+    <a href="communities.html" class="sidebar-link"><span class="icon">👥</span>Communities</a>
+    <a href="graph-evolution.html" class="sidebar-link"><span class="icon">🔄</span>Graph Evolution</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+</nav>
+<main class="content">
+    <h1>🧬 Community Evolution Tracker</h1>
+    <p class="lead">
+        Watch communities form, merge, split, and dissolve as the graph evolves over time.
+        Autonomous event detection spots births, deaths, merges, splits, and growth patterns
+        with proactive warnings about fragile communities and merger candidates.
+    </p>
+
+    <div class="evo-container">
+        <div class="panel">
+            <div class="canvas-wrap">
+                <canvas id="graphCanvas"></canvas>
+            </div>
+            <div class="timeline-bar">
+                <button id="btnStepBack" title="Step back">⏮</button>
+                <button id="btnPlayPause" class="primary" title="Play/Pause">▶</button>
+                <button id="btnStep" title="Step forward">⏭</button>
+                <input type="range" id="timeSlider" min="0" max="0" value="0">
+                <span id="timeLabel">t=0</span>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="panel" style="flex:0 0 auto;">
+                <h2>⚙️ Setup</h2>
+                <select id="presetSelect">
+                    <option value="city">City Districts (dense clusters)</option>
+                    <option value="social">Social Network (power-law)</option>
+                    <option value="supply">Supply Chain (tree + cross-links)</option>
+                    <option value="random">Random Evolution</option>
+                </select>
+                <div class="btn-row">
+                    <button id="btnGenerate" class="primary">Generate</button>
+                    <button id="btnReset">Reset</button>
+                </div>
+                <div class="controls-grid">
+                    <div><label>Speed</label><input type="range" id="speedSlider" min="1" max="10" value="5"></div>
+                    <div><label>Edge add rate</label><input type="range" id="addRate" min="0" max="5" value="2"></div>
+                    <div><label>Edge remove rate</label><input type="range" id="removeRate" min="0" max="5" value="1"></div>
+                    <div><label>Nodes</label><input type="number" id="nodeCount" value="30" min="8" max="80" style="width:100%;padding:4px 8px;"></div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:0 0 auto;">
+                <h2>📊 Stats <span id="modScore" style="float:right;font-size:12px;color:var(--text-muted);">Q=0.000</span></h2>
+                <div id="statsArea">
+                    <div class="stat-row"><span class="label">Communities</span><span class="value" id="statComm">0</span></div>
+                    <div class="stat-row"><span class="label">Largest</span><span class="value" id="statLargest">0</span></div>
+                    <div class="stat-row"><span class="label">Edges</span><span class="value" id="statEdges">0</span></div>
+                    <div class="stat-row"><span class="label">Timestep</span><span class="value" id="statTime">0</span></div>
+                </div>
+                <canvas id="miniChart"></canvas>
+            </div>
+
+            <div class="panel" style="flex:1 1 auto; min-height:140px;">
+                <h2>📋 Event Log</h2>
+                <div class="event-log" id="eventLog">
+                    <div style="color:var(--text-muted);font-size:12px;padding:8px;">Press ▶ to start evolution…</div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:0 0 auto;">
+                <h2>🔮 Insights</h2>
+                <div id="insightsArea">
+                    <div style="color:var(--text-muted);font-size:12px;padding:4px;">Generate a graph to see proactive insights.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ─── Graph Data ───
+let nodes = [], edges = [], communities = [], history = [];
+let currentStep = 0, playing = false, playTimer = null;
+const COMM_COLORS = [
+    '#58a6ff','#3fb950','#d29922','#f85149','#bc8cff','#f778ba',
+    '#79c0ff','#7ee787','#e3b341','#ff7b72','#d2a8ff','#ffafc7',
+    '#a5d6ff','#aff5b4','#f9e2af','#ffa198','#e8d0ff','#ffd6e7'
+];
+let historyData = { communities: [], modularity: [], largest: [] };
+
+// ─── Force layout state ───
+let vx, vy;
+
+// ─── Canvas ───
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+    const r = canvas.parentElement.getBoundingClientRect();
+    canvas.width = r.width; canvas.height = r.height;
+}
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+
+// ─── Preset Generators ───
+function genCity(n) {
+    const ns = []; const es = [];
+    for (let i = 0; i < n; i++) ns.push({ id: i, x: Math.random() * 600 + 50, y: Math.random() * 400 + 50 });
+    // Create 3-4 dense clusters
+    const k = Math.min(4, Math.max(3, Math.floor(n / 8)));
+    const centers = [];
+    for (let c = 0; c < k; c++) centers.push({ x: 150 + c * 180, y: 200 + (c % 2) * 100 });
+    ns.forEach((nd, i) => {
+        const c = i % k;
+        nd.x = centers[c].x + (Math.random() - 0.5) * 120;
+        nd.y = centers[c].y + (Math.random() - 0.5) * 120;
+    });
+    // Dense intra-cluster edges
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        if (i % k === j % k && Math.random() < 0.4) es.push([i, j]);
+        else if (Math.random() < 0.03) es.push([i, j]);
+    }
+    return { nodes: ns, edges: es };
+}
+function genSocial(n) {
+    const ns = []; const es = [];
+    for (let i = 0; i < n; i++) ns.push({ id: i, x: Math.random() * 600 + 50, y: Math.random() * 400 + 50 });
+    // Preferential attachment
+    const deg = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+        const targets = Math.min(2, i);
+        for (let t = 0; t < targets; t++) {
+            const totalDeg = deg.reduce((a, b) => a + b, 0);
+            let r = Math.random() * totalDeg, acc = 0;
+            for (let j = 0; j < i; j++) { acc += deg[j]; if (acc >= r) { es.push([i, j]); deg[i]++; deg[j]++; break; } }
+        }
+    }
+    // Extra random edges
+    for (let x = 0; x < n * 0.3; x++) {
+        const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+        if (a !== b) es.push([a, b]);
+    }
+    return { nodes: ns, edges: es };
+}
+function genSupply(n) {
+    const ns = []; const es = [];
+    for (let i = 0; i < n; i++) ns.push({ id: i, x: Math.random() * 600 + 50, y: Math.random() * 400 + 50 });
+    // Tree
+    for (let i = 1; i < n; i++) { const p = Math.floor(Math.random() * i); es.push([i, p]); }
+    // Cross-links
+    for (let x = 0; x < n * 0.4; x++) {
+        const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+        if (a !== b) es.push([a, b]);
+    }
+    return { nodes: ns, edges: es };
+}
+function genRandom(n) {
+    const ns = []; const es = [];
+    for (let i = 0; i < n; i++) ns.push({ id: i, x: Math.random() * 600 + 50, y: Math.random() * 400 + 50 });
+    const m = Math.floor(n * 1.5);
+    for (let e = 0; e < m; e++) {
+        const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+        if (a !== b) es.push([a, b]);
+    }
+    return { nodes: ns, edges: es };
+}
+
+// ─── Community Detection (greedy modularity) ───
+function detectCommunities(ns, es) {
+    const n = ns.length;
+    const comm = ns.map((_, i) => i);
+    const adj = Array.from({ length: n }, () => []);
+    const edgeSet = new Set();
+    es.forEach(([a, b]) => {
+        const key = Math.min(a, b) + ',' + Math.max(a, b);
+        if (!edgeSet.has(key)) { edgeSet.add(key); adj[a].push(b); adj[b].push(a); }
+    });
+    const m2 = edgeSet.size * 2 || 1;
+
+    function modularity() {
+        const commNodes = {};
+        comm.forEach((c, i) => { if (!commNodes[c]) commNodes[c] = []; commNodes[c].push(i); });
+        let q = 0;
+        for (const c in commNodes) {
+            const members = commNodes[c];
+            let lc = 0, dc = 0;
+            members.forEach(i => { dc += adj[i].length; adj[i].forEach(j => { if (comm[j] === +c) lc++; }); });
+            lc /= 2;
+            q += lc / (m2 / 2) - (dc / m2) ** 2;
+        }
+        return q;
+    }
+
+    // Greedy: try moving each node to neighbor's community
+    let improved = true, iters = 0;
+    while (improved && iters < 20) {
+        improved = false; iters++;
+        for (let i = 0; i < n; i++) {
+            const origComm = comm[i];
+            const neighborComms = new Set(adj[i].map(j => comm[j]));
+            let bestQ = modularity(), bestC = origComm;
+            for (const nc of neighborComms) {
+                if (nc === origComm) continue;
+                comm[i] = nc;
+                const q = modularity();
+                if (q > bestQ) { bestQ = q; bestC = nc; }
+            }
+            comm[i] = bestC;
+            if (bestC !== origComm) improved = true;
+        }
+    }
+
+    // Normalize community IDs
+    const mapping = {};
+    let nextId = 0;
+    const result = comm.map(c => {
+        if (mapping[c] === undefined) mapping[c] = nextId++;
+        return mapping[c];
+    });
+    return { communities: result, modularity: modularity(), count: nextId };
+}
+
+// ─── Event Detection ───
+function detectEvents(prevComm, currComm, nNodes, step) {
+    const events = [];
+    if (!prevComm) return events;
+
+    // Build community → members mapping
+    const prevGroups = {}, currGroups = {};
+    for (let i = 0; i < nNodes; i++) {
+        const pc = prevComm[i], cc = currComm[i];
+        if (!prevGroups[pc]) prevGroups[pc] = new Set();
+        prevGroups[pc].add(i);
+        if (!currGroups[cc]) currGroups[cc] = new Set();
+        currGroups[cc].add(i);
+    }
+
+    // For each current community, find which old communities its members came from
+    for (const cc in currGroups) {
+        const members = currGroups[cc];
+        const sources = {};
+        members.forEach(m => {
+            const pc = prevComm[m];
+            if (!sources[pc]) sources[pc] = 0;
+            sources[pc]++;
+        });
+        const sourceKeys = Object.keys(sources);
+
+        // Merge: current community draws majority from 2+ previous communities
+        const majorSources = sourceKeys.filter(s => sources[s] >= 2);
+        if (majorSources.length >= 2) {
+            events.push({ type: 'merge', step, msg: `🤝 Communities ${majorSources.join('+')} merged → C${cc}` });
+        }
+    }
+
+    // For each old community, find where its members went
+    for (const pc in prevGroups) {
+        const members = prevGroups[pc];
+        const dests = {};
+        members.forEach(m => {
+            const cc = currComm[m];
+            if (!dests[cc]) dests[cc] = 0;
+            dests[cc]++;
+        });
+        const destKeys = Object.keys(dests);
+
+        // Split: old community scattered to 2+ new communities with significant membership
+        const majorDests = destKeys.filter(d => dests[d] >= 2);
+        if (majorDests.length >= 2) {
+            events.push({ type: 'split', step, msg: `✂️ C${pc} split → ${majorDests.map(d => 'C' + d).join(', ')}` });
+        }
+    }
+
+    // Birth/death: communities that exist now but not before, and vice versa
+    const prevIds = new Set(Object.keys(prevGroups));
+    const currIds = new Set(Object.keys(currGroups));
+
+    // Check for new communities (birth) - communities with members that were all in different communities before
+    const prevCommCount = Object.keys(prevGroups).length;
+    const currCommCount = Object.keys(currGroups).length;
+    if (currCommCount > prevCommCount) {
+        const diff = currCommCount - prevCommCount;
+        events.push({ type: 'birth', step, msg: `🟢 ${diff} new communit${diff > 1 ? 'ies' : 'y'} formed` });
+    }
+    if (currCommCount < prevCommCount) {
+        const diff = prevCommCount - currCommCount;
+        events.push({ type: 'death', step, msg: `💀 ${diff} communit${diff > 1 ? 'ies' : 'y'} dissolved` });
+    }
+
+    // Growth/shrink: compare sizes
+    for (const cc in currGroups) {
+        const currSize = currGroups[cc].size;
+        // Find best matching previous community (most overlap)
+        let bestOverlap = 0, bestPc = null;
+        for (const pc in prevGroups) {
+            let overlap = 0;
+            currGroups[cc].forEach(m => { if (prevGroups[pc].has(m)) overlap++; });
+            if (overlap > bestOverlap) { bestOverlap = overlap; bestPc = pc; }
+        }
+        if (bestPc !== null && prevGroups[bestPc]) {
+            const prevSize = prevGroups[bestPc].size;
+            if (currSize > prevSize * 1.3) {
+                events.push({ type: 'growth', step, msg: `📈 C${cc} grew: ${prevSize}→${currSize} nodes` });
+            } else if (currSize < prevSize * 0.7) {
+                events.push({ type: 'shrink', step, msg: `📉 C${cc} shrank: ${prevSize}→${currSize} nodes` });
+            }
+        }
+    }
+
+    return events;
+}
+
+// ─── Proactive Insights ───
+function generateInsights(ns, es, comms, commCount) {
+    const insights = [];
+    const adj = Array.from({ length: ns.length }, () => []);
+    const edgeSet = new Set();
+    es.forEach(([a, b]) => {
+        const key = Math.min(a, b) + ',' + Math.max(a, b);
+        if (!edgeSet.has(key)) { edgeSet.add(key); adj[a].push(b); adj[b].push(a); }
+    });
+
+    // Group by community
+    const groups = {};
+    comms.forEach((c, i) => { if (!groups[c]) groups[c] = []; groups[c].push(i); });
+
+    for (const cid in groups) {
+        const members = new Set(groups[cid]);
+        let internalEdges = 0, externalEdges = 0, crossComm = {};
+
+        members.forEach(m => {
+            adj[m].forEach(nb => {
+                if (members.has(nb)) internalEdges++;
+                else {
+                    externalEdges++;
+                    const nc = comms[nb];
+                    if (!crossComm[nc]) crossComm[nc] = 0;
+                    crossComm[nc]++;
+                }
+            });
+        });
+        internalEdges /= 2;
+
+        // Fragile community: more external than internal edges
+        const ratio = internalEdges / (internalEdges + externalEdges + 0.01);
+        if (members.size >= 3 && ratio < 0.4) {
+            insights.push({ cls: 'warning', msg: `⚠️ C${cid} is fragile (${Math.round(ratio * 100)}% internal cohesion) — likely to split` });
+        }
+
+        // Merger candidates
+        for (const nc in crossComm) {
+            if (nc !== cid && crossComm[nc] >= Math.max(2, members.size * 0.3)) {
+                insights.push({ cls: 'info', msg: `🔗 C${cid} & C${nc} are merger candidates (${crossComm[nc]} cross-edges)` });
+            }
+        }
+
+        // Isolated drifters
+        members.forEach(m => {
+            const nbInComm = adj[m].filter(nb => members.has(nb)).length;
+            const nbTotal = adj[m].length;
+            if (nbTotal >= 2 && nbInComm === 0) {
+                insights.push({ cls: 'danger', msg: `🏝️ Node ${m} drifting from C${cid} (0 in-community neighbors)` });
+            }
+        });
+    }
+
+    // Deduplicate merger candidates (A-B and B-A)
+    const seen = new Set();
+    return insights.filter(ins => {
+        const key = ins.msg;
+        if (seen.has(key)) return false;
+        // Also dedup reverse merger
+        const match = key.match(/C(\d+) & C(\d+)/);
+        if (match) {
+            const rev = key.replace(`C${match[1]} & C${match[2]}`, `C${match[2]} & C${match[1]}`);
+            if (seen.has(rev)) return false;
+        }
+        seen.add(key);
+        return true;
+    }).slice(0, 6);
+}
+
+// ─── Force-Directed Layout (simple) ───
+function forceLayout(iterations) {
+    if (!vx) { vx = new Float64Array(nodes.length); vy = new Float64Array(nodes.length); }
+    const W = canvas.width, H = canvas.height;
+    const k = Math.sqrt((W * H) / (nodes.length || 1)) * 0.5;
+
+    for (let iter = 0; iter < iterations; iter++) {
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                let dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+                let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                let force = (k * k) / dist * 0.5;
+                let fx = (dx / dist) * force, fy = (dy / dist) * force;
+                vx[i] += fx; vy[i] += fy;
+                vx[j] -= fx; vy[j] -= fy;
+            }
+        }
+        // Attraction
+        const edgeSet = new Set();
+        edges.forEach(([a, b]) => {
+            const key = Math.min(a, b) + ',' + Math.max(a, b);
+            if (edgeSet.has(key)) return;
+            edgeSet.add(key);
+            let dx = nodes[b].x - nodes[a].x, dy = nodes[b].y - nodes[a].y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            let force = (dist - k) * 0.01;
+            let fx = (dx / dist) * force, fy = (dy / dist) * force;
+            vx[a] += fx; vy[a] += fy;
+            vx[b] -= fx; vy[b] -= fy;
+        });
+        // Community attraction (pull same-community nodes together slightly)
+        if (communities.length) {
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    if (communities[i] === communities[j]) {
+                        let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+                        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        let force = 0.003;
+                        vx[i] += dx * force; vy[i] += dy * force;
+                        vx[j] -= dx * force; vy[j] -= dy * force;
+                    }
+                }
+            }
+        }
+        // Apply with damping and bounds
+        for (let i = 0; i < nodes.length; i++) {
+            vx[i] *= 0.85; vy[i] *= 0.85;
+            nodes[i].x += vx[i]; nodes[i].y += vy[i];
+            nodes[i].x = Math.max(30, Math.min(W - 30, nodes[i].x));
+            nodes[i].y = Math.max(30, Math.min(H - 30, nodes[i].y));
+        }
+    }
+}
+
+// ─── Drawing ───
+function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // Edges
+    const edgeSet = new Set();
+    edges.forEach(([a, b]) => {
+        const key = Math.min(a, b) + ',' + Math.max(a, b);
+        if (edgeSet.has(key)) return;
+        edgeSet.add(key);
+        ctx.beginPath();
+        ctx.moveTo(nodes[a].x, nodes[a].y);
+        ctx.lineTo(nodes[b].x, nodes[b].y);
+        if (communities.length && communities[a] === communities[b]) {
+            ctx.strokeStyle = COMM_COLORS[communities[a] % COMM_COLORS.length] + '40';
+            ctx.lineWidth = 2;
+        } else {
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = 1;
+        }
+        ctx.stroke();
+    });
+
+    // Nodes
+    nodes.forEach((nd, i) => {
+        const color = communities.length ? COMM_COLORS[communities[i] % COMM_COLORS.length] : '#58a6ff';
+        ctx.beginPath();
+        ctx.arc(nd.x, nd.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#0d1117';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = '#e6edf3';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(i, nd.x, nd.y - 10);
+    });
+}
+
+// ─── Mini Chart ───
+function drawMiniChart() {
+    const c = document.getElementById('miniChart');
+    const cx = c.getContext('2d');
+    c.width = c.offsetWidth; c.height = c.offsetHeight;
+    const W = c.width, H = c.height;
+    cx.clearRect(0, 0, W, H);
+
+    if (historyData.communities.length < 2) return;
+
+    const maxLen = historyData.communities.length;
+    const maxVal = Math.max(1, ...historyData.communities, ...historyData.largest);
+
+    function drawLine(data, color) {
+        cx.beginPath();
+        cx.strokeStyle = color;
+        cx.lineWidth = 2;
+        data.forEach((v, i) => {
+            const x = (i / (maxLen - 1)) * (W - 20) + 10;
+            const y = H - 10 - (v / maxVal) * (H - 25);
+            if (i === 0) cx.moveTo(x, y); else cx.lineTo(x, y);
+        });
+        cx.stroke();
+    }
+
+    drawLine(historyData.communities, '#58a6ff');
+    drawLine(historyData.largest, '#3fb950');
+
+    // Legend
+    cx.font = '10px sans-serif';
+    cx.fillStyle = '#58a6ff'; cx.fillText('● Communities', 10, 12);
+    cx.fillStyle = '#3fb950'; cx.fillText('● Largest', 110, 12);
+}
+
+// ─── Evolution Step ───
+function evolveStep() {
+    const addRate = +document.getElementById('addRate').value;
+    const removeRate = +document.getElementById('removeRate').value;
+    const n = nodes.length;
+
+    // Add edges
+    for (let i = 0; i < addRate; i++) {
+        const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+        if (a !== b) edges.push([a, b]);
+    }
+
+    // Remove edges
+    for (let i = 0; i < removeRate && edges.length > 0; i++) {
+        const idx = Math.floor(Math.random() * edges.length);
+        edges.splice(idx, 1);
+    }
+
+    // Re-detect communities
+    const prevComm = communities.length ? [...communities] : null;
+    const result = detectCommunities(nodes, edges);
+    communities = result.communities;
+
+    // Detect events
+    const events = detectEvents(prevComm, communities, n, currentStep);
+
+    // Record history
+    const commCount = result.count;
+    const largestSize = Math.max(...Object.values(communities.reduce((g, c) => { g[c] = (g[c] || 0) + 1; return g; }, {})), 0);
+    history.push({ communities: [...communities], edges: edges.map(e => [...e]), events });
+    historyData.communities.push(commCount);
+    historyData.modularity.push(result.modularity);
+    historyData.largest.push(largestSize);
+
+    currentStep++;
+    document.getElementById('timeSlider').max = currentStep;
+    document.getElementById('timeSlider').value = currentStep;
+
+    // Update UI
+    updateUI(events, result);
+    forceLayout(5);
+    draw();
+    drawMiniChart();
+}
+
+function updateUI(events, result) {
+    document.getElementById('timeLabel').textContent = 't=' + currentStep;
+    document.getElementById('statTime').textContent = currentStep;
+    document.getElementById('statComm').textContent = result ? result.count : '?';
+    document.getElementById('statEdges').textContent = edges.length;
+    document.getElementById('statLargest').textContent = historyData.largest[historyData.largest.length - 1] || 0;
+    document.getElementById('modScore').textContent = 'Q=' + (result ? result.modularity.toFixed(3) : '?');
+
+    // Events
+    if (events && events.length) {
+        const log = document.getElementById('eventLog');
+        events.forEach(ev => {
+            const div = document.createElement('div');
+            div.className = 'event-item ' + ev.type;
+            div.textContent = `[t=${ev.step}] ${ev.msg}`;
+            log.prepend(div);
+        });
+        // Trim log
+        while (log.children.length > 100) log.removeChild(log.lastChild);
+    }
+
+    // Insights
+    if (result) {
+        const insights = generateInsights(nodes, edges, communities, result.count);
+        const area = document.getElementById('insightsArea');
+        area.innerHTML = insights.length ? insights.map(ins =>
+            `<div class="insight ${ins.cls}">${ins.msg}</div>`
+        ).join('') : '<div style="color:var(--text-muted);font-size:12px;padding:4px;">No warnings at this time.</div>';
+    }
+}
+
+// ─── Controls ───
+document.getElementById('btnGenerate').onclick = generate;
+document.getElementById('btnReset').onclick = () => { stopPlay(); generate(); };
+document.getElementById('btnPlayPause').onclick = togglePlay;
+document.getElementById('btnStep').onclick = evolveStep;
+document.getElementById('btnStepBack').onclick = stepBack;
+document.getElementById('timeSlider').oninput = function () { goToStep(+this.value); };
+
+function generate() {
+    stopPlay();
+    const n = +document.getElementById('nodeCount').value || 30;
+    const preset = document.getElementById('presetSelect').value;
+    let g;
+    if (preset === 'city') g = genCity(n);
+    else if (preset === 'social') g = genSocial(n);
+    else if (preset === 'supply') g = genSupply(n);
+    else g = genRandom(n);
+
+    nodes = g.nodes; edges = g.edges;
+    vx = new Float64Array(n); vy = new Float64Array(n);
+    communities = []; history = []; currentStep = 0;
+    historyData = { communities: [], modularity: [], largest: [] };
+    document.getElementById('eventLog').innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px;">Press ▶ to start evolution…</div>';
+    document.getElementById('timeSlider').max = 0;
+    document.getElementById('timeSlider').value = 0;
+
+    resizeCanvas();
+
+    // Initial community detection
+    const result = detectCommunities(nodes, edges);
+    communities = result.communities;
+    const commCount = result.count;
+    const largestSize = Math.max(...Object.values(communities.reduce((g, c) => { g[c] = (g[c] || 0) + 1; return g; }, {})), 0);
+    history.push({ communities: [...communities], edges: edges.map(e => [...e]), events: [] });
+    historyData.communities.push(commCount);
+    historyData.modularity.push(result.modularity);
+    historyData.largest.push(largestSize);
+    updateUI([], result);
+
+    forceLayout(50);
+    draw();
+    drawMiniChart();
+}
+
+function togglePlay() {
+    if (playing) stopPlay();
+    else startPlay();
+}
+function startPlay() {
+    playing = true;
+    document.getElementById('btnPlayPause').textContent = '⏸';
+    const speed = 11 - (+document.getElementById('speedSlider').value);
+    playTimer = setInterval(evolveStep, speed * 100);
+}
+function stopPlay() {
+    playing = false;
+    document.getElementById('btnPlayPause').textContent = '▶';
+    if (playTimer) { clearInterval(playTimer); playTimer = null; }
+}
+
+function stepBack() {
+    if (currentStep <= 0) return;
+    goToStep(currentStep - 1);
+}
+
+function goToStep(step) {
+    if (step < 0 || step >= history.length) return;
+    currentStep = step;
+    communities = [...history[step].communities];
+    edges = history[step].edges.map(e => [...e]);
+    document.getElementById('timeSlider').value = step;
+
+    const commCount = new Set(communities).size;
+    const largestSize = Math.max(...Object.values(communities.reduce((g, c) => { g[c] = (g[c] || 0) + 1; return g; }, {})), 0);
+    const result = { count: commCount, modularity: historyData.modularity[step] || 0 };
+    updateUI(null, result);
+    forceLayout(3);
+    draw();
+}
+
+// ─── Init ───
+resizeCanvas();
+generate();
+</script>
+</body>
+</html>
