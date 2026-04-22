@@ -89,13 +89,69 @@ public class RichClubAnalyzer {
      * Computes rich-club coefficients for all meaningful degree thresholds.
      * Returns a sorted map from degree threshold k to phi(k).
      *
+     * <p><b>Performance:</b> Uses a single-pass incremental sweep instead of
+     * calling {@link #richClubCoefficient(int)} independently for each k.
+     * The previous approach recomputed degrees (O(V)), filtered members (O(V)),
+     * and scanned ALL edges (O(E)) for every threshold — O(maxDeg × (V + E))
+     * total.  This version sorts vertices by degree once, then sweeps from
+     * k = maxDeg-1 down to 0, incrementally adding nodes and their internal
+     * edges to the rich-club set.  Total cost: O(V log V + E).</p>
+     *
      * @return sorted map of {k -> phi(k)} for k from 0 to max_degree - 1
      */
     public Map<Integer, Double> richClubCoefficients() {
-        int maxDeg = maxDegree();
+        // Build degree map once
+        Map<String, Integer> degrees = computeDegrees();
+        int maxDeg = 0;
+        for (int d : degrees.values()) {
+            if (d > maxDeg) maxDeg = d;
+        }
+        if (maxDeg == 0) {
+            TreeMap<Integer, Double> empty = new TreeMap<>();
+            return empty;
+        }
+
+        // Sort vertices by degree descending
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(degrees.entrySet());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        // Build adjacency lookup for internal-edge counting
+        Set<String> richSet = new HashSet<>();
+        int internalEdges = 0;
+        int memberCount = 0;
+
+        // Precompute: for each vertex, count how many of its neighbors
+        // have degree >= the vertex's degree (these will already be in
+        // the rich set when the vertex is added).  We sweep from high
+        // degree to low.
         TreeMap<Integer, Double> result = new TreeMap<>();
-        for (int k = 0; k < maxDeg; k++) {
-            double phi = richClubCoefficient(k);
+
+        // Process vertices from highest degree to lowest.
+        // At threshold k, the rich club contains all nodes with degree > k.
+        // So after adding all nodes with degree d, phi(d-1) can be computed.
+        int idx = 0;
+        for (int k = maxDeg - 1; k >= 0; k--) {
+            // Add all nodes with degree == k + 1 (they have degree > k)
+            while (idx < sorted.size() && sorted.get(idx).getValue() > k) {
+                String node = sorted.get(idx).getKey();
+                // Count edges from this node to nodes already in richSet
+                Collection<String> neighbors = graph.getNeighbors(node);
+                if (neighbors != null) {
+                    for (String nbr : neighbors) {
+                        if (richSet.contains(nbr)) {
+                            internalEdges++;
+                        }
+                    }
+                }
+                richSet.add(node);
+                memberCount++;
+                idx++;
+            }
+
+            double phi = 0.0;
+            if (memberCount >= 2) {
+                phi = (2.0 * internalEdges) / (memberCount * (memberCount - 1.0));
+            }
             result.put(k, phi);
         }
         return result;
