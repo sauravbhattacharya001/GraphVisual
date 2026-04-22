@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Symmetry Explorer — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .sym-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .orbit-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .orbit-item { display: flex; align-items: center; gap: 5px; }
+        .orbit-dot { width: 14px; height: 14px; border-radius: 50%; }
+        .auto-list { max-height: 200px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+        .auto-list .entry { padding: 4px 8px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+        .auto-list .entry:hover, .auto-list .entry.active { background: var(--surface-hover); color: var(--accent); }
+        .insight-box { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-top: 8px; }
+        .insight-box .tag { display: inline-block; background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 6px; text-transform: uppercase; }
+        .speed-slider { width: 100%; }
+        @media (max-width: 800px) { .sym-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="spectrum.html" class="sidebar-link"><span class="icon">🌈</span>Spectrum</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="symmetry.html" class="sidebar-link active"><span class="icon">🔮</span>Symmetry Explorer</a>
+        <a href="link-predictor.html" class="sidebar-link"><span class="icon">🔮</span>Link Predictor</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🔮 Graph Symmetry Explorer
+    <span class="subtitle">Automorphism detection, orbit computation &amp; symmetry analysis</span>
+</h1>
+
+<p>Explore the symmetry structure of graphs. An <strong>automorphism</strong> is a permutation of nodes that preserves all edges — the set of all automorphisms forms the graph's symmetry group. Nodes in the same <strong>orbit</strong> are structurally identical.</p>
+
+<div class="sym-layout">
+    <div class="controls-panel">
+        <div class="control-group">
+            <h3>Presets</h3>
+            <div class="btn-row" id="presetRow"></div>
+        </div>
+        <div class="control-group">
+            <h3>Custom Input</h3>
+            <textarea class="text-input" id="adjInput" placeholder="0: 1 2 3&#10;1: 0 2&#10;2: 0 1 3&#10;3: 0 2"></textarea>
+            <div class="btn-row" style="margin-top:8px;">
+                <button class="btn btn-primary" onclick="loadCustom()">Load</button>
+                <button class="btn btn-secondary" onclick="clearGraph()">Clear</button>
+            </div>
+        </div>
+        <div class="control-group">
+            <h3>Automorphisms (<span id="autCount">0</span>)</h3>
+            <div class="auto-list" id="autList"></div>
+            <div class="btn-row" style="margin-top:8px;">
+                <button class="btn btn-secondary" id="animBtn" onclick="toggleAnimate()">▶ Animate</button>
+                <label style="font-size:12px;color:var(--text-muted)">Speed</label>
+                <input type="range" class="speed-slider" id="speedSlider" min="200" max="2000" value="800" style="width:100px">
+            </div>
+        </div>
+        <div class="control-group">
+            <h3>Orbits</h3>
+            <div class="orbit-legend" id="orbitLegend"></div>
+        </div>
+        <div class="control-group">
+            <h3>Proactive Insights</h3>
+            <div id="insightsBox"></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="exportJSON()">📥 Export JSON</button>
+        </div>
+    </div>
+
+    <div>
+        <canvas id="graphCanvas" width="800" height="600"></canvas>
+        <div class="stats-bar" id="statsBar"></div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<script>
+// ─── State ───
+let nodes = [], edges = [], adj = {}, n = 0;
+let automorphisms = [], orbits = [], orbitMap = {};
+let animating = false, animIdx = 0, animTimer = null;
+let dragNode = -1, offsetX = 0, offsetY = 0;
+const ORBIT_COLORS = ['#00d4aa','#ff6b6b','#4ecdc4','#ffe66d','#a29bfe','#fd79a8','#74b9ff','#ffeaa7','#dfe6e9','#b2bec3','#e17055','#00cec9'];
+
+// ─── Presets ───
+const PRESETS = {
+    'K5 Complete': { n:5, edges:[[0,1],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]] },
+    'C6 Cycle': { n:6, edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]] },
+    'Petersen': { n:10, edges:[[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]] },
+    'P5 Path': { n:5, edges:[[0,1],[1,2],[2,3],[3,4]] },
+    'S6 Star': { n:7, edges:[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6]] },
+    'Q3 Cube': { n:8, edges:[[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]] },
+    'Prism': { n:6, edges:[[0,1],[1,2],[2,0],[3,4],[4,5],[5,3],[0,3],[1,4],[2,5]] },
+    'Asym Tree': { n:7, edges:[[0,1],[1,2],[1,3],[3,4],[4,5],[4,6]] }
+};
+
+function initPresets() {
+    const row = document.getElementById('presetRow');
+    Object.keys(PRESETS).forEach(name => {
+        const b = document.createElement('button');
+        b.className = 'preset-btn';
+        b.textContent = name;
+        b.onclick = () => loadPreset(name);
+        row.appendChild(b);
+    });
+}
+
+function loadPreset(name) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.textContent === name));
+    const p = PRESETS[name];
+    buildGraph(p.n, p.edges);
+}
+
+function loadCustom() {
+    const txt = document.getElementById('adjInput').value.trim();
+    if (!txt) return;
+    const nodeSet = new Set();
+    const edgeSet = [];
+    txt.split('\n').forEach(line => {
+        const parts = line.split(':');
+        if (parts.length < 2) return;
+        const u = parseInt(parts[0].trim());
+        if (isNaN(u)) return;
+        nodeSet.add(u);
+        parts[1].trim().split(/[\s,]+/).forEach(v => {
+            const vi = parseInt(v);
+            if (!isNaN(vi)) { nodeSet.add(vi); if (u < vi) edgeSet.push([u, vi]); }
+        });
+    });
+    const maxN = Math.max(...nodeSet) + 1;
+    buildGraph(maxN, edgeSet);
+}
+
+function clearGraph() {
+    nodes = []; edges = []; adj = {}; n = 0;
+    automorphisms = []; orbits = []; orbitMap = {};
+    stopAnimate();
+    render();
+    updateUI();
+}
+
+// ─── Graph Setup ───
+function buildGraph(nodeCount, edgeList) {
+    n = nodeCount;
+    edges = edgeList.map(e => [e[0], e[1]]);
+    adj = {};
+    for (let i = 0; i < n; i++) adj[i] = new Set();
+    edges.forEach(([u,v]) => { adj[u].add(v); adj[v].add(u); });
+    layoutCircle();
+    stopAnimate();
+    findAutomorphisms();
+    computeOrbits();
+    render();
+    updateUI();
+    generateInsights();
+}
+
+function layoutCircle() {
+    const canvas = document.getElementById('graphCanvas');
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const r = Math.min(cx, cy) * 0.7;
+    nodes = [];
+    for (let i = 0; i < n; i++) {
+        const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+        nodes.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), id: i });
+    }
+}
+
+// ─── Automorphism Finder (backtracking) ───
+function findAutomorphisms() {
+    automorphisms = [];
+    if (n === 0 || n > 12) { automorphisms = [Array.from({length:n},(_,i)=>i)]; return; }
+    const deg = Array.from({length:n}, (_,i) => adj[i].size);
+    const perm = new Array(n).fill(-1);
+    const used = new Array(n).fill(false);
+
+    function backtrack(depth) {
+        if (depth === n) {
+            automorphisms.push([...perm]);
+            return;
+        }
+        for (let target = 0; target < n; target++) {
+            if (used[target]) continue;
+            if (deg[target] !== deg[depth]) continue;
+            // Check adjacency consistency with already-mapped nodes
+            let ok = true;
+            for (let prev = 0; prev < depth; prev++) {
+                const adjInOrig = adj[depth].has(prev);
+                const adjInPerm = adj[target].has(perm[prev]);
+                if (adjInOrig !== adjInPerm) { ok = false; break; }
+            }
+            if (!ok) continue;
+            perm[depth] = target;
+            used[target] = true;
+            backtrack(depth + 1);
+            perm[depth] = -1;
+            used[target] = false;
+        }
+    }
+    backtrack(0);
+    if (automorphisms.length === 0) automorphisms = [Array.from({length:n},(_,i)=>i)];
+}
+
+// ─── Orbit Computation ───
+function computeOrbits() {
+    const parent = Array.from({length:n}, (_,i) => i);
+    function find(x) { return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+    function union(a, b) { parent[find(a)] = find(b); }
+    automorphisms.forEach(perm => {
+        for (let i = 0; i < n; i++) union(i, perm[i]);
+    });
+    const orbitGroups = {};
+    for (let i = 0; i < n; i++) {
+        const root = find(i);
+        if (!orbitGroups[root]) orbitGroups[root] = [];
+        orbitGroups[root].push(i);
+    }
+    orbits = Object.values(orbitGroups).sort((a,b) => a[0] - b[0]);
+    orbitMap = {};
+    orbits.forEach((orb, idx) => orb.forEach(v => orbitMap[v] = idx));
+}
+
+// ─── Rendering ───
+function render(highlightPerm) {
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Edges
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    edges.forEach(([u,v]) => {
+        ctx.beginPath();
+        ctx.moveTo(nodes[u].x, nodes[u].y);
+        ctx.lineTo(nodes[v].x, nodes[v].y);
+        ctx.stroke();
+    });
+
+    // Highlight automorphism mapping arrows
+    if (highlightPerm) {
+        ctx.strokeStyle = 'rgba(0,212,170,0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6,4]);
+        for (let i = 0; i < n; i++) {
+            if (highlightPerm[i] !== i) {
+                const src = nodes[i], tgt = nodes[highlightPerm[i]];
+                const dx = tgt.x - src.x, dy = tgt.y - src.y;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                if (len < 1) continue;
+                const ux = dx/len, uy = dy/len;
+                ctx.beginPath();
+                ctx.moveTo(src.x + ux*18, src.y + uy*18);
+                ctx.lineTo(tgt.x - ux*18, tgt.y - uy*18);
+                ctx.stroke();
+                // Arrowhead
+                const ax = tgt.x - ux*18, ay = tgt.y - uy*18;
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(ax - ux*10 - uy*5, ay - uy*10 + ux*5);
+                ctx.lineTo(ax - ux*10 + uy*5, ay - uy*10 - ux*5);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(0,212,170,0.6)';
+                ctx.fill();
+            }
+        }
+        ctx.setLineDash([]);
+    }
+
+    // Nodes
+    nodes.forEach((nd, i) => {
+        const color = ORBIT_COLORS[orbitMap[i] % ORBIT_COLORS.length] || '#888';
+        ctx.beginPath();
+        ctx.arc(nd.x, nd.y, 16, 0, 2*Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i, nd.x, nd.y);
+    });
+}
+
+// ─── Animation ───
+function toggleAnimate() {
+    animating ? stopAnimate() : startAnimate();
+}
+function startAnimate() {
+    if (automorphisms.length <= 1) return;
+    animating = true;
+    animIdx = 0;
+    document.getElementById('animBtn').textContent = '⏹ Stop';
+    stepAnimate();
+}
+function stepAnimate() {
+    if (!animating) return;
+    const entries = document.querySelectorAll('#autList .entry');
+    entries.forEach((e,i) => e.classList.toggle('active', i === animIdx));
+    render(automorphisms[animIdx]);
+    animIdx = (animIdx + 1) % automorphisms.length;
+    const speed = parseInt(document.getElementById('speedSlider').value);
+    animTimer = setTimeout(stepAnimate, speed);
+}
+function stopAnimate() {
+    animating = false;
+    clearTimeout(animTimer);
+    document.getElementById('animBtn').textContent = '▶ Animate';
+    render();
+}
+
+// ─── UI Updates ───
+function updateUI() {
+    // Stats
+    const vt = orbits.length === 1 && n > 0;
+    const et = isEdgeTransitive();
+    const asym = automorphisms.length === 1 && n > 0;
+    document.getElementById('statsBar').innerHTML = [
+        { val: automorphisms.length, lbl: '|Aut(G)|' },
+        { val: orbits.length, lbl: 'Orbits' },
+        { val: n, lbl: 'Nodes' },
+        { val: edges.length, lbl: 'Edges' },
+        { val: vt ? '✓' : '✗', lbl: 'Vertex-Trans' },
+        { val: et ? '✓' : '✗', lbl: 'Edge-Trans' },
+    ].map(s => `<div class="stat-card"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+
+    // Automorphism list
+    document.getElementById('autCount').textContent = automorphisms.length;
+    const list = document.getElementById('autList');
+    list.innerHTML = '';
+    automorphisms.slice(0, 100).forEach((perm, idx) => {
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.textContent = permToCycles(perm);
+        div.onclick = () => { stopAnimate(); render(perm); };
+        list.appendChild(div);
+    });
+    if (automorphisms.length > 100) {
+        const more = document.createElement('div');
+        more.className = 'entry';
+        more.style.color = 'var(--text-muted)';
+        more.textContent = `… and ${automorphisms.length - 100} more`;
+        list.appendChild(more);
+    }
+
+    // Orbit legend
+    const legend = document.getElementById('orbitLegend');
+    legend.innerHTML = orbits.map((orb, idx) =>
+        `<div class="orbit-item"><div class="orbit-dot" style="background:${ORBIT_COLORS[idx % ORBIT_COLORS.length]}"></div>Orbit ${idx}: {${orb.join(', ')}}</div>`
+    ).join('');
+}
+
+function isEdgeTransitive() {
+    if (edges.length === 0) return false;
+    // Two edges are in the same orbit if some automorphism maps one to the other
+    const edgeKey = (u,v) => Math.min(u,v)+','+Math.max(u,v);
+    const edgeOrbit = {};
+    edges.forEach(e => edgeOrbit[edgeKey(e[0],e[1])] = edgeKey(e[0],e[1]));
+    // Union-find on edges
+    const parent = {};
+    edges.forEach(e => parent[edgeKey(e[0],e[1])] = edgeKey(e[0],e[1]));
+    function find(x) { return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+    function union(a,b) { parent[find(a)] = find(b); }
+    automorphisms.forEach(perm => {
+        edges.forEach(([u,v]) => {
+            const mu = perm[u], mv = perm[v];
+            union(edgeKey(u,v), edgeKey(mu,mv));
+        });
+    });
+    const roots = new Set();
+    edges.forEach(([u,v]) => roots.add(find(edgeKey(u,v))));
+    return roots.size === 1;
+}
+
+function permToCycles(perm) {
+    const visited = new Array(perm.length).fill(false);
+    const cycles = [];
+    for (let i = 0; i < perm.length; i++) {
+        if (visited[i] || perm[i] === i) continue;
+        const cycle = [];
+        let j = i;
+        while (!visited[j]) { visited[j] = true; cycle.push(j); j = perm[j]; }
+        if (cycle.length > 1) cycles.push('(' + cycle.join(' ') + ')');
+    }
+    return cycles.length === 0 ? 'id' : cycles.join('');
+}
+
+// ─── Proactive Insights ───
+function generateInsights() {
+    const box = document.getElementById('insightsBox');
+    const insights = [];
+    const vt = orbits.length === 1 && n > 0;
+    const et = isEdgeTransitive();
+    const asym = automorphisms.length === 1 && n > 0;
+    const ratio = n > 0 ? automorphisms.length / n : 0;
+
+    if (asym) {
+        insights.push({ tag: 'Asymmetric', text: 'Every node is structurally unique — no two nodes can be swapped while preserving the graph. Useful for uniquely addressable network topologies.' });
+    }
+    if (vt && et) {
+        insights.push({ tag: 'Highly Symmetric', text: 'This graph is both vertex- and edge-transitive — every node and every edge looks the same. Ideal for load-balanced distributed systems.' });
+    } else if (vt) {
+        insights.push({ tag: 'Vertex-Transitive', text: 'All nodes are structurally equivalent. Good for fair resource allocation — no node has a structural advantage.' });
+    }
+    if (orbits.length > 1 && !asym) {
+        const sizes = orbits.map(o => o.length);
+        insights.push({ tag: 'Orbit Structure', text: `${orbits.length} orbits with sizes [${sizes.join(', ')}]. Nodes within the same orbit can serve as drop-in replacements for redundancy.` });
+    }
+    if (ratio > 10) {
+        insights.push({ tag: 'High Symmetry', text: `|Aut(G)|/|V| = ${ratio.toFixed(1)} — the symmetry group is large relative to graph size. Consider exploiting symmetry to reduce computational cost in analyses.` });
+    }
+    if (n > 0 && automorphisms.length === factorial(n)) {
+        insights.push({ tag: 'Complete Symmetry', text: 'The automorphism group is the full symmetric group S_n — this is a complete graph where every permutation is valid.' });
+    }
+    if (n > 12) {
+        insights.push({ tag: 'Size Limit', text: 'Graphs with >12 nodes use identity-only mode. Exact automorphism search is combinatorial; for large graphs, consider nauty/bliss algorithms.' });
+    }
+    if (insights.length === 0 && n > 0) {
+        insights.push({ tag: 'Analysis', text: `Found ${automorphisms.length} automorphism(s) across ${orbits.length} orbit(s). The graph has moderate symmetry.` });
+    }
+
+    box.innerHTML = insights.map(i => `<div class="insight-box"><span class="tag">${i.tag}</span>${i.text}</div>`).join('');
+}
+
+function factorial(x) { let r = 1; for (let i = 2; i <= x; i++) r *= i; return r; }
+
+// ─── Export ───
+function exportJSON() {
+    const data = {
+        nodes: n,
+        edges: edges,
+        automorphismCount: automorphisms.length,
+        automorphisms: automorphisms.slice(0, 1000),
+        orbits: orbits,
+        vertexTransitive: orbits.length === 1 && n > 0,
+        edgeTransitive: isEdgeTransitive(),
+        asymmetric: automorphisms.length === 1 && n > 0
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'symmetry-analysis.json';
+    a.click();
+}
+
+// ─── Canvas Drag ───
+const canvas = document.getElementById('graphCanvas');
+canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+    for (let i = 0; i < nodes.length; i++) {
+        const dx = nodes[i].x - mx, dy = nodes[i].y - my;
+        if (dx*dx + dy*dy < 20*20) { dragNode = i; offsetX = dx; offsetY = dy; return; }
+    }
+});
+canvas.addEventListener('mousemove', e => {
+    if (dragNode < 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+    nodes[dragNode].x = (e.clientX - rect.left) * sx + offsetX;
+    nodes[dragNode].y = (e.clientY - rect.top) * sy + offsetY;
+    render();
+});
+canvas.addEventListener('mouseup', () => { dragNode = -1; });
+canvas.addEventListener('mouseleave', () => { dragNode = -1; });
+
+// ─── Init ───
+initPresets();
+loadPreset('Petersen');
+</script>
+
+</body>
+</html>
