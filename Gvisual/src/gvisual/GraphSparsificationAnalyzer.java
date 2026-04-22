@@ -26,6 +26,11 @@ public class GraphSparsificationAnalyzer {
 
     private final Graph<String, Edge> graph;
 
+    /** Lazily-computed edge betweenness — O(V·E) so we cache it. */
+    private Map<Edge, Double> cachedBetweenness;
+    /** Lazily-computed bridge set — depends on DFS, cache it. */
+    private Set<Edge> cachedBridges;
+
     public GraphSparsificationAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
@@ -38,8 +43,8 @@ public class GraphSparsificationAnalyzer {
         Map<Edge, Double> scores = new LinkedHashMap<Edge, Double>();
         if (graph.getEdgeCount() == 0) return scores;
 
-        Map<Edge, Double> betweenness = computeEdgeBetweenness();
-        Set<Edge> bridges = findBridges();
+        Map<Edge, Double> betweenness = getEdgeBetweenness();
+        Set<Edge> bridges = getBridges();
 
         double maxBet = 0;
         for (double val : betweenness.values()) {
@@ -64,6 +69,30 @@ public class GraphSparsificationAnalyzer {
             scores.put(e, Math.min(1.0, score));
         }
         return scores;
+    }
+
+    /**
+     * Returns cached bridge set, computing on first call.
+     * Bridges are edges whose removal disconnects the graph.
+     */
+    private Set<Edge> getBridges() {
+        if (cachedBridges == null) {
+            cachedBridges = findBridges();
+        }
+        return cachedBridges;
+    }
+
+    /**
+     * Returns cached edge betweenness, computing on first call.
+     * Edge betweenness is O(V·E), so caching avoids redundant
+     * recomputation when scoreEdgeImportance() or generateReport()
+     * trigger it multiple times.
+     */
+    private Map<Edge, Double> getEdgeBetweenness() {
+        if (cachedBetweenness == null) {
+            cachedBetweenness = computeEdgeBetweenness();
+        }
+        return cachedBetweenness;
     }
 
     /** Finds bridge edges whose removal disconnects the graph. */
@@ -364,7 +393,7 @@ public class GraphSparsificationAnalyzer {
         double evr = v > 0 ? (double) e / v : 0;
         int comp = countComponents(graph);
         boolean isTree = v > 0 && e == v - comp;
-        int bc = findBridges().size();
+        int bc = getBridges().size();
         String cl;
         if (isTree) cl = "Tree/Forest";
         else if (density < 0.1) cl = "Very Sparse";
@@ -392,7 +421,7 @@ public class GraphSparsificationAnalyzer {
         sb.append(String.format("  Bridges:           %d (%.1f%%)\n", sm.bridgeCount, sm.bridgeFraction * 100));
         sb.append("\n");
 
-        Set<Edge> bridges = findBridges();
+        Set<Edge> bridges = getBridges();
         if (!bridges.isEmpty()) {
             sb.append("── Bridge Edges (critical) ──\n");
             int cnt = 0;
