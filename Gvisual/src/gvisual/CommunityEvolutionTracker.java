@@ -588,8 +588,13 @@ public class CommunityEvolutionTracker {
          */
         public Map<String, Integer> getMigrationCounts() {
             Map<String, Integer> migrations = new HashMap<>();
+            if (snapshots.size() < 2) return migrations;
+
+            // Reuse the previous iteration's "curr" map as the next iteration's
+            // "prev" map, reducing buildNodeCommunityMap calls from 2*(k-1) to k.
+            Map<String, Set<String>> prevNodeComm = buildNodeCommunityMap(snapshots.get(0));
+
             for (int i = 1; i < snapshots.size(); i++) {
-                Map<String, Set<String>> prevNodeComm = buildNodeCommunityMap(snapshots.get(i - 1));
                 Map<String, Set<String>> currNodeComm = buildNodeCommunityMap(snapshots.get(i));
 
                 Set<String> allNodes = new HashSet<>(prevNodeComm.keySet());
@@ -605,6 +610,8 @@ public class CommunityEvolutionTracker {
                         }
                     }
                 }
+
+                prevNodeComm = currNodeComm;
             }
             return migrations;
         }
@@ -626,7 +633,20 @@ public class CommunityEvolutionTracker {
             sb.append(String.format("Snapshots: %d\n", snapshots.size()));
             sb.append(String.format("Total events: %d\n", events.size()));
 
-            Map<EventType, Long> counts = getEventCounts();
+            // Single pass over events to compute counts, stability, and volatility
+            // instead of 4 separate stream traversals.
+            Map<EventType, Long> counts = new EnumMap<>(EventType.class);
+            long stableCount = 0;
+            long nonLifecycleCount = 0;
+            long structuralCount = 0;
+            for (EvolutionEvent e : events) {
+                EventType t = e.getType();
+                counts.merge(t, 1L, Long::sum);
+                if (t != EventType.BIRTH && t != EventType.DEATH) nonLifecycleCount++;
+                if (t == EventType.STABLE) stableCount++;
+                if (t == EventType.MERGE || t == EventType.SPLIT
+                        || t == EventType.BIRTH || t == EventType.DEATH) structuralCount++;
+            }
             for (EventType type : EventType.values()) {
                 long count = counts.getOrDefault(type, 0L);
                 if (count > 0) {
@@ -634,8 +654,12 @@ public class CommunityEvolutionTracker {
                 }
             }
 
-            sb.append(String.format("Stability score: %.2f\n", getStabilityScore()));
-            sb.append(String.format("Volatility score: %.2f\n", getVolatilityScore()));
+            double stability = nonLifecycleCount == 0 ? 1.0
+                    : (double) stableCount / nonLifecycleCount;
+            double volatility = events.isEmpty() ? 0.0
+                    : (double) structuralCount / events.size();
+            sb.append(String.format("Stability score: %.2f\n", stability));
+            sb.append(String.format("Volatility score: %.2f\n", volatility));
 
             // Snapshot progression
             sb.append("\nSnapshot progression:\n");
