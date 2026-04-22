@@ -75,22 +75,7 @@ public class TournamentAnalyzer {
      * @return true if graph is a valid tournament
      */
     public boolean isTournament() {
-        int n = vertices.size();
-        if (n <= 1) return true;
-
-        // A tournament on n vertices has exactly n*(n-1)/2 edges
-        if (graph.getEdgeCount() != (long) n * (n - 1) / 2) return false;
-
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                String u = vertices.get(i);
-                String v = vertices.get(j);
-                boolean uBeatsV = beats.get(u).contains(v);
-                boolean vBeatsU = beats.get(v).contains(u);
-                if (uBeatsV == vBeatsU) return false;  // both or neither
-            }
-        }
-        return true;
+        return validate().isEmpty();
     }
 
     /**
@@ -766,14 +751,26 @@ public class TournamentAnalyzer {
      * @return Slater ranking result
      */
     public SlaterResult computeSlaterRanking() {
+        return computeSlaterRanking(null);
+    }
+
+    /**
+     * Computes the Slater ranking, reusing a pre-computed Copeland ranking
+     * to avoid redundant O(n²) work when called from {@link #generateReport()}.
+     *
+     * @param ranking pre-computed Copeland ranking, or null to compute fresh
+     * @return Slater ranking result
+     */
+    public SlaterResult computeSlaterRanking(List<RankEntry> ranking) {
         int n = vertices.size();
         if (n == 0) return new SlaterResult(new ArrayList<String>(), 0);
         if (n == 1) return new SlaterResult(new ArrayList<String>(vertices), 0);
 
+        List<RankEntry> copeland = ranking != null ? ranking : computeCopelandRanking();
         if (n <= 10) {
-            return slaterExact();
+            return slaterExact(copeland);
         } else {
-            return slaterGreedy();
+            return slaterGreedy(copeland);
         }
     }
 
@@ -786,10 +783,10 @@ public class TournamentAnalyzer {
      * disagreement count already exceeds the best known solution,
      * dramatically reducing both memory and time.</p>
      */
-    private SlaterResult slaterExact() {
+    private SlaterResult slaterExact(List<RankEntry> copeland) {
         int n = vertices.size();
         // Use greedy result as initial upper bound for pruning
-        SlaterResult greedy = slaterGreedy();
+        SlaterResult greedy = slaterGreedy(copeland);
         int[] bestDisagreements = {greedy.getDisagreements()};
         List<String>[] bestOrder = new List[]{new ArrayList<>(greedy.getRanking())};
 
@@ -871,9 +868,8 @@ public class TournamentAnalyzer {
      * Greedy Slater ranking: start from Copeland order, then do local
      * swaps to reduce disagreements.
      */
-    private SlaterResult slaterGreedy() {
-        // Start with Copeland ranking
-        List<RankEntry> copeland = computeCopelandRanking();
+    private SlaterResult slaterGreedy(List<RankEntry> copeland) {
+        // Start with provided Copeland ranking
         List<String> order = new ArrayList<String>();
         for (RankEntry e : copeland) {
             order.add(e.getVertex());
@@ -1031,8 +1027,8 @@ public class TournamentAnalyzer {
         }
         sb.append("\n");
 
-        // Slater
-        SlaterResult slater = computeSlaterRanking();
+        // Slater (reuse the Copeland ranking already computed above)
+        SlaterResult slater = computeSlaterRanking(ranking);
         sb.append("── Slater Ranking ──\n");
         sb.append("Ranking: ").append(String.join(" > ", slater.getRanking())).append("\n");
         sb.append("Disagreements: ").append(slater.getDisagreements()).append("\n");
