@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Tournament Bracket — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .tournament-container { display: grid; grid-template-columns: 320px 1fr 340px; gap: 20px; padding: 20px; min-height: calc(100vh - 60px); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; overflow-y: auto; }
+        .panel h2 { margin-bottom: 14px; font-size: 1.1rem; }
+        .panel h3 { margin: 14px 0 8px; font-size: 0.95rem; color: var(--text-muted); }
+        textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 13px; resize: vertical; }
+        select, button { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+        select { width: 100%; margin-bottom: 10px; }
+        button:hover { background: var(--surface-hover); border-color: var(--accent); }
+        button.primary { background: var(--accent); color: #000; font-weight: 600; border-color: var(--accent); }
+        button.primary:hover { background: var(--accent-hover); }
+        .btn-row { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+        .btn-row button { flex: 1; min-width: 70px; }
+        #bracketCanvas { width: 100%; height: 100%; background: var(--bg); border-radius: 8px; display: block; }
+        .canvas-wrap { position: relative; min-height: 500px; }
+        .standings-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .standings-table th, .standings-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+        .standings-table th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        .standings-table tr:hover { background: var(--surface-hover); }
+        .insight { background: var(--bg); border-left: 3px solid var(--accent); padding: 10px 14px; margin: 8px 0; border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.5; }
+        .insight.upset { border-left-color: var(--orange); }
+        .insight.dominant { border-left-color: var(--green); }
+        .insight.warning { border-left-color: var(--red); }
+        .insight .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; margin-right: 6px; font-weight: 600; }
+        .tag-upset { background: rgba(210,153,34,0.2); color: var(--orange); }
+        .tag-insight { background: rgba(88,166,255,0.2); color: var(--accent); }
+        .tag-dominant { background: rgba(63,185,80,0.2); color: var(--green); }
+        .tag-warning { background: rgba(248,81,73,0.2); color: var(--red); }
+        .round-label { color: var(--accent); font-weight: 600; margin: 12px 0 4px; font-size: 13px; }
+        .seed-badge { display: inline-block; background: var(--surface-hover); color: var(--text-muted); font-size: 11px; padding: 1px 6px; border-radius: 8px; margin-left: 4px; }
+        @media (max-width: 1100px) { .tournament-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="tournament.html" class="sidebar-link active"><span class="icon">🏆</span>Tournament</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+    <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Coloring</a>
+    <a href="communities.html" class="sidebar-link"><span class="icon">👥</span>Communities</a>
+</nav>
+<main class="content">
+    <h1>🏆 Graph Tournament Bracket</h1>
+    <p class="lead">
+        Pit graph nodes against each other in centrality-based tournaments.
+        Choose a metric, pick a format, and watch animated bracket progression
+        with proactive insights about upsets, dominance, and optimal seeding.
+    </p>
+
+    <div class="tournament-container">
+        <!-- Left Panel: Config -->
+        <div class="panel">
+            <h2>⚙️ Configuration</h2>
+            <h3>Graph Input</h3>
+            <select id="presetSelect">
+                <option value="">— Custom (edit below) —</option>
+                <option value="petersen">Petersen Graph</option>
+                <option value="k5">Complete K5</option>
+                <option value="cycle8">Cycle C8</option>
+                <option value="star6">Star S6</option>
+                <option value="bintree">Binary Tree (15 nodes)</option>
+                <option value="grid3">Grid 3×3</option>
+                <option value="random">Random (12 nodes)</option>
+            </select>
+            <textarea id="edgeInput" rows="8" placeholder="One edge per line: A-B"></textarea>
+
+            <h3>Metric</h3>
+            <select id="metricSelect">
+                <option value="degree">Degree Centrality</option>
+                <option value="closeness">Closeness Centrality</option>
+                <option value="betweenness">Betweenness Centrality</option>
+                <option value="pagerank">PageRank</option>
+            </select>
+
+            <h3>Tournament Format</h3>
+            <select id="formatSelect">
+                <option value="elimination">Single Elimination</option>
+                <option value="roundrobin">Round Robin</option>
+            </select>
+
+            <div class="btn-row" style="margin-top:16px">
+                <button class="primary" id="btnStart">▶ Start</button>
+                <button id="btnStep">⏭ Step</button>
+                <button id="btnReset">↺ Reset</button>
+            </div>
+            <div class="btn-row">
+                <button id="btnAutoPlay">⏩ Auto-Play</button>
+            </div>
+        </div>
+
+        <!-- Center: Bracket Canvas -->
+        <div class="panel canvas-wrap">
+            <canvas id="bracketCanvas"></canvas>
+            <div id="standingsWrap" style="display:none">
+                <h2 style="margin-bottom:10px">📋 Round Robin Standings</h2>
+                <table class="standings-table" id="standingsTable">
+                    <thead><tr><th>#</th><th>Node</th><th>W</th><th>L</th><th>Score</th><th>Seed</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Panel: Insights -->
+        <div class="panel" id="insightsPanel">
+            <h2>🧠 Proactive Insights</h2>
+            <p style="color:var(--text-muted);font-size:13px" id="insightsPlaceholder">Start a tournament to see insights about upsets, dominance, and seeding recommendations.</p>
+            <div id="insightsList"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ============ PRESETS ============
+const PRESETS = {
+    petersen: 'A-B\nA-C\nA-F\nB-D\nB-G\nC-D\nC-H\nD-E\nE-I\nE-F\nF-J\nG-I\nG-H\nH-J\nI-J',
+    k5: 'A-B\nA-C\nA-D\nA-E\nB-C\nB-D\nB-E\nC-D\nC-E\nD-E',
+    cycle8: 'A-B\nB-C\nC-D\nD-E\nE-F\nF-G\nG-H\nH-A',
+    star6: 'X-A\nX-B\nX-C\nX-D\nX-E\nX-F',
+    bintree: '1-2\n1-3\n2-4\n2-5\n3-6\n3-7\n4-8\n4-9\n5-10\n5-11\n6-12\n6-13\n7-14\n7-15',
+    grid3: 'A-B\nB-C\nD-E\nE-F\nG-H\nH-I\nA-D\nD-G\nB-E\nE-H\nC-F\nF-I',
+    random: null
+};
+
+function randomGraph() {
+    const nodes = 'ABCDEFGHIJKL'.split('');
+    const edges = new Set();
+    // ensure connected
+    for (let i = 1; i < nodes.length; i++) {
+        const j = Math.floor(Math.random() * i);
+        edges.add(nodes[j] + '-' + nodes[i]);
+    }
+    // add extra edges
+    for (let k = 0; k < 10; k++) {
+        const a = nodes[Math.floor(Math.random() * nodes.length)];
+        const b = nodes[Math.floor(Math.random() * nodes.length)];
+        if (a !== b) edges.add([a, b].sort().join('-'));
+    }
+    return [...edges].join('\n');
+}
+
+// ============ GRAPH PARSING ============
+function parseGraph(text) {
+    const adj = {};
+    const addNode = n => { if (!adj[n]) adj[n] = new Set(); };
+    text.trim().split('\n').forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        const parts = line.split(/[-\s,]+/);
+        if (parts.length >= 2) {
+            const [a, b] = [parts[0].trim(), parts[1].trim()];
+            addNode(a); addNode(b);
+            adj[a].add(b); adj[b].add(a);
+        }
+    });
+    return adj;
+}
+
+// ============ CENTRALITY METRICS ============
+function degreeCentrality(adj) {
+    const nodes = Object.keys(adj);
+    const n = nodes.length;
+    const scores = {};
+    nodes.forEach(v => scores[v] = adj[v].size / (n - 1 || 1));
+    return scores;
+}
+
+function closenessCentrality(adj) {
+    const nodes = Object.keys(adj);
+    const scores = {};
+    nodes.forEach(src => {
+        const dist = bfs(adj, src);
+        let total = 0, reachable = 0;
+        nodes.forEach(v => { if (v !== src && dist[v] < Infinity) { total += dist[v]; reachable++; } });
+        scores[src] = reachable > 0 ? reachable / total : 0;
+    });
+    return scores;
+}
+
+function bfs(adj, src) {
+    const dist = {};
+    Object.keys(adj).forEach(v => dist[v] = Infinity);
+    dist[src] = 0;
+    const queue = [src];
+    while (queue.length) {
+        const u = queue.shift();
+        for (const w of adj[u]) {
+            if (dist[w] === Infinity) { dist[w] = dist[u] + 1; queue.push(w); }
+        }
+    }
+    return dist;
+}
+
+function betweennessCentrality(adj) {
+    const nodes = Object.keys(adj);
+    const scores = {};
+    nodes.forEach(v => scores[v] = 0);
+    nodes.forEach(src => {
+        const stack = [], pred = {}, sigma = {}, dist = {};
+        nodes.forEach(v => { pred[v] = []; sigma[v] = 0; dist[v] = -1; });
+        sigma[src] = 1; dist[src] = 0;
+        const queue = [src];
+        while (queue.length) {
+            const u = queue.shift();
+            stack.push(u);
+            for (const w of adj[u]) {
+                if (dist[w] < 0) { queue.push(w); dist[w] = dist[u] + 1; }
+                if (dist[w] === dist[u] + 1) { sigma[w] += sigma[u]; pred[w].push(u); }
+            }
+        }
+        const delta = {};
+        nodes.forEach(v => delta[v] = 0);
+        while (stack.length) {
+            const w = stack.pop();
+            for (const v of pred[w]) delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]);
+            if (w !== src) scores[w] += delta[w];
+        }
+    });
+    const n = nodes.length;
+    const norm = (n - 1) * (n - 2) || 1;
+    nodes.forEach(v => scores[v] /= norm);
+    return scores;
+}
+
+function pageRank(adj, damping = 0.85, iterations = 50) {
+    const nodes = Object.keys(adj);
+    const n = nodes.length;
+    const scores = {};
+    nodes.forEach(v => scores[v] = 1 / n);
+    for (let i = 0; i < iterations; i++) {
+        const next = {};
+        nodes.forEach(v => next[v] = (1 - damping) / n);
+        nodes.forEach(v => {
+            const share = scores[v] / (adj[v].size || 1);
+            for (const w of adj[v]) next[w] += damping * share;
+        });
+        nodes.forEach(v => scores[v] = next[v]);
+    }
+    return scores;
+}
+
+const METRICS = { degree: degreeCentrality, closeness: closenessCentrality, betweenness: betweennessCentrality, pagerank: pageRank };
+
+// ============ TOURNAMENT ENGINE ============
+class Tournament {
+    constructor(adj, metric, format) {
+        this.adj = adj;
+        this.scores = METRICS[metric](adj);
+        this.metric = metric;
+        this.format = format;
+        this.nodes = Object.keys(adj);
+        // Seed by score descending
+        this.seeds = [...this.nodes].sort((a, b) => this.scores[b] - this.scores[a]);
+        this.seedMap = {};
+        this.seeds.forEach((n, i) => this.seedMap[n] = i + 1);
+        this.rounds = [];
+        this.currentRound = 0;
+        this.insights = [];
+        this.finished = false;
+        if (format === 'elimination') this._buildElimination();
+        else this._buildRoundRobin();
+    }
+
+    _buildElimination() {
+        // Pad to next power of 2
+        let size = 1;
+        while (size < this.seeds.length) size *= 2;
+        const bracket = [...this.seeds];
+        while (bracket.length < size) bracket.push(null); // byes
+        // Build rounds
+        let current = bracket;
+        while (current.length > 1) {
+            const round = [];
+            for (let i = 0; i < current.length; i += 2) {
+                round.push({ a: current[i], b: current[i + 1], winner: null, played: false });
+            }
+            this.rounds.push(round);
+            current = new Array(round.length).fill(null);
+        }
+    }
+
+    _buildRoundRobin() {
+        const n = this.seeds.length;
+        const round = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                round.push({ a: this.seeds[i], b: this.seeds[j], winner: null, played: false });
+            }
+        }
+        // Shuffle for variety
+        for (let i = round.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [round[i], round[j]] = [round[j], round[i]];
+        }
+        // Split into groups of ~ceil(n/2) matches per round
+        const perRound = Math.max(1, Math.ceil(n / 2));
+        while (round.length) this.rounds.push(round.splice(0, perRound));
+    }
+
+    step() {
+        if (this.finished) return false;
+        if (this.currentRound >= this.rounds.length) { this.finished = true; return false; }
+        const round = this.rounds[this.currentRound];
+        round.forEach(m => {
+            if (m.played) return;
+            if (m.b === null) { m.winner = m.a; m.played = true; return; }
+            if (m.a === null) { m.winner = m.b; m.played = true; return; }
+            const sa = this.scores[m.a], sb = this.scores[m.b];
+            // Add small random factor (10%) for excitement
+            const ea = sa + (Math.random() * 0.1 * sa), eb = sb + (Math.random() * 0.1 * sb);
+            m.winner = ea >= eb ? m.a : m.b;
+            m.played = true;
+            // Detect upset
+            if (this.seedMap[m.winner] > this.seedMap[m.winner === m.a ? m.b : m.a]) {
+                const loser = m.winner === m.a ? m.b : m.a;
+                this.insights.push({ type: 'upset', text: `Upset! #${this.seedMap[m.winner]} ${m.winner} beat #${this.seedMap[loser]} ${loser}`, round: this.currentRound });
+            }
+        });
+        // For elimination, advance winners
+        if (this.format === 'elimination' && this.currentRound + 1 < this.rounds.length) {
+            const nextRound = this.rounds[this.currentRound + 1];
+            round.forEach((m, i) => {
+                const ni = Math.floor(i / 2);
+                if (i % 2 === 0) nextRound[ni].a = m.winner;
+                else nextRound[ni].b = m.winner;
+            });
+        }
+        this.currentRound++;
+        if (this.currentRound >= this.rounds.length) {
+            this.finished = true;
+            this._finalInsights();
+        }
+        return true;
+    }
+
+    _finalInsights() {
+        if (this.format === 'elimination') {
+            const finalMatch = this.rounds[this.rounds.length - 1][0];
+            const champ = finalMatch.winner;
+            if (this.seedMap[champ] === 1) {
+                this.insights.push({ type: 'dominant', text: `#1 seed ${champ} won as expected — dominant champion with top ${this.metric} centrality.` });
+            } else {
+                this.insights.push({ type: 'upset', text: `#${this.seedMap[champ]} seed ${champ} won the tournament! A Cinderella run despite lower ${this.metric} centrality.` });
+            }
+        }
+        // Seeding recommendation
+        const upsets = this.insights.filter(i => i.type === 'upset').length;
+        if (upsets > 2) {
+            this.insights.push({ type: 'warning', text: `${upsets} upsets detected. Consider using a different metric for more stable seeding.` });
+        }
+        // Underperformers
+        if (this.format === 'roundrobin') {
+            const wins = this.getStandings();
+            wins.forEach(s => {
+                if (this.seedMap[s.node] <= 3 && s.rank > this.seeds.length / 2) {
+                    this.insights.push({ type: 'warning', text: `${s.node} (seed #${this.seedMap[s.node]}) finished #${s.rank} — consistently underperformed their seed.` });
+                }
+            });
+        }
+        this.insights.push({ type: 'insight', text: `Optimal seeding suggestion: try ${this.metric === 'pagerank' ? 'betweenness' : 'pagerank'} centrality for potentially different results.` });
+    }
+
+    getStandings() {
+        if (this.format !== 'roundrobin') return [];
+        const wins = {};
+        this.nodes.forEach(n => wins[n] = { node: n, w: 0, l: 0, score: 0 });
+        this.rounds.flat().forEach(m => {
+            if (!m.played || !m.a || !m.b) return;
+            wins[m.winner].w++;
+            const loser = m.winner === m.a ? m.b : m.a;
+            wins[loser].l++;
+            wins[m.winner].score += this.scores[m.winner];
+        });
+        const sorted = Object.values(wins).sort((a, b) => b.w - a.w || b.score - a.score);
+        sorted.forEach((s, i) => s.rank = i + 1);
+        return sorted;
+    }
+
+    getChampion() {
+        if (!this.finished) return null;
+        if (this.format === 'elimination') return this.rounds[this.rounds.length - 1][0].winner;
+        const standings = this.getStandings();
+        return standings.length ? standings[0].node : null;
+    }
+}
+
+// ============ RENDERING ============
+const canvas = document.getElementById('bracketCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    const wrap = canvas.parentElement;
+    canvas.width = wrap.clientWidth;
+    canvas.height = Math.max(wrap.clientHeight, 500);
+}
+
+function drawElimination(t) {
+    resizeCanvas();
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const numRounds = t.rounds.length;
+    const colW = W / (numRounds + 0.5);
+    const colors = { played: '#3fb950', pending: '#30363d', bye: '#6e7681', text: '#e6edf3', accent: '#58a6ff', loser: '#6e7681' };
+
+    for (let r = 0; r < numRounds; r++) {
+        const round = t.rounds[r];
+        const matchH = H / round.length;
+        // Round label
+        ctx.fillStyle = '#58a6ff';
+        ctx.font = 'bold 12px sans-serif';
+        const label = r === numRounds - 1 ? 'Final' : r === numRounds - 2 ? 'Semifinal' : `Round ${r + 1}`;
+        ctx.fillText(label, r * colW + 10, 18);
+
+        round.forEach((m, i) => {
+            const x = r * colW + 10;
+            const y = i * matchH + matchH / 2 - 20;
+            const boxW = colW - 30;
+
+            // Match box
+            ctx.fillStyle = m.played ? 'rgba(63,185,80,0.08)' : 'rgba(48,54,61,0.3)';
+            ctx.strokeStyle = m.played ? colors.played : colors.pending;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(x, y, boxW, 44, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Player A
+            ctx.font = '13px sans-serif';
+            const aText = m.a ? `#${t.seedMap[m.a]} ${m.a}` : 'BYE';
+            ctx.fillStyle = m.played && m.winner === m.a ? colors.played : m.played ? colors.loser : colors.text;
+            ctx.fillText(aText, x + 8, y + 17);
+            if (m.a) {
+                ctx.fillStyle = '#8b949e';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(t.scores[m.a].toFixed(3), x + boxW - 50, y + 17);
+            }
+
+            // Divider
+            ctx.strokeStyle = colors.pending;
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 22);
+            ctx.lineTo(x + boxW - 4, y + 22);
+            ctx.stroke();
+
+            // Player B
+            ctx.font = '13px sans-serif';
+            const bText = m.b ? `#${t.seedMap[m.b]} ${m.b}` : 'BYE';
+            ctx.fillStyle = m.played && m.winner === m.b ? colors.played : m.played ? colors.loser : colors.text;
+            ctx.fillText(bText, x + 8, y + 38);
+            if (m.b) {
+                ctx.fillStyle = '#8b949e';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(t.scores[m.b].toFixed(3), x + boxW - 50, y + 38);
+            }
+
+            // Connector line to next round
+            if (r + 1 < numRounds) {
+                const nextMatchH = H / t.rounds[r + 1].length;
+                const ni = Math.floor(i / 2);
+                const nx = (r + 1) * colW + 10;
+                const ny = ni * nextMatchH + nextMatchH / 2;
+                ctx.strokeStyle = m.played ? 'rgba(88,166,255,0.4)' : 'rgba(48,54,61,0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + boxW, y + 22);
+                ctx.lineTo(x + boxW + 15, y + 22);
+                ctx.lineTo(x + boxW + 15, ny);
+                ctx.lineTo(nx, ny);
+                ctx.stroke();
+            }
+        });
+    }
+
+    // Champion banner
+    if (t.finished) {
+        const champ = t.getChampion();
+        ctx.fillStyle = 'rgba(63,185,80,0.15)';
+        ctx.beginPath();
+        ctx.roundRect(W - 180, H / 2 - 30, 170, 60, 10);
+        ctx.fill();
+        ctx.strokeStyle = '#3fb950';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#3fb950';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('🏆 ' + champ, W - 165, H / 2 + 5);
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('Champion', W - 165, H / 2 + 22);
+    }
+}
+
+function drawRoundRobin(t) {
+    const standingsWrap = document.getElementById('standingsWrap');
+    const tbody = document.querySelector('#standingsTable tbody');
+    tbody.innerHTML = '';
+    if (t.currentRound === 0 && !t.finished) { standingsWrap.style.display = 'none'; canvas.style.display = 'block'; resizeCanvas(); ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+    canvas.style.display = 'none';
+    standingsWrap.style.display = 'block';
+    const standings = t.getStandings();
+    standings.forEach((s, i) => {
+        const tr = document.createElement('tr');
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+        tr.innerHTML = `<td>${medal} ${s.rank}</td><td><strong>${s.node}</strong></td><td>${s.w}</td><td>${s.l}</td><td>${s.score.toFixed(3)}</td><td><span class="seed-badge">#${t.seedMap[s.node]}</span></td>`;
+        if (i === 0 && t.finished) tr.style.background = 'rgba(63,185,80,0.1)';
+        tbody.appendChild(tr);
+    });
+}
+
+function renderInsights(t) {
+    const list = document.getElementById('insightsList');
+    const placeholder = document.getElementById('insightsPlaceholder');
+    placeholder.style.display = t.insights.length ? 'none' : '';
+    list.innerHTML = '';
+    t.insights.forEach(ins => {
+        const cls = ins.type === 'upset' ? 'upset' : ins.type === 'dominant' ? 'dominant' : ins.type === 'warning' ? 'warning' : '';
+        const tagCls = ins.type === 'upset' ? 'tag-upset' : ins.type === 'dominant' ? 'tag-dominant' : ins.type === 'warning' ? 'tag-warning' : 'tag-insight';
+        const tagLabel = ins.type.charAt(0).toUpperCase() + ins.type.slice(1);
+        const div = document.createElement('div');
+        div.className = 'insight ' + cls;
+        div.innerHTML = `<span class="tag ${tagCls}">${tagLabel}</span> ${ins.text}`;
+        list.appendChild(div);
+    });
+}
+
+// ============ CONTROLLER ============
+let tournament = null;
+let autoTimer = null;
+
+const presetSelect = document.getElementById('presetSelect');
+const edgeInput = document.getElementById('edgeInput');
+const metricSelect = document.getElementById('metricSelect');
+const formatSelect = document.getElementById('formatSelect');
+
+presetSelect.addEventListener('change', () => {
+    const v = presetSelect.value;
+    if (!v) return;
+    edgeInput.value = v === 'random' ? randomGraph() : PRESETS[v];
+});
+
+// Init with petersen
+presetSelect.value = 'petersen';
+edgeInput.value = PRESETS.petersen;
+
+document.getElementById('btnStart').addEventListener('click', startTournament);
+document.getElementById('btnStep').addEventListener('click', stepTournament);
+document.getElementById('btnReset').addEventListener('click', resetTournament);
+document.getElementById('btnAutoPlay').addEventListener('click', toggleAutoPlay);
+
+function startTournament() {
+    stopAutoPlay();
+    const adj = parseGraph(edgeInput.value);
+    if (Object.keys(adj).length < 2) { alert('Need at least 2 nodes.'); return; }
+    tournament = new Tournament(adj, metricSelect.value, formatSelect.value);
+    render();
+    // Initial insight: seeding
+    const top3 = tournament.seeds.slice(0, 3);
+    tournament.insights.push({ type: 'insight', text: `Seeded by ${metricSelect.value}: ${top3.map((n, i) => `#${i + 1} ${n} (${tournament.scores[n].toFixed(3)})`).join(', ')}` });
+    renderInsights(tournament);
+}
+
+function stepTournament() {
+    if (!tournament) return;
+    tournament.step();
+    render();
+    renderInsights(tournament);
+}
+
+function resetTournament() {
+    stopAutoPlay();
+    tournament = null;
+    canvas.style.display = 'block';
+    document.getElementById('standingsWrap').style.display = 'none';
+    resizeCanvas();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('insightsList').innerHTML = '';
+    document.getElementById('insightsPlaceholder').style.display = '';
+}
+
+function toggleAutoPlay() {
+    if (autoTimer) { stopAutoPlay(); return; }
+    if (!tournament) startTournament();
+    document.getElementById('btnAutoPlay').textContent = '⏸ Pause';
+    autoTimer = setInterval(() => {
+        if (!tournament || !tournament.step()) { stopAutoPlay(); }
+        render();
+        renderInsights(tournament);
+    }, 800);
+}
+
+function stopAutoPlay() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = null;
+    document.getElementById('btnAutoPlay').textContent = '⏩ Auto-Play';
+}
+
+function render() {
+    if (!tournament) return;
+    if (tournament.format === 'elimination') drawElimination(tournament);
+    else drawRoundRobin(tournament);
+}
+
+window.addEventListener('resize', () => { if (tournament && tournament.format === 'elimination') drawElimination(tournament); });
+resizeCanvas();
+</script>
+</body>
+</html>
