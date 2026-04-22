@@ -62,6 +62,19 @@ public class GraphDrawingQualityAnalyzer {
     // ── BFS distance cache ──────────────────────────────────────────
     private Map<String, Map<String, Integer>> distCache;
 
+    // ── Pre-computed spatial data (shared across stress/overlap/neighbourhood) ──
+    /** Positioned vertices in stable order. */
+    private List<String> posVerts;
+    /** posVerts.size(). */
+    private int posN;
+    /** x[i], y[i] coordinates indexed by posVerts order. */
+    private double[] posX, posY;
+    /** Flat upper-triangle Euclidean distance matrix: dist(i,j) for i<j
+     *  stored at index i*posN - i*(i+1)/2 + (j-i-1). */
+    private double[] pairDist;
+    /** Maps vertex ID → index in posVerts (for fast lookup). */
+    private Map<String, Integer> posIdx;
+
     public GraphDrawingQualityAnalyzer(Graph<String, Edge> graph,
                                        Map<String, Point2D> positions) {
         this.graph = Objects.requireNonNull(graph);
@@ -140,6 +153,7 @@ public class GraphDrawingQualityAnalyzer {
 
     private synchronized void ensureComputed() {
         if (computed) return;
+        buildSpatialIndex();
         computeEdgeCrossings();
         computeEdgeLengths();
         computeAngularResolution();
@@ -149,6 +163,48 @@ public class GraphDrawingQualityAnalyzer {
         computeSpatialDistribution();
         computeQualityScore();
         computed = true;
+    }
+
+    /**
+     * Pre-computes positioned vertex list, coordinate arrays, index map,
+     * and pairwise Euclidean distance matrix.  This is done once and shared
+     * by computeStress, computeNeighbourhoodPreservation, and
+     * computeOverlapRatio — eliminating three independent O(V²) passes
+     * that each performed HashMap lookups and Point2D.distance() calls.
+     */
+    private void buildSpatialIndex() {
+        posVerts = new ArrayList<>();
+        for (String v : graph.getVertices()) {
+            if (positions.containsKey(v)) posVerts.add(v);
+        }
+        posN = posVerts.size();
+        posX = new double[posN];
+        posY = new double[posN];
+        posIdx = new HashMap<>(posN * 2);
+        for (int i = 0; i < posN; i++) {
+            Point2D p = positions.get(posVerts.get(i));
+            posX[i] = p.getX();
+            posY[i] = p.getY();
+            posIdx.put(posVerts.get(i), i);
+        }
+        // Flat upper-triangle distance matrix
+        long triSize = (long) posN * (posN - 1) / 2;
+        pairDist = new double[(int) triSize];
+        int idx = 0;
+        for (int i = 0; i < posN; i++) {
+            double xi = posX[i], yi = posY[i];
+            for (int j = i + 1; j < posN; j++) {
+                double dx = xi - posX[j];
+                double dy = yi - posY[j];
+                pairDist[idx++] = Math.sqrt(dx * dx + dy * dy);
+            }
+        }
+    }
+
+    /** Returns the pre-computed Euclidean distance between posVerts[i] and posVerts[j] (i < j). */
+    private double spatialDist(int i, int j) {
+        if (i > j) { int t = i; i = j; j = t; }
+        return pairDist[i * posN - i * (i + 1) / 2 + (j - i - 1)];
     }
 
     // ── Edge crossings ──────────────────────────────────────────────
@@ -253,27 +309,30 @@ public class GraphDrawingQualityAnalyzer {
 
     // ── Stress (Kamada-Kawai) ───────────────────────────────────────
 
+    /**
+     * Kamada-Kawai stress using pre-computed spatial distance matrix.
+     * Avoids per-pair HashMap lookups and Point2D.distance() calls.
+     */
     private void computeStress() {
-        List<String> verts = new ArrayList<>();
-        for (String v : graph.getVertices()) {
-            if (positions.containsKey(v)) verts.add(v);
-        }
-        if (verts.size() < 2) { stress = 0; return; }
+        if (posN < 2) { stress = 0; return; }
 
-        ensureDistCache(verts);
+        ensureDistCache(posVerts);
 
         double totalStress = 0;
         double normaliser = 0;
-        for (int i = 0; i < verts.size(); i++) {
-            for (int j = i + 1; j < verts.size(); j++) {
-                String u = verts.get(i), v = verts.get(j);
-                Integer dij = distCache.getOrDefault(u, Collections.emptyMap()).get(v);
+        for (int i = 0; i < posN; i++) {
+            String u = posVerts.get(i);
+            Map<String, Integer> uDist = distCache.get(u);
+            if (uDist == null) continue;
+            for (int j = i + 1; j < posN; j++) {
+                Integer dij = uDist.get(posVerts.get(j));
                 if (dij == null || dij == 0) continue;
 
-                double drawDist = positions.get(u).distance(positions.get(v));
-                double ideal = dij * edgeLengthMean; // scale graph distance by mean edge length
-                double w = 1.0 / (dij * dij);
-                totalStress += w * (drawDist - ideal) * (drawDist - ideal);
+                double drawDist = spatialDist(i, j);
+                double ideal = dij * edgeLengthMean;
+                double w = 1.0 / ((double) dij * dij);
+                double diff = drawDist - ideal;
+                totalStress += w * diff * diff;
                 normaliser += w * ideal * ideal;
             }
         }
@@ -282,43 +341,57 @@ public class GraphDrawingQualityAnalyzer {
 
     // ── Neighbourhood preservation ──────────────────────────────────
 
+    /**
+     * Neighbourhood preservation using pre-computed spatial distances.
+     *
+     * <p>For each vertex, finds the k nearest vertices in the drawing and
+     * checks overlap with graph neighbours. Uses array-indexed distances
+     * from the pre-computed matrix instead of per-vertex Point2D.distance()
+     * calls and Map.Entry allocations. Sorts an int[] of indices by distance
+     * rather than allocating O(V) Map.Entry objects per vertex.</p>
+     */
     private void computeNeighbourhoodPreservation() {
         int totalNeighbours = 0;
         int preserved = 0;
 
-        List<String> verts = new ArrayList<>();
-        for (String v : graph.getVertices()) {
-            if (positions.containsKey(v)) verts.add(v);
-        }
+        // Reusable array for sorting neighbour indices by distance
+        Integer[] sortIndices = new Integer[posN];
+        for (int i = 0; i < posN; i++) sortIndices[i] = i;
 
-        for (String v : verts) {
+        for (int vi = 0; vi < posN; vi++) {
+            String v = posVerts.get(vi);
             Collection<String> nbrs = graph.getNeighbors(v);
             if (nbrs == null || nbrs.isEmpty()) continue;
 
             int k = 0;
             for (String n : nbrs) {
-                if (positions.containsKey(n)) k++;
+                if (posIdx.containsKey(n)) k++;
             }
             if (k == 0) continue;
 
-            // find k nearest in drawing
-            Point2D pv = positions.get(v);
-            List<Map.Entry<String, Double>> dists = new ArrayList<>();
-            for (String u : verts) {
-                if (u.equals(v)) continue;
-                dists.add(new AbstractMap.SimpleEntry<>(u, pv.distance(positions.get(u))));
-            }
-            dists.sort(Comparator.comparingDouble(Map.Entry::getValue));
+            // Sort all other vertex indices by distance to vi
+            final int src = vi;
+            Arrays.sort(sortIndices, (a, b) -> {
+                if (a == src) return 1;  // push self to end
+                if (b == src) return -1;
+                return Double.compare(spatialDist(src, a), spatialDist(src, b));
+            });
 
-            Set<String> kNearest = new HashSet<>();
-            for (int i = 0; i < Math.min(k, dists.size()); i++) {
-                kNearest.add(dists.get(i).getKey());
+            // Collect k nearest (skip self)
+            Set<Integer> kNearest = new HashSet<>(k * 2);
+            int found = 0;
+            for (int i = 0; i < posN && found < k; i++) {
+                int idx = sortIndices[i];
+                if (idx == vi) continue;
+                kNearest.add(idx);
+                found++;
             }
 
             for (String n : nbrs) {
-                if (positions.containsKey(n)) {
+                Integer ni = posIdx.get(n);
+                if (ni != null) {
                     totalNeighbours++;
-                    if (kNearest.contains(n)) preserved++;
+                    if (kNearest.contains(ni)) preserved++;
                 }
             }
         }
@@ -329,22 +402,23 @@ public class GraphDrawingQualityAnalyzer {
 
     // ── Overlap ratio ───────────────────────────────────────────────
 
+    /**
+     * Overlap ratio using pre-computed spatial distance matrix.
+     * Direct array access replaces per-pair HashMap lookups and
+     * Point2D.distance() calls.
+     */
     private void computeOverlapRatio() {
-        List<String> verts = new ArrayList<>();
-        for (String v : graph.getVertices()) {
-            if (positions.containsKey(v)) verts.add(v);
-        }
-        if (verts.size() < 2) { overlapRatio = 0; return; }
+        if (posN < 2) { overlapRatio = 0; return; }
 
-        // threshold: 5% of average edge length or 10 pixels, whichever is larger
         double threshold = Math.max(edgeLengthMean * 0.05, 10.0);
         int overlaps = 0;
         int pairs = 0;
+        int idx = 0;
 
-        for (int i = 0; i < verts.size(); i++) {
-            for (int j = i + 1; j < verts.size(); j++) {
+        for (int i = 0; i < posN; i++) {
+            for (int j = i + 1; j < posN; j++) {
                 pairs++;
-                if (positions.get(verts.get(i)).distance(positions.get(verts.get(j))) < threshold) {
+                if (pairDist[idx++] < threshold) {
                     overlaps++;
                 }
             }
