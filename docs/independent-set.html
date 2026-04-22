@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maximum Independent Set Finder — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .mis-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-list .step { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .history-list .step.active { background: var(--surface-hover); color: var(--accent); }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+        .speed-slider { width: 100%; }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; pointer-events: none; z-index: 50; display: none; max-width: 220px; }
+        .theorem-box { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
+        .theorem-box .eq { font-family: monospace; color: var(--accent); font-weight: 600; }
+        @media (max-width: 800px) { .mis-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link"><span class="icon">👑</span>Dominating Set</a>
+        <a href="independent-set.html" class="sidebar-link active"><span class="icon">🏝️</span>Independent Set</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🏝️ Maximum Independent Set Finder
+    <span class="subtitle">Find largest independent vertex sets with greedy, exact &amp; complement-clique algorithms</span>
+</h1>
+
+<p>An <strong>independent set</strong> S of a graph G is a set of vertices where no two are adjacent. The <em>Maximum Independent Set</em> (MIS) is the largest such set — its size is denoted <strong>α(G)</strong>. Finding it is NP-hard, but this tool lets you visualize three different approaches step by step.</p>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="val" id="statAlpha">—</div><div class="lbl">α(G) Found</div></div>
+    <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Vertices</div></div>
+    <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+    <div class="stat-card"><div class="val" id="statDensity">—</div><div class="lbl">Density</div></div>
+    <div class="stat-card"><div class="val" id="statSteps">0</div><div class="lbl">Steps</div></div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#00e676;"></div> In independent set</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffd740;"></div> Current candidate</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b949e; opacity:0.5;"></div> Eliminated</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff;"></div> Available</div>
+</div>
+
+<div class="mis-layout">
+<div class="controls-panel">
+
+    <div class="control-group">
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetRow">
+            <button class="preset-btn active" data-preset="path5">Path P₅</button>
+            <button class="preset-btn" data-preset="triangle">Triangle K₃</button>
+            <button class="preset-btn" data-preset="cycle6">Cycle C₆</button>
+            <button class="preset-btn" data-preset="petersen">Petersen</button>
+            <button class="preset-btn" data-preset="k33">K₃,₃</button>
+            <button class="preset-btn" data-preset="star5">Star K₁,₅</button>
+            <button class="preset-btn" data-preset="crown">Crown (8)</button>
+            <button class="preset-btn" data-preset="random12">Random (12)</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Algorithm</h3>
+        <div class="control-row">
+            <label>Method</label>
+            <select id="algoSelect">
+                <option value="greedy">Greedy (min-degree)</option>
+                <option value="exact">Exact (backtracking)</option>
+                <option value="complement">Complement-Clique</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label>Speed</label>
+            <input type="range" id="speedSlider" class="speed-slider" min="1" max="10" value="5">
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-primary" id="btnRun">▶ Run</button>
+            <button class="btn btn-secondary" id="btnStep">⏭ Step</button>
+            <button class="btn btn-secondary" id="btnReset">↺ Reset</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Custom Input</h3>
+        <textarea class="text-input" id="textInput" placeholder="Edge list (one per line):&#10;0 1&#10;1 2&#10;2 3"></textarea>
+        <button class="btn btn-secondary" id="btnLoad" style="margin-top:8px;width:100%;">Load Graph</button>
+    </div>
+
+    <div class="control-group">
+        <h3>Step History</h3>
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Theorems</h3>
+        <div class="theorem-box" id="theoremBox">
+            <div><span class="eq">α(G) + β(G) = n</span> — Gallai's theorem (α = independence #, β = vertex cover #)</div>
+            <div style="margin-top:6px;"><span class="eq">α(G) = ω(Ḡ)</span> — independence # = clique # of complement</div>
+            <div style="margin-top:10px; color: var(--text-muted);" id="theoremValues">Run an algorithm to see computed values.</div>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Export</h3>
+        <button class="btn btn-secondary" id="btnExport" style="width:100%;">📋 Copy Independent Set as JSON</button>
+    </div>
+
+</div>
+
+<div>
+    <canvas id="graphCanvas" width="900" height="620"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── State ── */
+let nodes = [], edges = [], adj = {};
+let indepSet = new Set(), eliminated = new Set(), candidate = -1;
+let steps = [], stepIdx = -1, animTimer = null, running = false;
+let dragNode = -1, dragOffX = 0, dragOffY = 0, hoverNode = -1;
+
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+/* ── Presets ── */
+const presets = {
+    path5: { n: 5, e: [[0,1],[1,2],[2,3],[3,4]] },
+    triangle: { n: 3, e: [[0,1],[1,2],[2,0]] },
+    cycle6: { n: 6, e: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]] },
+    petersen: { n: 10, e: [[0,1],[1,2],[2,3],[3,4],[4,0],[5,7],[7,9],[9,6],[6,8],[8,5],[0,5],[1,6],[2,7],[3,8],[4,9]] },
+    k33: { n: 6, e: [[0,3],[0,4],[0,5],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5]] },
+    star5: { n: 6, e: [[0,1],[0,2],[0,3],[0,4],[0,5]] },
+    crown: { n: 8, e: [[0,5],[0,6],[0,7],[1,4],[1,6],[1,7],[2,4],[2,5],[2,7],[3,4],[3,5],[3,6]] },
+    random12: null
+};
+
+function genRandom(n) {
+    const e = [];
+    for (let i = 0; i < n; i++)
+        for (let j = i+1; j < n; j++)
+            if (Math.random() < 0.3) e.push([i,j]);
+    return { n, e };
+}
+
+function layoutCircle(n, cx, cy, r) {
+    const ns = [];
+    for (let i = 0; i < n; i++) {
+        const a = (2 * Math.PI * i / n) - Math.PI/2;
+        ns.push({ id: i, x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+    }
+    return ns;
+}
+
+function buildAdj() {
+    adj = {};
+    for (const n of nodes) adj[n.id] = [];
+    for (const [u,v] of edges) { adj[u].push(v); adj[v].push(u); }
+}
+
+function loadPreset(key) {
+    stopAnim();
+    const p = key === 'random12' ? genRandom(12) : presets[key];
+    nodes = layoutCircle(p.n, canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height) * 0.35);
+    edges = p.e.map(e => [e[0], e[1]]);
+    buildAdj();
+    resetState();
+    updateStats();
+    draw();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === key));
+}
+
+/* ── Algorithms ── */
+function algoGreedy() {
+    const st = [];
+    const avail = new Set(nodes.map(n => n.id));
+    const chosen = new Set();
+    while (avail.size > 0) {
+        // pick min-degree vertex among available
+        let best = -1, bestDeg = Infinity;
+        for (const v of avail) {
+            const deg = adj[v].filter(u => avail.has(u)).length;
+            if (deg < bestDeg) { bestDeg = deg; best = v; }
+        }
+        st.push({ type: 'consider', node: best, msg: `Consider v${best} (degree ${bestDeg} among available)` });
+        st.push({ type: 'add', node: best, msg: `Add v${best} to independent set` });
+        chosen.add(best);
+        avail.delete(best);
+        const removed = [];
+        for (const u of adj[best]) {
+            if (avail.has(u)) { avail.delete(u); removed.push(u); }
+        }
+        if (removed.length)
+            st.push({ type: 'eliminate', nodes: removed, msg: `Eliminate neighbors: ${removed.map(v=>'v'+v).join(', ')}` });
+    }
+    st.push({ type: 'done', set: [...chosen], msg: `Done! α(G) ≥ ${chosen.size}` });
+    return st;
+}
+
+function algoExact() {
+    const st = [];
+    const n = nodes.length;
+    if (n > 20) {
+        st.push({ type: 'done', set: [], msg: 'Too many vertices for exact (max 20). Use greedy.' });
+        return st;
+    }
+    let bestSet = [];
+    function bt(idx, current, excluded) {
+        if (current.length + (n - idx) <= bestSet.length) {
+            st.push({ type: 'prune', msg: `Prune at v${idx}: ${current.length} + ${n-idx} ≤ ${bestSet.length}` });
+            return;
+        }
+        if (idx === n) {
+            if (current.length > bestSet.length) {
+                bestSet = [...current];
+                st.push({ type: 'newbest', set: [...bestSet], msg: `New best: size ${bestSet.length} — {${bestSet.map(v=>'v'+v).join(', ')}}` });
+            }
+            return;
+        }
+        const v = nodes[idx].id;
+        st.push({ type: 'consider', node: v, msg: `Branch on v${v}` });
+        // Try including v if not excluded
+        if (!excluded.has(v)) {
+            const newExcl = new Set(excluded);
+            for (const u of adj[v]) newExcl.add(u);
+            st.push({ type: 'add', node: v, msg: `Include v${v}` });
+            bt(idx + 1, [...current, v], newExcl);
+            st.push({ type: 'remove', node: v, msg: `Backtrack: remove v${v}` });
+        }
+        // Try excluding v
+        bt(idx + 1, current, excluded);
+    }
+    bt(0, [], new Set());
+    st.push({ type: 'done', set: bestSet, msg: `Exact α(G) = ${bestSet.length}` });
+    return st;
+}
+
+function algoComplement() {
+    const st = [];
+    const n = nodes.length;
+    if (n > 20) {
+        st.push({ type: 'done', set: [], msg: 'Too many vertices for complement-clique (max 20). Use greedy.' });
+        return st;
+    }
+    // Build complement adjacency
+    const compAdj = {};
+    for (const nd of nodes) compAdj[nd.id] = new Set();
+    const edgeSet = new Set(edges.map(([u,v]) => u < v ? `${u},${v}` : `${v},${u}`));
+    for (let i = 0; i < n; i++)
+        for (let j = i+1; j < n; j++) {
+            const u = nodes[i].id, v = nodes[j].id;
+            const key = u < v ? `${u},${v}` : `${v},${u}`;
+            if (!edgeSet.has(key)) { compAdj[u].add(v); compAdj[v].add(u); }
+        }
+    st.push({ type: 'info', msg: `Built complement graph (${Object.values(compAdj).reduce((s,a)=>s+a.size,0)/2} edges)` });
+
+    // Bron-Kerbosch for max clique in complement
+    let bestClique = [];
+    function bk(R, P, X) {
+        if (P.size === 0 && X.size === 0) {
+            if (R.length > bestClique.length) {
+                bestClique = [...R];
+                st.push({ type: 'newbest', set: [...bestClique], msg: `Complement clique size ${bestClique.length} → MIS {${bestClique.map(v=>'v'+v).join(', ')}}` });
+            }
+            return;
+        }
+        // pivot
+        let pivot = -1, pivotN = -1;
+        for (const u of [...P, ...X]) {
+            const cn = [...P].filter(v => compAdj[u].has(v)).length;
+            if (cn > pivotN) { pivotN = cn; pivot = u; }
+        }
+        const cands = [...P].filter(v => !compAdj[pivot].has(v));
+        for (const v of cands) {
+            st.push({ type: 'consider', node: v, msg: `Complement BK: expand v${v}` });
+            const newP = new Set([...P].filter(u => compAdj[v].has(u)));
+            const newX = new Set([...X].filter(u => compAdj[v].has(u)));
+            bk([...R, v], newP, newX);
+            P.delete(v);
+            X.add(v);
+        }
+    }
+    bk([], new Set(nodes.map(nd => nd.id)), new Set());
+    st.push({ type: 'done', set: bestClique, msg: `α(G) = ω(Ḡ) = ${bestClique.length}` });
+    return st;
+}
+
+/* ── Animation ── */
+function resetState() {
+    stopAnim();
+    indepSet = new Set(); eliminated = new Set(); candidate = -1;
+    steps = []; stepIdx = -1; running = false;
+    document.getElementById('historyList').innerHTML = '';
+    document.getElementById('theoremValues').textContent = 'Run an algorithm to see computed values.';
+}
+
+function applyStep(i) {
+    const s = steps[i];
+    if (!s) return;
+    if (s.type === 'add' || s.type === 'newbest') {
+        if (s.set) { indepSet = new Set(s.set); eliminated = new Set(); for (const v of s.set) for (const u of adj[v]) eliminated.add(u); }
+        else if (s.node !== undefined) indepSet.add(s.node);
+        candidate = -1;
+    } else if (s.type === 'consider') {
+        candidate = s.node;
+    } else if (s.type === 'eliminate') {
+        for (const v of s.nodes) eliminated.add(v);
+        candidate = -1;
+    } else if (s.type === 'remove') {
+        indepSet.delete(s.node);
+        // recalc eliminated
+        eliminated = new Set();
+        for (const v of indepSet) for (const u of adj[v]) eliminated.add(u);
+        candidate = -1;
+    } else if (s.type === 'done') {
+        if (s.set && s.set.length) {
+            indepSet = new Set(s.set);
+            eliminated = new Set();
+            for (const v of s.set) for (const u of adj[v]) eliminated.add(u);
+        }
+        candidate = -1;
+        updateTheorems();
+    } else {
+        candidate = -1;
+    }
+    // update history
+    const hl = document.getElementById('historyList');
+    const div = document.createElement('div');
+    div.className = 'step' + (i === stepIdx ? ' active' : '');
+    div.textContent = `${i+1}. ${s.msg}`;
+    hl.appendChild(div);
+    hl.scrollTop = hl.scrollHeight;
+    document.getElementById('statSteps').textContent = i + 1;
+    document.getElementById('statAlpha').textContent = indepSet.size || '—';
+}
+
+function getSpeed() { return 1550 - document.getElementById('speedSlider').value * 150; }
+
+function runAnim() {
+    if (stepIdx >= steps.length - 1) { stopAnim(); return; }
+    stepIdx++;
+    applyStep(stepIdx);
+    draw();
+    if (running) animTimer = setTimeout(runAnim, getSpeed());
+}
+
+function stopAnim() { running = false; clearTimeout(animTimer); animTimer = null; }
+
+function startRun() {
+    resetState();
+    const algo = document.getElementById('algoSelect').value;
+    if (algo === 'greedy') steps = algoGreedy();
+    else if (algo === 'exact') steps = algoExact();
+    else steps = algoComplement();
+    running = true;
+    runAnim();
+}
+
+function stepOnce() {
+    if (steps.length === 0) {
+        const algo = document.getElementById('algoSelect').value;
+        if (algo === 'greedy') steps = algoGreedy();
+        else if (algo === 'exact') steps = algoExact();
+        else steps = algoComplement();
+    }
+    if (stepIdx < steps.length - 1) {
+        stepIdx++;
+        applyStep(stepIdx);
+        draw();
+    }
+}
+
+/* ── Theorems ── */
+function updateTheorems() {
+    const n = nodes.length;
+    const alpha = indepSet.size;
+    const beta = n - alpha; // Gallai: α + β = n → β = n - α
+    // ω(Ḡ) = α(G)
+    const el = document.getElementById('theoremValues');
+    el.innerHTML = `<strong>α(G) = ${alpha}</strong>, β(G) = ${beta}, n = ${n} → α + β = ${alpha} + ${beta} = ${n} ✓<br>` +
+        `ω(Ḡ) = ${alpha} (clique number of complement = independence number)`;
+}
+
+/* ── Stats ── */
+function updateStats() {
+    const n = nodes.length, m = edges.length;
+    document.getElementById('statNodes').textContent = n;
+    document.getElementById('statEdges').textContent = m;
+    document.getElementById('statDensity').textContent = n > 1 ? (2*m/(n*(n-1))).toFixed(2) : '0';
+}
+
+/* ── Drawing ── */
+function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // edges
+    for (const [u,v] of edges) {
+        const nu = nodes[u], nv = nodes[v];
+        const uIn = indepSet.has(u), vIn = indepSet.has(v);
+        const uElim = eliminated.has(u), vElim = eliminated.has(v);
+        ctx.beginPath();
+        ctx.moveTo(nu.x, nu.y);
+        ctx.lineTo(nv.x, nv.y);
+        if ((uIn && vElim) || (vIn && uElim)) {
+            ctx.strokeStyle = 'rgba(0,230,118,0.3)';
+            ctx.lineWidth = 2;
+        } else {
+            ctx.strokeStyle = 'rgba(139,148,158,0.25)';
+            ctx.lineWidth = 1;
+        }
+        ctx.stroke();
+    }
+
+    // nodes
+    for (const nd of nodes) {
+        const v = nd.id;
+        ctx.beginPath();
+        ctx.arc(nd.x, nd.y, 18, 0, Math.PI*2);
+        if (indepSet.has(v)) {
+            ctx.fillStyle = '#00e676';
+            ctx.globalAlpha = 1;
+        } else if (v === candidate) {
+            ctx.fillStyle = '#ffd740';
+            ctx.globalAlpha = 1;
+        } else if (eliminated.has(v)) {
+            ctx.fillStyle = '#8b949e';
+            ctx.globalAlpha = 0.4;
+        } else {
+            ctx.fillStyle = '#58a6ff';
+            ctx.globalAlpha = 0.8;
+        }
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = v === hoverNode ? '#fff' : 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = v === hoverNode ? 2.5 : 1;
+        ctx.stroke();
+
+        // label
+        ctx.fillStyle = indepSet.has(v) || v === candidate ? '#000' : '#fff';
+        ctx.font = 'bold 13px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(v, nd.x, nd.y);
+    }
+}
+
+/* ── Interaction ── */
+function getNode(mx, my) {
+    for (let i = nodes.length-1; i >= 0; i--) {
+        const dx = mx - nodes[i].x, dy = my - nodes[i].y;
+        if (dx*dx + dy*dy < 400) return i;
+    }
+    return -1;
+}
+
+function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+}
+
+canvas.addEventListener('mousedown', e => {
+    const p = canvasPos(e);
+    const i = getNode(p.x, p.y);
+    if (i >= 0) { dragNode = i; dragOffX = p.x - nodes[i].x; dragOffY = p.y - nodes[i].y; canvas.style.cursor = 'grabbing'; }
+});
+
+canvas.addEventListener('mousemove', e => {
+    const p = canvasPos(e);
+    if (dragNode >= 0) {
+        nodes[dragNode].x = p.x - dragOffX;
+        nodes[dragNode].y = p.y - dragOffY;
+        draw();
+        return;
+    }
+    const i = getNode(p.x, p.y);
+    if (i >= 0 && i !== hoverNode) {
+        hoverNode = i;
+        const v = nodes[i].id;
+        const deg = adj[v] ? adj[v].length : 0;
+        let status = 'available';
+        if (indepSet.has(v)) status = 'in independent set';
+        else if (eliminated.has(v)) status = 'eliminated';
+        else if (v === candidate) status = 'candidate';
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = `<strong>v${v}</strong><br>Degree: ${deg}<br>Status: ${status}`;
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY + 14) + 'px';
+        draw();
+    } else if (i < 0 && hoverNode >= 0) {
+        hoverNode = -1;
+        tooltip.style.display = 'none';
+        draw();
+    }
+});
+
+canvas.addEventListener('mouseup', () => { dragNode = -1; canvas.style.cursor = 'grab'; });
+canvas.addEventListener('mouseleave', () => { hoverNode = -1; tooltip.style.display = 'none'; dragNode = -1; draw(); });
+
+/* ── Load custom graph ── */
+function loadCustom() {
+    const txt = document.getElementById('textInput').value.trim();
+    if (!txt) return;
+    const es = [], vs = new Set();
+    for (const line of txt.split('\n')) {
+        const parts = line.trim().split(/[\s,]+/).map(Number);
+        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            es.push([parts[0], parts[1]]);
+            vs.add(parts[0]); vs.add(parts[1]);
+        }
+    }
+    const vArr = [...vs].sort((a,b)=>a-b);
+    const remap = {}; vArr.forEach((v,i) => remap[v] = i);
+    const n = vArr.length;
+    nodes = layoutCircle(n, canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.35);
+    edges = es.map(([u,v]) => [remap[u], remap[v]]);
+    buildAdj();
+    resetState();
+    updateStats();
+    draw();
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+/* ── Export ── */
+function exportJSON() {
+    const data = { independentSet: [...indepSet].sort((a,b)=>a-b), size: indepSet.size, vertices: nodes.length, edges: edges.length };
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
+        const btn = document.getElementById('btnExport');
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => btn.textContent = orig, 1500);
+    });
+}
+
+/* ── Wiring ── */
+document.getElementById('btnRun').onclick = startRun;
+document.getElementById('btnStep').onclick = stepOnce;
+document.getElementById('btnReset').onclick = () => { resetState(); draw(); };
+document.getElementById('btnLoad').onclick = loadCustom;
+document.getElementById('btnExport').onclick = exportJSON;
+document.querySelectorAll('.preset-btn').forEach(b => b.onclick = () => loadPreset(b.dataset.preset));
+
+// Resize
+function resize() {
+    const main = canvas.parentElement;
+    const w = main.clientWidth;
+    canvas.width = w;
+    canvas.height = Math.max(500, w * 0.68);
+    draw();
+}
+window.addEventListener('resize', resize);
+
+// Init
+loadPreset('path5');
+resize();
+
+})();
+</script>
+
+</body>
+</html>
