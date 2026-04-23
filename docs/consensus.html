@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Consensus Simulator - GraphVisual</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh}
+h1{text-align:center;padding:10px;font-size:1.3em;color:#00d4ff;letter-spacing:2px}
+.layout{display:flex;height:calc(100vh - 90px)}
+.left{flex:1;display:flex;flex-direction:column}
+canvas{flex:1;display:block;cursor:crosshair}
+.right{width:320px;background:#16213e;border-left:1px solid #0f3460;overflow-y:auto;padding:12px;font-size:0.85em}
+.controls{display:flex;flex-wrap:wrap;gap:6px;padding:6px 12px;background:#16213e;align-items:center}
+.controls select,.controls button,.controls input{background:#0f3460;color:#e0e0e0;border:1px solid #1a4080;border-radius:4px;padding:4px 8px;font-size:0.82em}
+.controls button{cursor:pointer;transition:background .2s}.controls button:hover{background:#1a5090}
+.controls label{font-size:0.8em;color:#8899aa}
+.bottom{height:120px;background:#16213e;border-top:1px solid #0f3460;padding:8px 12px;overflow-y:auto;font-size:0.82em}
+.bottom h3{color:#00d4ff;font-size:0.9em;margin-bottom:4px}
+.insight{padding:3px 0;border-bottom:1px solid #0f3460}
+.insight::before{content:"💡 ";font-size:0.9em}
+h3{color:#00d4ff;margin:8px 0 4px;font-size:0.95em}
+.log{max-height:150px;overflow-y:auto;font-family:monospace;font-size:0.78em;line-height:1.4;color:#88aacc}
+.log div{border-bottom:1px solid #0f3460;padding:1px 0}
+table{width:100%;border-collapse:collapse;font-size:0.8em}
+th,td{padding:3px 5px;border-bottom:1px solid #0f3460;text-align:left}
+th{color:#00d4ff}
+.metric{display:flex;justify-content:space-between;padding:2px 0}
+.metric span:last-child{color:#00d4ff;font-weight:bold}
+.badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.75em;font-weight:bold}
+.badge-progress{background:#e67e22;color:#fff}
+.badge-done{background:#2ecc71;color:#fff}
+.badge-fail{background:#e74c3c;color:#fff}
+</style>
+</head>
+<body>
+<h1>⚡ Graph Consensus Simulator</h1>
+<div class="controls" id="ctrl">
+  <label>Algorithm: <select id="algo"><option value="majority">Simple Majority</option><option value="raft">Raft Leader Election</option><option value="pbft">PBFT (Byzantine)</option></select></label>
+  <label>Preset: <select id="preset"><option value="ring5">Ring-5</option><option value="ring7">Ring-7</option><option value="complete5">Complete-5</option><option value="star5">Star-5</option><option value="grid3">Grid 3×3</option><option value="tree7">Tree-7</option><option value="random8">Random-8</option><option value="bipartite">Bipartite 4+4</option></select></label>
+  <label>Speed: <input type="range" id="speed" min="1" max="10" value="5"></label>
+  <button id="btnStep">⏭ Step</button>
+  <button id="btnRun">▶ Run</button>
+  <button id="btnReset">↺ Reset</button>
+  <button id="btnFault">💀 Inject Fault</button>
+</div>
+<div class="layout">
+  <div class="left"><canvas id="cv"></canvas></div>
+  <div class="right" id="panel">
+    <h3>Status</h3>
+    <div id="status">Ready</div>
+    <div id="metrics"></div>
+    <h3>Node Table</h3>
+    <div id="nodeTable"></div>
+    <h3>Message Log</h3>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+<div class="bottom" id="insights"><h3>🤖 Autonomous Insights</h3><div id="insightList">Run a simulation to see insights.</div></div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W,H;function resize(){const r=cv.parentElement.getBoundingClientRect();W=cv.width=r.width;H=cv.height=r.height}
+resize();window.addEventListener('resize',resize);
+
+// --- State ---
+let nodes=[],edges=[],messages=[],logEntries=[],insightEntries=[];
+let round=0,phase='',running=false,done=false,consensusResult='',msgCount=0,startTime=0;
+let dragNode=null,hoverNode=null,animFrame=0;
+
+// --- Colors ---
+const STATE_COLORS={leader:'#f1c40f',follower:'#3498db',candidate:'#e67e22',byzantine:'#e74c3c',decided:'#2ecc71',idle:'#7f8c8d'};
+
+// --- Presets ---
+function makeRing(n){const ns=[],es=[];for(let i=0;i<n;i++){const a=2*Math.PI*i/n;ns.push({id:i,x:W/2+120*Math.cos(a),y:H/2+120*Math.sin(a)})}for(let i=0;i<n;i++)es.push([i,(i+1)%n]);return{nodes:ns,edges:es}}
+function makeComplete(n){const ns=[],es=[];for(let i=0;i<n;i++){const a=2*Math.PI*i/n;ns.push({id:i,x:W/2+120*Math.cos(a),y:H/2+120*Math.sin(a)})}for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)es.push([i,j]);return{nodes:ns,edges:es}}
+function makeStar(n){const ns=[{id:0,x:W/2,y:H/2}];for(let i=1;i<n;i++){const a=2*Math.PI*(i-1)/(n-1);ns.push({id:i,x:W/2+140*Math.cos(a),y:H/2+140*Math.sin(a)})}const es=[];for(let i=1;i<n;i++)es.push([0,i]);return{nodes:ns,edges:es}}
+function makeGrid(r,c){const ns=[],es=[];let id=0;const sx=W/2-(c-1)*50,sy=H/2-(r-1)*50;for(let i=0;i<r;i++)for(let j=0;j<c;j++){ns.push({id:id,x:sx+j*100,y:sy+i*100});if(j<c-1)es.push([id,id+1]);if(i<r-1)es.push([id,id+c]);id++}return{nodes:ns,edges:es}}
+function makeTree(n){const ns=[{id:0,x:W/2,y:H/2-100}],es=[];const q=[0];let id=1;while(id<n){const p=q.shift();for(let c=0;c<2&&id<n;c++){const angle=(c===0?-1:1)*0.5;ns.push({id:id,x:ns[p].x+angle*80,y:ns[p].y+80});es.push([p,id]);q.push(id);id++}}return{nodes:ns,edges:es}}
+function makeRandom(n){const ns=[];for(let i=0;i<n;i++)ns.push({id:i,x:W/4+Math.random()*W/2,y:40+Math.random()*(H-80)});const es=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(Math.random()<0.4)es.push([i,j]);if(es.length<n-1){for(let i=1;i<n;i++){const j=Math.floor(Math.random()*i);if(!es.some(e=>(e[0]===i&&e[1]===j)||(e[0]===j&&e[1]===i)))es.push([Math.min(i,j),Math.max(i,j)])}}return{nodes:ns,edges:es}}
+function makeBipartite(a,b){const ns=[],es=[];for(let i=0;i<a;i++)ns.push({id:i,x:W/2-100,y:H/2+(i-a/2+0.5)*60});for(let i=0;i<b;i++)ns.push({id:a+i,x:W/2+100,y:H/2+(i-b/2+0.5)*60});for(let i=0;i<a;i++)for(let j=0;j<b;j++)if(Math.random()<0.5)es.push([i,a+j]);if(es.length<a+b-1)for(let i=0;i<a;i++)es.push([i,a+(i%b)]);return{nodes:ns,edges:es}}
+
+const PRESETS={ring5:()=>makeRing(5),ring7:()=>makeRing(7),complete5:()=>makeComplete(5),star5:()=>makeStar(5),grid3:()=>makeGrid(3,3),tree7:()=>makeTree(7),random8:()=>makeRandom(8),bipartite:()=>makeBipartite(4,4)};
+
+// --- Neighbors ---
+function neighbors(id){const s=new Set();edges.forEach(([a,b])=>{if(a===id)s.add(b);if(b===id)s.add(a)});return[...s]}
+
+// --- Init ---
+function initSim(){
+  const p=PRESETS[document.getElementById('preset').value]();
+  nodes=p.nodes.map(n=>({...n,state:'idle',value:null,term:0,votedFor:null,votes:0,prepareCount:0,commitCount:0,decided:false,inbox:[]}));
+  edges=p.edges;messages=[];logEntries=[];insightEntries=[];round=0;phase='init';done=false;consensusResult='';msgCount=0;startTime=Date.now();
+  const algo=document.getElementById('algo').value;
+  if(algo==='majority')nodes.forEach(n=>{n.value=Math.random()<0.5?0:1;n.state='follower'});
+  else if(algo==='raft')nodes.forEach(n=>{n.state='follower';n.term=0;n.votedFor=null;n.votes=0});
+  else if(algo==='pbft')nodes.forEach(n=>{n.state='follower';n.value=Math.random()<0.5?0:1;n.prepareCount=0;n.commitCount=0;n.decided=false});
+  updatePanel();
+}
+
+// --- Step logic ---
+function stepMajority(){
+  if(done)return;round++;phase='vote-broadcast';
+  const healthy=nodes.filter(n=>n.state!=='byzantine');
+  // broadcast
+  healthy.forEach(s=>{neighbors(s.id).forEach(t=>{if(nodes[t].state!=='byzantine'){sendMsg(s.id,t,'vote',s.value)}})});
+  // after collecting
+  setTimeout(()=>{
+    healthy.forEach(n=>{
+      const votes=n.inbox.filter(m=>m.type==='vote');
+      let c0=n.value===0?1:0,c1=n.value===1?1:0;
+      votes.forEach(v=>{if(v.data===0)c0++;else c1++});
+      n.value=c0>c1?0:1;n.inbox=[];
+    });
+    phase='count';
+    const vals=healthy.map(n=>n.value);
+    if(vals.every(v=>v===vals[0])){done=true;consensusResult='Consensus: value '+vals[0];healthy.forEach(n=>n.state='decided');generateInsights()}
+    else if(round>=20){done=true;consensusResult='Failed: no convergence after 20 rounds';generateInsights()}
+    updatePanel();
+  },200);
+}
+
+function stepRaft(){
+  if(done)return;round++;
+  const healthy=nodes.filter(n=>n.state!=='byzantine');
+  if(nodes.some(n=>n.state==='leader')){
+    // heartbeat
+    const leader=nodes.find(n=>n.state==='leader');
+    phase='heartbeat';
+    neighbors(leader.id).forEach(t=>{if(nodes[t].state!=='byzantine')sendMsg(leader.id,t,'heartbeat',leader.term)});
+    healthy.filter(n=>n.id!==leader.id).forEach(n=>{n.state='follower'});
+    done=true;consensusResult='Leader elected: Node '+leader.id+' (term '+leader.term+')';
+    healthy.forEach(n=>{if(n.id!==leader.id)n.state='decided';});leader.state='leader';
+    generateInsights();updatePanel();return;
+  }
+  // election: pick random candidate
+  const candidates=healthy.filter(n=>n.state==='candidate');
+  if(candidates.length===0){
+    const c=healthy[Math.floor(Math.random()*healthy.length)];
+    c.state='candidate';c.term++;c.votes=1;c.votedFor=c.id;
+    phase='election (Node '+c.id+' term '+c.term+')';
+    addLog('Node '+c.id+' starts election for term '+c.term);
+    neighbors(c.id).forEach(t=>{if(nodes[t].state!=='byzantine')sendMsg(c.id,t,'requestVote',c.term)});
+  } else {
+    candidates.forEach(c=>{
+      const voteReqs=c.inbox.filter(m=>m.type==='voteReply'&&m.data===true);
+      c.votes=1+voteReqs.length;c.inbox=[];
+      const majority=Math.floor(healthy.length/2)+1;
+      if(c.votes>=majority){c.state='leader';addLog('Node '+c.id+' elected leader with '+c.votes+' votes')}
+      else if(round>3&&candidates.length>1){c.state='follower';c.votes=0;c.votedFor=null}
+    });
+    // others respond
+    healthy.filter(n=>n.state==='follower').forEach(n=>{
+      const reqs=n.inbox.filter(m=>m.type==='requestVote');
+      if(reqs.length>0){
+        const req=reqs[0];
+        if(n.votedFor===null||n.votedFor===req.from){
+          n.votedFor=req.from;n.term=req.data;
+          sendMsg(n.id,req.from,'voteReply',true);
+          addLog('Node '+n.id+' votes for Node '+req.from);
+        } else {sendMsg(n.id,req.from,'voteReply',false)}
+      }
+      n.inbox=[];
+    });
+  }
+  if(round>=15&&!done){done=true;consensusResult='Failed: split vote after 15 rounds';generateInsights()}
+  updatePanel();
+}
+
+function stepPBFT(){
+  if(done)return;round++;
+  const healthy=nodes.filter(n=>n.state!=='byzantine');
+  const n=nodes.length,f=Math.floor((n-1)/3);
+  const primary=nodes[0].state!=='byzantine'?nodes[0]:healthy[0];
+  if(round===1){
+    phase='pre-prepare';primary.state='leader';
+    primary.value=1;
+    neighbors(primary.id).forEach(t=>{sendMsg(primary.id,t,'pre-prepare',primary.value)});
+    addLog('Primary Node '+primary.id+' broadcasts pre-prepare (value='+primary.value+')');
+  } else if(round===2){
+    phase='prepare';
+    healthy.forEach(nd=>{
+      const pp=nd.inbox.filter(m=>m.type==='pre-prepare');
+      if(pp.length>0)nd.value=pp[0].data;
+      nd.inbox=[];
+      neighbors(nd.id).forEach(t=>{sendMsg(nd.id,t,'prepare',nd.value)});
+    });
+    addLog('Nodes broadcast prepare messages');
+  } else if(round===3){
+    phase='commit';
+    healthy.forEach(nd=>{
+      nd.prepareCount=nd.inbox.filter(m=>m.type==='prepare'&&m.data===nd.value).length;
+      nd.inbox=[];
+      if(nd.prepareCount>=2*f){
+        neighbors(nd.id).forEach(t=>{sendMsg(nd.id,t,'commit',nd.value)});
+      }
+    });
+    addLog('Nodes with 2f+1 prepares broadcast commit');
+  } else if(round===4){
+    phase='decide';
+    healthy.forEach(nd=>{
+      nd.commitCount=nd.inbox.filter(m=>m.type==='commit'&&m.data===nd.value).length;
+      nd.inbox=[];
+      if(nd.commitCount>=2*f){nd.decided=true;nd.state='decided'}
+    });
+    const decidedNodes=healthy.filter(nd=>nd.decided);
+    if(decidedNodes.length>0){done=true;consensusResult='Consensus: value '+decidedNodes[0].value+' ('+decidedNodes.length+'/'+healthy.length+' decided)';generateInsights()}
+    else{done=true;consensusResult='Failed: insufficient commit messages (Byzantine nodes: '+(n-healthy.length)+', tolerance: '+f+')';generateInsights()}
+  }
+  updatePanel();
+}
+
+function step(){
+  const algo=document.getElementById('algo').value;
+  if(algo==='majority')stepMajority();
+  else if(algo==='raft')stepRaft();
+  else if(algo==='pbft')stepPBFT();
+}
+
+function sendMsg(from,to,type,data){
+  const s=nodes[from],t=nodes[to];
+  messages.push({from,to,type,data,x:s.x,y:s.y,tx:t.x,ty:t.y,progress:0});
+  t.inbox.push({from,type,data});
+  msgCount++;
+}
+
+function addLog(text){logEntries.unshift('R'+round+': '+text);if(logEntries.length>50)logEntries.pop()}
+
+// --- Insights ---
+function generateInsights(){
+  insightEntries=[];
+  const healthy=nodes.filter(n=>n.state!=='byzantine').length;
+  const byz=nodes.length-healthy;
+  const algo=document.getElementById('algo').value;
+  const elapsed=((Date.now()-startTime)/1000).toFixed(1);
+  insightEntries.push('Simulation completed in '+round+' rounds ('+elapsed+'s real time), '+msgCount+' messages exchanged.');
+  if(byz>0)insightEntries.push(byz+' Byzantine node(s) were present. Protocol '+(done&&consensusResult.startsWith('Consensus')?'successfully tolerated':'could not overcome')+' the faults.');
+  const preset=document.getElementById('preset').value;
+  if(preset==='star5'&&algo!=='pbft')insightEntries.push('Star topology has a single point of failure at the hub. Try PBFT or a mesh topology for better resilience.');
+  if(algo==='majority')insightEntries.push('Simple Majority has no Byzantine fault tolerance. Try PBFT to see how the network handles malicious nodes.');
+  if(algo==='raft'&&consensusResult.includes('Failed'))insightEntries.push('Raft split votes are common in symmetric topologies. Real Raft uses randomized timeouts to break ties.');
+  if(algo==='pbft')insightEntries.push('PBFT tolerates up to f=⌊(n-1)/3⌋ Byzantine faults. With '+nodes.length+' nodes, f='+Math.floor((nodes.length-1)/3)+'.');
+  if(round<=2&&done&&consensusResult.startsWith('Consensus'))insightEntries.push('Very fast consensus! Dense connectivity helps messages propagate quickly.');
+  if(preset==='ring5'||preset==='ring7')insightEntries.push('Ring topologies have limited connectivity. Information must travel around the ring, increasing round count.');
+}
+
+// --- Drawing ---
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // edges
+  ctx.strokeStyle='#1a4080';ctx.lineWidth=1.5;
+  edges.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);ctx.stroke()});
+  // messages
+  const spd=0.03*parseInt(document.getElementById('speed').value);
+  messages=messages.filter(m=>{
+    m.progress+=spd;
+    if(m.progress>=1)return false;
+    const x=m.x+(m.tx-m.x)*m.progress,y=m.y+(m.ty-m.y)*m.progress;
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle=m.type==='vote'||m.type==='prepare'?'#e67e22':m.type==='commit'?'#2ecc71':m.type==='heartbeat'?'#f1c40f':'#00d4ff';
+    ctx.fill();return true;
+  });
+  // nodes
+  nodes.forEach(n=>{
+    ctx.beginPath();ctx.arc(n.x,n.y,22,0,Math.PI*2);
+    ctx.fillStyle=STATE_COLORS[n.state]||STATE_COLORS.idle;ctx.fill();
+    ctx.strokeStyle=hoverNode===n?'#fff':'#0f3460';ctx.lineWidth=hoverNode===n?3:2;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(''+n.id,n.x,n.y);
+    if(n.value!==null&&n.value!==undefined){ctx.font='9px sans-serif';ctx.fillText('v='+n.value,n.x,n.y+14)}
+  });
+  // round
+  ctx.fillStyle='#8899aa';ctx.font='12px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('Round: '+round+'  Phase: '+phase,8,8);
+  animFrame=requestAnimationFrame(draw);
+}
+
+// --- Panel ---
+function updatePanel(){
+  let s=done?(consensusResult.startsWith('Consensus')?'<span class="badge badge-done">✔ Done</span> ':'<span class="badge badge-fail">✘ Failed</span> '):'<span class="badge badge-progress">● In Progress</span> ';
+  s+=consensusResult||'Awaiting start';
+  document.getElementById('status').innerHTML=s;
+  let met='';const elapsed=((Date.now()-startTime)/1000).toFixed(1);
+  met+='<div class="metric"><span>Rounds</span><span>'+round+'</span></div>';
+  met+='<div class="metric"><span>Messages</span><span>'+msgCount+'</span></div>';
+  met+='<div class="metric"><span>Time</span><span>'+elapsed+'s</span></div>';
+  met+='<div class="metric"><span>Healthy/Total</span><span>'+nodes.filter(n=>n.state!=='byzantine').length+'/'+nodes.length+'</span></div>';
+  document.getElementById('metrics').innerHTML=met;
+  let t='<table><tr><th>ID</th><th>State</th><th>Value</th><th>Term</th></tr>';
+  nodes.forEach(n=>{t+='<tr><td>'+n.id+'</td><td style="color:'+STATE_COLORS[n.state]+'">'+n.state+'</td><td>'+(n.value??'-')+'</td><td>'+n.term+'</td></tr>'});
+  t+='</table>';document.getElementById('nodeTable').innerHTML=t;
+  document.getElementById('log').innerHTML=logEntries.map(l=>'<div>'+l+'</div>').join('');
+  document.getElementById('insightList').innerHTML=insightEntries.length?insightEntries.map(i=>'<div class="insight">'+i+'</div>').join(''):'Run a simulation to see insights.';
+}
+
+// --- Controls ---
+document.getElementById('btnStep').onclick=()=>{if(!done)step()};
+let runInterval=null;
+document.getElementById('btnRun').onclick=function(){
+  if(running){running=false;this.textContent='▶ Run';clearInterval(runInterval);return}
+  running=true;this.textContent='⏸ Pause';
+  const ms=()=>Math.max(100,1100-parseInt(document.getElementById('speed').value)*100);
+  runInterval=setInterval(()=>{if(done){running=false;document.getElementById('btnRun').textContent='▶ Run';clearInterval(runInterval);return}step()},ms());
+};
+document.getElementById('btnReset').onclick=()=>{running=false;document.getElementById('btnRun').textContent='▶ Run';clearInterval(runInterval);initSim()};
+document.getElementById('btnFault').onclick=()=>{const h=nodes.filter(n=>n.state!=='byzantine');if(h.length>1){const n=h[Math.floor(Math.random()*h.length)];n.state='byzantine';addLog('💀 Node '+n.id+' became Byzantine!');updatePanel()}};
+document.getElementById('preset').onchange=()=>{running=false;clearInterval(runInterval);document.getElementById('btnRun').textContent='▶ Run';initSim()};
+document.getElementById('algo').onchange=()=>{running=false;clearInterval(runInterval);document.getElementById('btnRun').textContent='▶ Run';initSim()};
+
+// --- Mouse ---
+cv.addEventListener('mousedown',e=>{const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const n=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<24);
+  if(n){if(e.shiftKey||e.ctrlKey){n.state=n.state==='byzantine'?'follower':'byzantine';addLog((n.state==='byzantine'?'💀':'❤️')+' Node '+n.id+' toggled');updatePanel()}else dragNode=n}
+});
+cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(dragNode){dragNode.x=mx;dragNode.y=my}
+  hoverNode=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<24)||null;
+});
+cv.addEventListener('mouseup',()=>{dragNode=null});
+
+// --- Boot ---
+initSim();draw();
+</script>
+</body>
+</html>
