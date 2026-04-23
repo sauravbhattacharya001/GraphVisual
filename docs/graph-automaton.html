@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Automaton Simulator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ga-container { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .canvas-panel { flex: 1; min-width: 480px; }
+        .control-panel { width: 320px; }
+        #graph-canvas {
+            width: 100%; height: 520px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px; cursor: crosshair;
+        }
+        .ga-btn {
+            padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+        .ga-btn:hover { background: var(--surface-hover); }
+        .ga-btn.active { border-color: var(--accent); color: var(--accent); }
+        .ga-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .ga-btn.primary:hover { background: var(--accent-hover); }
+        .ga-btn.danger { border-color: var(--red); color: var(--red); }
+        .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .info-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 1rem; margin-bottom: 1rem;
+        }
+        .info-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+        .stat-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 0.85rem; }
+        .presets { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+        .rule-select { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.85rem; }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .speed-control input { flex: 1; }
+        .speed-control label { font-size: 0.85rem; white-space: nowrap; }
+        .history-canvas { width: 100%; height: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        .insight-box {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+            padding: 0.75rem; font-size: 0.82rem; max-height: 180px; overflow-y: auto;
+        }
+        .insight-box .insight { margin: 4px 0; padding: 4px 8px; border-radius: 4px; }
+        .insight.info { background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; }
+        .insight.warn { background: rgba(245,158,11,0.12); border-left: 3px solid #f59e0b; }
+        .insight.success { background: rgba(34,197,94,0.12); border-left: 3px solid #22c55e; }
+        .legend { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        @media (max-width: 860px) { .control-panel { width: 100%; } .canvas-panel { min-width: 300px; } }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="diffusion.html" class="sidebar-link"><span class="icon">🦠</span>Diffusion Sim</a>
+        <a href="epidemic.html" class="sidebar-link"><span class="icon">🏥</span>Epidemic Sim</a>
+        <a href="graph-automaton.html" class="sidebar-link active"><span class="icon">🤖</span>Graph Automaton</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🤖 Graph Automaton Simulator</h1>
+<p>Run cellular automata on arbitrary graph topologies. Each node holds a discrete state that evolves based on neighbor states. Watch emergent behavior, detect steady states, oscillations, and phase transitions autonomously.</p>
+
+<div class="ga-container">
+
+<div class="canvas-panel">
+    <div class="toolbar">
+        <button class="ga-btn primary" onclick="toggleRun()" id="run-btn">▶ Run</button>
+        <button class="ga-btn" onclick="stepOnce()">⏭ Step</button>
+        <button class="ga-btn" onclick="resetStates()">🔄 Reset</button>
+        <button class="ga-btn" onclick="randomizeStates()">🎲 Randomize</button>
+        <button class="ga-btn danger" onclick="clearGraph()">🗑 Clear</button>
+    </div>
+    <div class="legend" id="state-legend"></div>
+    <canvas id="graph-canvas"></canvas>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+        Click empty space to add node · Click node to cycle state · Shift+click two nodes to toggle edge · Right-click node to delete · Drag to move
+    </p>
+    <div class="info-card" style="margin-top:1rem;">
+        <h3>📊 State History (last 80 generations)</h3>
+        <canvas class="history-canvas" id="history-canvas"></canvas>
+    </div>
+</div>
+
+<div class="control-panel">
+    <div class="info-card">
+        <h3>📐 Graph Presets</h3>
+        <div class="presets">
+            <button class="ga-btn" onclick="loadPreset('grid4x4')">Grid 4×4</button>
+            <button class="ga-btn" onclick="loadPreset('ring12')">Ring 12</button>
+            <button class="ga-btn" onclick="loadPreset('star8')">Star 8</button>
+            <button class="ga-btn" onclick="loadPreset('complete5')">K₅</button>
+            <button class="ga-btn" onclick="loadPreset('petersen')">Petersen</button>
+            <button class="ga-btn" onclick="loadPreset('tree')">Binary Tree</button>
+            <button class="ga-btn" onclick="loadPreset('barbell')">Barbell</button>
+            <button class="ga-btn" onclick="loadPreset('random20')">Random 20</button>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3>⚙️ Automaton Rule</h3>
+        <select class="rule-select" id="rule-select" onchange="changeRule()">
+            <option value="majority">Majority — adopt most common neighbor state</option>
+            <option value="gameOfLife">Game of Life — birth 3, survive 2-3</option>
+            <option value="voter">Voter Model — copy random neighbor</option>
+            <option value="antiVoter">Anti-Voter — adopt least common neighbor state</option>
+            <option value="threshold">Threshold (k≥2) — activate if ≥k active neighbors</option>
+            <option value="parity">Parity — state = XOR of neighbor states</option>
+            <option value="fredkin">Fredkin — state = sum(neighbors) mod numStates</option>
+            <option value="custom">Custom Rule (edit below)</option>
+        </select>
+        <div id="custom-rule-area" style="display:none;margin-top:8px;">
+            <textarea id="custom-rule-code" rows="5" style="width:100%;font-family:monospace;font-size:0.8rem;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px;" placeholder="// state: current state (0..numStates-1)&#10;// neighbors: array of neighbor states&#10;// return: new state&#10;return neighbors.filter(n=>n===1).length >= 2 ? 1 : 0;"></textarea>
+            <button class="ga-btn" onclick="applyCustomRule()" style="margin-top:4px;">Apply</button>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3>🎨 Number of States</h3>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <input type="range" id="num-states" min="2" max="6" value="2" style="flex:1;" onchange="updateNumStates()">
+            <span id="num-states-label" style="font-weight:700;min-width:20px;">2</span>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3>⏱ Speed</h3>
+        <div class="speed-control">
+            <label>Slow</label>
+            <input type="range" id="speed" min="50" max="1000" value="300">
+            <label>Fast</label>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3>📈 Statistics</h3>
+        <div class="stat-row"><span>Generation</span><span class="stat-value" id="stat-gen">0</span></div>
+        <div class="stat-row"><span>Nodes</span><span id="stat-nodes">0</span></div>
+        <div class="stat-row"><span>Edges</span><span id="stat-edges">0</span></div>
+        <div id="state-counts"></div>
+    </div>
+
+    <div class="info-card">
+        <h3>🧠 Autonomous Insights</h3>
+        <div class="insight-box" id="insights">
+            <div class="insight info">Load a preset or build a graph to begin.</div>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h3>📤 Export</h3>
+        <button class="ga-btn" onclick="exportJSON()">💾 JSON</button>
+        <button class="ga-btn" onclick="exportPNG()" style="margin-left:4px;">🖼 PNG</button>
+    </div>
+</div>
+</div>
+
+</div></div>
+
+<script>
+const nodes=[], edges=[];
+let generation=0, running=false, runTimer=null, numStates=2;
+let stateHistory=[], currentRule='majority', customRuleFn=null, edgeStart=-1;
+const SC=['#3b82f6','#ef4444','#22c55e','#f59e0b','#a855f7','#ec4899'];
+const canvas=document.getElementById('graph-canvas'), ctx=canvas.getContext('2d');
+const hCanvas=document.getElementById('history-canvas'), hCtx=hCanvas.getContext('2d');
+
+function resizeCanvas(){
+    const r=canvas.parentElement.getBoundingClientRect();
+    canvas.width=r.width; canvas.height=520;
+    const hr=hCanvas.parentElement.getBoundingClientRect();
+    hCanvas.width=hr.width-34; hCanvas.height=120;
+    draw(); drawHistory();
+}
+window.addEventListener('resize',resizeCanvas);
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1.5;
+    for(const[a,b]of edges){ctx.beginPath();ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);ctx.stroke();}
+    for(let i=0;i<nodes.length;i++){
+        const n=nodes[i];
+        ctx.beginPath();ctx.arc(n.x,n.y,14,0,Math.PI*2);
+        ctx.fillStyle=SC[n.state%SC.length];ctx.fill();
+        ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(i,n.x,n.y);
+    }
+    if(edgeStart>=0&&edgeStart<nodes.length){
+        const n=nodes[edgeStart];
+        ctx.beginPath();ctx.arc(n.x,n.y,18,0,Math.PI*2);
+        ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.stroke();
+    }
+}
+
+function drawHistory(){
+    hCtx.clearRect(0,0,hCanvas.width,hCanvas.height);
+    if(stateHistory.length<2)return;
+    const w=hCanvas.width,h=hCanvas.height,maxG=Math.min(stateHistory.length,80);
+    const data=stateHistory.slice(-maxG),total=nodes.length||1;
+    for(let s=0;s<numStates;s++){
+        hCtx.beginPath();hCtx.strokeStyle=SC[s%SC.length];hCtx.lineWidth=2;
+        for(let g=0;g<data.length;g++){
+            const x=(g/(maxG-1))*w,y=h-(data[g][s]/total)*h;
+            g===0?hCtx.moveTo(x,y):hCtx.lineTo(x,y);
+        }
+        hCtx.stroke();
+    }
+}
+
+let dragging=-1,dragOff={x:0,y:0},didDrag=false;
+function nodeAt(x,y){for(let i=nodes.length-1;i>=0;i--){const dx=nodes[i].x-x,dy=nodes[i].y-y;if(dx*dx+dy*dy<16*16)return i;}return -1;}
+
+canvas.addEventListener('mousedown',e=>{
+    const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,hit=nodeAt(x,y);
+    didDrag=false;
+    if(e.shiftKey&&hit>=0){
+        if(edgeStart<0){edgeStart=hit;}else{if(edgeStart!==hit)toggleEdge(edgeStart,hit);edgeStart=-1;}
+        draw();return;
+    }
+    if(hit>=0){dragging=hit;dragOff={x:x-nodes[hit].x,y:y-nodes[hit].y};}
+    else{nodes.push({x,y,state:0});draw();updateStats();}
+});
+canvas.addEventListener('mousemove',e=>{
+    if(dragging<0)return;didDrag=true;
+    const rect=canvas.getBoundingClientRect();
+    nodes[dragging].x=e.clientX-rect.left-dragOff.x;
+    nodes[dragging].y=e.clientY-rect.top-dragOff.y;
+    draw();
+});
+canvas.addEventListener('mouseup',e=>{
+    if(dragging>=0&&!didDrag){nodes[dragging].state=(nodes[dragging].state+1)%numStates;draw();updateStats();}
+    dragging=-1;
+});
+canvas.addEventListener('mouseleave',()=>{dragging=-1;});
+canvas.addEventListener('contextmenu',e=>{
+    e.preventDefault();const rect=canvas.getBoundingClientRect();
+    const hit=nodeAt(e.clientX-rect.left,e.clientY-rect.top);
+    if(hit>=0)removeNode(hit);
+});
+
+function toggleEdge(a,b){
+    const idx=edges.findIndex(([u,v])=>(u===a&&v===b)||(u===b&&v===a));
+    if(idx>=0)edges.splice(idx,1);else edges.push([a,b]);
+    draw();updateStats();
+}
+function removeNode(i){
+    nodes.splice(i,1);
+    for(let e=edges.length-1;e>=0;e--){
+        if(edges[e][0]===i||edges[e][1]===i)edges.splice(e,1);
+        else{if(edges[e][0]>i)edges[e][0]--;if(edges[e][1]>i)edges[e][1]--;}
+    }
+    draw();updateStats();
+}
+
+function getNeighborStates(i){
+    const ns=[];
+    for(const[a,b]of edges){if(a===i)ns.push(nodes[b].state);else if(b===i)ns.push(nodes[a].state);}
+    return ns;
+}
+
+function applyRule(state,neighbors){
+    switch(currentRule){
+        case 'majority':{
+            if(!neighbors.length)return state;
+            const c=new Array(numStates).fill(0);for(const n of neighbors)c[n]++;c[state]+=0.01;
+            let b=0;for(let s=1;s<numStates;s++)if(c[s]>c[b])b=s;return b;
+        }
+        case 'gameOfLife':{
+            const alive=neighbors.filter(n=>n>0).length;
+            if(state>0)return(alive===2||alive===3)?state:0;return alive===3?1:0;
+        }
+        case 'voter':return neighbors.length?neighbors[Math.floor(Math.random()*neighbors.length)]:state;
+        case 'antiVoter':{
+            if(!neighbors.length)return state;
+            const c=new Array(numStates).fill(0);for(const n of neighbors)c[n]++;
+            let m=Infinity,ms=state;for(let s=0;s<numStates;s++)if(c[s]<m){m=c[s];ms=s;}return ms;
+        }
+        case 'threshold':return neighbors.filter(n=>n>0).length>=2?1:0;
+        case 'parity':{let s=0;for(const n of neighbors)s^=n;return s%numStates;}
+        case 'fredkin':{let s=0;for(const n of neighbors)s+=n;return s%numStates;}
+        case 'custom':{if(customRuleFn){try{return customRuleFn(state,neighbors,numStates);}catch(e){return state;}}return state;}
+        default:return state;
+    }
+}
+
+function step(){
+    const ns=nodes.map((n,i)=>applyRule(n.state,getNeighborStates(i)));
+    for(let i=0;i<nodes.length;i++)nodes[i].state=ns[i];
+    generation++;recordHistory();draw();drawHistory();updateStats();analyzeInsights();
+}
+function stepOnce(){step();}
+function toggleRun(){
+    running=!running;document.getElementById('run-btn').textContent=running?'⏸ Pause':'▶ Run';
+    if(running)tick();else clearTimeout(runTimer);
+}
+function tick(){if(!running)return;step();runTimer=setTimeout(tick,1050-parseInt(document.getElementById('speed').value));}
+function resetStates(){for(const n of nodes)n.state=0;generation=0;stateHistory=[];draw();drawHistory();updateStats();clearInsights();}
+function randomizeStates(){for(const n of nodes)n.state=Math.floor(Math.random()*numStates);generation=0;stateHistory=[];recordHistory();draw();drawHistory();updateStats();analyzeInsights();}
+function clearGraph(){nodes.length=0;edges.length=0;generation=0;stateHistory=[];edgeStart=-1;draw();drawHistory();updateStats();clearInsights();}
+function recordHistory(){const c=new Array(numStates).fill(0);for(const n of nodes)c[n.state]++;stateHistory.push(c);if(stateHistory.length>200)stateHistory.shift();}
+
+function updateStats(){
+    document.getElementById('stat-gen').textContent=generation;
+    document.getElementById('stat-nodes').textContent=nodes.length;
+    document.getElementById('stat-edges').textContent=edges.length;
+    const c=new Array(numStates).fill(0);for(const n of nodes)c[n.state]++;
+    let h='';for(let s=0;s<numStates;s++){const p=nodes.length?Math.round(100*c[s]/nodes.length):0;h+=`<div class="stat-row"><span style="color:${SC[s]}">● State ${s}</span><span>${c[s]} (${p}%)</span></div>`;}
+    document.getElementById('state-counts').innerHTML=h;updateLegend();
+}
+function updateLegend(){let h='';for(let s=0;s<numStates;s++)h+=`<div class="legend-item"><div class="legend-dot" style="background:${SC[s]}"></div>State ${s}</div>`;document.getElementById('state-legend').innerHTML=h;}
+
+let prevStateHash='',steadyCount=0,oscillationCheck=[];
+function clearInsights(){document.getElementById('insights').innerHTML='<div class="insight info">Load a preset or build a graph to begin.</div>';prevStateHash='';steadyCount=0;oscillationCheck=[];}
+function analyzeInsights(){
+    const box=document.getElementById('insights'),insights=[],c=new Array(numStates).fill(0);
+    for(const n of nodes)c[n.state]++;
+    const hash=nodes.map(n=>n.state).join(',');
+    if(hash===prevStateHash){steadyCount++;if(steadyCount===3)insights.push({t:'success',m:`🟢 Steady state reached at generation ${generation}.`});}else steadyCount=0;
+    prevStateHash=hash;
+    oscillationCheck.push(hash);if(oscillationCheck.length>20)oscillationCheck.shift();
+    if(oscillationCheck.length>=6){const L=oscillationCheck.length;if(oscillationCheck[L-1]===oscillationCheck[L-3]&&oscillationCheck[L-2]===oscillationCheck[L-4]&&oscillationCheck[L-1]!==oscillationCheck[L-2])insights.push({t:'warn',m:'🔄 Period-2 oscillation detected!'});}
+    for(let s=0;s<numStates;s++){
+        if(nodes.length>0&&c[s]===nodes.length)insights.push({t:'info',m:`👑 State ${s} has total dominance.`});
+        else if(nodes.length>3&&c[s]/nodes.length>0.8)insights.push({t:'info',m:`📊 State ${s} dominant at ${Math.round(100*c[s]/nodes.length)}%.`});
+    }
+    for(let s=0;s<numStates;s++){if(c[s]===0&&stateHistory.length>1&&stateHistory[stateHistory.length-2][s]>0)insights.push({t:'warn',m:`💀 State ${s} went extinct at gen ${generation}!`});}
+    if(nodes.length>4){
+        const active=nodes.map((n,i)=>n.state>0?i:-1).filter(i=>i>=0);
+        if(active.length>0&&active.length<nodes.length){
+            const adj=new Map();for(const idx of active)adj.set(idx,[]);
+            for(const[a,b]of edges){if(adj.has(a)&&adj.has(b)){adj.get(a).push(b);adj.get(b).push(a);}}
+            const visited=new Set();let comp=0;
+            for(const idx of active){if(visited.has(idx))continue;comp++;const stk=[idx];while(stk.length){const cur=stk.pop();if(visited.has(cur))continue;visited.add(cur);for(const nb of(adj.get(cur)||[]))if(!visited.has(nb))stk.push(nb);}}
+            if(comp>1)insights.push({t:'warn',m:`🧩 Active nodes fragmented into ${comp} clusters.`});
+        }
+    }
+    if(nodes.length>0){
+        let ent=0;for(let s=0;s<numStates;s++){const p=c[s]/nodes.length;if(p>0)ent-=p*Math.log2(p);}
+        const maxE=Math.log2(numStates);
+        if(maxE>0&&ent/maxE<0.2&&generation>5)insights.push({t:'success',m:`📉 Low entropy (${ent.toFixed(2)}/${maxE.toFixed(2)}) — highly ordered.`});
+        else if(maxE>0&&ent/maxE>0.9&&generation>5)insights.push({t:'info',m:`🌀 High entropy (${ent.toFixed(2)}/${maxE.toFixed(2)}) — well-mixed.`});
+    }
+    if(!insights.length&&generation>0)insights.push({t:'info',m:`Gen ${generation}: ${c.map((v,i)=>`S${i}=${v}`).join(', ')}`});
+    box.innerHTML=insights.map(i=>`<div class="insight ${i.t}">${i.m}</div>`).join('')||'<div class="insight info">Running...</div>';
+}
+
+function loadPreset(name){
+    clearGraph();const cx=canvas.width/2,cy=canvas.height/2;
+    switch(name){
+        case 'grid4x4':for(let r=0;r<4;r++)for(let c=0;c<4;c++){nodes.push({x:cx-90+c*60,y:cy-90+r*60,state:0});}for(let r=0;r<4;r++)for(let c=0;c<4;c++){const i=r*4+c;if(c<3)edges.push([i,i+1]);if(r<3)edges.push([i,i+4]);}break;
+        case 'ring12':for(let i=0;i<12;i++){const a=(2*Math.PI*i)/12-Math.PI/2;nodes.push({x:cx+160*Math.cos(a),y:cy+160*Math.sin(a),state:0});}for(let i=0;i<12;i++)edges.push([i,(i+1)%12]);break;
+        case 'star8':nodes.push({x:cx,y:cy,state:0});for(let i=0;i<8;i++){const a=(2*Math.PI*i)/8-Math.PI/2;nodes.push({x:cx+150*Math.cos(a),y:cy+150*Math.sin(a),state:0});edges.push([0,i+1]);}break;
+        case 'complete5':for(let i=0;i<5;i++){const a=(2*Math.PI*i)/5-Math.PI/2;nodes.push({x:cx+130*Math.cos(a),y:cy+130*Math.sin(a),state:0});}for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)edges.push([i,j]);break;
+        case 'petersen':for(let i=0;i<5;i++){const a=(2*Math.PI*i)/5-Math.PI/2;nodes.push({x:cx+160*Math.cos(a),y:cy+160*Math.sin(a),state:0});}for(let i=0;i<5;i++){const a=(2*Math.PI*i)/5-Math.PI/2;nodes.push({x:cx+70*Math.cos(a),y:cy+70*Math.sin(a),state:0});}for(let i=0;i<5;i++){edges.push([i,(i+1)%5]);edges.push([i,i+5]);}edges.push([5,7],[7,9],[9,6],[6,8],[8,5]);break;
+        case 'tree':{const pos=[];function pl(idx,x,y,sp,d){if(idx>=15)return;pos[idx]={x,y};if(d<3){pl(2*idx+1,x-sp,y+70,sp/2,d+1);pl(2*idx+2,x+sp,y+70,sp/2,d+1);}}pl(0,cx,cy-130,150,0);for(let i=0;i<15;i++)if(pos[i])nodes.push({x:pos[i].x,y:pos[i].y,state:0});for(let i=0;i<nodes.length;i++){const l=2*i+1,r=2*i+2;if(l<nodes.length)edges.push([i,l]);if(r<nodes.length)edges.push([i,r]);}break;}
+        case 'barbell':for(let i=0;i<4;i++){const a=(2*Math.PI*i)/4;nodes.push({x:cx-150+50*Math.cos(a),y:cy+50*Math.sin(a),state:0});}for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)edges.push([i,j]);nodes.push({x:cx-40,y:cy,state:0});nodes.push({x:cx+40,y:cy,state:0});edges.push([0,4],[4,5]);for(let i=0;i<4;i++){const a=(2*Math.PI*i)/4;nodes.push({x:cx+150+50*Math.cos(a),y:cy+50*Math.sin(a),state:0});}for(let i=6;i<10;i++)for(let j=i+1;j<10;j++)edges.push([i,j]);edges.push([5,6]);break;
+        case 'random20':for(let i=0;i<20;i++)nodes.push({x:60+Math.random()*(canvas.width-120),y:60+Math.random()*(canvas.height-120),state:0});for(let i=0;i<20;i++)for(let j=i+1;j<20;j++)if(Math.random()<0.2)edges.push([i,j]);break;
+    }
+    recordHistory();draw();drawHistory();updateStats();clearInsights();
+}
+
+function changeRule(){currentRule=document.getElementById('rule-select').value;document.getElementById('custom-rule-area').style.display=currentRule==='custom'?'block':'none';}
+function applyCustomRule(){try{customRuleFn=new Function('state','neighbors','numStates',document.getElementById('custom-rule-code').value);alert('Custom rule applied!');}catch(e){alert('Error: '+e.message);}}
+function updateNumStates(){numStates=parseInt(document.getElementById('num-states').value);document.getElementById('num-states-label').textContent=numStates;for(const n of nodes)if(n.state>=numStates)n.state=0;stateHistory=[];recordHistory();draw();drawHistory();updateStats();updateLegend();}
+function exportJSON(){const d={nodes:nodes.map(n=>({x:n.x,y:n.y,state:n.state})),edges:edges.slice(),generation,rule:currentRule,numStates};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`graph-automaton-gen${generation}.json`;a.click();}
+function exportPNG(){const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`graph-automaton-gen${generation}.png`;a.click();}
+
+setTimeout(()=>{resizeCanvas();loadPreset('grid4x4');randomizeStates();},100);
+</script>
+</body>
+</html>
