@@ -60,6 +60,9 @@ public class GraphAnomalyDetector {
     private Map<String, Double> diversityMap;
     private Map<String, Double> neighborDevMap;
 
+    /** Pre-built adjacency sets — built once, reused across all per-vertex metrics. */
+    private Map<String, Set<String>> adjSets;
+
     /* Global statistics. */
     private double degreeMean, degreeStd;
     private double clusteringMean, clusteringStd;
@@ -375,17 +378,23 @@ public class GraphAnomalyDetector {
         diversityMap = new LinkedHashMap<String, Double>(n);
         neighborDevMap = new LinkedHashMap<String, Double>(n);
 
-        // Pre-compute degrees for neighbor-deviation calculation
-        Map<String, Integer> rawDegrees = new HashMap<String, Integer>(n);
+        // Build adjacency sets once — avoids repeated JUNG getNeighbors()
+        // allocations across clustering, degree, and neighbor-deviation computations.
+        adjSets = new HashMap<String, Set<String>>(n * 2);
+        Map<String, Integer> rawDegrees = new HashMap<String, Integer>(n * 2);
         for (String v : vertices) {
-            rawDegrees.put(v, graph.degree(v));
+            Collection<String> nbrs = graph.getNeighbors(v);
+            Set<String> nbrSet = nbrs == null ? Collections.emptySet()
+                    : new HashSet<String>(nbrs);
+            adjSets.put(v, nbrSet);
+            rawDegrees.put(v, nbrSet.size());
         }
 
         for (String v : vertices) {
             int deg = rawDegrees.get(v);
             degreeMap.put(v, (double) deg);
 
-            // Local clustering coefficient
+            // Local clustering coefficient (uses pre-built adjSets)
             clusteringMap.put(v, computeClusteringCoeff(v));
 
             // Edge-type diversity (Shannon entropy)
@@ -399,28 +408,35 @@ public class GraphAnomalyDetector {
     /**
      * Computes the local clustering coefficient for a node.
      * <p>C(v) = 2 * triangles(v) / (deg(v) * (deg(v) - 1))</p>
+     *
+     * <p><b>Optimization:</b> Uses the pre-built {@code adjSets} map instead
+     * of calling {@code graph.getNeighbors()} per neighbor. This eliminates
+     * O(k) JUNG collection allocations per vertex (one per neighbor in the
+     * triangle-counting loop) and avoids constructing a redundant HashSet
+     * copy — the pre-built sets serve directly as O(1) membership oracles.</p>
      */
     private double computeClusteringCoeff(String v) {
-        Collection<String> neighbors = graph.getNeighbors(v);
-        if (neighbors == null) return 0.0;
+        Set<String> nbrSet = adjSets.get(v);
+        if (nbrSet == null) return 0.0;
 
-        List<String> nbrs = new ArrayList<String>(neighbors);
-        int k = nbrs.size();
+        int k = nbrSet.size();
         if (k < 2) return 0.0;
 
-        // Count edges among neighbors (triangles)
+        // Count edges among neighbors using pre-built adjacency sets.
+        // For each neighbor ni, count how many of ni's neighbors are also
+        // in v's neighbor set. Uses adjSets.get(ni) — O(1) map lookup —
+        // instead of graph.getNeighbors(ni) which allocates a new Collection.
         int triangleEdges = 0;
-        Set<String> nbrSet = new HashSet<String>(nbrs);
-        for (int i = 0; i < k; i++) {
-            Collection<String> niNeighbors = graph.getNeighbors(nbrs.get(i));
+        for (String ni : nbrSet) {
+            Set<String> niNeighbors = adjSets.get(ni);
             if (niNeighbors == null) continue;
             for (String nn : niNeighbors) {
-                if (nbrSet.contains(nn) && !nn.equals(nbrs.get(i))) {
+                if (nn != ni && nbrSet.contains(nn)) {
                     triangleEdges++;
                 }
             }
         }
-        // Each triangle Edge counted twice (once from each endpoint)
+        // Each edge counted twice (once from each endpoint)
         triangleEdges /= 2;
 
         return (2.0 * triangleEdges) / (k * (k - 1));
@@ -462,10 +478,11 @@ public class GraphAnomalyDetector {
 
     /**
      * Computes absolute deviation of node's degree from its neighbors' mean degree.
+     * Uses pre-built {@code adjSets} to avoid an additional JUNG getNeighbors() call.
      */
     private double computeNeighborDeviation(String v,
                                              Map<String, Integer> rawDegrees) {
-        Collection<String> neighbors = graph.getNeighbors(v);
+        Set<String> neighbors = adjSets.get(v);
         if (neighbors == null || neighbors.isEmpty()) return 0.0;
 
         double sum = 0.0;
