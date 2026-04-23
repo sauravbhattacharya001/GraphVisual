@@ -296,6 +296,18 @@ public class GraphPartitioner {
         Set<String> locked = new HashSet<>();
         int passes = Math.min(nodesA.size(), nodesB.size());
 
+        // Pre-build neighbor sets once for O(1) connectivity checks.
+        // Avoids re-creating a HashSet per vertex per pass — saves
+        // O(passes × |A| × avg_degree) allocations.
+        Map<String, Set<String>> neighborSets = new HashMap<>(
+                (nodesA.size() + nodesB.size()) * 2);
+        for (String u : nodesA) {
+            neighborSets.put(u, new HashSet<>(graph.getNeighbors(u)));
+        }
+        for (String v : nodesB) {
+            neighborSets.put(v, new HashSet<>(graph.getNeighbors(v)));
+        }
+
         for (int pass = 0; pass < passes; pass++) {
             // Precompute D-values: D[v] = external_cost - internal_cost
             // where "internal" means edges to same partition, "external" to other.
@@ -328,13 +340,10 @@ public class GraphPartitioner {
             String bestU = null, bestV = null;
             int bestGain = 0;
 
-            // Build neighbor set for O(1) connectivity check
             for (String u : nodesA) {
                 if (locked.contains(u)) continue;
                 int du = dValues.get(u);
-
-                // Early prune: even if D[v] were maximal, skip if du too low
-                Set<String> uNeighbors = new HashSet<>(graph.getNeighbors(u));
+                Set<String> uNeighbors = neighborSets.get(u);
 
                 for (String v : nodesB) {
                     if (locked.contains(v)) continue;
@@ -354,11 +363,9 @@ public class GraphPartitioner {
                 assignment.put(bestV, partA);
                 locked.add(bestU);
                 locked.add(bestV);
-                // Swap membership in the lists
-                nodesA.remove(bestU);
-                nodesA.add(bestV);
-                nodesB.remove(bestV);
-                nodesB.add(bestU);
+                // No need to update nodesA/nodesB lists — locked set
+                // already causes swapped vertices to be skipped in loops.
+                // This eliminates O(|A|) + O(|B|) linear scans per swap.
                 anyImproved = true;
             } else {
                 break;
