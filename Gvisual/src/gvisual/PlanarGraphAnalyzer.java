@@ -624,12 +624,20 @@ public final class PlanarGraphAnalyzer {
                     case 2: case 3: {
                         int bestCommon = (strategy == 2) ? -1 : Integer.MAX_VALUE;
                         for (String v : g.keySet()) {
-                            for (String n : g.get(v)) {
-                                Set<String> common = new HashSet<String>(g.get(v));
-                                common.retainAll(g.get(n));
-                                boolean better = (strategy == 2) ? common.size() > bestCommon : common.size() < bestCommon;
+                            Set<String> vNbrs = g.get(v);
+                            for (String n : vNbrs) {
+                                // Count common neighbors without allocating a temporary HashSet.
+                                // Previously created new HashSet<>(g.get(v)) + retainAll per pair.
+                                Set<String> nNbrs = g.get(n);
+                                Set<String> smaller = vNbrs.size() <= nNbrs.size() ? vNbrs : nNbrs;
+                                Set<String> larger  = smaller == vNbrs ? nNbrs : vNbrs;
+                                int commonCount = 0;
+                                for (String s : smaller) {
+                                    if (larger.contains(s)) commonCount++;
+                                }
+                                boolean better = (strategy == 2) ? commonCount > bestCommon : commonCount < bestCommon;
                                 if (better) {
-                                    bestCommon = common.size();
+                                    bestCommon = commonCount;
                                     toContract = v;
                                     bestNeighbor = n;
                                 }
