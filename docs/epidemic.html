@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphVisual — Epidemic Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ep-container{display:grid;grid-template-columns:320px 1fr;gap:20px;margin-top:20px}
+        .ep-panel{background:var(--bg-card,#1e1e2e);border-radius:12px;padding:20px;border:1px solid var(--border,#2e2e3e)}
+        .ep-canvas-wrap{position:relative;background:var(--bg-card,#1e1e2e);border-radius:12px;border:1px solid var(--border,#2e2e3e);overflow:hidden}
+        canvas#graphCanvas{width:100%;height:500px;display:block;cursor:grab}
+        canvas#graphCanvas:active{cursor:grabbing}
+        canvas#curveCanvas{width:100%;height:200px;display:block;margin-top:8px;border-radius:8px;background:var(--bg,#12121a)}
+        .ctrl-group{margin-bottom:14px}
+        .ctrl-group label{display:block;font-size:13px;color:var(--text-muted,#888);margin-bottom:4px}
+        .ctrl-group select,.ctrl-group input[type=range],.ctrl-group input[type=number]{width:100%;padding:6px 8px;background:var(--bg,#12121a);border:1px solid var(--border,#2e2e3e);border-radius:6px;color:var(--text,#e0e0e0);font-size:13px}
+        .ctrl-group input[type=range]{padding:0}
+        .btn-run{width:100%;padding:10px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+        .btn-run:hover{background:#c0392b}
+        .btn-run:disabled{opacity:.5;cursor:not-allowed}
+        .btn-sm{padding:6px 12px;background:var(--bg,#12121a);color:var(--text,#e0e0e0);border:1px solid var(--border,#2e2e3e);border-radius:6px;font-size:12px;cursor:pointer;margin:2px}
+        .btn-sm:hover{background:var(--border,#2e2e3e)}
+        .btn-sm.active{background:#e74c3c;color:#fff;border-color:#e74c3c}
+        .btn-vax{width:100%;padding:10px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+        .btn-vax:hover{background:#219a52}
+        .btn-quarantine{width:100%;padding:10px;background:#f39c12;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+        .btn-quarantine:hover{background:#d68910}
+        .results-box{margin-top:12px;padding:12px;background:var(--bg,#12121a);border-radius:8px;font-size:13px;max-height:220px;overflow-y:auto}
+        .metric-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border,#2e2e3e)}
+        .metric-label{color:var(--text-muted,#888);font-size:12px}
+        .metric-value{font-weight:600;font-size:13px}
+        .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+        .legend-item{display:flex;align-items:center;gap:4px}
+        .legend-dot{width:10px;height:10px;border-radius:50%}
+        .preset-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+        .insight-card{padding:10px;margin-top:8px;border-radius:8px;border-left:3px solid #e74c3c;background:rgba(231,76,60,.1);font-size:12px;line-height:1.5}
+        .insight-card.good{border-left-color:#27ae60;background:rgba(39,174,96,.1)}
+        .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+        .stat-card{padding:8px;border-radius:8px;background:var(--bg,#12121a);text-align:center}
+        .stat-card .val{font-size:20px;font-weight:700}
+        .stat-card .lbl{font-size:10px;color:var(--text-muted,#888);text-transform:uppercase}
+        .r0-gauge{width:100%;height:24px;border-radius:12px;background:var(--border,#2e2e3e);overflow:hidden;margin-top:4px;position:relative}
+        .r0-fill{height:100%;border-radius:12px;transition:width .5s}
+        .r0-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+        .intervention-log{max-height:100px;overflow-y:auto;font-size:11px;margin-top:8px;padding:6px;border-radius:6px;background:var(--bg,#12121a)}
+        .intervention-log div{padding:2px 0;border-bottom:1px solid var(--border,#2e2e3e)}
+        @media(max-width:800px){.ep-container{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="diffusion.html" class="sidebar-link"><span class="icon">🦠</span>Diffusion Sim</a>
+        <a href="influence-maximizer.html" class="sidebar-link"><span class="icon">📢</span>Influence Max</a>
+        <a href="epidemic.html" class="sidebar-link active"><span class="icon">🏥</span>Epidemic Sim</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="graph-advisor.html" class="sidebar-link"><span class="icon">🧠</span>Graph Advisor</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+    </div>
+</nav>
+
+<div class="main"><div class="content">
+
+<h1>🏥 Epidemic Simulator
+    <span class="subtitle">SIR/SIS disease spread with autonomous interventions</span>
+</h1>
+
+<p>Simulate epidemic spread across networks using <strong>SIR</strong> (Susceptible→Infected→Recovered) and <strong>SIS</strong> (Susceptible→Infected→Susceptible) models. Apply <strong>vaccinations</strong>, <strong>quarantines</strong>, and <strong>contact tracing</strong> to contain outbreaks. The autonomous advisor monitors R₀ and recommends interventions in real-time.</p>
+
+<div class="preset-row">
+    <button class="btn-sm" onclick="loadPreset('karate')">🥋 Karate Club</button>
+    <button class="btn-sm" onclick="loadPreset('smallworld')">🌐 Small World</button>
+    <button class="btn-sm" onclick="loadPreset('scalefree')">📡 Scale-Free</button>
+    <button class="btn-sm" onclick="loadPreset('grid')">🔲 Grid City</button>
+    <button class="btn-sm" onclick="loadPreset('cluster')">🏘️ Clustered</button>
+    <button class="btn-sm" onclick="loadPreset('airport')">✈️ Airport Hub</button>
+    <button class="btn-sm" onclick="loadPreset('ring')">💍 Ring</button>
+    <button class="btn-sm" onclick="loadPreset('random')">🎲 Random</button>
+</div>
+
+<div class="ep-container">
+<div class="ep-panel" style="max-height:calc(100vh - 120px);overflow-y:auto">
+    <h3 style="margin-top:0">⚙️ Parameters</h3>
+
+    <div class="ctrl-group">
+        <label>Model</label>
+        <select id="model"><option value="SIR">SIR (Susceptible→Infected→Recovered)</option><option value="SIS">SIS (Susceptible→Infected→Susceptible)</option><option value="SEIR">SEIR (with Exposed phase)</option></select>
+    </div>
+    <div class="ctrl-group">
+        <label>Infection Rate (β): <span id="betaVal">0.3</span></label>
+        <input type="range" id="beta" min="0.01" max="1" step="0.01" value="0.3" oninput="document.getElementById('betaVal').textContent=this.value">
+    </div>
+    <div class="ctrl-group">
+        <label>Recovery Rate (γ): <span id="gammaVal">0.1</span></label>
+        <input type="range" id="gamma" min="0.01" max="1" step="0.01" value="0.1" oninput="document.getElementById('gammaVal').textContent=this.value">
+    </div>
+    <div class="ctrl-group" id="sigmaGroup" style="display:none">
+        <label>Incubation Rate (σ): <span id="sigmaVal">0.2</span></label>
+        <input type="range" id="sigma" min="0.01" max="1" step="0.01" value="0.2" oninput="document.getElementById('sigmaVal').textContent=this.value">
+    </div>
+    <div class="ctrl-group">
+        <label>Initial Infected</label>
+        <input type="number" id="initInfected" min="1" max="20" value="1">
+    </div>
+    <div class="ctrl-group">
+        <label>Simulation Speed (ms): <span id="speedVal">300</span></label>
+        <input type="range" id="speed" min="50" max="1000" step="50" value="300" oninput="document.getElementById('speedVal').textContent=this.value">
+    </div>
+
+    <button class="btn-run" onclick="startSim()">▶ Start Epidemic</button>
+    <button class="btn-run" style="background:#555;margin-top:4px" onclick="stopSim()">⏹ Stop</button>
+    <button class="btn-run" style="background:#8e44ad;margin-top:4px" onclick="resetSim()">🔄 Reset</button>
+
+    <h3 style="margin-top:16px">🛡️ Interventions</h3>
+    <div class="ctrl-group">
+        <label>Vaccination Strategy</label>
+        <select id="vaxStrategy"><option value="degree">Target Highest Degree</option><option value="betweenness">Target Bridge Nodes</option><option value="random">Random Vaccination</option><option value="ring">Ring Vaccination (neighbors of infected)</option></select>
+    </div>
+    <div class="ctrl-group">
+        <label>Vaccinate Count: <span id="vaxCountVal">3</span></label>
+        <input type="range" id="vaxCount" min="1" max="20" step="1" value="3" oninput="document.getElementById('vaxCountVal').textContent=this.value">
+    </div>
+    <button class="btn-vax" onclick="vaccinate()">💉 Vaccinate</button>
+    <button class="btn-quarantine" onclick="quarantine()">🔒 Quarantine Infected</button>
+    <button class="btn-run" style="background:#2980b9;margin-top:4px" onclick="contactTrace()">🔍 Contact Trace</button>
+
+    <div style="margin-top:8px">
+        <label style="font-size:13px;cursor:pointer"><input type="checkbox" id="autoAdvisor" checked> 🤖 Autonomous Advisor</label>
+    </div>
+
+    <div class="intervention-log" id="interventionLog"></div>
+
+    <h3 style="margin-top:16px">📊 Statistics</h3>
+    <div class="stat-grid">
+        <div class="stat-card"><div class="val" id="statS" style="color:#3498db">0</div><div class="lbl">Susceptible</div></div>
+        <div class="stat-card"><div class="val" id="statI" style="color:#e74c3c">0</div><div class="lbl">Infected</div></div>
+        <div class="stat-card"><div class="val" id="statR" style="color:#27ae60">0</div><div class="lbl">Recovered</div></div>
+        <div class="stat-card"><div class="val" id="statV" style="color:#9b59b6">0</div><div class="lbl">Vaccinated</div></div>
+    </div>
+    <div class="ctrl-group" style="margin-top:8px">
+        <label>Effective R₀</label>
+        <div class="r0-gauge"><div class="r0-fill" id="r0Fill" style="width:0;background:#27ae60"></div><div class="r0-label" id="r0Label">0.00</div></div>
+    </div>
+    <div class="metric-row"><span class="metric-label">Peak Infected</span><span class="metric-value" id="peakInf">0</span></div>
+    <div class="metric-row"><span class="metric-label">Total Ever Infected</span><span class="metric-value" id="totalInf">0</span></div>
+    <div class="metric-row"><span class="metric-label">Time Step</span><span class="metric-value" id="timeStep">0</span></div>
+
+    <div id="advisorInsight"></div>
+
+    <div style="margin-top:12px">
+        <button class="btn-sm" onclick="exportJSON()">📋 Export JSON</button>
+        <button class="btn-sm" onclick="exportCSV()">📊 Export CSV</button>
+    </div>
+</div>
+
+<div>
+    <div class="ep-canvas-wrap">
+        <canvas id="graphCanvas"></canvas>
+        <div class="legend" style="padding:8px 12px">
+            <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div> Susceptible</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div> Infected</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div> Exposed</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div> Recovered</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div> Vaccinated</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#7f8c8d"></div> Quarantined</div>
+        </div>
+    </div>
+    <canvas id="curveCanvas"></canvas>
+</div>
+</div>
+
+</div></div>
+
+<script>
+// ===================== GRAPH DATA =====================
+const COLORS = {S:'#3498db',I:'#e74c3c',E:'#f39c12',R:'#27ae60',V:'#9b59b6',Q:'#7f8c8d'};
+let nodes=[], edges=[], adj={};
+let simInterval=null, step=0, history=[], peakInf=0, totalInfected=0;
+let panX=0, panY=0, zoom=1, dragNode=null, isDragging=false, lastMouse={x:0,y:0};
+const gc=document.getElementById('graphCanvas'), gctx=gc.getContext('2d');
+const cc=document.getElementById('curveCanvas'), cctx=cc.getContext('2d');
+
+function resize(){
+    gc.width=gc.clientWidth*devicePixelRatio; gc.height=gc.clientHeight*devicePixelRatio;
+    gctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    cc.width=cc.clientWidth*devicePixelRatio; cc.height=cc.clientHeight*devicePixelRatio;
+    cctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    draw();
+}
+window.addEventListener('resize',resize);
+
+// ===================== PRESETS =====================
+function makeGraph(nodeList, edgeList){
+    nodes=nodeList; edges=edgeList; adj={};
+    nodes.forEach(n=>{adj[n.id]=[];n.state='S'});
+    edges.forEach(e=>{adj[e.s].push(e.t);adj[e.t].push(e.s)});
+}
+
+function randomPos(n,W,H){return Array.from({length:n},(_,i)=>({id:i,x:80+Math.random()*(W-160),y:80+Math.random()*(H-160),state:'S',vx:0,vy:0}))}
+
+function loadPreset(name){
+    stopSim(); step=0; history=[]; peakInf=0; totalInfected=0;
+    const W=gc.clientWidth||700, H=gc.clientHeight||500;
+    let ns,es;
+    switch(name){
+        case 'karate':
+            ns=randomPos(34,W,H);
+            es=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],
+                [1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],
+                [3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],
+                [14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],
+                [23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],
+                [27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]].map(([s,t])=>({s,t}));
+            break;
+        case 'smallworld':
+            ns=randomPos(40,W,H);
+            es=[];
+            for(let i=0;i<40;i++){es.push({s:i,t:(i+1)%40});es.push({s:i,t:(i+2)%40})}
+            for(let i=0;i<8;i++){let a=Math.floor(Math.random()*40),b=Math.floor(Math.random()*40);if(a!==b)es.push({s:a,t:b})}
+            break;
+        case 'scalefree':
+            ns=randomPos(40,W,H); es=[];
+            let deg=new Array(40).fill(0);
+            for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){es.push({s:i,t:j});deg[i]++;deg[j]++}
+            for(let i=3;i<40;i++){let total=deg.reduce((a,b)=>a+b,0)||1;
+                let added=0;
+                for(let j=0;j<i&&added<2;j++){if(Math.random()<(deg[j]+1)/(total+i)){es.push({s:i,t:j});deg[i]++;deg[j]++;added++}}
+                if(!added){es.push({s:i,t:Math.floor(Math.random()*i)});deg[i]++;deg[Math.floor(Math.random()*i)]++}}
+            break;
+        case 'grid':
+            ns=[]; es=[]; let cols=7,rows=6;
+            for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+                ns.push({id:r*cols+c,x:100+c*(W-200)/cols,y:80+r*(H-160)/rows,state:'S',vx:0,vy:0});
+                if(c>0)es.push({s:r*cols+c,t:r*cols+c-1});
+                if(r>0)es.push({s:r*cols+c,t:(r-1)*cols+c})}
+            break;
+        case 'cluster':
+            ns=[]; es=[]; let id=0;
+            for(let g=0;g<3;g++){let cx=150+g*200,cy=H/2+((g%2)?-60:60),sz=10;
+                let start=id;
+                for(let i=0;i<sz;i++){ns.push({id:id,x:cx+Math.random()*100-50,y:cy+Math.random()*100-50,state:'S',vx:0,vy:0});
+                    if(i>0)es.push({s:id,t:start+Math.floor(Math.random()*i)});
+                    if(i>1&&Math.random()<0.4)es.push({s:id,t:start+Math.floor(Math.random()*i)});id++}}
+            es.push({s:0,t:10},{s:10,t:20},{s:5,t:15});
+            break;
+        case 'airport':
+            ns=randomPos(30,W,H); es=[];
+            for(let i=1;i<5;i++){for(let j=i+1;j<5;j++)es.push({s:i,t:j});es.push({s:0,t:i})}
+            for(let i=5;i<30;i++){es.push({s:i,t:Math.floor(Math.random()*5)});if(Math.random()<.3)es.push({s:i,t:5+Math.floor(Math.random()*(i-5))})}
+            break;
+        case 'ring':
+            ns=randomPos(30,W,H); es=[];
+            for(let i=0;i<30;i++){ns[i].x=W/2+180*Math.cos(2*Math.PI*i/30);ns[i].y=H/2+180*Math.sin(2*Math.PI*i/30);es.push({s:i,t:(i+1)%30})}
+            break;
+        default:
+            ns=randomPos(35,W,H); es=[];
+            for(let i=0;i<35;i++)for(let j=i+1;j<35;j++)if(Math.random()<0.08)es.push({s:i,t:j});
+    }
+    makeGraph(ns,es);
+    forceLayout(80);
+    resetSim();
+}
+
+// ===================== FORCE LAYOUT =====================
+function forceLayout(iters){
+    const W=gc.clientWidth||700, H=gc.clientHeight||500;
+    for(let it=0;it<iters;it++){
+        for(let i=0;i<nodes.length;i++){
+            nodes[i].vx=0; nodes[i].vy=0;
+            for(let j=0;j<nodes.length;j++){
+                if(i===j)continue;
+                let dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+                let d=Math.sqrt(dx*dx+dy*dy)||1;
+                let f=800/(d*d);
+                nodes[i].vx+=f*dx/d; nodes[i].vy+=f*dy/d;
+            }
+        }
+        edges.forEach(e=>{
+            let a=nodes[e.s],b=nodes[e.t];
+            let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+            let f=(d-80)*0.01;
+            a.vx+=f*dx/d; a.vy+=f*dy/d;
+            b.vx-=f*dx/d; b.vy-=f*dy/d;
+        });
+        nodes.forEach(n=>{
+            n.x+=n.vx*0.5; n.y+=n.vy*0.5;
+            n.x=Math.max(30,Math.min(W-30,n.x));
+            n.y=Math.max(30,Math.min(H-30,n.y));
+        });
+    }
+}
+
+// ===================== DRAWING =====================
+function draw(){
+    const W=gc.clientWidth, H=gc.clientHeight;
+    gctx.clearRect(0,0,W,H);
+    gctx.save();
+    gctx.translate(panX,panY);
+    gctx.scale(zoom,zoom);
+
+    // edges
+    edges.forEach(e=>{
+        const a=nodes[e.s],b=nodes[e.t];
+        gctx.beginPath();
+        gctx.moveTo(a.x,a.y);gctx.lineTo(b.x,b.y);
+        let quarantined=(a.state==='Q'||b.state==='Q');
+        gctx.strokeStyle=quarantined?'rgba(127,140,141,0.15)':'rgba(255,255,255,0.12)';
+        gctx.lineWidth=quarantined?0.5:1;
+        gctx.stroke();
+    });
+
+    // nodes
+    nodes.forEach(n=>{
+        gctx.beginPath();
+        let r=n.state==='I'?10:n.state==='Q'?9:8;
+        gctx.arc(n.x,n.y,r,0,Math.PI*2);
+        gctx.fillStyle=COLORS[n.state]||COLORS.S;
+        gctx.fill();
+        if(n.state==='I'){
+            gctx.beginPath();gctx.arc(n.x,n.y,14,0,Math.PI*2);
+            gctx.strokeStyle='rgba(231,76,60,0.4)';gctx.lineWidth=2;gctx.stroke();
+        }
+        if(n.state==='Q'){
+            gctx.beginPath();gctx.arc(n.x,n.y,12,0,Math.PI*2);
+            gctx.strokeStyle='rgba(127,140,141,0.6)';gctx.lineWidth=2;gctx.setLineDash([3,3]);gctx.stroke();gctx.setLineDash([]);
+        }
+        gctx.fillStyle='#fff';gctx.font='bold 8px sans-serif';gctx.textAlign='center';gctx.textBaseline='middle';
+        gctx.fillText(n.id,n.x,n.y);
+    });
+    gctx.restore();
+    drawCurve();
+}
+
+function drawCurve(){
+    const W=cc.clientWidth, H=cc.clientHeight;
+    cctx.clearRect(0,0,W,H);
+    if(history.length<2)return;
+    const N=nodes.length||1;
+    const maxT=history.length;
+    const xScale=W/Math.max(maxT-1,1);
+
+    ['S','I','E','R','V','Q'].forEach(key=>{
+        cctx.beginPath();
+        history.forEach((h,i)=>{
+            let y=H-((h[key]||0)/N)*H;
+            if(i===0)cctx.moveTo(0,y);else cctx.lineTo(i*xScale,y);
+        });
+        cctx.strokeStyle=COLORS[key]||'#888';
+        cctx.lineWidth=2;
+        cctx.stroke();
+    });
+
+    // R0 threshold line
+    cctx.setLineDash([4,4]);
+    cctx.beginPath();
+    cctx.moveTo(0,H*0.5);cctx.lineTo(W,H*0.5);
+    cctx.strokeStyle='rgba(255,255,255,0.15)';cctx.lineWidth=1;cctx.stroke();
+    cctx.setLineDash([]);
+    cctx.fillStyle='rgba(255,255,255,0.3)';cctx.font='10px sans-serif';
+    cctx.fillText('50%',4,H*0.5-4);
+}
+
+// ===================== SIMULATION =====================
+function countStates(){
+    let c={S:0,I:0,E:0,R:0,V:0,Q:0};
+    nodes.forEach(n=>c[n.state]=(c[n.state]||0)+1);
+    return c;
+}
+
+function calcR0(){
+    let beta=parseFloat(document.getElementById('beta').value);
+    let gamma=parseFloat(document.getElementById('gamma').value);
+    let c=countStates();
+    let sRatio=c.S/Math.max(nodes.length,1);
+    return (beta/gamma)*sRatio*avgDegree();
+}
+
+function avgDegree(){
+    if(!nodes.length)return 0;
+    return edges.length*2/nodes.length;
+}
+
+function simStep(){
+    let beta=parseFloat(document.getElementById('beta').value);
+    let gamma=parseFloat(document.getElementById('gamma').value);
+    let sigma=parseFloat(document.getElementById('sigma').value);
+    let model=document.getElementById('model').value;
+    let newStates={};
+
+    nodes.forEach(n=>{
+        newStates[n.id]=n.state;
+        if(n.state==='Q')return; // quarantined skip
+
+        if(n.state==='S'){
+            let infNeighbors=(adj[n.id]||[]).filter(j=>nodes[j].state==='I'&&nodes[j].state!=='Q').length;
+            let pInfect=1-Math.pow(1-beta,infNeighbors);
+            if(Math.random()<pInfect){
+                newStates[n.id]=model==='SEIR'?'E':'I';
+            }
+        } else if(n.state==='E'&&model==='SEIR'){
+            if(Math.random()<sigma) newStates[n.id]='I';
+        } else if(n.state==='I'){
+            if(Math.random()<gamma) newStates[n.id]=model==='SIS'?'S':'R';
+        }
+    });
+
+    let newInf=0;
+    nodes.forEach(n=>{
+        if(n.state!=='I'&&newStates[n.id]==='I')newInf++;
+        n.state=newStates[n.id];
+    });
+
+    step++;
+    let c=countStates();
+    totalInfected+=newInf;
+    if(c.I>peakInf)peakInf=c.I;
+    history.push({...c,step});
+    updateStats(c);
+    draw();
+
+    // Auto-advisor
+    if(document.getElementById('autoAdvisor').checked){
+        autonomousAdvise(c);
+    }
+
+    if(c.I===0&&c.E===0){
+        stopSim();
+        logIntervention('🏁 Epidemic ended at step '+step);
+        showInsight(c.R>nodes.length*0.5?
+            '⚠️ Over 50% of the population was infected. Earlier intervention could have reduced the toll.':
+            '✅ Outbreak contained! Only '+(totalInfected)+' total infections.',c.R<=nodes.length*0.5);
+    }
+}
+
+function startSim(){
+    if(simInterval)return;
+    let c=countStates();
+    if(c.I===0&&c.E===0){
+        // seed initial infected
+        let count=parseInt(document.getElementById('initInfected').value)||1;
+        let susceptible=nodes.filter(n=>n.state==='S');
+        for(let i=0;i<Math.min(count,susceptible.length);i++){
+            let idx=Math.floor(Math.random()*susceptible.length);
+            susceptible[idx].state='I';
+            susceptible.splice(idx,1);
+        }
+        totalInfected=parseInt(document.getElementById('initInfected').value)||1;
+    }
+    let speed=parseInt(document.getElementById('speed').value)||300;
+    simInterval=setInterval(simStep,speed);
+}
+
+function stopSim(){if(simInterval){clearInterval(simInterval);simInterval=null}}
+
+function resetSim(){
+    stopSim(); step=0; history=[]; peakInf=0; totalInfected=0;
+    nodes.forEach(n=>n.state='S');
+    document.getElementById('interventionLog').innerHTML='';
+    document.getElementById('advisorInsight').innerHTML='';
+    updateStats(countStates());
+    draw();
+}
+
+function updateStats(c){
+    document.getElementById('statS').textContent=c.S;
+    document.getElementById('statI').textContent=c.I;
+    document.getElementById('statR').textContent=(c.R||0)+(c.Q||0);
+    document.getElementById('statV').textContent=c.V||0;
+    document.getElementById('peakInf').textContent=peakInf;
+    document.getElementById('totalInf').textContent=totalInfected;
+    document.getElementById('timeStep').textContent=step;
+
+    let r0=calcR0();
+    let pct=Math.min(r0/5*100,100);
+    let fill=document.getElementById('r0Fill');
+    fill.style.width=pct+'%';
+    fill.style.background=r0<1?'#27ae60':r0<2?'#f39c12':'#e74c3c';
+    document.getElementById('r0Label').textContent='R₀ = '+r0.toFixed(2);
+}
+
+// ===================== INTERVENTIONS =====================
+function vaccinate(){
+    let strategy=document.getElementById('vaxStrategy').value;
+    let count=parseInt(document.getElementById('vaxCount').value)||3;
+    let candidates=nodes.filter(n=>n.state==='S');
+    if(!candidates.length){logIntervention('⚠️ No susceptible nodes to vaccinate');return}
+
+    let sorted;
+    switch(strategy){
+        case 'degree':
+            sorted=candidates.sort((a,b)=>(adj[b.id]||[]).length-(adj[a.id]||[]).length);break;
+        case 'betweenness':
+            sorted=candidates.sort((a,b)=>betweennessScore(b.id)-betweennessScore(a.id));break;
+        case 'ring':
+            let atRisk=new Set();
+            nodes.filter(n=>n.state==='I').forEach(n=>(adj[n.id]||[]).forEach(j=>{if(nodes[j].state==='S')atRisk.add(j)}));
+            sorted=[...atRisk].map(id=>nodes[id]);
+            if(!sorted.length)sorted=candidates;
+            break;
+        default:
+            sorted=candidates.sort(()=>Math.random()-0.5);
+    }
+    let vaxxed=sorted.slice(0,count);
+    vaxxed.forEach(n=>n.state='V');
+    logIntervention('💉 Vaccinated '+vaxxed.length+' nodes ('+strategy+')');
+    draw(); updateStats(countStates());
+}
+
+function quarantine(){
+    let infected=nodes.filter(n=>n.state==='I');
+    if(!infected.length){logIntervention('⚠️ No infected nodes to quarantine');return}
+    infected.forEach(n=>n.state='Q');
+    logIntervention('🔒 Quarantined '+infected.length+' infected nodes');
+    draw(); updateStats(countStates());
+}
+
+function contactTrace(){
+    let infected=nodes.filter(n=>n.state==='I');
+    let traced=new Set();
+    infected.forEach(n=>(adj[n.id]||[]).forEach(j=>{if(nodes[j].state==='S')traced.add(j)}));
+    if(!traced.size){logIntervention('🔍 No at-risk contacts found');return}
+    traced.forEach(id=>nodes[id].state='V');
+    logIntervention('🔍 Contact traced & vaccinated '+traced.size+' at-risk neighbors');
+    draw(); updateStats(countStates());
+}
+
+function betweennessScore(nodeId){
+    // Simplified approximate betweenness
+    let score=0;
+    let nbrs=(adj[nodeId]||[]).length;
+    (adj[nodeId]||[]).forEach(j=>{
+        (adj[j]||[]).forEach(k=>{if(k!==nodeId&&!(adj[nodeId]||[]).includes(k))score++});
+    });
+    return score+nbrs*0.5;
+}
+
+// ===================== AUTONOMOUS ADVISOR =====================
+let lastAdviseTick=0;
+function autonomousAdvise(c){
+    if(step-lastAdviseTick<3)return; // don't spam
+    let r0=calcR0();
+    let infRate=c.I/Math.max(nodes.length,1);
+
+    if(r0>3&&infRate>0.1&&step>2){
+        lastAdviseTick=step;
+        showInsight('🚨 <strong>CRITICAL:</strong> R₀='+r0.toFixed(1)+' with '+Math.round(infRate*100)+'% infected. Recommend immediate quarantine + ring vaccination.',false);
+        logIntervention('🤖 Advisor: CRITICAL - recommending quarantine');
+    } else if(r0>2&&step>3){
+        lastAdviseTick=step;
+        showInsight('⚠️ R₀='+r0.toFixed(1)+' is high. Consider targeting hub nodes with vaccination to reduce spread.',false);
+        logIntervention('🤖 Advisor: HIGH R₀ warning');
+    } else if(r0>1&&infRate>0.2){
+        lastAdviseTick=step;
+        showInsight('📋 '+Math.round(infRate*100)+'% infected. Contact tracing could help contain remaining spread.',false);
+    } else if(r0<1&&c.I>0){
+        lastAdviseTick=step;
+        showInsight('📉 R₀ < 1 — epidemic declining. Current measures are working. '+c.I+' active cases remain.',true);
+    }
+}
+
+function showInsight(html,good){
+    document.getElementById('advisorInsight').innerHTML='<div class="insight-card '+(good?'good':'')+'">'+html+'</div>';
+}
+
+function logIntervention(text){
+    let log=document.getElementById('interventionLog');
+    log.innerHTML='<div>[Step '+step+'] '+text+'</div>'+log.innerHTML;
+}
+
+// ===================== MODEL TOGGLE =====================
+document.getElementById('model').addEventListener('change',function(){
+    document.getElementById('sigmaGroup').style.display=this.value==='SEIR'?'block':'none';
+});
+
+// ===================== EXPORT =====================
+function exportJSON(){
+    let data={nodes:nodes.map(n=>({id:n.id,state:n.state})),history,params:{
+        model:document.getElementById('model').value,
+        beta:parseFloat(document.getElementById('beta').value),
+        gamma:parseFloat(document.getElementById('gamma').value),
+        peakInfected:peakInf,totalInfected,steps:step
+    }};
+    let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='epidemic-data.json';a.click();
+}
+
+function exportCSV(){
+    let lines=['step,S,I,E,R,V,Q'];
+    history.forEach(h=>lines.push([h.step,h.S,h.I,h.E||0,h.R||0,h.V||0,h.Q||0].join(',')));
+    let blob=new Blob([lines.join('\n')],{type:'text/csv'});
+    let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='epidemic-curve.csv';a.click();
+}
+
+// ===================== MOUSE INTERACTION =====================
+gc.addEventListener('mousedown',e=>{
+    let rect=gc.getBoundingClientRect();
+    let mx=(e.clientX-rect.left-panX)/zoom, my=(e.clientY-rect.top-panY)/zoom;
+    dragNode=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<12);
+    if(dragNode){isDragging=true}
+    lastMouse={x:e.clientX,y:e.clientY};
+});
+gc.addEventListener('mousemove',e=>{
+    if(isDragging&&dragNode){
+        let rect=gc.getBoundingClientRect();
+        dragNode.x=(e.clientX-rect.left-panX)/zoom;
+        dragNode.y=(e.clientY-rect.top-panY)/zoom;
+        draw();
+    } else if(e.buttons===1&&!dragNode){
+        panX+=e.clientX-lastMouse.x;
+        panY+=e.clientY-lastMouse.y;
+        draw();
+    }
+    lastMouse={x:e.clientX,y:e.clientY};
+});
+gc.addEventListener('mouseup',()=>{isDragging=false;dragNode=null});
+gc.addEventListener('wheel',e=>{
+    e.preventDefault();
+    let z=e.deltaY<0?1.1:0.9;
+    zoom*=z; zoom=Math.max(0.3,Math.min(3,zoom));
+    draw();
+},{passive:false});
+
+// ===================== CLICK TO INFECT =====================
+gc.addEventListener('dblclick',e=>{
+    let rect=gc.getBoundingClientRect();
+    let mx=(e.clientX-rect.left-panX)/zoom, my=(e.clientY-rect.top-panY)/zoom;
+    let n=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<12);
+    if(n&&n.state==='S'){n.state='I';totalInfected++;logIntervention('🦠 Manually infected node '+n.id);draw();updateStats(countStates())}
+    else if(n&&n.state==='I'){n.state='Q';logIntervention('🔒 Manually quarantined node '+n.id);draw();updateStats(countStates())}
+});
+
+// ===================== INIT =====================
+setTimeout(()=>{resize();loadPreset('smallworld')},100);
+</script>
+</body>
+</html>
