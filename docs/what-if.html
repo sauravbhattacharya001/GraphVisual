@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph What-If Analyzer - GraphVisual</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+.sidebar{width:280px;padding:12px;overflow-y:auto;border-right:1px solid #2a2a4a;flex-shrink:0}
+.sidebar-right{border-right:none;border-left:1px solid #2a2a4a}
+.center{flex:1;display:flex;flex-direction:column;min-width:0}
+canvas{flex:1;cursor:crosshair}
+h1{font-size:1.1em;color:#7c83ff;margin-bottom:8px}
+h2{font-size:.9em;color:#9ca0ff;margin:12px 0 6px;border-bottom:1px solid #2a2a4a;padding-bottom:4px}
+button{background:#2a2a4a;color:#e0e0e0;border:1px solid #3a3a6a;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:.8em;margin:2px}
+button:hover{background:#3a3a6a}
+button.active{background:#7c83ff;color:#fff}
+.preset-grid{display:flex;flex-wrap:wrap;gap:4px}
+.preset-grid button{flex:1 0 45%;font-size:.75em}
+.tools{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.tools button{flex:1 0 45%}
+.rec{background:#16213e;border:1px solid #2a2a4a;border-radius:4px;padding:6px 8px;margin:4px 0;font-size:.78em;line-height:1.3}
+.rec.warn{border-left:3px solid #ff6b6b}
+.rec.info{border-left:3px solid #4ecdc4}
+.rec.suggest{border-left:3px solid #ffe66d}
+table{width:100%;border-collapse:collapse;font-size:.78em}
+th,td{padding:4px 6px;text-align:right;border-bottom:1px solid #2a2a4a}
+th{color:#9ca0ff;text-align:left}
+td:first-child{text-align:left;color:#ccc}
+.pos{color:#4ecdc4}.neg{color:#ff6b6b}.neu{color:#888}
+.history-item{font-size:.75em;padding:3px 6px;background:#16213e;margin:2px 0;border-radius:3px;display:flex;justify-content:space-between}
+.history-item .undo-mark{color:#ff6b6b;font-size:.7em}
+#status{padding:6px 10px;background:#16213e;font-size:.8em;color:#9ca0ff;border-top:1px solid #2a2a4a}
+.btn-row{display:flex;gap:4px;margin:4px 0}
+.btn-row button{flex:1}
+</style>
+</head>
+<body>
+<div class="sidebar" id="leftPanel">
+<h1>🔮 What-If Analyzer</h1>
+<h2>Presets</h2>
+<div class="preset-grid" id="presets"></div>
+<h2>Tools</h2>
+<div class="tools" id="toolBtns"></div>
+<div class="btn-row">
+<button onclick="toggleHeatmap()">🌡️ Heatmap</button>
+<button onclick="exportJSON()">📤 Export</button>
+</div>
+<div class="btn-row">
+<button onclick="undo()">↩ Undo</button>
+<button onclick="redo()">↪ Redo</button>
+</div>
+<h2>Recommendations</h2>
+<div id="recs"></div>
+</div>
+<div class="center">
+<canvas id="cv"></canvas>
+<div id="status">Click canvas to interact. Select a tool first.</div>
+</div>
+<div class="sidebar sidebar-right">
+<h2>Metrics Comparison</h2>
+<table><thead><tr><th>Metric</th><th>Base</th><th>Now</th><th>Δ</th></tr></thead><tbody id="metrics"></tbody></table>
+<h2>Change History</h2>
+<div id="history"></div>
+<h2>Graph Health</h2>
+<div id="health"></div>
+</div>
+<script>
+// Graph model
+let nodes=[],edges=[],baseNodes=[],baseEdges=[];
+let nextId=0,selected=null,tool='select',heatmapOn=false;
+let undoStack=[],redoStack=[];
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+
+function resize(){cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight}
+window.addEventListener('resize',resize);resize();
+
+// Presets
+const presets={
+'Petersen':()=>{let n=[];for(let i=0;i<5;i++){n.push({x:200+120*Math.cos(2*Math.PI*i/5-Math.PI/2),y:200+120*Math.sin(2*Math.PI*i/5-Math.PI/2)});n.push({x:200+55*Math.cos(2*Math.PI*i/5-Math.PI/2),y:200+55*Math.sin(2*Math.PI*i/5-Math.PI/2)})}let e=[];for(let i=0;i<5;i++){e.push([i*2,(((i+1)%5)*2)]);e.push([i*2,i*2+1]);e.push([i*2+1,((i+2)%5)*2+1])}return{n,e}},
+'K5':()=>{let n=[];for(let i=0;i<5;i++)n.push({x:200+100*Math.cos(2*Math.PI*i/5),y:200+100*Math.sin(2*Math.PI*i/5)});let e=[];for(let i=0;i<5;i++)for(let j=i+1;j<5;j++)e.push([i,j]);return{n,e}},
+'Karate Club':()=>{let n=[];for(let i=0;i<34;i++)n.push({x:100+Math.random()*300,y:100+Math.random()*300});let e=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];return{n,e}},
+'Grid 4x4':()=>{let n=[],e=[];for(let r=0;r<4;r++)for(let c=0;c<4;c++){n.push({x:150+c*80,y:150+r*80});let i=r*4+c;if(c<3)e.push([i,i+1]);if(r<3)e.push([i,i+4])}return{n,e}},
+'Binary Tree':()=>{let n=[{x:300,y:50}],e=[];for(let i=0;i<15;i++){let l=2*i+1,r=2*i+2;if(l<15){let d=Math.floor(Math.log2(l+1)),pos=l-Math.pow(2,d)+1;let w=500/Math.pow(2,d);n.push({x:w*pos+w/2,y:50+d*60});e.push([i,l])}if(r<15){let d=Math.floor(Math.log2(r+1)),pos=r-Math.pow(2,d)+1;let w=500/Math.pow(2,d);n.push({x:w*pos+w/2,y:50+d*60});e.push([i,r])}}return{n:n.slice(0,15),e}},
+'Star-8':()=>{let n=[{x:250,y:250}];for(let i=0;i<8;i++)n.push({x:250+130*Math.cos(2*Math.PI*i/8),y:250+130*Math.sin(2*Math.PI*i/8)});let e=[];for(let i=1;i<=8;i++)e.push([0,i]);return{n,e}},
+'Cycle-10':()=>{let n=[];for(let i=0;i<10;i++)n.push({x:250+120*Math.cos(2*Math.PI*i/10),y:250+120*Math.sin(2*Math.PI*i/10)});let e=[];for(let i=0;i<10;i++)e.push([i,(i+1)%10]);return{n,e}},
+'Random-12':()=>{let n=[];for(let i=0;i<12;i++)n.push({x:80+Math.random()*350,y:80+Math.random()*350});let e=[];for(let i=0;i<12;i++){let j=(i+1)%12;e.push([i,j])}for(let k=0;k<8;k++){let a=Math.floor(Math.random()*12),b=Math.floor(Math.random()*12);if(a!==b&&!e.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)))e.push([a,b])}return{n,e}}
+};
+
+const presetDiv=document.getElementById('presets');
+Object.keys(presets).forEach(name=>{
+let b=document.createElement('button');b.textContent=name;
+b.onclick=()=>loadPreset(name);presetDiv.appendChild(b)});
+
+function loadPreset(name){
+let{n,e}=presets[name]();
+nodes=n.map((p,i)=>({id:i,...p,vx:0,vy:0}));
+edges=e.filter(([a,b])=>a<nodes.length&&b<nodes.length).map(([a,b])=>({a,b}));
+nextId=nodes.length;selected=null;undoStack=[];redoStack=[];
+baseNodes=JSON.parse(JSON.stringify(nodes));baseEdges=JSON.parse(JSON.stringify(edges));
+heatmapOn=false;updateAll();setStatus('Loaded '+name)}
+
+const tools=['select','addNode','addEdge','removeNode','removeEdge'];
+const toolLabels=['🖱️ Select','➕ Node','🔗 Edge','❌ Node','✂️ Edge'];
+const toolDiv=document.getElementById('toolBtns');
+tools.forEach((t,i)=>{let b=document.createElement('button');b.textContent=toolLabels[i];b.id='tool_'+t;
+b.onclick=()=>{tool=t;selected=null;document.querySelectorAll('.tools button').forEach(x=>x.classList.remove('active'));b.classList.add('active');setStatus('Tool: '+toolLabels[i])};toolDiv.appendChild(b)});
+
+function setStatus(s){document.getElementById('status').textContent=s}
+
+function saveState(){
+undoStack.push({nodes:JSON.parse(JSON.stringify(nodes)),edges:JSON.parse(JSON.stringify(edges)),nextId});
+redoStack=[];if(undoStack.length>50)undoStack.shift()}
+function undo(){if(!undoStack.length)return;redoStack.push({nodes:JSON.parse(JSON.stringify(nodes)),edges:JSON.parse(JSON.stringify(edges)),nextId});let s=undoStack.pop();nodes=s.nodes;edges=s.edges;nextId=s.nextId;selected=null;updateAll()}
+function redo(){if(!redoStack.length)return;undoStack.push({nodes:JSON.parse(JSON.stringify(nodes)),edges:JSON.parse(JSON.stringify(edges)),nextId});let s=redoStack.pop();nodes=s.nodes;edges=s.edges;nextId=s.nextId;selected=null;updateAll()}
+
+// Canvas interaction
+let dragging=null,dragOff={x:0,y:0};
+cv.addEventListener('mousedown',e=>{
+let r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+let hit=nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<14);
+if(tool==='select'){if(hit){dragging=hit;dragOff={x:hit.x-mx,y:hit.y-my};selected=hit}else selected=null;draw()}
+else if(tool==='addNode'){saveState();nodes.push({id:nextId++,x:mx,y:my,vx:0,vy:0});updateAll();setStatus('Added node '+(nextId-1))}
+else if(tool==='addEdge'){if(hit){if(selected&&selected.id!==hit.id){if(!edges.some(e=>(e.a===selected.id&&e.b===hit.id)||(e.a===hit.id&&e.b===selected.id))){saveState();edges.push({a:selected.id,b:hit.id});selected=null;updateAll();setStatus('Added edge')}}else{selected=hit;setStatus('Select second node for edge');draw()}}
+}else if(tool==='removeNode'&&hit){saveState();edges=edges.filter(e=>e.a!==hit.id&&e.b!==hit.id);nodes=nodes.filter(n=>n.id!==hit.id);if(selected===hit)selected=null;updateAll();setStatus('Removed node '+hit.id)}
+else if(tool==='removeEdge'&&!hit){let best=null,bestD=12;edges.forEach(ed=>{let na=nodes.find(n=>n.id===ed.a),nb=nodes.find(n=>n.id===ed.b);if(!na||!nb)return;let d=distToSeg(mx,my,na.x,na.y,nb.x,nb.y);if(d<bestD){bestD=d;best=ed}});if(best){saveState();edges=edges.filter(e=>e!==best);updateAll();setStatus('Removed edge')}}
+});
+cv.addEventListener('mousemove',e=>{if(!dragging)return;let r=cv.getBoundingClientRect();dragging.x=e.clientX-r.left+dragOff.x;dragging.y=e.clientY-r.top+dragOff.y;draw()});
+cv.addEventListener('mouseup',()=>{dragging=null});
+
+function distToSeg(px,py,ax,ay,bx,by){let dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy)));return Math.hypot(px-(ax+t*dx),py-(ay+t*dy))}
+
+// Force layout
+function forceLayout(its){
+for(let it=0;it<its;it++){
+nodes.forEach(n=>{n.vx=0;n.vy=0});
+// Repulsion
+for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+let dx=nodes[j].x-nodes[i].x,dy=nodes[j].y-nodes[i].y,d=Math.max(Math.hypot(dx,dy),1);
+let f=800/(d*d);nodes[i].vx-=f*dx/d;nodes[i].vy-=f*dy/d;nodes[j].vx+=f*dx/d;nodes[j].vy+=f*dy/d}
+// Attraction
+edges.forEach(e=>{let na=nodes.find(n=>n.id===e.a),nb=nodes.find(n=>n.id===e.b);if(!na||!nb)return;
+let dx=nb.x-na.x,dy=nb.y-na.y,d=Math.max(Math.hypot(dx,dy),1),f=(d-80)*0.05;
+na.vx+=f*dx/d;na.vy+=f*dy/d;nb.vx-=f*dx/d;nb.vy-=f*dy/d});
+// Center gravity
+let cx=cv.width/2,cy=cv.height/2;
+nodes.forEach(n=>{n.vx+=(cx-n.x)*0.01;n.vy+=(cy-n.y)*0.01;
+n.x+=Math.max(-10,Math.min(10,n.vx));n.y+=Math.max(-10,Math.min(10,n.vy));
+n.x=Math.max(20,Math.min(cv.width-20,n.x));n.y=Math.max(20,Math.min(cv.height-20,n.y))})}}
+
+// Metrics
+function adj(ns,es){let m={};ns.forEach(n=>m[n.id]=[]);es.forEach(e=>{if(m[e.a]&&m[e.b]){m[e.a].push(e.b);m[e.b].push(e.a)}});return m}
+function components(ns,es){let a=adj(ns,es),vis=new Set,comps=[];ns.forEach(n=>{if(vis.has(n.id))return;let q=[n.id],c=[];while(q.length){let v=q.pop();if(vis.has(v))continue;vis.add(v);c.push(v);(a[v]||[]).forEach(u=>{if(!vis.has(u))q.push(u)})}comps.push(c)});return comps}
+function bfs(start,a){let dist={},q=[start];dist[start]=0;while(q.length){let v=q.shift();(a[v]||[]).forEach(u=>{if(dist[u]===undefined){dist[u]=dist[v]+1;q.push(u)}})}return dist}
+function calcMetrics(ns,es){
+if(!ns.length)return{nodes:0,edges:0,density:0,avgDeg:0,maxDeg:0,components:0,diameter:0,clustering:0,avgPath:0};
+let a=adj(ns,es),degs=ns.map(n=>(a[n.id]||[]).length);
+let n=ns.length,m=es.length,density=n>1?2*m/(n*(n-1)):0;
+let avgDeg=degs.reduce((s,d)=>s+d,0)/n,maxDeg=Math.max(...degs);
+let comps=components(ns,es),numComp=comps.length;
+let diam=0,pathSum=0,pathCount=0;
+let largest=comps.reduce((a,b)=>a.length>b.length?a:b,[]);
+largest.forEach(v=>{let d=bfs(v,a);Object.values(d).forEach(dist=>{if(dist>0){pathSum+=dist;pathCount++;if(dist>diam)diam=dist}})});
+let avgPath=pathCount?pathSum/pathCount:0;
+// Clustering
+let clust=0,ccount=0;
+ns.forEach(nd=>{let nb=a[nd.id]||[];if(nb.length<2)return;let tri=0,pairs=nb.length*(nb.length-1)/2;
+for(let i=0;i<nb.length;i++)for(let j=i+1;j<nb.length;j++)if((a[nb[i]]||[]).includes(nb[j]))tri++;
+clust+=tri/pairs;ccount++});
+let clustering=ccount?clust/ccount:0;
+return{nodes:n,edges:m,density:+density.toFixed(4),avgDeg:+avgDeg.toFixed(2),maxDeg,components:numComp,diameter:diam,clustering:+clustering.toFixed(4),avgPath:+avgPath.toFixed(2)}}
+
+function updateMetrics(){
+let base=calcMetrics(baseNodes,baseEdges),curr=calcMetrics(nodes,edges);
+let tbody=document.getElementById('metrics');tbody.innerHTML='';
+let labels={nodes:'Nodes',edges:'Edges',density:'Density',avgDeg:'Avg Degree',maxDeg:'Max Degree',components:'Components',diameter:'Diameter',clustering:'Clustering',avgPath:'Avg Path Len'};
+let lowerBetter=new Set(['components','diameter','avgPath']);
+Object.keys(labels).forEach(k=>{
+let d=curr[k]-base[k],cls='neu';
+if(d!==0){if(lowerBetter.has(k))cls=d<0?'pos':'neg';else cls=d>0?'pos':'neg';if(k==='density'||k==='clustering')cls=d>0?'pos':'neg'}
+let tr=document.createElement('tr');
+tr.innerHTML=`<td>${labels[k]}</td><td>${base[k]}</td><td>${curr[k]}</td><td class="${cls}">${d>0?'+':''}${typeof d==='number'?+d.toFixed(4):d}</td>`;
+tbody.appendChild(tr)})}
+
+// Recommendations
+function findArticulationPoints(){
+let a=adj(nodes,edges),nc=components(nodes,edges).length,aps=[];
+nodes.forEach(n=>{let fn=nodes.filter(x=>x.id!==n.id),fe=edges.filter(e=>e.a!==n.id&&e.b!==n.id);
+if(components(fn,fe).length>nc)aps.push(n.id)});return aps}
+
+function findBridges(){
+let a=adj(nodes,edges),nc=components(nodes,edges).length,br=[];
+edges.forEach((e,i)=>{let fe=edges.filter((_,j)=>j!==i);
+if(components(nodes,fe).length>nc)br.push(e)});return br}
+
+function updateRecs(){
+let div=document.getElementById('recs');div.innerHTML='';
+if(!nodes.length)return;
+let aps=findArticulationPoints();
+aps.forEach(id=>addRec('warn','⚠️ Node '+id+' is an articulation point — removing it fragments the network'));
+let bridges=findBridges();
+bridges.forEach(e=>addRec('warn','⚠️ Edge '+e.a+'–'+e.b+' is a bridge — removing it disconnects components'));
+let a=adj(nodes,edges);
+nodes.forEach(n=>{if((a[n.id]||[]).length===0)addRec('info','💡 Node '+n.id+' is isolated — consider connecting it')});
+nodes.forEach(n=>{if((a[n.id]||[]).length===1)addRec('info','💡 Node '+n.id+' has degree 1 (leaf node)')});
+// Suggest diameter-reducing edges
+if(nodes.length>2&&nodes.length<30){
+let curr=calcMetrics(nodes,edges);
+if(curr.diameter>2){
+let best=null,bestD=curr.diameter;
+for(let i=0;i<nodes.length&&!best;i++)for(let j=i+1;j<nodes.length;j++){
+let ni=nodes[i].id,nj=nodes[j].id;
+if(edges.some(e=>(e.a===ni&&e.b===nj)||(e.a===nj&&e.b===ni)))continue;
+let te=[...edges,{a:ni,b:nj}],m=calcMetrics(nodes,te);
+if(m.diameter<bestD){bestD=m.diameter;best={a:ni,b:nj,d:m.diameter}}}
+if(best)addRec('suggest','💡 Add edge '+best.a+'–'+best.b+' to reduce diameter to '+best.d)}}
+// Health
+let m=calcMetrics(nodes,edges);
+let score=100;
+if(m.components>1)score-=20*(m.components-1);
+if(aps.length)score-=10*aps.length;
+if(bridges.length)score-=5*bridges.length;
+score=Math.max(0,Math.min(100,score));
+let label=score>=80?'🟢 Healthy':score>=50?'🟡 Moderate':'🔴 Fragile';
+document.getElementById('health').innerHTML=`<div class="rec info" style="font-size:1em"><strong>${label}</strong> — Resilience: ${score}/100</div>`}
+
+function addRec(cls,text){let d=document.createElement('div');d.className='rec '+cls;d.textContent=text;document.getElementById('recs').appendChild(d)}
+
+// Heatmap
+let heatmapScores={};
+function calcHeatmap(){
+heatmapScores={};let nc=components(nodes,edges).length;
+nodes.forEach(n=>{let fn=nodes.filter(x=>x.id!==n.id),fe=edges.filter(e=>e.a!==n.id&&e.b!==n.id);
+let newC=components(fn,fe).length;heatmapScores[n.id]=newC-nc})}
+function toggleHeatmap(){heatmapOn=!heatmapOn;if(heatmapOn)calcHeatmap();draw()}
+
+// History display
+function updateHistory(){
+let div=document.getElementById('history');div.innerHTML='';
+let total=undoStack.length;
+if(!total){div.innerHTML='<div class="history-item">No changes yet</div>';return}
+for(let i=total-1;i>=Math.max(0,total-15);i--){
+let d=document.createElement('div');d.className='history-item';
+d.innerHTML=`<span>Change #${i+1}</span><span class="undo-mark">${i===total-1?'← current':''}</span>`;
+div.appendChild(d)}}
+
+// Draw
+function draw(){
+ctx.clearRect(0,0,cv.width,cv.height);
+// Edges
+edges.forEach(e=>{let na=nodes.find(n=>n.id===e.a),nb=nodes.find(n=>n.id===e.b);if(!na||!nb)return;
+ctx.beginPath();ctx.moveTo(na.x,na.y);ctx.lineTo(nb.x,nb.y);ctx.strokeStyle='#3a3a6a';ctx.lineWidth=1.5;ctx.stroke()});
+// Nodes
+nodes.forEach(n=>{
+let r=10,col='#7c83ff';
+if(heatmapOn){let s=heatmapScores[n.id]||0;col=s>1?'#ff4444':s===1?'#ff8844':s===0?'#44aa44':'#4ecdc4'}
+if(selected&&selected.id===n.id)col='#ffe66d';
+ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.id,n.x,n.y)})}
+
+function updateAll(){forceLayout(50);updateMetrics();updateRecs();updateHistory();draw()}
+
+function exportJSON(){
+let data={base:calcMetrics(baseNodes,baseEdges),current:calcMetrics(nodes,edges),nodes:nodes.map(n=>({id:n.id,x:+n.x.toFixed(1),y:+n.y.toFixed(1)})),edges:edges.map(e=>({source:e.a,target:e.b})),changes:undoStack.length};
+let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='what-if-analysis.json';a.click()}
+
+// Init
+loadPreset('Petersen');
+document.getElementById('tool_select').classList.add('active');
+</script>
+</body>
+</html>
