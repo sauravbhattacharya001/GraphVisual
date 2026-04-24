@@ -223,6 +223,9 @@ public class SteinerTreeAnalyzer {
         Set<String> treeVertices = new HashSet<>();
         treeVertices.add(first);
 
+        // Fast O(1) edge membership check (replaces O(E) containsEdgeInfo scans)
+        Set<String> edgeKeys = new HashSet<>();
+
         // Cache Dijkstra results to avoid redundant recomputation.
         // Previously dijkstra(src) was called inside the inner loop over
         // treeVertices × remaining, recomputing SSSP for the same source
@@ -257,10 +260,12 @@ public class SteinerTreeAnalyzer {
             for (int i = 0; i < bestPath.size() - 1; i++) {
                 String u = bestPath.get(i);
                 String v = bestPath.get(i + 1);
-                EdgeInfo ei = new EdgeInfo(u, v, getEdgeWeight(u, v));
-                if (!containsEdgeInfo(treeEdges, u, v)) {
+                String ek = edgeKey(u, v);
+                if (!edgeKeys.contains(ek)) {
+                    EdgeInfo ei = new EdgeInfo(u, v, getEdgeWeight(u, v));
                     treeEdges.add(ei);
                     totalWeight += ei.weight;
+                    edgeKeys.add(ek);
                 }
                 treeVertices.add(u);
                 treeVertices.add(v);
@@ -328,6 +333,7 @@ public class SteinerTreeAnalyzer {
         // Map MST edges back to original graph paths
         Set<EdgeInfo> treeEdges = new HashSet<>();
         Set<String> treeVertices = new HashSet<>();
+        Set<String> edgeKeys = new HashSet<>();
         double totalWeight = 0;
 
         for (String[] mstEdge : mstEdges) {
@@ -337,10 +343,12 @@ public class SteinerTreeAnalyzer {
             for (int i = 0; i < path.size() - 1; i++) {
                 String u = path.get(i);
                 String v = path.get(i + 1);
-                if (!containsEdgeInfo(treeEdges, u, v)) {
+                String ek = edgeKey(u, v);
+                if (!edgeKeys.contains(ek)) {
                     EdgeInfo ei = new EdgeInfo(u, v, getEdgeWeight(u, v));
                     treeEdges.add(ei);
                     totalWeight += ei.weight;
+                    edgeKeys.add(ek);
                 }
                 treeVertices.add(u);
                 treeVertices.add(v);
@@ -537,7 +545,18 @@ public class SteinerTreeAnalyzer {
 
     private void addShortestPath(int[][] next, int u, int v, List<String> vertList,
                                   Set<EdgeInfo> treeEdges, Set<String> treeVertices) {
+        addShortestPath(next, u, v, vertList, treeEdges, treeVertices, null);
+    }
+
+    private void addShortestPath(int[][] next, int u, int v, List<String> vertList,
+                                  Set<EdgeInfo> treeEdges, Set<String> treeVertices,
+                                  Set<String> edgeKeys) {
         if (u == v) { treeVertices.add(vertList.get(u)); return; }
+        if (edgeKeys == null) {
+            // Fallback: build from existing edges
+            edgeKeys = new HashSet<>();
+            for (EdgeInfo ei : treeEdges) edgeKeys.add(edgeKey(ei.from, ei.to));
+        }
         int cur = u;
         while (cur != v) {
             int nxt = next[cur][v];
@@ -545,9 +564,11 @@ public class SteinerTreeAnalyzer {
             String su = vertList.get(cur), sv = vertList.get(nxt);
             treeVertices.add(su);
             treeVertices.add(sv);
-            double w = getEdgeWeight(su, sv);
-            if (!containsEdgeInfo(treeEdges, su, sv)) {
+            String ek = edgeKey(su, sv);
+            if (!edgeKeys.contains(ek)) {
+                double w = getEdgeWeight(su, sv);
                 treeEdges.add(new EdgeInfo(su, sv, w));
+                edgeKeys.add(ek);
             }
             cur = nxt;
         }
@@ -743,6 +764,14 @@ public class SteinerTreeAnalyzer {
         return e.getWeight() > 0 ? e.getWeight() : 1.0;
     }
 
+    /**
+     * Canonicalises an undirected edge into a lookup key (lexicographically
+     * ordered pair) so that {@code edgeKey("B","A") == edgeKey("A","B")}.
+     */
+    private static String edgeKey(String u, String v) {
+        return u.compareTo(v) <= 0 ? u + "\0" + v : v + "\0" + u;
+    }
+
     private boolean containsEdgeInfo(Set<EdgeInfo> edges, String u, String v) {
         for (EdgeInfo ei : edges) {
             if ((ei.from.equals(u) && ei.to.equals(v)) || (ei.from.equals(v) && ei.to.equals(u))) {
@@ -752,24 +781,51 @@ public class SteinerTreeAnalyzer {
         return false;
     }
 
+    /**
+     * Prunes non-terminal leaves from the Steiner tree.
+     *
+     * <p>Maintains an O(1) degree map instead of recounting via
+     * {@code edges.stream().filter().count()} on every vertex
+     * in every pass (previously O(V² · E), now O(V + E)).</p>
+     */
     private void pruneTree(Set<EdgeInfo> edges, Set<String> terminals, Set<String> vertices) {
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            Iterator<String> it = vertices.iterator();
-            while (it.hasNext()) {
-                String v = it.next();
-                if (terminals.contains(v)) continue;
-                // Count degree in tree
-                long degree = edges.stream()
-                        .filter(e -> e.from.equals(v) || e.to.equals(v))
-                        .count();
-                if (degree <= 1) {
-                    edges.removeIf(e -> e.from.equals(v) || e.to.equals(v));
-                    it.remove();
-                    changed = true;
+        // Build degree map
+        Map<String, Integer> degree = new HashMap<>();
+        for (String v : vertices) degree.put(v, 0);
+        for (EdgeInfo e : edges) {
+            degree.merge(e.from, 1, Integer::sum);
+            degree.merge(e.to, 1, Integer::sum);
+        }
+
+        // Seed queue with non-terminal leaves
+        Deque<String> queue = new ArrayDeque<>();
+        for (String v : vertices) {
+            if (!terminals.contains(v) && degree.getOrDefault(v, 0) <= 1) {
+                queue.add(v);
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            String v = queue.poll();
+            if (terminals.contains(v) || !vertices.contains(v)) continue;
+            if (degree.getOrDefault(v, 0) > 1) continue;
+
+            // Remove edges incident to v and update neighbour degrees
+            Iterator<EdgeInfo> eit = edges.iterator();
+            while (eit.hasNext()) {
+                EdgeInfo e = eit.next();
+                if (e.from.equals(v) || e.to.equals(v)) {
+                    String neighbour = e.from.equals(v) ? e.to : e.from;
+                    eit.remove();
+                    degree.merge(neighbour, -1, Integer::sum);
+                    // If neighbour became a non-terminal leaf, enqueue it
+                    if (!terminals.contains(neighbour) && degree.getOrDefault(neighbour, 0) <= 1) {
+                        queue.add(neighbour);
+                    }
                 }
             }
+            vertices.remove(v);
+            degree.remove(v);
         }
     }
 }
