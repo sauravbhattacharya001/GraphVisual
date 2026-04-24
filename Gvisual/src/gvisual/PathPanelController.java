@@ -220,7 +220,7 @@ public class PathPanelController {
             StringBuilder pathStr = new StringBuilder();
             for (int i = 0; i < result.getVertices().size(); i++) {
                 if (i > 0) pathStr.append("\u2192");
-                pathStr.append(result.getVertices().get(i));
+                pathStr.append(ExportUtils.escapeHtml(result.getVertices().get(i)));
             }
 
             resultLabel.setText(String.format(

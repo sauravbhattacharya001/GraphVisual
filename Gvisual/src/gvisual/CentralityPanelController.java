@@ -129,11 +129,11 @@ public class CentralityPanelController {
         sb.append(String.format("<b>Avg Betweenness C:</b> %.3f<br/>", summary.get("avgBetweennessCentrality")));
         sb.append(String.format("<b>Avg Closeness C:</b> %.3f<br/>", summary.get("avgClosenessCentrality")));
         sb.append(String.format("<b>Most Connected:</b> Node %s (%.3f)<br/>",
-                summary.get("maxDegreeCentralityNode"), summary.get("maxDegreeCentrality")));
+                ExportUtils.escapeHtml(String.valueOf(summary.get("maxDegreeCentralityNode"))), summary.get("maxDegreeCentrality")));
         sb.append(String.format("<b>Most Central:</b> Node %s (%.3f)<br/>",
-                summary.get("maxBetweennessCentralityNode"), summary.get("maxBetweennessCentrality")));
+                ExportUtils.escapeHtml(String.valueOf(summary.get("maxBetweennessCentralityNode"))), summary.get("maxBetweennessCentrality")));
         sb.append(String.format("<b>Most Reachable:</b> Node %s (%.3f)",
-                summary.get("maxClosenessCentralityNode"), summary.get("maxClosenessCentrality")));
+                ExportUtils.escapeHtml(String.valueOf(summary.get("maxClosenessCentralityNode"))), summary.get("maxClosenessCentrality")));
         sb.append("</html>");
         summaryLabel.setText(sb.toString());
 
@@ -161,7 +161,7 @@ public class CentralityPanelController {
             NodeCentralityAnalyzer.CentralityResult r = sorted.get(i);
             String medal = i == 0 ? "\uD83E\uDD47" : i == 1 ? "\uD83E\uDD48" : i == 2 ? "\uD83E\uDD49" : "&nbsp;&nbsp;";
             sb.append(String.format("%s #%d Node %s: %.3f (deg=%d)<br/>",
-                    medal, i + 1, r.getNodeId(), metricValue(r, m), r.getDegree()));
+                    medal, i + 1, ExportUtils.escapeHtml(r.getNodeId()), metricValue(r, m), r.getDegree()));
         }
         sb.append("</html>");
         rankingLabel.setText(sb.toString());

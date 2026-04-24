@@ -119,7 +119,7 @@ public class ArticulationPanelController {
             for (int i = 0; i < shown; i++) {
                 ArticulationPointAnalyzer.ArticulationPointInfo info = apDetails.get(i);
                 details.append(String.format("  Node %s (deg=%d, crit=%.1f)<br/>",
-                        info.getVertex(), info.getDegree(), info.getCriticality()));
+                        ExportUtils.escapeHtml(info.getVertex()), info.getDegree(), info.getCriticality()));
             }
             if (apDetails.size() > 5) {
                 details.append(String.format("  ... and %d more<br/>", apDetails.size() - 5));
@@ -132,7 +132,7 @@ public class ArticulationPanelController {
             for (int i = 0; i < shown; i++) {
                 ArticulationPointAnalyzer.Bridge bridge = bridges.get(i);
                 details.append(String.format("  %s\u2014%s (sev=%.2f, split=%d/%d)<br/>",
-                        bridge.getEndpoint1(), bridge.getEndpoint2(),
+                        ExportUtils.escapeHtml(bridge.getEndpoint1()), ExportUtils.escapeHtml(bridge.getEndpoint2()),
                         bridge.getSeverity(),
                         bridge.getComponentSizeA(), bridge.getComponentSizeB()));
             }
