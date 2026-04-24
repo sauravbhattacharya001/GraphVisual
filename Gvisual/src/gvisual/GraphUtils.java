@@ -172,6 +172,44 @@ public final class GraphUtils {
     }
 
     /**
+     * Returns the component count and the size of the largest connected
+     * component in a single BFS traversal — avoids the two separate
+     * traversals of {@code countComponents} + {@code findLargestComponent}.
+     *
+     * @param graph the JUNG graph
+     * @return int[2]: [0] = component count, [1] = largest component size
+     */
+    public static int[] countAndLargest(Graph<String, Edge> graph) {
+        Set<String> visited = new HashSet<String>();
+        int count = 0;
+        int largest = 0;
+        for (String vertex : graph.getVertices()) {
+            if (!visited.contains(vertex)) {
+                count++;
+                int compSize = 0;
+                ArrayDeque<String> queue = new ArrayDeque<String>();
+                visited.add(vertex);
+                queue.add(vertex);
+                while (!queue.isEmpty()) {
+                    String current = queue.poll();
+                    compSize++;
+                    Collection<Edge> incident = graph.getIncidentEdges(current);
+                    if (incident == null) continue;
+                    for (Edge e : incident) {
+                        String neighbor = getOtherEnd(e, current);
+                        if (neighbor != null && !visited.contains(neighbor)) {
+                            visited.add(neighbor);
+                            queue.add(neighbor);
+                        }
+                    }
+                }
+                if (compSize > largest) largest = compSize;
+            }
+        }
+        return new int[]{count, largest};
+    }
+
+    /**
      * Counts the number of connected components without building or sorting
      * the full component list.  Use this instead of
      * {@code findComponents(graph).size()} when only the count is needed.

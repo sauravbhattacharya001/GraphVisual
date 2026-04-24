@@ -279,14 +279,16 @@ public class GraphResilienceAnalyzer {
             List<String> vertices = new ArrayList<>(copy.getVertices());
             Collections.shuffle(vertices, rng);
 
-            accum[0][0] += largestComponentSize(copy);
-            accum[0][1] += countComponents(copy);
+            int[] cl0 = GraphUtils.countAndLargest(copy);
+            accum[0][0] += cl0[1];
+            accum[0][1] += cl0[0];
             accum[0][2] += globalEfficiency(copy);
 
             for (int step = 0; step < vertices.size(); step++) {
                 copy.removeVertex(vertices.get(step));
-                accum[step + 1][0] += largestComponentSize(copy);
-                accum[step + 1][1] += countComponents(copy);
+                int[] cl = GraphUtils.countAndLargest(copy);
+                accum[step + 1][0] += cl[1];
+                accum[step + 1][1] += cl[0];
                 accum[step + 1][2] += globalEfficiency(copy);
             }
         }
@@ -307,24 +309,21 @@ public class GraphResilienceAnalyzer {
         return GraphUtils.copyGraph(graph);
     }
 
+    /**
+     * Captures a resilience step using a single BFS traversal to get both
+     * the component count and the largest component size, instead of the
+     * previous two separate full-graph BFS passes.
+     */
     private ResilienceStep captureStep(Graph<String, Edge> g, int originalSize,
                                         int step, String removedNode) {
+        int[] cl = GraphUtils.countAndLargest(g);
         return new ResilienceStep(
                 step,
                 g.getVertexCount(),
-                largestComponentSize(g),
-                countComponents(g),
+                cl[1],
+                cl[0],
                 globalEfficiency(g),
                 removedNode);
-    }
-
-    private int largestComponentSize(Graph<String, Edge> g) {
-        if (g.getVertexCount() == 0) return 0;
-        return GraphUtils.findLargestComponent(g).size();
-    }
-
-    private int countComponents(Graph<String, Edge> g) {
-        return GraphUtils.countComponents(g);
     }
 
     private double globalEfficiency(Graph<String, Edge> g) {
