@@ -518,24 +518,40 @@ public class GraphAnnotationManager {
      * Import annotations from a file.
      *
      * <p>Validates that the file exists and is a regular file (not a
-     * directory or special device).  The file content is subject to
-     * the same {@value #MAX_IMPORT_SIZE} character limit as
+     * directory or special device).  The file size is checked
+     * <em>before</em> reading to prevent out-of-memory on adversarial
+     * input (CWE-400).  The file content is then subject to the same
+     * {@value #MAX_IMPORT_SIZE} character limit as
      * {@link #importFromJson(String)}.</p>
      */
     public int importFromFile(String filePath) throws IOException {
         java.io.File file = new java.io.File(filePath);
-        ExportUtils.validateOutputPath(file);
         if (!file.exists()) {
             throw new java.io.FileNotFoundException("File not found: " + filePath);
         }
         if (!file.isFile()) {
             throw new IOException("Not a regular file: " + filePath);
         }
-        StringBuilder sb = new StringBuilder();
+        // Check file size BEFORE reading to prevent OOM on oversized input.
+        // Previously the entire file was read into memory before the size
+        // check in importFromJson() fired — a multi-GB file would exhaust
+        // the heap before the guard ever triggered (CWE-400).
+        if (file.length() > MAX_IMPORT_SIZE) {
+            throw new IllegalArgumentException(
+                "Annotation file exceeds maximum allowed size of "
+                + MAX_IMPORT_SIZE + " bytes: " + file.length() + " bytes");
+        }
+        StringBuilder sb = new StringBuilder((int) Math.min(file.length(), MAX_IMPORT_SIZE));
         try (BufferedReader r = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = r.readLine()) != null) {
                 sb.append(line).append("\n");
+                // Belt-and-suspenders: stop reading if we somehow exceed the limit
+                if (sb.length() > MAX_IMPORT_SIZE) {
+                    throw new IllegalArgumentException(
+                        "Annotation file content exceeds maximum allowed size of "
+                        + MAX_IMPORT_SIZE + " characters");
+                }
             }
         }
         return importFromJson(sb.toString());
