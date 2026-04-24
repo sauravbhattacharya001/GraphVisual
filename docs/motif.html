@@ -3,93 +3,784 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motif Finder - GraphVisual</title>
+    <title>Motif Census — GraphVisual</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .motif-layout{display:grid;grid-template-columns:300px 1fr;gap:24px;margin-top:24px}
+        .controls-panel{display:flex;flex-direction:column;gap:16px}
+        .control-group{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+        .control-group h3{font-size:14px;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+        .control-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .control-row label{font-size:13px;color:var(--text-muted);min-width:90px}
+        .control-row select,.control-row input[type=number],.control-row input[type=range],.control-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;font-family:inherit}
+        .control-row textarea{height:80px;resize:vertical}
+        .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+        .btn-primary{background:var(--accent);color:#000}
+        .btn-primary:hover{background:var(--accent-hover)}
+        .btn-secondary{background:var(--surface-hover);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--border)}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+        canvas{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+        #graphCanvas{cursor:grab}
+        #graphCanvas:active{cursor:grabbing}
+        .stats-bar{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+        .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:90px;text-align:center}
+        .stat-card .val{font-size:22px;font-weight:700;color:var(--accent)}
+        .stat-card .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+        .viz-tabs{display:flex;gap:0;margin-top:16px}
+        .viz-tab{padding:8px 20px;background:var(--surface);border:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text-muted)}
+        .viz-tab:first-child{border-radius:8px 0 0 8px}
+        .viz-tab:last-child{border-radius:0 8px 8px 0}
+        .viz-tab.active{background:var(--accent);color:#000;font-weight:600;border-color:var(--accent)}
+        .viz-panel{display:none;margin-top:12px}
+        .viz-panel.active{display:block}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;color:var(--text-muted)}
+        .checkbox-row input[type=checkbox]{accent-color:var(--accent)}
+        .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
+        .insight-card .insight-title{font-weight:600;font-size:14px;margin-bottom:6px}
+        .insight-card .insight-desc{font-size:13px;color:var(--text-muted);line-height:1.5}
+        .insight-card.positive{border-left:3px solid var(--green)}
+        .insight-card.negative{border-left:3px solid var(--red)}
+        .insight-card.neutral{border-left:3px solid var(--accent)}
+        .insight-card.warning{border-left:3px solid var(--orange)}
+        .motif-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+        .motif-chip{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .2s}
+        .motif-chip.selected{border-color:#fff}
+        .range-val{font-size:12px;color:var(--accent);min-width:30px;text-align:right}
+        @media(max-width:900px){.motif-layout{grid-template-columns:1fr}}
+    </style>
 </head>
 <body>
+
 <nav class="sidebar">
-    <a href="index.html" class="sidebar-logo">
-        <span>📊</span>
-        <div><h2>GraphVisual</h2><small>Documentation</small></div>
-    </a>
-    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
-    <a href="motif.html" class="sidebar-link active"><span class="icon">🔬</span>Motif Finder</a>
-    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="motif.html" class="sidebar-link active"><span class="icon">🧬</span>Motif Census</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Algorithms</div>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">🎭</span>Bipartite</a>
+        <a href="euler.html" class="sidebar-link"><span class="icon">🛤️</span>Euler Paths</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📐</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">👥</span>Max Clique</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Docs</a>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+    </div>
 </nav>
+
 <main class="content">
-    <h1>🔬 Graph Motif Finder</h1>
-    <p>The <code>GraphMotifFinder</code> detects and counts common subgraph motifs — the
-    fundamental building blocks that reveal local structural patterns in a network.</p>
+    <h1>🧬 Interactive Motif Census</h1>
+    <p>Enumerate subgraph motifs, compare against random graph ensembles, and discover what structural patterns reveal about your network.</p>
 
-    <h2>Why Motifs Matter</h2>
-    <ul>
-        <li><strong>Network characterization:</strong> Motif frequency profiles act as a
-            fingerprint that distinguishes network types (social, biological, technological).</li>
-        <li><strong>Role discovery:</strong> Nodes participating in many triangles are tightly
-            embedded; hub-star nodes are broadcasters or authorities.</li>
-        <li><strong>Clustering insight:</strong> The ratio of closed to open triplets gives the
-            global clustering coefficient directly from motif counts.</li>
-        <li><strong>Anomaly detection:</strong> Unusual motif distributions can indicate fraud
-            rings, bot networks, or structural irregularities.</li>
-    </ul>
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+        <div class="stat-card"><div class="val" id="statDensity">0</div><div class="lbl">Density</div></div>
+        <div class="stat-card"><div class="val" id="statTriangles">0</div><div class="lbl">Triangles</div></div>
+        <div class="stat-card"><div class="val" id="statClustering">0</div><div class="lbl">Clustering</div></div>
+    </div>
 
-    <h2>Detected Motifs</h2>
-    <table>
-        <thead><tr><th>Motif</th><th>Symbol</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td>Triangle (3-clique)</td><td>△</td>
-                <td>Three mutually connected nodes — tight-knit group</td></tr>
-            <tr><td>Star (k ≥ 3)</td><td>★</td>
-                <td>Hub connected to k leaves — centralized pattern</td></tr>
-            <tr><td>Open Path (P3)</td><td>─○─</td>
-                <td>Middle node bridges two unconnected endpoints — brokerage</td></tr>
-            <tr><td>Square (C4)</td><td>□</td>
-                <td>Four-node cycle — redundancy / alternative routing</td></tr>
-        </tbody>
-    </table>
+    <div class="motif-layout">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>📥 Load Graph</h3>
+                <div class="control-row">
+                    <label>Preset</label>
+                    <select id="presetSelect">
+                        <option value="">— Custom —</option>
+                        <option value="karate" selected>Zachary's Karate Club</option>
+                        <option value="social">Small Social Network</option>
+                        <option value="star">Star Network</option>
+                        <option value="ring">Ring Lattice</option>
+                        <option value="random">Random Graph (n=15)</option>
+                        <option value="complete">Complete K6</option>
+                        <option value="bipartite">Bipartite 5+5</option>
+                        <option value="scalefree">Scale-Free (BA, n=20)</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <textarea id="edgeInput" placeholder="Edge list (one per line):&#10;0 1&#10;1 2&#10;2 0"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="loadGraph()">Load Graph</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+                </div>
+            </div>
 
-    <h2>Additional Metrics</h2>
-    <ul>
-        <li><strong>Global clustering coefficient:</strong> 3 × triangles / (3 × triangles + open paths)</li>
-        <li><strong>Local clustering coefficient:</strong> Per-node ratio of neighbor links to possible neighbor links</li>
-        <li><strong>Top triangle participants:</strong> Nodes embedded in the most triangles</li>
-    </ul>
+            <div class="control-group">
+                <h3>🔬 Census Settings</h3>
+                <div class="control-row">
+                    <label>Random trials</label>
+                    <input type="range" id="trialsSlider" min="10" max="500" value="100" oninput="document.getElementById('trialsVal').textContent=this.value">
+                    <span class="range-val" id="trialsVal">100</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="runCensus()">Run Census</button>
+                </div>
+            </div>
 
-    <h2>Usage</h2>
-    <pre><code>GraphMotifFinder finder = new GraphMotifFinder(graph);
-finder.analyze();
+            <div class="control-group">
+                <h3>🎯 Highlight Motif</h3>
+                <div class="motif-legend" id="motifLegend"></div>
+                <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Click a motif to highlight instances on the graph.</p>
+            </div>
 
-// Print motif census
-System.out.println(finder.getCensus());
+            <div class="control-group">
+                <h3>⚙️ Display</h3>
+                <div class="checkbox-row"><input type="checkbox" id="chkLabels" checked onchange="draw()"><label>Node labels</label></div>
+                <div class="checkbox-row"><input type="checkbox" id="chkForce" checked onchange="toggleForce()"><label>Force simulation</label></div>
+            </div>
+        </div>
 
-// Get clustering coefficient
-double cc = finder.getClusteringCoefficient();
+        <div class="main-area">
+            <div class="viz-tabs">
+                <div class="viz-tab active" onclick="switchTab('graph')">Graph</div>
+                <div class="viz-tab" onclick="switchTab('census')">Census</div>
+                <div class="viz-tab" onclick="switchTab('significance')">Significance</div>
+                <div class="viz-tab" onclick="switchTab('insights')">Insights</div>
+            </div>
 
-// Full report
-System.out.println(finder.generateReport());
-
-// Per-node clustering
-Map&lt;String, Double&gt; local = finder.getLocalClustering();
-
-// Top 5 triangle participants
-List&lt;Map.Entry&lt;String, Integer&gt;&gt; top = finder.getTopTriangleNodes(5);</code></pre>
-
-    <h2>Report Output</h2>
-    <p>The <code>generateReport()</code> method produces a formatted text report including:</p>
-    <ul>
-        <li>Motif census with counts</li>
-        <li>Global clustering coefficient</li>
-        <li>Sample triangles, stars, and squares</li>
-        <li>Top triangle participants</li>
-    </ul>
-
-    <h2>Performance</h2>
-    <ul>
-        <li><strong>Triangles:</strong> O(V² × max-degree) with sorted vertex iteration</li>
-        <li><strong>Stars:</strong> O(V) single pass</li>
-        <li><strong>Open Paths:</strong> O(Σ deg²) over all vertices</li>
-        <li><strong>Squares:</strong> Bounded to 50,000 results for large graphs</li>
-    </ul>
+            <div class="viz-panel active" id="panel-graph">
+                <canvas id="graphCanvas" width="800" height="500"></canvas>
+            </div>
+            <div class="viz-panel" id="panel-census">
+                <canvas id="censusCanvas" width="800" height="400"></canvas>
+            </div>
+            <div class="viz-panel" id="panel-significance">
+                <canvas id="sigCanvas" width="800" height="400"></canvas>
+            </div>
+            <div class="viz-panel" id="panel-insights">
+                <div id="insightsContainer"><p style="color:var(--text-muted)">Run a census to generate insights.</p></div>
+            </div>
+        </div>
+    </div>
 </main>
+
+<script>
+/* ===== Data structures ===== */
+const MOTIF_TYPES = [
+    { id: 'triangle', name: 'Triangle (K3)', color: '#58a6ff', size: 3 },
+    { id: 'wedge',    name: 'Open Triad (P3)', color: '#f0883e', size: 3 },
+    { id: 'star3',    name: '3-Star', color: '#bc8cff', size: 4 },
+    { id: 'square',   name: 'Square (C4)', color: '#3fb950', size: 4 },
+    { id: 'diamond',  name: 'Diamond (K4-e)', color: '#f85149', size: 4 },
+    { id: 'k4',       name: '4-Clique (K4)', color: '#d2992e', size: 4 }
+];
+
+let nodes = [], edges = [], adj = {};
+let census = null, sigData = null;
+let selectedMotif = null, highlightedNodes = new Set(), highlightedEdges = new Set();
+let forceRunning = true, animId = null;
+
+/* Force layout state */
+let drag = null, pan = { x: 0, y: 0 }, zoom = 1, lastMouse = null;
+
+/* ===== Presets ===== */
+function getPreset(name) {
+    const e = [];
+    switch (name) {
+        case 'karate': {
+            const pairs = [[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];
+            pairs.forEach(p => e.push(p));
+            break;
+        }
+        case 'social': {
+            [[0,1],[0,2],[0,3],[1,2],[1,4],[2,3],[2,5],[3,5],[4,5],[4,6],[5,6],[5,7],[6,7],[6,8],[7,8],[7,9],[8,9],[0,9],[1,3],[2,4]].forEach(p => e.push(p));
+            break;
+        }
+        case 'star': {
+            for (let i = 1; i <= 8; i++) e.push([0, i]);
+            break;
+        }
+        case 'ring': {
+            for (let i = 0; i < 12; i++) { e.push([i, (i+1)%12]); e.push([i, (i+2)%12]); }
+            break;
+        }
+        case 'random': {
+            const n = 15;
+            for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) if (Math.random() < 0.3) e.push([i, j]);
+            break;
+        }
+        case 'complete': {
+            for (let i = 0; i < 6; i++) for (let j = i+1; j < 6; j++) e.push([i, j]);
+            break;
+        }
+        case 'bipartite': {
+            for (let i = 0; i < 5; i++) for (let j = 5; j < 10; j++) if (Math.random() < 0.5) e.push([i, j]);
+            break;
+        }
+        case 'scalefree': {
+            const n = 20, m = 2;
+            e.push([0,1]); e.push([1,2]); e.push([0,2]);
+            const deg = [2,2,2];
+            for (let i = 3; i < n; i++) {
+                deg.push(0);
+                const targets = new Set();
+                const totalDeg = deg.reduce((a,b) => a+b, 0);
+                while (targets.size < m) {
+                    let r = Math.random() * totalDeg, s = 0;
+                    for (let j = 0; j < i; j++) { s += deg[j]; if (s >= r) { targets.add(j); break; } }
+                }
+                targets.forEach(t => { e.push([i, t]); deg[i]++; deg[t]++; });
+            }
+            break;
+        }
+    }
+    return e;
+}
+
+/* ===== Graph building ===== */
+function buildGraph(edgeList) {
+    const nodeSet = new Set();
+    edges = [];
+    edgeList.forEach(([u, v]) => { nodeSet.add(u); nodeSet.add(v); });
+    const nodeArr = [...nodeSet].sort((a,b) => a-b);
+    adj = {};
+    nodeArr.forEach(n => adj[n] = new Set());
+    const seen = new Set();
+    edgeList.forEach(([u, v]) => {
+        const key = u < v ? `${u}-${v}` : `${v}-${u}`;
+        if (!seen.has(key) && u !== v) { seen.add(key); edges.push([u, v]); adj[u].add(v); adj[v].add(u); }
+    });
+    const cx = 400, cy = 250;
+    nodes = nodeArr.map((id, i) => ({
+        id, x: cx + (150 + Math.random()*100) * Math.cos(2*Math.PI*i/nodeArr.length),
+        y: cy + (150 + Math.random()*100) * Math.sin(2*Math.PI*i/nodeArr.length),
+        vx: 0, vy: 0
+    }));
+    census = null; sigData = null; selectedMotif = null;
+    highlightedNodes.clear(); highlightedEdges.clear();
+    updateStats();
+    startForce();
+}
+
+function updateStats() {
+    const n = nodes.length, m = edges.length;
+    const density = n > 1 ? (2*m/(n*(n-1))).toFixed(3) : '0';
+    let tri = 0, wedges = 0;
+    nodes.forEach(nd => {
+        const nb = [...adj[nd.id]];
+        for (let i = 0; i < nb.length; i++) for (let j = i+1; j < nb.length; j++) {
+            wedges++;
+            if (adj[nb[i]].has(nb[j])) tri++;
+        }
+    });
+    tri = Math.floor(tri/3);
+    const cc = wedges > 0 ? (3*tri/wedges).toFixed(3) : '0';
+    document.getElementById('statNodes').textContent = n;
+    document.getElementById('statEdges').textContent = m;
+    document.getElementById('statDensity').textContent = density;
+    document.getElementById('statTriangles').textContent = tri;
+    document.getElementById('statClustering').textContent = cc;
+}
+
+/* ===== Motif enumeration ===== */
+function enumerateMotifs(adjMap, nodeList) {
+    const counts = { triangle: 0, wedge: 0, star3: 0, square: 0, diamond: 0, k4: 0 };
+    const instances = { triangle: [], wedge: [], star3: [], square: [], diamond: [], k4: [] };
+    const nList = nodeList || Object.keys(adjMap).map(Number);
+
+    // Triangles and wedges
+    for (const u of nList) {
+        const nb = [...(adjMap[u] || [])];
+        for (let i = 0; i < nb.length; i++) {
+            for (let j = i+1; j < nb.length; j++) {
+                if (u < nb[i] && u < nb[j]) { // count each wedge once with smallest vertex
+                    if ((adjMap[nb[i]] || new Set()).has(nb[j])) {
+                        counts.triangle++;
+                        instances.triangle.push([u, nb[i], nb[j]]);
+                    } else {
+                        counts.wedge++;
+                        instances.wedge.push([u, nb[i], nb[j]]);
+                    }
+                }
+            }
+        }
+    }
+    // Recount wedges properly (all ordered with middle vertex)
+    counts.wedge = 0; instances.wedge = [];
+    for (const u of nList) {
+        const nb = [...(adjMap[u] || [])];
+        for (let i = 0; i < nb.length; i++) {
+            for (let j = i+1; j < nb.length; j++) {
+                if (!(adjMap[nb[i]] || new Set()).has(nb[j])) {
+                    counts.wedge++;
+                    instances.wedge.push([nb[i], u, nb[j]]);
+                }
+            }
+        }
+    }
+    // Avoid triple counting wedges: each open triad (a-b, b-c, no a-c) is counted once per middle vertex b
+    // Actually each wedge has exactly one middle vertex, so this is correct.
+
+    // Star-3: for each node with deg >= 3, count C(deg,3) 3-stars
+    for (const u of nList) {
+        const d = (adjMap[u] || new Set()).size;
+        if (d >= 3) {
+            const nb = [...adjMap[u]];
+            const c = d*(d-1)*(d-2)/6;
+            counts.star3 += c;
+            // Store up to 50 instances for visualization
+            if (instances.star3.length < 50) {
+                for (let i = 0; i < nb.length && instances.star3.length < 50; i++)
+                    for (let j = i+1; j < nb.length && instances.star3.length < 50; j++)
+                        for (let k = j+1; k < nb.length && instances.star3.length < 50; k++)
+                            instances.star3.push([u, nb[i], nb[j], nb[k]]);
+            }
+        }
+    }
+
+    // Squares (C4) - enumerate carefully
+    const nodeIdx = {}; nList.forEach((n,i) => nodeIdx[n] = i);
+    for (let ai = 0; ai < nList.length; ai++) {
+        const a = nList[ai];
+        const nbA = [...(adjMap[a] || [])];
+        for (const b of nbA) {
+            if (nodeIdx[b] <= ai) continue;
+            const nbB = [...(adjMap[b] || [])];
+            for (const c of nbB) {
+                if (c === a || nodeIdx[c] <= ai) continue;
+                if ((adjMap[a] || new Set()).has(c)) continue; // would be triangle
+                const nbC = [...(adjMap[c] || [])];
+                for (const d of nbC) {
+                    if (d === a || d === b || nodeIdx[d] <= ai) continue;
+                    if ((adjMap[a] || new Set()).has(d) && !(adjMap[b] || new Set()).has(d)) {
+                        counts.square++;
+                        if (instances.square.length < 50) instances.square.push([a, b, c, d]);
+                    }
+                }
+            }
+        }
+    }
+    counts.square = Math.floor(counts.square / 2); // each C4 counted twice
+
+    // K4 and Diamond: enumerate 4-cliques and near-cliques
+    for (let ai = 0; ai < nList.length; ai++) {
+        const a = nList[ai];
+        const nbA = [...(adjMap[a] || [])].filter(x => nodeIdx[x] > ai);
+        for (let bi = 0; bi < nbA.length; bi++) {
+            const b = nbA[bi];
+            for (let ci = bi+1; ci < nbA.length; ci++) {
+                const c = nbA[ci];
+                if (!(adjMap[b] || new Set()).has(c)) continue;
+                // a-b-c is a triangle with a < b, a < c
+                const commonBC = [...(adjMap[b] || [])].filter(x => (adjMap[c] || new Set()).has(x) && nodeIdx[x] > ai && x !== a);
+                for (const d of commonBC) {
+                    if ((adjMap[a] || new Set()).has(d)) {
+                        counts.k4++;
+                        if (instances.k4.length < 50) instances.k4.push([a, b, c, d]);
+                    } else {
+                        counts.diamond++;
+                        if (instances.diamond.length < 50) instances.diamond.push([a, b, c, d]);
+                    }
+                }
+            }
+        }
+    }
+
+    return { counts, instances };
+}
+
+function generateRandomGraph(n, m) {
+    const possibleEdges = [];
+    for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) possibleEdges.push([i,j]);
+    // Fisher-Yates shuffle and take m
+    for (let i = possibleEdges.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i+1));
+        [possibleEdges[i], possibleEdges[j]] = [possibleEdges[j], possibleEdges[i]];
+    }
+    const edgesSel = possibleEdges.slice(0, Math.min(m, possibleEdges.length));
+    const a = {};
+    for (let i = 0; i < n; i++) a[i] = new Set();
+    edgesSel.forEach(([u,v]) => { a[u].add(v); a[v].add(u); });
+    return { adj: a, nodes: Array.from({length: n}, (_,i) => i) };
+}
+
+/* ===== Census runner ===== */
+function runCensus() {
+    if (nodes.length === 0) return;
+    const nList = nodes.map(n => n.id);
+    const result = enumerateMotifs(adj, nList);
+    census = result;
+
+    // Random graph ensemble
+    const trials = parseInt(document.getElementById('trialsSlider').value);
+    const n = nodes.length, m = edges.length;
+    const randomCounts = MOTIF_TYPES.map(() => []);
+    for (let t = 0; t < trials; t++) {
+        const rg = generateRandomGraph(n, m);
+        const rc = enumerateMotifs(rg.adj, rg.nodes);
+        MOTIF_TYPES.forEach((mt, i) => randomCounts[i].push(rc.counts[mt.id]));
+    }
+
+    sigData = MOTIF_TYPES.map((mt, i) => {
+        const arr = randomCounts[i];
+        const mean = arr.reduce((a,b) => a+b, 0) / arr.length;
+        const std = Math.sqrt(arr.reduce((a,b) => a + (b-mean)**2, 0) / arr.length) || 1;
+        const z = (census.counts[mt.id] - mean) / std;
+        return { id: mt.id, name: mt.name, observed: census.counts[mt.id], mean: mean.toFixed(1), std: std.toFixed(2), z: z };
+    });
+
+    drawCensus();
+    drawSignificance();
+    generateInsights();
+    buildMotifLegend();
+    draw();
+}
+
+/* ===== Motif legend ===== */
+function buildMotifLegend() {
+    const el = document.getElementById('motifLegend');
+    el.innerHTML = '';
+    MOTIF_TYPES.forEach(mt => {
+        const count = census ? census.counts[mt.id] : 0;
+        const chip = document.createElement('div');
+        chip.className = 'motif-chip' + (selectedMotif === mt.id ? ' selected' : '');
+        chip.style.background = mt.color + '33';
+        chip.style.color = mt.color;
+        chip.textContent = `${mt.name.split('(')[0].trim()} (${count})`;
+        chip.onclick = () => selectMotif(mt.id);
+        el.appendChild(chip);
+    });
+}
+
+function selectMotif(id) {
+    if (selectedMotif === id) { selectedMotif = null; highlightedNodes.clear(); highlightedEdges.clear(); }
+    else {
+        selectedMotif = id;
+        highlightedNodes.clear(); highlightedEdges.clear();
+        if (census && census.instances[id]) {
+            census.instances[id].forEach(inst => {
+                inst.forEach(n => highlightedNodes.add(n));
+                for (let i = 0; i < inst.length; i++) for (let j = i+1; j < inst.length; j++) {
+                    if (adj[inst[i]] && adj[inst[i]].has(inst[j])) {
+                        const key = inst[i] < inst[j] ? `${inst[i]}-${inst[j]}` : `${inst[j]}-${inst[i]}`;
+                        highlightedEdges.add(key);
+                    }
+                }
+            });
+        }
+    }
+    buildMotifLegend();
+    draw();
+}
+
+/* ===== Tabs ===== */
+function switchTab(name) {
+    document.querySelectorAll('.viz-tab').forEach((t, i) => t.classList.toggle('active', ['graph','census','significance','insights'][i] === name));
+    document.querySelectorAll('.viz-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'census' && census) drawCensus();
+    if (name === 'significance' && sigData) drawSignificance();
+    if (name === 'graph') draw();
+}
+
+/* ===== Force-directed layout ===== */
+function forceStep() {
+    if (!forceRunning || nodes.length === 0) return;
+    const k = 30, gravity = 0.01, damping = 0.9, cx = 400, cy = 250;
+    // Repulsion
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i+1; j < nodes.length; j++) {
+            let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            let force = k*k / dist;
+            let fx = dx/dist * force, fy = dy/dist * force;
+            nodes[i].vx -= fx; nodes[i].vy -= fy;
+            nodes[j].vx += fx; nodes[j].vy += fy;
+        }
+    }
+    // Attraction
+    edges.forEach(([u, v]) => {
+        const nu = nodes.find(n => n.id === u), nv = nodes.find(n => n.id === v);
+        if (!nu || !nv) return;
+        let dx = nv.x - nu.x, dy = nv.y - nu.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let force = dist / k;
+        let fx = dx/dist * force, fy = dy/dist * force;
+        nu.vx += fx; nu.vy += fy;
+        nv.vx -= fx; nv.vy -= fy;
+    });
+    // Gravity + update
+    nodes.forEach(n => {
+        if (drag && drag.id === n.id) return;
+        n.vx += (cx - n.x) * gravity;
+        n.vy += (cy - n.y) * gravity;
+        n.vx *= damping; n.vy *= damping;
+        n.x += n.vx; n.y += n.vy;
+    });
+    draw();
+    animId = requestAnimationFrame(forceStep);
+}
+
+function startForce() { forceRunning = true; if (animId) cancelAnimationFrame(animId); animId = requestAnimationFrame(forceStep); }
+function toggleForce() { forceRunning = document.getElementById('chkForce').checked; if (forceRunning) startForce(); }
+
+/* ===== Drawing ===== */
+function draw() {
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(pan.x, pan.y);
+    ctx.scale(zoom, zoom);
+
+    const motifColor = selectedMotif ? MOTIF_TYPES.find(m => m.id === selectedMotif)?.color || '#58a6ff' : '#58a6ff';
+
+    // Edges
+    edges.forEach(([u, v]) => {
+        const nu = nodes.find(n => n.id === u), nv = nodes.find(n => n.id === v);
+        if (!nu || !nv) return;
+        const key = u < v ? `${u}-${v}` : `${v}-${u}`;
+        const hl = highlightedEdges.has(key);
+        ctx.beginPath();
+        ctx.moveTo(nu.x, nu.y);
+        ctx.lineTo(nv.x, nv.y);
+        ctx.strokeStyle = hl ? motifColor : (selectedMotif ? '#ffffff11' : '#ffffff33');
+        ctx.lineWidth = hl ? 3 : 1;
+        ctx.stroke();
+    });
+
+    // Nodes
+    const showLabels = document.getElementById('chkLabels').checked;
+    nodes.forEach(n => {
+        const hl = highlightedNodes.has(n.id);
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, hl ? 8 : 6, 0, Math.PI * 2);
+        ctx.fillStyle = hl ? motifColor : '#8b949e';
+        ctx.fill();
+        if (hl) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); }
+        if (showLabels) {
+            ctx.fillStyle = '#c9d1d9';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(n.id, n.x, n.y - 12);
+        }
+    });
+
+    ctx.restore();
+}
+
+/* ===== Census bar chart ===== */
+function drawCensus() {
+    if (!census) return;
+    const canvas = document.getElementById('censusCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const bars = MOTIF_TYPES.map(mt => ({ name: mt.name.split('(')[0].trim(), count: census.counts[mt.id], color: mt.color }));
+    const maxVal = Math.max(1, ...bars.map(b => b.count));
+    const barW = 80, gap = 30, startX = (W - bars.length * (barW + gap) + gap) / 2;
+    const chartH = H - 100, topY = 40;
+
+    bars.forEach((b, i) => {
+        const x = startX + i * (barW + gap);
+        const h = (b.count / maxVal) * chartH;
+        const y = topY + chartH - h;
+        ctx.fillStyle = b.color;
+        ctx.fillRect(x, y, barW, h);
+        // Count label
+        ctx.fillStyle = '#c9d1d9';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.count, x + barW/2, y - 8);
+        // Name label
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#8b949e';
+        ctx.save();
+        ctx.translate(x + barW/2, topY + chartH + 14);
+        ctx.rotate(-0.3);
+        ctx.fillText(b.name, 0, 0);
+        ctx.restore();
+    });
+
+    ctx.fillStyle = '#c9d1d9';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Motif Census — Raw Counts', W/2, 24);
+}
+
+/* ===== Significance chart ===== */
+function drawSignificance() {
+    if (!sigData) return;
+    const canvas = document.getElementById('sigCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const maxZ = Math.max(3, ...sigData.map(d => Math.abs(d.z)));
+    const barW = 80, gap = 30, startX = (W - sigData.length * (barW + gap) + gap) / 2;
+    const midY = H / 2 + 10, chartH = (H - 80) / 2;
+
+    // Zero line
+    ctx.strokeStyle = '#484f58';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(40, midY); ctx.lineTo(W-40, midY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ±2 lines
+    [2, -2].forEach(zl => {
+        const y = midY - (zl / maxZ) * chartH;
+        ctx.strokeStyle = '#f8514944';
+        ctx.setLineDash([2,4]);
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W-40, y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#f85149';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`z=${zl}`, 36, y + 4);
+    });
+
+    sigData.forEach((d, i) => {
+        const x = startX + i * (barW + gap);
+        const h = (d.z / maxZ) * chartH;
+        const y = d.z >= 0 ? midY - h : midY;
+        const barH = Math.abs(h);
+        const mt = MOTIF_TYPES[i];
+        ctx.fillStyle = d.z >= 0 ? (d.z > 2 ? '#3fb950' : mt.color + '88') : (d.z < -2 ? '#f85149' : mt.color + '88');
+        ctx.fillRect(x, y, barW, barH);
+
+        // Z-score label
+        ctx.fillStyle = '#c9d1d9';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d.z.toFixed(2), x + barW/2, d.z >= 0 ? y - 8 : y + barH + 16);
+
+        // Name
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#8b949e';
+        ctx.save();
+        ctx.translate(x + barW/2, H - 10);
+        ctx.rotate(-0.3);
+        ctx.fillText(d.name.split('(')[0].trim(), 0, 0);
+        ctx.restore();
+    });
+
+    ctx.fillStyle = '#c9d1d9';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Motif Significance Profile (z-scores vs. random graphs)', W/2, 24);
+}
+
+/* ===== Insights ===== */
+function generateInsights() {
+    if (!census || !sigData) return;
+    const insights = [];
+    const triZ = sigData.find(d => d.id === 'triangle');
+    const wedgeZ = sigData.find(d => d.id === 'wedge');
+    const starZ = sigData.find(d => d.id === 'star3');
+    const sqZ = sigData.find(d => d.id === 'square');
+    const diaZ = sigData.find(d => d.id === 'diamond');
+    const k4Z = sigData.find(d => d.id === 'k4');
+
+    // Clustering coefficient insight
+    const triCount = census.counts.triangle, wedgeCount = census.counts.wedge;
+    const totalTriads = triCount + wedgeCount;
+    if (totalTriads > 0) {
+        const cc = triCount / totalTriads;
+        if (cc > 0.4) insights.push({ type: 'positive', icon: '🔺', title: 'High Clustering Coefficient', desc: `Triangle-to-triad ratio is ${(cc*100).toFixed(1)}%. This network has strong local clustering — nodes tend to form tight-knit groups. Typical of social networks.` });
+        else if (cc < 0.1) insights.push({ type: 'warning', icon: '📐', title: 'Low Clustering', desc: `Triangle-to-triad ratio is only ${(cc*100).toFixed(1)}%. The network has sparse local connectivity — more tree-like or bipartite structure.` });
+        else insights.push({ type: 'neutral', icon: '📊', title: 'Moderate Clustering', desc: `Triangle-to-triad ratio is ${(cc*100).toFixed(1)}%, indicating moderate local structure.` });
+    }
+
+    // Significance insights
+    if (triZ && triZ.z > 2) insights.push({ type: 'positive', icon: '🧲', title: 'Triangles Significantly Over-Represented', desc: `z-score = ${triZ.z.toFixed(2)}. This network has far more triangles than random — strong evidence of community structure, transitivity, or social closure.` });
+    if (triZ && triZ.z < -2) insights.push({ type: 'negative', icon: '🚫', title: 'Triangles Significantly Under-Represented', desc: `z-score = ${triZ.z.toFixed(2)}. Fewer triangles than random suggests anti-clustering — possibly bipartite, hierarchical, or deliberately avoiding closure.` });
+    
+    if (starZ && starZ.z > 2) insights.push({ type: 'warning', icon: '⭐', title: 'Star Motifs Over-Represented', desc: `z-score = ${starZ.z.toFixed(2)}. Hub-and-spoke structures dominate. Key hubs may be single points of failure — consider resilience analysis.` });
+
+    if (sqZ && sqZ.z > 2) insights.push({ type: 'neutral', icon: '🔲', title: 'Squares Over-Represented', desc: `z-score = ${sqZ.z.toFixed(2)}. Excess 4-cycles suggest grid-like, lattice, or bipartite tendencies with redundant pathways.` });
+
+    if (k4Z && k4Z.observed > 0) insights.push({ type: 'positive', icon: '💎', title: '4-Cliques Detected', desc: `Found ${k4Z.observed} complete 4-cliques (z=${k4Z.z.toFixed(2)}). These indicate extremely dense pockets — possibly core groups or tightly-coupled modules.` });
+    
+    if (diaZ && diaZ.z > 2) insights.push({ type: 'neutral', icon: '♦️', title: 'Diamond Motifs Over-Represented', desc: `z-score = ${diaZ.z.toFixed(2)}. Near-clique structures suggest groups that are almost fully connected — bridging between cliques.` });
+
+    // Hub detection
+    const maxDeg = Math.max(...nodes.map(n => (adj[n.id] || new Set()).size));
+    const hubs = nodes.filter(n => (adj[n.id] || new Set()).size === maxDeg);
+    if (hubs.length <= 3 && maxDeg > nodes.length * 0.3) {
+        insights.push({ type: 'warning', icon: '🎯', title: `Hub Concentration: Node${hubs.length > 1 ? 's' : ''} ${hubs.map(h=>h.id).join(', ')}`, desc: `Degree ${maxDeg} (${(maxDeg/nodes.length*100).toFixed(0)}% of nodes). Motifs likely concentrated around these hubs. Consider whether removing them would fragment the network.` });
+    }
+
+    // Network type guess
+    if (triZ && triZ.z > 2 && starZ && starZ.z > 1) insights.push({ type: 'positive', icon: '🌐', title: 'Network Signature: Social', desc: 'Combination of high triangles and moderate star presence is characteristic of social networks with both community structure and influential hubs.' });
+    if (triZ && triZ.z < -1 && sqZ && sqZ.z > 1) insights.push({ type: 'neutral', icon: '🏗️', title: 'Network Signature: Infrastructure', desc: 'Low triangles with high squares suggests an infrastructure or grid-like topology with redundant paths but low clustering.' });
+
+    if (insights.length === 0) insights.push({ type: 'neutral', icon: '📋', title: 'No Significant Patterns', desc: 'The motif distribution closely matches random graphs of the same size and density. No strong structural signatures detected.' });
+
+    const container = document.getElementById('insightsContainer');
+    container.innerHTML = insights.map(ins => `<div class="insight-card ${ins.type}"><div class="insight-title">${ins.icon} ${ins.title}</div><div class="insight-desc">${ins.desc}</div></div>`).join('');
+}
+
+/* ===== Canvas interaction ===== */
+const gc = document.getElementById('graphCanvas');
+gc.addEventListener('mousedown', e => {
+    const rect = gc.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - pan.x) / zoom, my = (e.clientY - rect.top - pan.y) / zoom;
+    const hit = nodes.find(n => Math.hypot(n.x - mx, n.y - my) < 12);
+    if (hit) { drag = hit; drag.vx = 0; drag.vy = 0; }
+    else lastMouse = { x: e.clientX, y: e.clientY };
+});
+gc.addEventListener('mousemove', e => {
+    const rect = gc.getBoundingClientRect();
+    if (drag) { drag.x = (e.clientX - rect.left - pan.x) / zoom; drag.y = (e.clientY - rect.top - pan.y) / zoom; if (!forceRunning) draw(); }
+    else if (lastMouse) { pan.x += e.clientX - lastMouse.x; pan.y += e.clientY - lastMouse.y; lastMouse = { x: e.clientX, y: e.clientY }; if (!forceRunning) draw(); }
+});
+gc.addEventListener('mouseup', () => { drag = null; lastMouse = null; });
+gc.addEventListener('wheel', e => { e.preventDefault(); const d = e.deltaY > 0 ? 0.9 : 1.1; zoom *= d; if (!forceRunning) draw(); });
+
+/* ===== Load/Clear ===== */
+function loadGraph() {
+    const preset = document.getElementById('presetSelect').value;
+    let edgeList;
+    if (preset) {
+        edgeList = getPreset(preset);
+    } else {
+        const text = document.getElementById('edgeInput').value.trim();
+        if (!text) return;
+        edgeList = text.split('\n').map(l => l.trim().split(/[\s,]+/).map(Number)).filter(p => p.length >= 2);
+    }
+    buildGraph(edgeList);
+}
+
+function clearAll() {
+    nodes = []; edges = []; adj = {}; census = null; sigData = null;
+    selectedMotif = null; highlightedNodes.clear(); highlightedEdges.clear();
+    document.getElementById('statNodes').textContent = '0';
+    document.getElementById('statEdges').textContent = '0';
+    document.getElementById('statDensity').textContent = '0';
+    document.getElementById('statTriangles').textContent = '0';
+    document.getElementById('statClustering').textContent = '0';
+    document.getElementById('motifLegend').innerHTML = '';
+    document.getElementById('insightsContainer').innerHTML = '<p style="color:var(--text-muted)">Run a census to generate insights.</p>';
+    ['graphCanvas', 'censusCanvas', 'sigCanvas'].forEach(id => {
+        const c = document.getElementById(id);
+        c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    });
+}
+
+// Init with default preset
+buildMotifLegend();
+loadGraph();
+</script>
 </body>
 </html>
