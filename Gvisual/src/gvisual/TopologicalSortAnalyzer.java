@@ -68,13 +68,15 @@ public class TopologicalSortAnalyzer {
         private final List<String> leaves;
         private final int longestPathLength;
         private final List<String> criticalPath;
+        private final int choicePoints;
 
         public TopologicalSortResult(boolean isDAG, List<String> sortedOrder,
                                       List<CycleInfo> cycles, Map<String, Integer> depthMap,
                                       Map<String, Integer> dependencyCount,
                                       Map<String, Integer> dependentCount,
                                       List<String> roots, List<String> leaves,
-                                      int longestPathLength, List<String> criticalPath) {
+                                      int longestPathLength, List<String> criticalPath,
+                                      int choicePoints) {
             this.isDAG = isDAG;
             this.sortedOrder = Collections.unmodifiableList(new ArrayList<String>(sortedOrder));
             this.cycles = Collections.unmodifiableList(new ArrayList<CycleInfo>(cycles));
@@ -85,6 +87,7 @@ public class TopologicalSortAnalyzer {
             this.leaves = Collections.unmodifiableList(new ArrayList<String>(leaves));
             this.longestPathLength = longestPathLength;
             this.criticalPath = Collections.unmodifiableList(new ArrayList<String>(criticalPath));
+            this.choicePoints = choicePoints;
         }
 
         /** True if the graph is a DAG (no cycles). */
@@ -116,6 +119,9 @@ public class TopologicalSortAnalyzer {
 
         /** Vertices along the critical (longest) path. */
         public List<String> getCriticalPath() { return criticalPath; }
+
+        /** Number of scheduling choice points (positions where multiple vertices are ready). -1 if cyclic. */
+        public int getChoicePoints() { return choicePoints; }
     }
 
     /**
@@ -237,13 +243,14 @@ public class TopologicalSortAnalyzer {
                 roots.add(v);
             }
         }
-        // PriorityQueue maintains heap order; no manual sort needed
 
         List<String> sortedOrder = new ArrayList<String>();
+        int choicePoints = 0;
         while (!queue.isEmpty()) {
-            // PriorityQueue.poll() returns lexicographically smallest in O(log V)
+            if (queue.size() > 1) {
+                choicePoints++;
+            }
             String v = queue.poll();
-
             sortedOrder.add(v);
 
             List<String> succs = new ArrayList<String>(successors.get(v));
@@ -315,7 +322,8 @@ public class TopologicalSortAnalyzer {
 
         cachedResult = new TopologicalSortResult(isDAG, sortedOrder, cycles, depthMap,
                 dependencyCount, dependentCount, roots, leaves,
-                longestPathLength, criticalPath);
+                longestPathLength, criticalPath,
+                isDAG ? choicePoints : -1);
         return cachedResult;
     }
 
@@ -385,48 +393,14 @@ public class TopologicalSortAnalyzer {
      * of "choice points" — positions where multiple vertices have in-degree
      * 0 simultaneously. A high number indicates flexible scheduling.</p>
      *
+     * <p>Now delegates to the cached result from {@link #analyze()}, which
+     * computes choice points during the single Kahn's pass — eliminating
+     * a redundant O(V + E) traversal.</p>
+     *
      * @return number of scheduling choice points, or -1 if graph has cycles
      */
     public int countChoicePoints() {
-        TopologicalSortResult result = analyze();
-        if (!result.isDAG()) {
-            return -1;
-        }
-
-        // Re-use shared adjacency builder and count points where
-        // multiple vertices are ready simultaneously
-        GraphUtils.DirectedAdj adj = buildDirectedAdj();
-        Map<String, Set<String>> successors = adj.successors;
-        Map<String, Integer> inDegree = new HashMap<String, Integer>();
-
-        for (String v : adj.vertices) {
-            inDegree.put(v, adj.predecessors.get(v).size());
-        }
-
-        List<String> ready = new ArrayList<String>();
-        for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
-            if (entry.getValue() == 0) {
-                ready.add(entry.getKey());
-            }
-        }
-
-        int choicePoints = 0;
-        while (!ready.isEmpty()) {
-            if (ready.size() > 1) {
-                choicePoints++;
-            }
-            Collections.sort(ready);
-            String v = ready.remove(0);
-            for (String w : successors.get(v)) {
-                int newDeg = inDegree.get(w) - 1;
-                inDegree.put(w, newDeg);
-                if (newDeg == 0) {
-                    ready.add(w);
-                }
-            }
-        }
-
-        return choicePoints;
+        return analyze().getChoicePoints();
     }
 
     /**
@@ -464,8 +438,7 @@ public class TopologicalSortAnalyzer {
             sb.append("  Critical path length:    ").append(result.getLongestPathLength()).append("\n");
             sb.append("  Critical path:           ").append(result.getCriticalPath()).append("\n");
 
-            int choicePoints = countChoicePoints();
-            sb.append("  Scheduling flexibility:  ").append(choicePoints)
+            sb.append("  Scheduling flexibility:  ").append(result.getChoicePoints())
               .append(" choice point(s)\n");
         } else {
             sb.append("───────────────────────────────────────────────────\n");
@@ -502,6 +475,17 @@ public class TopologicalSortAnalyzer {
         Map<String, Integer> color = new HashMap<String, Integer>(); // 0=white, 1=gray, 2=black
         Map<String, String> parent = new HashMap<String, String>();
 
+        // Build edge lookup map once — O(E) — instead of O(E) per findEdge call
+        Map<String, Map<String, Edge>> edgeLookup = new HashMap<String, Map<String, Edge>>();
+        for (Edge e : graph.getEdges()) {
+            Map<String, Edge> targets = edgeLookup.get(e.getVertex1());
+            if (targets == null) {
+                targets = new HashMap<String, Edge>();
+                edgeLookup.put(e.getVertex1(), targets);
+            }
+            targets.put(e.getVertex2(), e);
+        }
+
         for (String v : vertices) {
             color.put(v, 0);
         }
@@ -511,7 +495,8 @@ public class TopologicalSortAnalyzer {
 
         for (String v : sorted) {
             if (color.get(v) == 0) {
-                dfsCycleDetect(v, successors, color, parent, cycles, new ArrayDeque<String>());
+                dfsCycleDetect(v, successors, color, parent, cycles,
+                        new ArrayDeque<String>(), edgeLookup);
             }
         }
 
@@ -523,7 +508,8 @@ public class TopologicalSortAnalyzer {
      */
     private void dfsCycleDetect(String v, Map<String, Set<String>> successors,
                                  Map<String, Integer> color, Map<String, String> parent,
-                                 List<CycleInfo> cycles, LinkedList<String> path) {
+                                 List<CycleInfo> cycles, ArrayDeque<String> path,
+                                 Map<String, Map<String, Edge>> edgeLookup) {
         color.put(v, 1); // GRAY
         path.addLast(v);
 
@@ -543,11 +529,12 @@ public class TopologicalSortAnalyzer {
                     if (found) cycleVertices.add(p);
                 }
 
-                // Find edges for the cycle
+                // Find edges for the cycle via O(1) lookup
                 for (int i = 0; i < cycleVertices.size(); i++) {
                     String from = cycleVertices.get(i);
                     String to = cycleVertices.get((i + 1) % cycleVertices.size());
-                    Edge e = findEdge(from, to);
+                    Map<String, Edge> targets = edgeLookup.get(from);
+                    Edge e = (targets != null) ? targets.get(to) : null;
                     if (e != null) cycleEdges.add(e);
                 }
 
@@ -557,7 +544,7 @@ public class TopologicalSortAnalyzer {
                 }
             } else if (color.get(w) == 0) {
                 parent.put(w, v);
-                dfsCycleDetect(w, successors, color, parent, cycles, path);
+                dfsCycleDetect(w, successors, color, parent, cycles, path, edgeLookup);
             }
         }
 
@@ -576,18 +563,6 @@ public class TopologicalSortAnalyzer {
             }
         }
         return false;
-    }
-
-    /**
-     * Find an Edge from vertex1 to vertex2 in the graph.
-     */
-    private Edge findEdge(String from, String to) {
-        for (Edge e : graph.getEdges()) {
-            if (from.equals(e.getVertex1()) && to.equals(e.getVertex2())) {
-                return e;
-            }
-        }
-        return null;
     }
 
     /**
