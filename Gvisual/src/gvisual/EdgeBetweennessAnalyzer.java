@@ -203,42 +203,11 @@ public class EdgeBetweennessAnalyzer {
     }
 
     /**
-     * Detect bridge edges via DFS.
+     * Detect bridge edges via DFS (delegates to shared GraphUtils).
      */
     private void detectBridges() {
         bridges.clear();
-        List<String> vertexList = new ArrayList<>(graph.getVertices());
-        Map<String, Integer> disc = new HashMap<>();
-        Map<String, Integer> low = new HashMap<>();
-        Map<String, String> parent = new HashMap<>();
-        int[] timer = {0};
-
-        for (String v : vertexList) {
-            if (!disc.containsKey(v)) {
-                bridgeDfs(v, disc, low, parent, timer);
-            }
-        }
-    }
-
-    private void bridgeDfs(String u, Map<String, Integer> disc, Map<String, Integer> low,
-                           Map<String, String> parent, int[] timer) {
-        disc.put(u, timer[0]);
-        low.put(u, timer[0]);
-        timer[0]++;
-
-        for (String v : graph.getNeighbors(u)) {
-            if (!disc.containsKey(v)) {
-                parent.put(v, u);
-                bridgeDfs(v, disc, low, parent, timer);
-                low.put(u, Math.min(low.get(u), low.get(v)));
-                if (low.get(v) > disc.get(u)) {
-                    Edge e = findEdge(u, v);
-                    if (e != null) bridges.add(e);
-                }
-            } else if (!v.equals(parent.get(u))) {
-                low.put(u, Math.min(low.get(u), disc.get(v)));
-            }
-        }
+        bridges.addAll(GraphUtils.findBridges(graph));
     }
 
     public Map<Edge, Double> getBetweenness() {

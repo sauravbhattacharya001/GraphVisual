@@ -785,6 +785,58 @@ public final class GraphUtils {
         return path;
     }
 
+    // ── Bridge detection (Tarjan's algorithm) ────────────────────
+
+    /**
+     * Finds all bridge edges in the graph using Tarjan's DFS algorithm.
+     * A bridge is an edge whose removal increases the number of connected
+     * components.
+     *
+     * <p>Centralizes the bridge-finding logic previously duplicated in
+     * {@link GraphHealthChecker}, {@link EdgeBetweennessAnalyzer}, and
+     * {@link GraphSparsificationAnalyzer}.</p>
+     *
+     * @param graph the JUNG graph
+     * @return list of bridge edges (order follows DFS discovery)
+     */
+    public static List<Edge> findBridges(Graph<String, Edge> graph) {
+        List<Edge> bridges = new ArrayList<Edge>();
+        if (graph.getVertexCount() == 0) return bridges;
+        Map<String, Integer> disc = new HashMap<String, Integer>();
+        Map<String, Integer> low = new HashMap<String, Integer>();
+        Map<String, String> parent = new HashMap<String, String>();
+        int[] timer = {0};
+        for (String v : graph.getVertices()) {
+            if (!disc.containsKey(v)) {
+                bridgeDfs(graph, v, disc, low, parent, timer, bridges);
+            }
+        }
+        return bridges;
+    }
+
+    private static void bridgeDfs(Graph<String, Edge> graph, String u,
+                                  Map<String, Integer> disc, Map<String, Integer> low,
+                                  Map<String, String> parent, int[] timer,
+                                  List<Edge> bridges) {
+        disc.put(u, timer[0]);
+        low.put(u, timer[0]);
+        timer[0]++;
+        for (String v : graph.getNeighbors(u)) {
+            if (!disc.containsKey(v)) {
+                parent.put(v, u);
+                bridgeDfs(graph, v, disc, low, parent, timer, bridges);
+                low.put(u, Math.min(low.get(u), low.get(v)));
+                if (low.get(v) > disc.get(u)) {
+                    Edge e = graph.findEdge(u, v);
+                    if (e == null) e = graph.findEdge(v, u);
+                    if (e != null) bridges.add(e);
+                }
+            } else if (!v.equals(parent.get(u))) {
+                low.put(u, Math.min(low.get(u), disc.get(v)));
+            }
+        }
+    }
+
     // ── Null-safe neighbor access ───────────────────────────────
 
     /**

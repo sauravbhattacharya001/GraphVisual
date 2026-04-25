@@ -95,38 +95,9 @@ public class GraphSparsificationAnalyzer {
         return cachedBetweenness;
     }
 
-    /** Finds bridge edges whose removal disconnects the graph. */
+    /** Finds bridge edges whose removal disconnects the graph (delegates to shared GraphUtils). */
     public Set<Edge> findBridges() {
-        Set<Edge> bridges = new LinkedHashSet<Edge>();
-        if (graph.getVertexCount() == 0) return bridges;
-        Map<String, Integer> disc = new HashMap<String, Integer>();
-        Map<String, Integer> low = new HashMap<String, Integer>();
-        Map<String, String> parent = new HashMap<String, String>();
-        int[] timer = {0};
-        for (String vtx : graph.getVertices()) {
-            if (!disc.containsKey(vtx)) bridgeDFS(vtx, disc, low, parent, timer, bridges);
-        }
-        return bridges;
-    }
-
-    private void bridgeDFS(String u, Map<String, Integer> disc, Map<String, Integer> low,
-                           Map<String, String> parent, int[] timer, Set<Edge> bridges) {
-        disc.put(u, timer[0]);
-        low.put(u, timer[0]);
-        timer[0]++;
-        for (String nb : graph.getNeighbors(u)) {
-            if (!disc.containsKey(nb)) {
-                parent.put(nb, u);
-                bridgeDFS(nb, disc, low, parent, timer, bridges);
-                low.put(u, Math.min(low.get(u), low.get(nb)));
-                if (low.get(nb) > disc.get(u)) {
-                    Edge be = graph.findEdge(u, nb);
-                    if (be != null) bridges.add(be);
-                }
-            } else if (!nb.equals(parent.get(u))) {
-                low.put(u, Math.min(low.get(u), disc.get(nb)));
-            }
-        }
+        return new LinkedHashSet<Edge>(GraphUtils.findBridges(graph));
     }
 
     /** Spanning tree (Kruskal's MST). */

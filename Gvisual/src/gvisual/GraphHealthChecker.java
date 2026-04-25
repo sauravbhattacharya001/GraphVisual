@@ -119,43 +119,7 @@ public class GraphHealthChecker {
 
     /** Bridge edges whose removal would increase component count. */
     private List<Edge> findBridges() {
-        // Tarjan's bridge-finding via DFS
-        List<Edge> bridges = new ArrayList<>();
-        if (graph.getVertexCount() == 0) return bridges;
-
-        Map<String, Integer> disc = new HashMap<>();
-        Map<String, Integer> low = new HashMap<>();
-        Set<String> visited = new HashSet<>();
-        int[] timer = {0};
-
-        for (String v : graph.getVertices()) {
-            if (!visited.contains(v)) {
-                bridgeDfs(v, null, disc, low, visited, timer, bridges);
-            }
-        }
-        return bridges;
-    }
-
-    private void bridgeDfs(String u, String parent,
-                           Map<String, Integer> disc, Map<String, Integer> low,
-                           Set<String> visited, int[] timer, List<Edge> bridges) {
-        visited.add(u);
-        disc.put(u, timer[0]);
-        low.put(u, timer[0]);
-        timer[0]++;
-
-        for (String v : graph.getNeighbors(u)) {
-            if (!visited.contains(v)) {
-                bridgeDfs(v, u, disc, low, visited, timer, bridges);
-                low.put(u, Math.min(low.get(u), low.get(v)));
-                if (low.get(v) > disc.get(u)) {
-                    Edge bridgeEdge = graph.findEdge(u, v);
-                    if (bridgeEdge != null) bridges.add(bridgeEdge);
-                }
-            } else if (!v.equals(parent)) {
-                low.put(u, Math.min(low.get(u), disc.get(v)));
-            }
-        }
+        return GraphUtils.findBridges(graph);
     }
 
     /** Score 0-100 (100 = perfectly healthy). */
