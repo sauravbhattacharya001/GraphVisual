@@ -161,84 +161,85 @@ public class MotifAnalyzer {
 
     // ── Square (4-Cycle) Counting ───────────────────────────────────
 
+    /**
+     * Counts 4-cycles (squares) using 2-path enumeration.
+     *
+     * <p><b>Algorithm:</b> For each vertex b, enumerate all pairs of b's
+     * neighbors (u, w) where u &lt; w (lexicographic) and u-w are NOT adjacent.
+     * Each such pair forms a 2-path u-b-w. A pair (u, w) with k common
+     * neighbors yields C(k, 2) distinct 4-cycles.</p>
+     *
+     * <p><b>Performance:</b> The previous implementation used O(V² · Δ)
+     * all-pairs enumeration — for every pair of vertices it scanned one
+     * vertex's neighbor set to count overlap. This version enumerates
+     * 2-paths per vertex in O(Δ²) time, giving O(V · Δ²) total. On sparse
+     * graphs where Δ ≪ V, this is orders of magnitude faster (e.g., a
+     * 1000-vertex graph with average degree 10: old = ~10M pair checks,
+     * new = ~100K 2-path checks).</p>
+     */
     private void countSquares(List<String> vertices) {
         squareCount = 0;
 
-        // For each pair of vertices at distance 2, count common neighbors.
-        // Each 4-cycle A-B-C-D appears as two paths of length 2 sharing
-        // endpoints (A-B-C and A-D-C). The number of 4-cycles through
-        // a pair (A, C) with k common neighbors is C(k, 2).
-        Map<String, Integer> indexMap = new HashMap<String, Integer>();
-        for (int i = 0; i < vertices.size(); i++) {
-            indexMap.put(vertices.get(i), i);
-        }
+        // Phase 1: Count common non-adjacent neighbors for each non-adjacent
+        // pair by enumerating 2-paths through each vertex.
+        // Key = "min|max" canonical pair string, value = common neighbor count.
+        Map<String, Integer> pairCommonCount = new HashMap<String, Integer>();
 
-        for (int i = 0; i < vertices.size(); i++) {
-            String u = vertices.get(i);
-            Set<String> uN = neighborCache.get(u);
-            if (uN == null) continue;
+        for (String b : vertices) {
+            Set<String> bNeighbors = neighborCache.get(b);
+            if (bNeighbors == null || bNeighbors.size() < 2) continue;
 
-            for (int j = i + 1; j < vertices.size(); j++) {
-                String w = vertices.get(j);
-                if (uN.contains(w)) continue; // Skip adjacent pairs
+            // Sort b's neighbors for consistent canonical ordering
+            List<String> nList = new ArrayList<String>(bNeighbors);
+            Collections.sort(nList);
 
-                Set<String> wN = neighborCache.get(w);
-                if (wN == null) continue;
+            for (int i = 0; i < nList.size(); i++) {
+                String u = nList.get(i);
+                Set<String> uN = neighborCache.get(u);
+                for (int j = i + 1; j < nList.size(); j++) {
+                    String w = nList.get(j);
+                    // Only count if u and w are NOT adjacent (otherwise it's
+                    // a triangle edge, not a 4-cycle diagonal)
+                    if (uN != null && uN.contains(w)) continue;
 
-                // Count common neighbors between u and w
-                int common = 0;
-                for (String n : uN) {
-                    if (wN.contains(n)) common++;
-                }
-
-                // C(common, 2) = common * (common - 1) / 2
-                if (common >= 2) {
-                    int cycles = common * (common - 1) / 2;
-                    squareCount += cycles;
-
-                    // Track participation for all 4 vertices of each square.
-                    // For each common-neighbor pair (n1, n2) with n1 < n2,
-                    // the square is u - n1 - w - n2.  All four get credit.
-                    // (#33: previously only u and w were tracked.)
-                    List<String> commonNeighbors = new ArrayList<>();
-                    for (String n : uN) {
-                        if (wN.contains(n)) commonNeighbors.add(n);
-                    }
-                    for (int a = 0; a < commonNeighbors.size(); a++) {
-                        for (int b = a + 1; b < commonNeighbors.size(); b++) {
-                            addParticipation(u, "square", 1);
-                            addParticipation(w, "square", 1);
-                            addParticipation(commonNeighbors.get(a), "square", 1);
-                            addParticipation(commonNeighbors.get(b), "square", 1);
-                        }
-                    }
+                    // Canonical key: u < w lexicographically (already sorted)
+                    String key = u + "|" + w;
+                    pairCommonCount.merge(key, 1, Integer::sum);
                 }
             }
         }
-        // Each 4-cycle is counted twice (once from each non-adjacent pair)
-        // Actually, each square A-B-C-D has two pairs of non-adjacent vertices:
-        // (A,C) and (B,D). So each square is counted exactly twice.
-        // However, with our ordered i<j approach, and the fact that both
-        // non-adjacent pairs are counted, we need to divide by... let me think.
-        // For square A-B-C-D: non-adjacent pairs are (A,C) and (B,D).
-        // Both pairs contribute C(2,2)=1 each. So total = 2 per square.
-        // But we also need to account for common-neighbor participation.
-        // Actually: each unique 4-cycle is found exactly once per non-adjacent
-        // pair where i < j. A square has exactly 2 non-adjacent pairs.
-        // So squareCount is double the actual count.
 
-        // Fix participation — we over-counted, divide later
-        // Actually let's just not fix participation from the non-adjacent
-        // pair loop — recalculate from the final count
-        squareCount /= 2;
+        // Phase 2: For each non-adjacent pair with k >= 2 common neighbors,
+        // there are C(k, 2) 4-cycles. Track participation for all vertices.
+        for (Map.Entry<String, Integer> entry : pairCommonCount.entrySet()) {
+            int k = entry.getValue();
+            if (k < 2) continue;
 
-        // Halve square participation counts to match corrected squareCount (#33).
-        // Each square was found from both non-adjacent pairs, so participation
-        // values are also 2x the true values.
-        for (Map<String, Integer> m : vertexParticipation.values()) {
-            Integer sq = m.get("square");
-            if (sq != null && sq > 0) {
-                m.put("square", sq / 2);
+            int cycles = k * (k - 1) / 2;
+            squareCount += cycles;
+
+            // Parse the pair
+            String pairKey = entry.getKey();
+            int sep = pairKey.indexOf('|');
+            String u = pairKey.substring(0, sep);
+            String w = pairKey.substring(sep + 1);
+
+            // Each 4-cycle involves u, w, and 2 of the k common neighbors.
+            // u and w each participate in all C(k,2) cycles.
+            addParticipation(u, "square", cycles);
+            addParticipation(w, "square", cycles);
+
+            // Each common neighbor b participates in (k-1) of the C(k,2)
+            // cycles (paired with each of the other k-1 common neighbors).
+            // Collect common neighbors by re-checking b's neighbors.
+            Set<String> uN = neighborCache.get(u);
+            Set<String> wN = neighborCache.get(w);
+            Set<String> smaller = uN.size() <= wN.size() ? uN : wN;
+            Set<String> larger  = uN.size() <= wN.size() ? wN : uN;
+            for (String b : smaller) {
+                if (larger.contains(b)) {
+                    addParticipation(b, "square", k - 1);
+                }
             }
         }
     }
