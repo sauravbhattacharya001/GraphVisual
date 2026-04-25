@@ -61,7 +61,7 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 145 source classes (~55,000+ lines of production code, 100,000+ total with tests), 57 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[ALGORITHMS.md](ALGORITHMS.md)** for full details including the analyzer reference table, design patterns, and dependency map.
+GraphVisual consists of 145 source classes (~55,000+ lines of production code, 100,000+ total with tests), 57 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)**, **[ALGORITHMS.md](ALGORITHMS.md)**, and **[TESTING.md](TESTING.md)** for full details including the analyzer reference table, design patterns, dependency map, and testing guide.
 
 ```
 Gvisual/src/
@@ -272,26 +272,20 @@ All thresholds are adjustable at runtime via the Category Panel sliders.
 
 ## Testing
 
-Run tests with JUnit 4:
+The test suite includes **106 test classes** with **2,100+ tests** covering analyzers, exporters, layouts, and utilities.
 
 ```bash
-cd Gvisual
-mkdir -p build/test/classes
+# Run all tests
+mvn test
 
-# Download JUnit (if not present)
-curl -sL -o lib/test/junit-4.13.2.jar \
-  https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar
-curl -sL -o lib/test/hamcrest-core-1.3.jar \
-  https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+# Run a single test class
+mvn test -Dtest=BipartiteAnalyzerTest
 
-# Compile and run
-find test -name '*.java' > test-sources.txt
-javac -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
-  -d build/test/classes @test-sources.txt
-
-java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
-  org.junit.runner.JUnitCore app.UtilMethodsTest gvisual.EdgeTest
+# Run a specific method
+mvn test -Dtest=BipartiteAnalyzerTest#testMaximumMatchingCompleteBipartite
 ```
+
+See **[TESTING.md](TESTING.md)** for the full testing guide: conventions, coverage gaps, and how to write new tests.
 
 ## Maven / GitHub Packages
 
