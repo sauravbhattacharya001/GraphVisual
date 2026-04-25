@@ -239,6 +239,20 @@ public final class PlanarGraphAnalyzer {
             return faces;
         }
 
+        // Pre-build index maps: for each vertex v, map neighbor name → position
+        // in v's neighbor list. This turns the O(degree) indexOf() call inside
+        // the dart walk into an O(1) HashMap lookup, reducing face tracing from
+        // O(E × max_degree) to O(E).
+        Map<String, Map<String, Integer>> neighborIndex = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : embedding.entrySet()) {
+            List<String> nbrs = entry.getValue();
+            Map<String, Integer> idxMap = new HashMap<>(nbrs.size() * 2);
+            for (int i = 0; i < nbrs.size(); i++) {
+                idxMap.put(nbrs.get(i), i);
+            }
+            neighborIndex.put(entry.getKey(), idxMap);
+        }
+
         // Trace faces using the "next-Edge" walk on the combinatorial embedding
         Set<String> visitedDarts = new HashSet<String>();
         List<Face> faces = new ArrayList<Face>();
@@ -260,9 +274,9 @@ public final class PlanarGraphAnalyzer {
                     visitedDarts.add(d);
                     faceVertices.add(curr);
 
-                    // Find the position of curr in next's neighbor list
+                    // O(1) position lookup via pre-built index map
                     List<String> nextNeighbors = embedding.get(next);
-                    int idx = nextNeighbors.indexOf(curr);
+                    int idx = neighborIndex.get(next).get(curr);
                     // The next dart goes to the *previous* neighbor in cyclic order
                     int prevIdx = (idx - 1 + nextNeighbors.size()) % nextNeighbors.size();
 
