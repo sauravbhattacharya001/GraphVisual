@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Narrative Generator — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .narrative-app { max-width: 1200px; margin: 0 auto; }
+        .input-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .input-row select, .input-row button { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border, #ddd); font-size: 14px; }
+        .input-row button { background: var(--accent, #4f46e5); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+        .input-row button:hover { opacity: 0.9; }
+        .input-row button.secondary { background: var(--bg-card, #f8f9fa); color: var(--text, #333); border: 1px solid var(--border, #ddd); }
+
+        .graph-input-area { display: flex; gap: 16px; margin-bottom: 20px; }
+        .graph-input-area textarea { flex: 1; min-height: 140px; font-family: 'Courier New', monospace; font-size: 13px; padding: 12px; border-radius: 8px; border: 1px solid var(--border, #ddd); resize: vertical; background: var(--bg-card, #fff); color: var(--text, #333); }
+        .graph-input-area .canvas-col { flex: 1; min-width: 300px; }
+        .graph-input-area canvas { width: 100%; height: 300px; border-radius: 8px; border: 1px solid var(--border, #ddd); background: var(--bg-card, #fff); cursor: grab; }
+
+        .narrative-output { background: var(--bg-card, #fff); border: 1px solid var(--border, #ddd); border-radius: 10px; padding: 24px; margin-top: 16px; line-height: 1.7; }
+        .narrative-output h3 { margin-top: 20px; margin-bottom: 8px; color: var(--accent, #4f46e5); }
+        .narrative-output h3:first-child { margin-top: 0; }
+        .narrative-output .finding { background: var(--bg-hover, #f0f0ff); padding: 10px 14px; border-radius: 6px; margin: 8px 0; border-left: 3px solid var(--accent, #4f46e5); }
+        .narrative-output .finding.warning { border-left-color: #f59e0b; background: #fffbeb; }
+        .narrative-output .finding.critical { border-left-color: #ef4444; background: #fef2f2; }
+        .narrative-output .finding.success { border-left-color: #10b981; background: #ecfdf5; }
+        .narrative-output .metric { display: inline-block; background: var(--accent, #4f46e5); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin: 0 2px; }
+
+        .config-panel { background: var(--bg-card, #fff); border: 1px solid var(--border, #ddd); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .config-panel h4 { margin: 0 0 10px; font-size: 14px; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .config-grid label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+        .config-grid input[type="checkbox"] { accent-color: var(--accent, #4f46e5); }
+
+        .tone-select { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tone-btn { padding: 6px 14px; border-radius: 20px; border: 2px solid var(--border, #ddd); background: transparent; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .tone-btn.active { border-color: var(--accent, #4f46e5); background: var(--accent, #4f46e5); color: #fff; }
+
+        .export-bar { display: flex; gap: 8px; margin-top: 16px; }
+        .export-bar button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border, #ddd); background: var(--bg-card, #f8f9fa); cursor: pointer; font-size: 13px; }
+
+        .auto-panel { background: linear-gradient(135deg, #4f46e510, #7c3aed10); border: 2px solid var(--accent, #4f46e5); border-radius: 10px; padding: 16px; margin: 16px 0; }
+        .auto-panel h4 { margin: 0 0 8px; }
+        .auto-log { max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; padding: 8px; background: #000; color: #0f0; border-radius: 6px; margin-top: 8px; }
+        .auto-log .log-line { margin: 2px 0; }
+        .auto-log .log-line.insight { color: #ffd700; }
+        .auto-log .log-line.action { color: #00bfff; }
+
+        .preset-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .preset-chip { padding: 4px 12px; border-radius: 16px; border: 1px solid var(--border, #ddd); background: var(--bg-card, #fff); cursor: pointer; font-size: 12px; }
+        .preset-chip:hover { border-color: var(--accent, #4f46e5); }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo"><span>📊</span><div><h2>GraphVisual</h2><small>Documentation</small></div></a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="narrative.html" class="sidebar-link active"><span class="icon">📝</span>Narrative Gen</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="graph-advisor.html" class="sidebar-link"><span class="icon">🧠</span>Graph Advisor</a>
+    </div>
+</nav>
+
+<div class="main"><div class="content">
+<h1>📝 Graph Narrative Generator
+    <span class="subtitle">Autonomous natural-language graph reports</span>
+</h1>
+
+<p>Input a graph and get a comprehensive written narrative analyzing its structure, key players, communities, vulnerabilities, and recommended next steps. Choose a tone, configure analysis modules, or let the auto-narrator discover insights on its own.</p>
+
+<div class="preset-chips" id="presetChips">
+    <span class="preset-chip" data-preset="karate">🥋 Karate Club</span>
+    <span class="preset-chip" data-preset="star">⭐ Star (Hub)</span>
+    <span class="preset-chip" data-preset="ring">🔄 Ring</span>
+    <span class="preset-chip" data-preset="tree">🌲 Binary Tree</span>
+    <span class="preset-chip" data-preset="bipartite">⚖️ Bipartite</span>
+    <span class="preset-chip" data-preset="random50">🎲 Random (50 nodes)</span>
+    <span class="preset-chip" data-preset="disconnected">🔌 Disconnected</span>
+    <span class="preset-chip" data-preset="smallworld">🌐 Small World</span>
+</div>
+
+<div class="graph-input-area">
+    <textarea id="edgeInput" placeholder="Enter edges (one per line):&#10;A - B&#10;B - C&#10;C - D&#10;D - A&#10;&#10;Or adjacency list:&#10;A: B, C&#10;B: D"></textarea>
+    <div class="canvas-col">
+        <canvas id="graphCanvas"></canvas>
+    </div>
+</div>
+
+<h4>🎭 Narrative Tone</h4>
+<div class="tone-select" id="toneSelect">
+    <button class="tone-btn active" data-tone="analyst">📊 Analyst</button>
+    <button class="tone-btn" data-tone="storyteller">📖 Storyteller</button>
+    <button class="tone-btn" data-tone="detective">🔍 Detective</button>
+    <button class="tone-btn" data-tone="advisor">🧠 Advisor</button>
+    <button class="tone-btn" data-tone="journalist">📰 Journalist</button>
+</div>
+
+<div class="config-panel">
+    <h4>🔧 Analysis Modules</h4>
+    <div class="config-grid">
+        <label><input type="checkbox" checked data-mod="overview"> 🏗️ Structural Overview</label>
+        <label><input type="checkbox" checked data-mod="centrality"> 🎯 Key Player Analysis</label>
+        <label><input type="checkbox" checked data-mod="community"> 🔍 Community Detection</label>
+        <label><input type="checkbox" checked data-mod="vulnerability"> ⚠️ Vulnerability Assessment</label>
+        <label><input type="checkbox" checked data-mod="recommendation"> 💡 Recommendations</label>
+        <label><input type="checkbox" data-mod="comparison"> 🔄 Model Comparison</label>
+        <label><input type="checkbox" data-mod="temporal"> ⏳ Growth Forecast</label>
+        <label><input type="checkbox" data-mod="anomaly"> 🚨 Anomaly Narration</label>
+    </div>
+</div>
+
+<div class="input-row">
+    <button id="generateBtn" onclick="generateNarrative()">📝 Generate Narrative</button>
+    <button class="secondary" id="autoBtn" onclick="toggleAutoNarrator()">🤖 Auto-Narrator</button>
+    <select id="depthSelect">
+        <option value="brief">Brief (1-2 paragraphs)</option>
+        <option value="standard" selected>Standard</option>
+        <option value="detailed">Detailed (deep dive)</option>
+    </select>
+</div>
+
+<div class="auto-panel" id="autoPanel" style="display:none;">
+    <h4>🤖 Auto-Narrator <span id="autoStatus" style="font-weight:normal;font-size:12px;color:#666;">Stopped</span></h4>
+    <p style="font-size:13px;margin:4px 0;">Autonomous analysis — discovers insights iteratively, expanding the narrative as it finds interesting patterns.</p>
+    <div class="auto-log" id="autoLog"></div>
+</div>
+
+<div class="narrative-output" id="narrativeOutput" style="display:none;"></div>
+
+<div class="export-bar" id="exportBar" style="display:none;">
+    <button onclick="exportAs('markdown')">📄 Markdown</button>
+    <button onclick="exportAs('html')">🌐 HTML</button>
+    <button onclick="exportAs('json')">📋 JSON</button>
+    <button onclick="exportAs('text')">📝 Plain Text</button>
+    <button onclick="navigator.clipboard.writeText(narrativeText).then(()=>this.textContent='✅ Copied!')">📋 Copy</button>
+</div>
+
+<script>
+// ─── Graph Parsing ───
+function parseEdges(text) {
+    const nodes = new Map(), edges = [];
+    let nid = 0;
+    const getNode = name => { name = name.trim(); if (!nodes.has(name)) nodes.set(name, nid++); return nodes.get(name); };
+    text.trim().split('\n').forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('#') || line.startsWith('//')) return;
+        if (line.includes(':')) {
+            const [src, rest] = line.split(':');
+            if (rest) rest.split(',').forEach(t => { t = t.trim(); if (t) edges.push([getNode(src), getNode(t)]); });
+        } else {
+            const m = line.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+            if (m) edges.push([getNode(m[1]), getNode(m[2])]);
+        }
+    });
+    return { nodeNames: [...nodes.keys()], nodeIds: nodes, edges, n: nodes.size };
+}
+
+// ─── Graph Analysis Engine ───
+function analyze(graph) {
+    const { nodeNames, edges, n } = graph;
+    if (n === 0) return null;
+    const adj = Array.from({length: n}, () => []);
+    const edgeSet = new Set();
+    edges.forEach(([u,v]) => {
+        if (u !== v && !edgeSet.has(`${Math.min(u,v)}-${Math.max(u,v)}`)) {
+            adj[u].push(v); adj[v].push(u);
+            edgeSet.add(`${Math.min(u,v)}-${Math.max(u,v)}`);
+        }
+    });
+    const m = edgeSet.size;
+    const degrees = adj.map(a => a.length);
+    const maxDeg = Math.max(...degrees), minDeg = Math.min(...degrees);
+    const avgDeg = degrees.reduce((a,b)=>a+b,0)/n;
+    const density = n > 1 ? 2*m/(n*(n-1)) : 0;
+
+    // Components
+    const visited = new Int8Array(n);
+    const components = [];
+    for (let i = 0; i < n; i++) {
+        if (visited[i]) continue;
+        const comp = []; const q = [i]; visited[i] = 1;
+        while (q.length) { const u = q.shift(); comp.push(u); adj[u].forEach(v => { if (!visited[v]) { visited[v]=1; q.push(v); }}); }
+        components.push(comp);
+    }
+
+    // BFS distances for diameter/avg path (largest component)
+    const largest = components.reduce((a,b)=>a.length>b.length?a:b);
+    let diameter = 0, totalDist = 0, pathCount = 0;
+    const closeness = new Float64Array(n);
+    largest.forEach(src => {
+        const dist = new Int32Array(n).fill(-1); dist[src] = 0;
+        const q = [src]; let head = 0;
+        while (head < q.length) { const u = q[head++]; adj[u].forEach(v => { if (dist[v]===-1) { dist[v]=dist[u]+1; q.push(v); }}); }
+        let sum = 0;
+        largest.forEach(v => { if (v !== src && dist[v] > 0) { sum += dist[v]; totalDist += dist[v]; pathCount++; if (dist[v] > diameter) diameter = dist[v]; }});
+        if (sum > 0) closeness[src] = (largest.length - 1) / sum;
+    });
+    const avgPath = pathCount > 0 ? totalDist / pathCount : 0;
+
+    // Betweenness (Brandes)
+    const betweenness = new Float64Array(n);
+    largest.forEach(s => {
+        const stack = [], pred = Array.from({length:n},()=>[]), sigma = new Float64Array(n), dist = new Int32Array(n).fill(-1), delta = new Float64Array(n);
+        sigma[s] = 1; dist[s] = 0; const q = [s]; let head = 0;
+        while (head < q.length) { const v = q[head++]; stack.push(v); adj[v].forEach(w => { if (dist[w]===-1) { dist[w]=dist[v]+1; q.push(w); } if (dist[w]===dist[v]+1) { sigma[w]+=sigma[v]; pred[w].push(v); }}); }
+        while (stack.length) { const w = stack.pop(); pred[w].forEach(v => { delta[v] += (sigma[v]/sigma[w])*(1+delta[w]); }); if (w!==s) betweenness[w] += delta[w]; delta[w]=0; }
+    });
+    for (let i=0;i<n;i++) betweenness[i] /= 2;
+
+    // PageRank
+    const pr = new Float64Array(n).fill(1/n);
+    for (let iter = 0; iter < 30; iter++) {
+        const next = new Float64Array(n).fill((1-0.85)/n);
+        for (let u=0;u<n;u++) if(degrees[u]>0) adj[u].forEach(v => { next[v] += 0.85*pr[u]/degrees[u]; });
+        for (let i=0;i<n;i++) pr[i]=next[i];
+    }
+
+    // Community detection (label propagation)
+    const labels = Array.from({length:n},(_,i)=>i);
+    for (let iter = 0; iter < 20; iter++) {
+        let changed = false;
+        const order = [...Array(n).keys()].sort(()=>Math.random()-0.5);
+        order.forEach(u => {
+            if (degrees[u] === 0) return;
+            const freq = {};
+            adj[u].forEach(v => { freq[labels[v]] = (freq[labels[v]]||0)+1; });
+            const maxF = Math.max(...Object.values(freq));
+            const best = Object.keys(freq).filter(k=>freq[k]===maxF);
+            const pick = parseInt(best[Math.floor(Math.random()*best.length)]);
+            if (pick !== labels[u]) { labels[u] = pick; changed = true; }
+        });
+        if (!changed) break;
+    }
+    const communities = {};
+    labels.forEach((l,i) => { (communities[l] = communities[l]||[]).push(i); });
+    const communityList = Object.values(communities).sort((a,b)=>b.length-a.length);
+
+    // Bridges & articulation points
+    const disc = new Int32Array(n).fill(-1), low = new Int32Array(n).fill(-1), parent = new Int32Array(n).fill(-1);
+    let timer = 0;
+    const bridges = [], artPoints = new Set();
+    function dfsAP(u) {
+        disc[u] = low[u] = timer++;
+        let children = 0;
+        adj[u].forEach(v => {
+            if (disc[v] === -1) {
+                children++; parent[v] = u; dfsAP(v);
+                low[u] = Math.min(low[u], low[v]);
+                if (parent[u] === -1 && children > 1) artPoints.add(u);
+                if (parent[u] !== -1 && low[v] >= disc[u]) artPoints.add(u);
+                if (low[v] > disc[u]) bridges.push([u,v]);
+            } else if (v !== parent[u]) low[u] = Math.min(low[u], disc[v]);
+        });
+    }
+    for (let i=0;i<n;i++) if(disc[i]===-1) dfsAP(i);
+
+    // Clustering coefficient
+    let totalCC = 0;
+    for (let u=0;u<n;u++) {
+        if (degrees[u] < 2) continue;
+        let triangles = 0;
+        const nb = new Set(adj[u]);
+        adj[u].forEach(v => adj[v].forEach(w => { if (w!==u && nb.has(w)) triangles++; }));
+        totalCC += triangles / (degrees[u]*(degrees[u]-1));
+    }
+    const avgClustering = n > 0 ? totalCC / n : 0;
+
+    // Degree distribution shape
+    const degHist = {};
+    degrees.forEach(d => degHist[d] = (degHist[d]||0)+1);
+    const degVariance = degrees.reduce((s,d)=>s+(d-avgDeg)**2,0)/n;
+
+    // Anomalies: nodes with unusually high/low centrality
+    const betArr = [...betweenness];
+    const betMean = betArr.reduce((a,b)=>a+b,0)/n;
+    const betStd = Math.sqrt(betArr.reduce((s,b)=>s+(b-betMean)**2,0)/n);
+    const anomalies = [];
+    for (let i=0;i<n;i++) {
+        if (betStd > 0 && (betweenness[i]-betMean)/betStd > 2) anomalies.push({node:i, type:'high-betweenness', z:((betweenness[i]-betMean)/betStd).toFixed(2)});
+        if (degrees[i] > avgDeg + 2*Math.sqrt(degVariance)) anomalies.push({node:i, type:'high-degree', val:degrees[i]});
+    }
+
+    return { nodeNames, adj, edges, n, m, degrees, maxDeg, minDeg, avgDeg, density, components, diameter, avgPath, closeness, betweenness, pr, communityList, labels, bridges, artPoints:[...artPoints], avgClustering, degVariance, anomalies };
+}
+
+// ─── Narrative Generation ───
+const toneStyles = {
+    analyst: { opener: 'This graph consists of', transition: 'Furthermore,', emphasis: 'Notably,', closer: 'In summary,' },
+    storyteller: { opener: 'Once upon a network, there lived', transition: 'As our story unfolds,', emphasis: 'The plot thickens —', closer: 'And so our tale concludes:' },
+    detective: { opener: 'Case file opened. The network under investigation contains', transition: 'Digging deeper,', emphasis: 'A crucial clue emerges:', closer: 'Case assessment:' },
+    advisor: { opener: "Here's what you're looking at:", transition: 'Now, here\'s what matters:', emphasis: 'Pay attention to this:', closer: 'My recommendation:' },
+    journalist: { opener: 'BREAKING: A network of', transition: 'Sources reveal that', emphasis: 'In a surprising twist,', closer: 'Experts conclude:' }
+};
+
+let narrativeText = '', narrativeJSON = {};
+
+function generateNarrative() {
+    const graph = parseEdges(document.getElementById('edgeInput').value);
+    if (graph.n === 0) { alert('Enter some edges first!'); return; }
+    const data = analyze(graph);
+    if (!data) return;
+    drawGraph(data);
+
+    const tone = document.querySelector('.tone-btn.active').dataset.tone;
+    const depth = document.getElementById('depthSelect').value;
+    const mods = {};
+    document.querySelectorAll('[data-mod]').forEach(cb => mods[cb.dataset.mod] = cb.checked);
+    const t = toneStyles[tone];
+    const sections = [];
+    narrativeJSON = { tone, depth, graph: { nodes: data.n, edges: data.m }, sections: [] };
+
+    const nn = i => data.nodeNames[i];
+    const topBy = (arr, k) => [...arr.keys()].sort((a,b)=>arr[b]-arr[a]).slice(0,k);
+
+    if (mods.overview) {
+        const compText = data.components.length === 1 ? 'The graph is <span class="metric">connected</span>.' :
+            `The graph has <span class="metric">${data.components.length} components</span>, with the largest containing ${data.components.reduce((a,b)=>a.length>b.length?a:b).length} nodes.`;
+        let shape = 'general';
+        if (data.density > 0.7) shape = 'dense';
+        else if (data.density < 0.1) shape = 'sparse';
+        if (data.maxDeg === data.n-1 && data.minDeg <= 1) shape = 'star-like';
+        if (Math.abs(data.maxDeg - data.minDeg) <= 1 && data.avgClustering < 0.01 && data.components.length===1 && data.n > 3) shape = 'ring-like';
+
+        const shapeNote = { dense:'This is a tightly-knit network where most nodes know each other.', sparse:'This is a sparse network — connections are selective and strategic.', 'star-like':'The topology resembles a hub-and-spoke pattern, with a central coordinator.', 'ring-like':'The structure forms a cycle, where information must traverse the ring.', general:'' }[shape];
+
+        sections.push(`<h3>🏗️ Structural Overview</h3>
+<div class="finding">${t.opener} <span class="metric">${data.n} nodes</span> and <span class="metric">${data.m} edges</span>. 
+Density: <span class="metric">${(data.density*100).toFixed(1)}%</span> | Avg degree: <span class="metric">${data.avgDeg.toFixed(1)}</span> | Diameter: <span class="metric">${data.diameter}</span> | Avg path: <span class="metric">${data.avgPath.toFixed(2)}</span> | Clustering: <span class="metric">${data.avgClustering.toFixed(3)}</span></div>
+<p>${compText} ${shapeNote}</p>
+${depth !== 'brief' ? `<p>Degree range: ${data.minDeg}–${data.maxDeg} (variance: ${data.degVariance.toFixed(1)}). ${data.avgClustering > 0.3 ? 'High clustering suggests tight local neighborhoods — a "small world" feel.' : data.avgClustering < 0.05 ? 'Very low clustering — nodes don\'t form triangles, suggesting a tree-like or bipartite structure.' : 'Moderate clustering indicates some neighborhood cohesion.'}</p>` : ''}`);
+        narrativeJSON.sections.push({id:'overview', nodes:data.n, edges:data.m, density:data.density, diameter:data.diameter});
+    }
+
+    if (mods.centrality) {
+        const topDeg = topBy(data.degrees, 3);
+        const topBet = topBy([...data.betweenness], 3);
+        const topPR = topBy([...data.pr], 3);
+        const topClose = topBy([...data.closeness], 3);
+
+        sections.push(`<h3>🎯 Key Player Analysis</h3>
+<p>${t.emphasis} The most connected nodes are: ${topDeg.map(i=>`<strong>${nn(i)}</strong> (degree ${data.degrees[i]})`).join(', ')}.</p>
+<div class="finding success"><strong>Top Brokers</strong> (betweenness): ${topBet.map(i=>`<strong>${nn(i)}</strong> (${data.betweenness[i].toFixed(1)})`).join(', ')}<br/>These nodes control the most shortest paths — remove them and communication breaks down.</div>
+<div class="finding"><strong>Top Influencers</strong> (PageRank): ${topPR.map(i=>`<strong>${nn(i)}</strong> (${(data.pr[i]*100).toFixed(2)}%)`).join(', ')}</div>
+${depth === 'detailed' ? `<div class="finding"><strong>Most Central</strong> (closeness): ${topClose.map(i=>`<strong>${nn(i)}</strong> (${data.closeness[i].toFixed(3)})`).join(', ')}<br/>These nodes can reach everyone else most quickly.</div>` : ''}`);
+        narrativeJSON.sections.push({id:'centrality', topDegree:topDeg.map(i=>nn(i)), topBetweenness:topBet.map(i=>nn(i)), topPageRank:topPR.map(i=>nn(i))});
+    }
+
+    if (mods.community) {
+        const comms = data.communityList;
+        const commDesc = comms.slice(0,5).map((c,i) => `<strong>Community ${i+1}</strong> (${c.length} members): ${c.slice(0,6).map(nn).join(', ')}${c.length>6?'…':''}`).join('<br/>');
+        sections.push(`<h3>🔍 Community Structure</h3>
+<p>${t.transition} Label propagation reveals <span class="metric">${comms.length} communities</span>.</p>
+<div class="finding">${commDesc}</div>
+${comms.length === 1 ? '<p>The entire graph forms a single community — there are no clear factional boundaries.</p>' :
+comms.length > data.n * 0.5 ? '<p>Many small communities suggest a fragmented network with weak inter-group ties.</p>' :
+'<p>The community structure suggests distinct sub-groups with their own internal dynamics.</p>'}`);
+        narrativeJSON.sections.push({id:'community', count:comms.length, sizes:comms.map(c=>c.length)});
+    }
+
+    if (mods.vulnerability) {
+        const apNames = data.artPoints.slice(0,5).map(nn);
+        const brNames = data.bridges.slice(0,5).map(([u,v])=>`${nn(u)}–${nn(v)}`);
+        const sevClass = data.artPoints.length > data.n*0.2 ? 'critical' : data.artPoints.length > 0 ? 'warning' : 'success';
+        sections.push(`<h3>⚠️ Vulnerability Assessment</h3>
+<div class="finding ${sevClass}"><strong>Articulation Points:</strong> ${data.artPoints.length === 0 ? 'None found — the network is 2-connected. ✅' : `${data.artPoints.length} found: ${apNames.join(', ')}${data.artPoints.length>5?'…':''}`}</div>
+<div class="finding ${data.bridges.length > 0 ? 'warning' : 'success'}"><strong>Bridges:</strong> ${data.bridges.length === 0 ? 'No bridges — every edge has redundancy. ✅' : `${data.bridges.length} found: ${brNames.join(', ')}${data.bridges.length>5?'…':''}`}</div>
+${data.artPoints.length > 0 ? `<p>Removing ${apNames[0]} would split the network into disconnected components. ${depth !== 'brief' ? 'Consider adding redundant connections around these critical nodes.' : ''}</p>` : ''}`);
+        narrativeJSON.sections.push({id:'vulnerability', articulationPoints:data.artPoints.length, bridges:data.bridges.length});
+    }
+
+    if (mods.anomaly) {
+        if (data.anomalies.length > 0) {
+            const aDescs = data.anomalies.slice(0,5).map(a => `<strong>${nn(a.node)}</strong>: ${a.type} (${a.z ? 'z='+a.z : 'deg='+a.val})`);
+            sections.push(`<h3>🚨 Anomalies</h3><div class="finding warning">${aDescs.join('<br/>')}</div>
+<p>These nodes deviate significantly from the network's baseline. They may represent special roles, data quality issues, or genuinely unusual actors.</p>`);
+        } else {
+            sections.push(`<h3>🚨 Anomalies</h3><div class="finding success">No statistical anomalies detected. The network appears well-behaved. ✅</div>`);
+        }
+        narrativeJSON.sections.push({id:'anomaly', count:data.anomalies.length});
+    }
+
+    if (mods.comparison && depth !== 'brief') {
+        const erdosC = data.density;
+        const erdosCC = erdosC; // E[CC] for ER ≈ p
+        const swRatio = data.avgClustering > 0 ? (data.avgClustering / erdosCC) / (data.avgPath / Math.log(data.n)) : 0;
+        sections.push(`<h3>🔄 Model Comparison</h3>
+<div class="finding"><strong>Small-world coefficient (σ):</strong> <span class="metric">${swRatio.toFixed(2)}</span> ${swRatio > 1 ? '— YES, this is a small-world network! High clustering + short paths.' : '— Not a small-world network by this measure.'}</div>
+<p>Compared to an Erdős–Rényi random graph with the same density: clustering is ${data.avgClustering > erdosCC * 1.5 ? 'significantly higher' : 'similar'}, suggesting ${data.avgClustering > erdosCC * 1.5 ? 'structured community formation beyond random chance' : 'connectivity patterns close to random'}.</p>`);
+    }
+
+    if (mods.temporal && depth !== 'brief') {
+        const growthPotential = (1 - data.density) * 100;
+        const prefAttach = data.degVariance > (data.avgDeg * 2) ? 'high' : 'low';
+        sections.push(`<h3>⏳ Growth Forecast</h3>
+<p>With <span class="metric">${growthPotential.toFixed(0)}%</span> potential edges unused, there's ${growthPotential > 70 ? 'significant' : growthPotential > 30 ? 'moderate' : 'limited'} room for growth.</p>
+<div class="finding">Degree variance is ${prefAttach} (${data.degVariance.toFixed(1)}), suggesting ${prefAttach === 'high' ? 'preferential attachment dynamics — popular nodes will keep attracting connections ("rich get richer")' : 'relatively egalitarian growth — new edges are unlikely to concentrate on existing hubs'}.</div>`);
+    }
+
+    if (mods.recommendation) {
+        const recs = [];
+        if (data.artPoints.length > 0) recs.push('🔧 Add redundant edges around articulation points to improve resilience.');
+        if (data.components.length > 1) recs.push('🔗 Connect isolated components — there may be valuable cross-group synergies.');
+        if (data.communityList.length > 3) recs.push('🌉 Identify bridge-building opportunities between communities.');
+        if (data.anomalies.length > 0) recs.push('🔍 Investigate anomalous nodes — they may need attention or represent opportunities.');
+        if (data.avgClustering < 0.1 && data.n > 5) recs.push('🤝 Encourage triangle formation (introductions) to build trust and cohesion.');
+        if (data.density > 0.5) recs.push('📊 Consider edge pruning — focus on the strongest connections for clarity.');
+        if (recs.length === 0) recs.push('✅ This network looks healthy! Consider running evolution simulation to track changes over time.');
+        recs.push('🧠 Try the <a href="graph-advisor.html">Graph Advisor</a> for algorithmic recommendations.');
+        sections.push(`<h3>💡 Recommendations</h3>${recs.map(r=>`<div class="finding success">${r}</div>`).join('')}
+<p>${t.closer} ${data.n < 20 ? 'This is a small network — every connection matters.' : 'At this scale, structural patterns matter more than individual edges.'}</p>`);
+        narrativeJSON.sections.push({id:'recommendations', items:recs.length});
+    }
+
+    narrativeText = sections.join('\n');
+    const out = document.getElementById('narrativeOutput');
+    out.innerHTML = narrativeText;
+    out.style.display = 'block';
+    document.getElementById('exportBar').style.display = 'flex';
+}
+
+// ─── Auto-Narrator ───
+let autoRunning = false, autoInterval = null;
+function toggleAutoNarrator() {
+    autoRunning = !autoRunning;
+    const panel = document.getElementById('autoPanel');
+    const status = document.getElementById('autoStatus');
+    const btn = document.getElementById('autoBtn');
+    if (autoRunning) {
+        panel.style.display = 'block';
+        status.textContent = '🟢 Running';
+        btn.textContent = '⏹️ Stop Auto-Narrator';
+        generateNarrative();
+        autoLog('action', '▶ Auto-narrator started. Analyzing graph...');
+        let round = 0;
+        autoInterval = setInterval(() => {
+            round++;
+            const graph = parseEdges(document.getElementById('edgeInput').value);
+            if (graph.n === 0) { autoLog('insight', '⚠ No graph data'); return; }
+            const data = analyze(graph);
+            // Discover additional insights each round
+            const insights = [];
+            if (round === 1) {
+                const isoNodes = data.degrees.filter(d=>d===0).length;
+                if (isoNodes > 0) insights.push(`Found ${isoNodes} isolated nodes — they're disconnected from the network.`);
+                const maxBet = Math.max(...data.betweenness);
+                const topBroker = data.nodeNames[[...data.betweenness].indexOf(maxBet)];
+                insights.push(`Top broker "${topBroker}" controls ${(maxBet / (data.n*(data.n-1)/2) * 100).toFixed(1)}% of shortest paths.`);
+            }
+            if (round === 2) {
+                const triCount = countTriangles(data);
+                insights.push(`Triangle count: ${triCount}. ${triCount === 0 ? 'No triangles — the graph may be a tree or bipartite.' : `Transitivity: ${(3*triCount / Math.max(1, countTriplets(data))).toFixed(3)}.`}`);
+            }
+            if (round === 3) {
+                const assort = computeAssortativity(data);
+                insights.push(`Degree assortativity: ${assort.toFixed(3)}. ${assort > 0.1 ? 'Assortative — hubs connect to hubs.' : assort < -0.1 ? 'Disassortative — hubs connect to peripherals (typical of biological/tech networks).' : 'Neutral mixing.'}`);
+            }
+            if (round >= 4) {
+                insights.push(`Round ${round}: No new patterns. Auto-narrator pausing.`);
+                toggleAutoNarrator();
+                return;
+            }
+            insights.forEach(i => {
+                autoLog('insight', `💡 ${i}`);
+                const out = document.getElementById('narrativeOutput');
+                out.innerHTML += `<div class="finding" style="margin-top:8px;border-left-color:#ffd700;">🤖 <em>Auto-insight:</em> ${i}</div>`;
+            });
+        }, 3000);
+    } else {
+        clearInterval(autoInterval);
+        status.textContent = '⏹ Stopped';
+        btn.textContent = '🤖 Auto-Narrator';
+        autoLog('action', '⏹ Auto-narrator stopped.');
+    }
+}
+
+function autoLog(cls, msg) {
+    const log = document.getElementById('autoLog');
+    log.innerHTML += `<div class="log-line ${cls}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+function countTriangles(data) {
+    let t = 0;
+    for (let u=0;u<data.n;u++) for (const v of data.adj[u]) if(v>u) for (const w of data.adj[v]) if(w>v && data.adj[w].includes(u)) t++;
+    return t;
+}
+function countTriplets(data) {
+    let t = 0; data.degrees.forEach(d => t += d*(d-1)/2); return t;
+}
+function computeAssortativity(data) {
+    if (data.m === 0) return 0;
+    let s1=0,s2=0,s3=0;
+    const edgeList = [];
+    for (let u=0;u<data.n;u++) data.adj[u].forEach(v => { if(v>u) edgeList.push([u,v]); });
+    edgeList.forEach(([u,v]) => { s1+=data.degrees[u]+data.degrees[v]; s2+=data.degrees[u]**2+data.degrees[v]**2; s3+=data.degrees[u]*data.degrees[v]; });
+    const M = edgeList.length;
+    const num = s3/M - (s1/(2*M))**2;
+    const den = s2/(2*M) - (s1/(2*M))**2;
+    return den === 0 ? 0 : num/den;
+}
+
+// ─── Canvas Visualization ───
+function drawGraph(data) {
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2; canvas.height = 600;
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // Force-directed layout
+    const pos = Array.from({length:data.n},()=>({x:Math.random()*W*0.6+W*0.2, y:Math.random()*H*0.6+H*0.2}));
+    for (let iter = 0; iter < 100; iter++) {
+        const force = Array.from({length:data.n},()=>({x:0,y:0}));
+        // Repulsion
+        for (let i=0;i<data.n;i++) for (let j=i+1;j<data.n;j++) {
+            let dx=pos[i].x-pos[j].x, dy=pos[i].y-pos[j].y;
+            let d = Math.sqrt(dx*dx+dy*dy)||1;
+            let f = 50000/(d*d);
+            force[i].x+=f*dx/d; force[i].y+=f*dy/d;
+            force[j].x-=f*dx/d; force[j].y-=f*dy/d;
+        }
+        // Attraction
+        for (let u=0;u<data.n;u++) data.adj[u].forEach(v => {
+            if(v<=u) return;
+            let dx=pos[v].x-pos[u].x, dy=pos[v].y-pos[u].y;
+            let d=Math.sqrt(dx*dx+dy*dy)||1;
+            let f=(d-80)*0.01;
+            force[u].x+=f*dx/d; force[u].y+=f*dy/d;
+            force[v].x-=f*dx/d; force[v].y-=f*dy/d;
+        });
+        // Center gravity
+        for (let i=0;i<data.n;i++) {
+            force[i].x += (W/2-pos[i].x)*0.001;
+            force[i].y += (H/2-pos[i].y)*0.001;
+        }
+        const cooling = 1 - iter/100;
+        for (let i=0;i<data.n;i++) {
+            pos[i].x += Math.max(-5,Math.min(5,force[i].x)) * cooling;
+            pos[i].y += Math.max(-5,Math.min(5,force[i].y)) * cooling;
+            pos[i].x = Math.max(30,Math.min(W-30,pos[i].x));
+            pos[i].y = Math.max(30,Math.min(H-30,pos[i].y));
+        }
+    }
+
+    // Edges
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+    for (let u=0;u<data.n;u++) data.adj[u].forEach(v => { if(v>u) { ctx.beginPath(); ctx.moveTo(pos[u].x,pos[u].y); ctx.lineTo(pos[v].x,pos[v].y); ctx.stroke(); }});
+
+    // Bridge edges in red
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+    data.bridges.forEach(([u,v]) => { ctx.beginPath(); ctx.moveTo(pos[u].x,pos[u].y); ctx.lineTo(pos[v].x,pos[v].y); ctx.stroke(); });
+
+    // Nodes
+    const maxPR = Math.max(...data.pr);
+    const colors = ['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+    for (let i=0;i<data.n;i++) {
+        const r = 8 + (data.pr[i]/maxPR)*16;
+        const c = colors[data.labels[i] % colors.length];
+        ctx.beginPath(); ctx.arc(pos[i].x,pos[i].y,r,0,Math.PI*2);
+        ctx.fillStyle = data.artPoints.includes(i) ? '#ef4444' : c;
+        ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#333'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(data.nodeNames[i], pos[i].x, pos[i].y - r - 6);
+    }
+}
+
+// ─── Presets ───
+const presets = {
+    karate: `0 - 1\n0 - 2\n0 - 3\n0 - 4\n0 - 5\n0 - 6\n0 - 7\n0 - 8\n0 - 10\n0 - 11\n0 - 12\n0 - 13\n0 - 17\n0 - 19\n0 - 21\n0 - 31\n1 - 2\n1 - 3\n1 - 7\n1 - 13\n1 - 17\n1 - 19\n1 - 21\n1 - 30\n2 - 3\n2 - 7\n2 - 8\n2 - 9\n2 - 13\n2 - 27\n2 - 28\n2 - 32\n3 - 7\n3 - 12\n3 - 13\n4 - 6\n4 - 10\n5 - 6\n5 - 10\n5 - 16\n6 - 16\n8 - 30\n8 - 32\n8 - 33\n9 - 33\n13 - 33\n14 - 32\n14 - 33\n15 - 32\n15 - 33\n18 - 32\n18 - 33\n19 - 33\n20 - 32\n20 - 33\n22 - 32\n22 - 33\n23 - 25\n23 - 27\n23 - 29\n23 - 32\n23 - 33\n24 - 25\n24 - 27\n24 - 31\n25 - 31\n26 - 29\n26 - 33\n27 - 33\n28 - 31\n28 - 33\n29 - 32\n29 - 33\n30 - 32\n30 - 33\n31 - 32\n31 - 33\n32 - 33`,
+    star: 'Hub - A\nHub - B\nHub - C\nHub - D\nHub - E\nHub - F\nHub - G\nHub - H',
+    ring: 'A - B\nB - C\nC - D\nD - E\nE - F\nF - G\nG - H\nH - A',
+    tree: 'Root - L\nRoot - R\nL - LL\nL - LR\nR - RL\nR - RR\nLL - LLL\nLL - LLR\nLR - LRL\nLR - LRR\nRL - RLL\nRL - RLR\nRR - RRL\nRR - RRR',
+    bipartite: 'A1 - B1\nA1 - B2\nA1 - B3\nA2 - B1\nA2 - B4\nA3 - B2\nA3 - B3\nA3 - B5\nA4 - B4\nA4 - B5',
+    disconnected: 'A - B\nB - C\nC - A\nD - E\nE - F\nF - D\nG - H\nI - J\nJ - K',
+    smallworld: (() => { const n=20, edges=[]; for(let i=0;i<n;i++) { edges.push(`N${i} - N${(i+1)%n}`); edges.push(`N${i} - N${(i+2)%n}`); } for(let i=0;i<5;i++) edges.push(`N${Math.floor(Math.random()*n)} - N${Math.floor(Math.random()*n)}`); return edges.join('\n'); })()
+};
+presets.random50 = (() => { const n=50, edges=new Set(); for(let i=0;i<n-1;i++) edges.add(`N${i} - N${i+1}`); for(let i=0;i<60;i++) { const a=Math.floor(Math.random()*n), b=Math.floor(Math.random()*n); if(a!==b) edges.add(`N${Math.min(a,b)} - N${Math.max(a,b)}`); } return [...edges].join('\n'); })();
+
+document.getElementById('presetChips').addEventListener('click', e => {
+    const chip = e.target.closest('.preset-chip');
+    if (chip && presets[chip.dataset.preset]) {
+        document.getElementById('edgeInput').value = presets[chip.dataset.preset];
+        generateNarrative();
+    }
+});
+
+// ─── Tone Select ───
+document.getElementById('toneSelect').addEventListener('click', e => {
+    if (e.target.classList.contains('tone-btn')) {
+        document.querySelectorAll('.tone-btn').forEach(b=>b.classList.remove('active'));
+        e.target.classList.add('active');
+    }
+});
+
+// ─── Export ───
+function exportAs(format) {
+    let content, mime, ext;
+    const out = document.getElementById('narrativeOutput');
+    if (format === 'markdown') {
+        content = out.innerText; mime = 'text/markdown'; ext = 'md';
+    } else if (format === 'html') {
+        content = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Graph Narrative</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;}.finding{background:#f8f9fa;padding:10px 14px;border-radius:6px;margin:8px 0;border-left:3px solid #4f46e5;}.metric{background:#4f46e5;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;}</style></head><body>${out.innerHTML}</body></html>`;
+        mime = 'text/html'; ext = 'html';
+    } else if (format === 'json') {
+        content = JSON.stringify(narrativeJSON, null, 2); mime = 'application/json'; ext = 'json';
+    } else {
+        content = out.innerText; mime = 'text/plain'; ext = 'txt';
+    }
+    const blob = new Blob([content], {type: mime});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `graph-narrative.${ext}`; a.click();
+}
+
+// Auto-generate if preset loaded
+document.getElementById('edgeInput').value = presets.karate;
+setTimeout(generateNarrative, 100);
+</script>
+
+</div></div>
+</body>
+</html>
