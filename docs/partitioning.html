@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Partitioning — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gp-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 100px; }
+        .control-row select, .control-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.8; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        canvas#graphCanvas { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: grab; }
+        canvas#graphCanvas:active { cursor: grabbing; }
+        .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; text-align: center; }
+        .stat-card .val { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .preset-btn { padding: 6px 12px; font-size: 12px; background: var(--surface-hover); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .preset-btn:hover { background: var(--border); }
+        .preset-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+        .speed-slider { width: 100%; }
+        textarea.text-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 60px; }
+        .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+        .compare-table th, .compare-table td { padding: 8px 12px; border: 1px solid var(--border); text-align: center; }
+        .compare-table th { background: var(--surface-hover); color: var(--accent); font-weight: 600; text-transform: uppercase; font-size: 11px; }
+        .compare-table td { color: var(--text); }
+        .compare-table tr:hover td { background: var(--surface-hover); }
+        .best-cell { color: var(--green) !important; font-weight: 700; }
+        .insights-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 16px; display: none; }
+        .insights-box h3 { font-size: 14px; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; }
+        .insight-item { font-size: 13px; color: var(--text); padding: 4px 0; }
+        .insight-item .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+        .tag-good { background: #3fb95033; color: #3fb950; }
+        .tag-fair { background: #d2992233; color: #d29922; }
+        .tag-poor { background: #f8514933; color: #f85149; }
+        .tag-info { background: #58a6ff33; color: #58a6ff; }
+        .history-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .history-list .step { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .history-list .step.active { background: var(--surface-hover); color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Tools</div>
+        <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+        <a href="pathfinder.html" class="sidebar-link"><span class="icon">🧭</span>Path Finder</a>
+        <a href="query.html" class="sidebar-link"><span class="icon">🔎</span>Query Playground</a>
+        <a href="generator.html" class="sidebar-link"><span class="icon">🎲</span>Graph Generator</a>
+        <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+        <a href="matrix.html" class="sidebar-link"><span class="icon">🔢</span>Adjacency Matrix</a>
+        <a href="coloring.html" class="sidebar-link"><span class="icon">🎨</span>Graph Coloring</a>
+        <a href="editor.html" class="sidebar-link"><span class="icon">✏️</span>Graph Editor</a>
+        <a href="communities.html" class="sidebar-link"><span class="icon">🔍</span>Community Detection</a>
+        <a href="mst.html" class="sidebar-link"><span class="icon">🌲</span>MST Visualizer</a>
+        <a href="flow.html" class="sidebar-link"><span class="icon">🌊</span>Network Flow</a>
+        <a href="random-walk.html" class="sidebar-link"><span class="icon">🚶</span>Random Walk</a>
+        <a href="isomorphism.html" class="sidebar-link"><span class="icon">🔄</span>Isomorphism</a>
+        <a href="bipartite.html" class="sidebar-link"><span class="icon">⚖️</span>Bipartite Checker</a>
+        <a href="bridges.html" class="sidebar-link"><span class="icon">🌉</span>Bridges &amp; APs</a>
+        <a href="planarity.html" class="sidebar-link"><span class="icon">📐</span>Planarity</a>
+        <a href="resilience.html" class="sidebar-link"><span class="icon">🛡️</span>Resilience</a>
+        <a href="toposort.html" class="sidebar-link"><span class="icon">📋</span>Topo Sort</a>
+        <a href="clique.html" class="sidebar-link"><span class="icon">🔗</span>Max Clique</a>
+        <a href="anomaly.html" class="sidebar-link"><span class="icon">🚨</span>Anomaly Detector</a>
+        <a href="dominating-set.html" class="sidebar-link"><span class="icon">👑</span>Dominating Set</a>
+        <a href="vertex-cover.html" class="sidebar-link"><span class="icon">🛡️</span>Vertex Cover</a>
+        <a href="partitioning.html" class="sidebar-link active"><span class="icon">✂️</span>Graph Partitioning</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Architecture</div>
+        <a href="architecture.html" class="sidebar-link"><span class="icon">🏗️</span>Architecture</a>
+        <a href="database.html" class="sidebar-link"><span class="icon">🗄️</span>Database Schema</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>✂️ Graph Partitioning
+    <span class="subtitle">Balanced bisection with Kernighan-Lin optimization</span>
+</h1>
+
+<p><strong>Graph partitioning</strong> divides a graph's vertices into two disjoint sets while minimizing the number of edges crossing the partition (the <em>cut size</em>). The <strong>Kernighan-Lin (KL)</strong> algorithm iteratively swaps vertex pairs to reduce cut size. Click nodes to manually reassign partitions, or let the algorithm find a good bisection.</p>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">Nodes</div></div>
+    <div class="stat-card"><div class="val" id="statEdges">0</div><div class="lbl">Edges</div></div>
+    <div class="stat-card"><div class="val" id="statCut">—</div><div class="lbl">Cut Size</div></div>
+    <div class="stat-card"><div class="val" id="statBalance">—</div><div class="lbl">Balance</div></div>
+    <div class="stat-card"><div class="val" id="statPasses">0</div><div class="lbl">KL Passes</div></div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Partition A</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f97316;"></div> Partition B</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f85149;"></div> Cut edge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#484f58;"></div> Internal edge</div>
+</div>
+
+<div class="gp-layout">
+<div class="controls-panel">
+
+    <div class="control-group">
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetRow"></div>
+    </div>
+
+    <div class="control-group">
+        <h3>Adjacency List</h3>
+        <textarea class="text-input" id="adjInput" placeholder="0: 1 2&#10;1: 0 2 3&#10;2: 0 1&#10;3: 1"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-secondary" onclick="loadFromText()">Load</button>
+            <button class="btn btn-secondary" onclick="exportText()">Export</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Algorithm</h3>
+        <div class="control-row">
+            <label>Method</label>
+            <select id="algoSelect">
+                <option value="kl">Kernighan-Lin</option>
+                <option value="random">Random Bisection</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label>Speed</label>
+            <input type="range" class="speed-slider" id="speedSlider" min="1" max="20" value="10">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnRun" onclick="runAlgo()">▶ Run</button>
+            <button class="btn btn-secondary" onclick="stepAlgo()">⏭ Step</button>
+            <button class="btn btn-secondary" onclick="resetPartition()">↺ Reset</button>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>KL Steps</h3>
+        <div class="history-list" id="historyList">
+            <div class="step" style="color:var(--text-muted);">Run algorithm to see steps…</div>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h3>Compare</h3>
+        <button class="btn btn-secondary" onclick="runComparison()" style="margin-bottom:8px;">⚔ Random vs KL</button>
+        <table class="compare-table" id="compareTable" style="display:none;">
+            <thead><tr><th>Metric</th><th>Random</th><th>KL</th></tr></thead>
+            <tbody id="compareBody"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<div style="flex:1; min-width:0;">
+    <canvas id="graphCanvas" width="900" height="640"></canvas>
+    <div class="insights-box" id="insightsBox">
+        <h3>🔍 Proactive Insights</h3>
+        <div id="insightsList"></div>
+    </div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+// ============ DATA ============
+const PART_A = 0, PART_B = 1;
+const COLOR_A = '#3b82f6', COLOR_B = '#f97316', COLOR_CUT = '#f85149', COLOR_INTERNAL = '#484f58';
+let nodes = [], edges = [], adj = {};
+let partition = []; // partition[i] = PART_A or PART_B
+let dragging = null, dragOff = {x:0,y:0};
+let animating = false, animQueue = [];
+let klPassCount = 0;
+
+const presets = [
+    { name:'Petersen', build: buildPetersen },
+    { name:'Grid 4×4', build: ()=>buildGrid(4,4) },
+    { name:'Complete K8', build: ()=>buildComplete(8) },
+    { name:'Barbell', build: buildBarbell },
+    { name:'Hypercube Q4', build: buildHypercube },
+    { name:'Wheel W12', build: ()=>buildWheel(12) },
+    { name:'Random 15', build: ()=>buildRandom(15, 0.3) },
+    { name:'Mesh 5×5', build: ()=>buildGrid(5,5) },
+];
+
+// ============ GRAPH BUILDERS ============
+function addNode(id) { nodes.push({id, x: 100+Math.random()*600, y: 100+Math.random()*440}); adj[id]=[]; }
+function addEdge(u,v) { if(u===v) return; const key=Math.min(u,v)+'-'+Math.max(u,v); if(edges.find(e=>Math.min(e[0],e[1])+'-'+Math.max(e[0],e[1])===key)) return; edges.push([u,v]); adj[u].push(v); adj[v].push(u); }
+function resetGraph() { nodes=[]; edges=[]; adj={}; partition=[]; klPassCount=0; animQueue=[]; animating=false; document.getElementById('historyList').innerHTML='<div class="step" style="color:var(--text-muted);">Run algorithm to see steps…</div>'; document.getElementById('insightsBox').style.display='none'; document.getElementById('compareTable').style.display='none'; }
+
+function buildPetersen() {
+    resetGraph();
+    for(let i=0;i<10;i++) addNode(i);
+    // outer cycle
+    for(let i=0;i<5;i++) addEdge(i,(i+1)%5);
+    // inner pentagram
+    for(let i=0;i<5;i++) addEdge(5+i,5+(i+2)%5);
+    // spokes
+    for(let i=0;i<5;i++) addEdge(i,5+i);
+    layoutCircle(0,5,200); layoutCircle(5,5,90);
+    randomPartition(); updateStats(); draw();
+}
+function buildGrid(r,c) {
+    resetGraph();
+    for(let i=0;i<r*c;i++) addNode(i);
+    for(let y=0;y<r;y++) for(let x=0;x<c;x++) {
+        const id=y*c+x;
+        if(x<c-1) addEdge(id,id+1);
+        if(y<r-1) addEdge(id,id+c);
+    }
+    const ox=150,oy=80,sp=100;
+    for(let y=0;y<r;y++) for(let x=0;x<c;x++) { const n=nodes[y*c+x]; n.x=ox+x*sp; n.y=oy+y*sp; }
+    randomPartition(); updateStats(); draw();
+}
+function buildComplete(n) {
+    resetGraph();
+    for(let i=0;i<n;i++) addNode(i);
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) addEdge(i,j);
+    layoutCircle(0,n,200); randomPartition(); updateStats(); draw();
+}
+function buildBarbell() {
+    resetGraph();
+    for(let i=0;i<10;i++) addNode(i);
+    for(let i=0;i<4;i++) for(let j=i+1;j<4;j++) addEdge(i,j);
+    addEdge(3,4); addEdge(4,5);
+    for(let i=5;i<10;i++) for(let j=i+1;j<10;j++) { if(i>=6||j>=6) addEdge(i,j); }
+    // layout
+    for(let i=0;i<4;i++) { nodes[i].x=150+Math.cos(i*Math.PI/2)*60; nodes[i].y=320+Math.sin(i*Math.PI/2)*60; }
+    nodes[4].x=350; nodes[4].y=320; nodes[5].x=550; nodes[5].y=320;
+    for(let i=6;i<10;i++) { nodes[i].x=700+Math.cos((i-6)*Math.PI/2)*60; nodes[i].y=320+Math.sin((i-6)*Math.PI/2)*60; }
+    randomPartition(); updateStats(); draw();
+}
+function buildHypercube() {
+    resetGraph();
+    for(let i=0;i<16;i++) addNode(i);
+    for(let i=0;i<16;i++) for(let b=0;b<4;b++) { const j=i^(1<<b); if(j>i) addEdge(i,j); }
+    // 4D hypercube layout
+    const cx=450,cy=320,s1=180,s2=80;
+    for(let i=0;i<16;i++) {
+        const b0=i&1,b1=(i>>1)&1,b2=(i>>2)&1,b3=(i>>3)&1;
+        nodes[i].x=cx+(b0?s1:-s1)+(b2?s2:-s2);
+        nodes[i].y=cy+(b1?s1:-s1)+(b3?s2:-s2);
+    }
+    randomPartition(); updateStats(); draw();
+}
+function buildWheel(n) {
+    resetGraph();
+    for(let i=0;i<=n;i++) addNode(i);
+    for(let i=1;i<=n;i++) { addEdge(0,i); addEdge(i,i%n+1); }
+    nodes[0].x=450; nodes[0].y=320;
+    layoutCircle(1,n,220);
+    randomPartition(); updateStats(); draw();
+}
+function buildRandom(n,p) {
+    resetGraph();
+    for(let i=0;i<n;i++) addNode(i);
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(Math.random()<p) addEdge(i,j);
+    // ensure connected
+    for(let i=1;i<n;i++) if(adj[i].length===0) addEdge(i,Math.floor(Math.random()*i));
+    forceLayout(); randomPartition(); updateStats(); draw();
+}
+
+function layoutCircle(start,count,r) {
+    const cx=450,cy=320;
+    for(let i=0;i<count;i++) { const a=2*Math.PI*i/count-Math.PI/2; nodes[start+i].x=cx+r*Math.cos(a); nodes[start+i].y=cy+r*Math.sin(a); }
+}
+function forceLayout() {
+    const N=nodes.length; if(N===0) return;
+    for(let iter=0;iter<100;iter++) {
+        const fx=new Float64Array(N), fy=new Float64Array(N);
+        for(let i=0;i<N;i++) for(let j=i+1;j<N;j++) {
+            let dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+            let d=Math.sqrt(dx*dx+dy*dy)||1;
+            let rep=5000/(d*d);
+            fx[i]-=rep*dx/d; fy[i]-=rep*dy/d;
+            fx[j]+=rep*dx/d; fy[j]+=rep*dy/d;
+        }
+        for(const [u,v] of edges) {
+            let dx=nodes[v].x-nodes[u].x, dy=nodes[v].y-nodes[u].y;
+            let d=Math.sqrt(dx*dx+dy*dy)||1;
+            let att=0.01*(d-120);
+            fx[u]+=att*dx/d; fy[u]+=att*dy/d;
+            fx[v]-=att*dx/d; fy[v]-=att*dy/d;
+        }
+        for(let i=0;i<N;i++) {
+            nodes[i].x=Math.max(50,Math.min(850,nodes[i].x+fx[i]*0.1));
+            nodes[i].y=Math.max(50,Math.min(590,nodes[i].y+fy[i]*0.1));
+        }
+    }
+}
+
+// ============ PARTITION ============
+function randomPartition() {
+    const N=nodes.length;
+    partition=new Array(N);
+    const half=Math.floor(N/2);
+    const indices=[...Array(N).keys()];
+    // shuffle
+    for(let i=N-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [indices[i],indices[j]]=[indices[j],indices[i]]; }
+    for(let i=0;i<N;i++) partition[indices[i]] = i<half ? PART_A : PART_B;
+}
+
+function cutSize() {
+    let c=0;
+    for(const [u,v] of edges) if(partition[u]!==partition[v]) c++;
+    return c;
+}
+function partSizes() {
+    let a=0,b=0;
+    for(const p of partition) p===PART_A?a++:b++;
+    return [a,b];
+}
+function balanceRatio() {
+    const [a,b]=partSizes();
+    if(a+b===0) return 1;
+    return Math.min(a,b)/Math.max(a,b);
+}
+
+// ============ KERNIGHAN-LIN ============
+function klPass() {
+    const N=nodes.length;
+    if(N<2) return {improved:false, steps:[]};
+    const part=[...partition];
+    const locked=new Array(N).fill(false);
+    const swaps=[];
+    const gains=[];
+    let cumGain=0;
+
+    for(let step=0;step<Math.floor(N/2);step++) {
+        let bestGain=-Infinity, bestA=-1, bestB=-1;
+        for(let a=0;a<N;a++) {
+            if(locked[a]||part[a]!==PART_A) continue;
+            for(let b=0;b<N;b++) {
+                if(locked[b]||part[b]!==PART_B) continue;
+                // compute gain of swapping a and b
+                let extA=0,intA=0,extB=0,intB=0;
+                for(const nb of adj[a]) {
+                    if(nb===b) continue;
+                    if(part[nb]!==part[a]) extA++; else intA++;
+                }
+                for(const nb of adj[b]) {
+                    if(nb===a) continue;
+                    if(part[nb]!==part[b]) extB++; else intB++;
+                }
+                const connected=adj[a].includes(b)?1:0;
+                const g=extA-intA+extB-intB-2*connected;
+                if(g>bestGain) { bestGain=g; bestA=a; bestB=b; }
+            }
+        }
+        if(bestA<0) break;
+        // swap
+        part[bestA]=PART_B; part[bestB]=PART_A;
+        locked[bestA]=true; locked[bestB]=true;
+        cumGain+=bestGain;
+        swaps.push({a:bestA, b:bestB, gain:bestGain, cumGain});
+        gains.push(cumGain);
+    }
+
+    // find best prefix
+    let maxG=-Infinity, maxK=-1;
+    for(let k=0;k<gains.length;k++) { if(gains[k]>maxG) { maxG=gains[k]; maxK=k; } }
+
+    const steps=[];
+    if(maxG>0 && maxK>=0) {
+        // apply first maxK+1 swaps to actual partition
+        const applied=[...partition];
+        for(let k=0;k<=maxK;k++) {
+            const s=swaps[k];
+            applied[s.a]=PART_B; applied[s.b]=PART_A;
+            steps.push({a:s.a, b:s.b, gain:s.gain, cumGain:s.cumGain, applied:k<=maxK});
+        }
+        partition=[...applied];
+        return {improved:true, steps, cutReduction:maxG};
+    }
+    return {improved:false, steps:swaps.map(s=>({...s,applied:false})), cutReduction:0};
+}
+
+// ============ ANIMATION ============
+async function runAlgo() {
+    if(animating) return;
+    const method=document.getElementById('algoSelect').value;
+    document.getElementById('historyList').innerHTML='';
+    klPassCount=0;
+
+    if(method==='random') {
+        randomPartition();
+        updateStats(); draw(); showInsights();
+        addHistoryStep('Random bisection applied', true);
+        return;
+    }
+
+    // KL
+    animating=true;
+    document.getElementById('btnRun').textContent='⏳ Running…';
+    let pass=0;
+    while(pass<50) {
+        const result=klPass();
+        pass++; klPassCount=pass;
+        for(const s of result.steps) {
+            addHistoryStep(`Pass ${pass}: swap ${s.a}↔${s.b} (gain ${s.gain>0?'+':''}${s.gain})`, s.applied);
+        }
+        updateStats(); draw();
+        await sleep(getDelay());
+        if(!result.improved) {
+            addHistoryStep(`Converged after ${pass} pass${pass>1?'es':''}`, true);
+            break;
+        }
+    }
+    animating=false;
+    document.getElementById('btnRun').textContent='▶ Run';
+    showInsights();
+}
+
+function stepAlgo() {
+    if(animating) return;
+    const result=klPass();
+    klPassCount++;
+    for(const s of result.steps) {
+        addHistoryStep(`Pass ${klPassCount}: swap ${s.a}↔${s.b} (gain ${s.gain>0?'+':''}${s.gain})`, s.applied);
+    }
+    if(!result.improved) addHistoryStep('No improvement — converged', true);
+    updateStats(); draw(); showInsights();
+}
+
+function resetPartition() {
+    animating=false; klPassCount=0;
+    document.getElementById('btnRun').textContent='▶ Run';
+    document.getElementById('historyList').innerHTML='<div class="step" style="color:var(--text-muted);">Run algorithm to see steps…</div>';
+    document.getElementById('insightsBox').style.display='none';
+    randomPartition(); updateStats(); draw();
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function getDelay() { const v=document.getElementById('speedSlider').value; return 1100-v*50; }
+
+function addHistoryStep(text, highlight) {
+    const list=document.getElementById('historyList');
+    if(list.querySelector('.step[style]')) list.innerHTML='';
+    const d=document.createElement('div');
+    d.className='step'+(highlight?' active':'');
+    d.textContent=text;
+    list.appendChild(d);
+    list.scrollTop=list.scrollHeight;
+}
+
+// ============ COMPARISON ============
+function runComparison() {
+    // save current
+    const savedPart=[...partition];
+    // random
+    randomPartition();
+    const randCut=cutSize(), randBal=balanceRatio();
+    // KL from random
+    partition=[...partition]; // fresh random
+    let passes=0;
+    for(let i=0;i<50;i++) { const r=klPass(); passes++; if(!r.improved) break; }
+    const klCut=cutSize(), klBal=balanceRatio();
+
+    const body=document.getElementById('compareBody');
+    body.innerHTML='';
+    const data=[
+        ['Cut Size', randCut, klCut, 'lower'],
+        ['Balance Ratio', randBal.toFixed(2), klBal.toFixed(2), 'higher'],
+        ['KL Passes', '—', passes, ''],
+    ];
+    for(const [metric,rv,kv,better] of data) {
+        const tr=document.createElement('tr');
+        const rClass=(better==='lower'&&rv<=kv)||(better==='higher'&&rv>=kv)?'best-cell':'';
+        const kClass=(better==='lower'&&kv<=rv)||(better==='higher'&&kv>=rv)?'best-cell':'';
+        tr.innerHTML=`<td>${metric}</td><td class="${rClass}">${rv}</td><td class="${kClass}">${kv}</td>`;
+        body.appendChild(tr);
+    }
+    document.getElementById('compareTable').style.display='';
+
+    // keep KL result
+    updateStats(); draw(); showInsights();
+}
+
+// ============ INSIGHTS ============
+function showInsights() {
+    const box=document.getElementById('insightsBox');
+    const list=document.getElementById('insightsList');
+    list.innerHTML='';
+    const c=cutSize(), totalE=edges.length, [a,b]=partSizes(), bal=balanceRatio();
+    const cutPct=totalE>0?(c/totalE*100):0;
+
+    let tag,text;
+    if(cutPct<=20) { tag='good'; text=`Cut is ${cutPct.toFixed(1)}% of total edges — excellent partitioning`; }
+    else if(cutPct<=40) { tag='fair'; text=`Cut is ${cutPct.toFixed(1)}% of total edges — good partitioning`; }
+    else if(cutPct<=60) { tag='fair'; text=`Cut is ${cutPct.toFixed(1)}% of total edges — fair partitioning`; }
+    else { tag='poor'; text=`Cut is ${cutPct.toFixed(1)}% of total edges — poor partitioning, try different initial partition`; }
+    addInsight(tag,text);
+
+    if(bal>=0.9) addInsight('good',`Partition balance: A=${a}, B=${b} — well balanced`);
+    else if(bal>=0.6) addInsight('fair',`Partition balance: A=${a}, B=${b} — slightly unbalanced`);
+    else addInsight('poor',`Partition balance: A=${a}, B=${b} — unbalanced, consider re-running`);
+
+    if(klPassCount>0) {
+        addInsight('info',`Kernighan-Lin converged in ${klPassCount} pass${klPassCount>1?'es':''}`);
+        if(cutPct>50) addInsight('fair','High cut ratio — the graph may lack natural bisection structure');
+    }
+
+    if(nodes.length>0 && c===0) addInsight('good','Perfect partition — no edges cross the boundary!');
+
+    box.style.display='';
+}
+function addInsight(tag,text) {
+    const list=document.getElementById('insightsList');
+    const d=document.createElement('div');
+    d.className='insight-item';
+    d.innerHTML=`<span class="tag tag-${tag}">${tag.toUpperCase()}</span>${text}`;
+    list.appendChild(d);
+}
+
+// ============ STATS ============
+function updateStats() {
+    document.getElementById('statNodes').textContent=nodes.length;
+    document.getElementById('statEdges').textContent=edges.length;
+    document.getElementById('statCut').textContent=nodes.length?cutSize():'—';
+    document.getElementById('statBalance').textContent=nodes.length?balanceRatio().toFixed(2):'—';
+    document.getElementById('statPasses').textContent=klPassCount;
+}
+
+// ============ CANVAS DRAWING ============
+const canvas=document.getElementById('graphCanvas');
+const ctx=canvas.getContext('2d');
+
+function draw() {
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // edges
+    for(const [u,v] of edges) {
+        const isCut=partition[u]!==partition[v];
+        ctx.beginPath();
+        ctx.moveTo(nodes[u].x, nodes[u].y);
+        ctx.lineTo(nodes[v].x, nodes[v].y);
+        if(isCut) {
+            ctx.strokeStyle=COLOR_CUT;
+            ctx.setLineDash([6,4]);
+            ctx.lineWidth=2;
+        } else {
+            ctx.strokeStyle=COLOR_INTERNAL;
+            ctx.setLineDash([]);
+            ctx.lineWidth=1.5;
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // nodes
+    for(let i=0;i<nodes.length;i++) {
+        const n=nodes[i];
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 16, 0, Math.PI*2);
+        ctx.fillStyle=partition[i]===PART_A?COLOR_A:COLOR_B;
+        ctx.fill();
+        ctx.strokeStyle='#fff';
+        ctx.lineWidth=2;
+        ctx.stroke();
+        // label
+        ctx.fillStyle='#fff';
+        ctx.font='bold 11px system-ui';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(n.id, n.x, n.y);
+    }
+}
+
+// ============ INTERACTION ============
+canvas.addEventListener('mousedown', e=>{
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    const mx=(e.clientX-r.left)*sx, my=(e.clientY-r.top)*sy;
+    for(let i=nodes.length-1;i>=0;i--) {
+        const dx=nodes[i].x-mx, dy=nodes[i].y-my;
+        if(dx*dx+dy*dy<20*20) { dragging=i; dragOff={x:dx,y:dy}; return; }
+    }
+});
+canvas.addEventListener('mousemove', e=>{
+    if(dragging===null) return;
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    nodes[dragging].x=(e.clientX-r.left)*sx+dragOff.x;
+    nodes[dragging].y=(e.clientY-r.top)*sy+dragOff.y;
+    draw();
+});
+canvas.addEventListener('mouseup', e=>{
+    if(dragging!==null) {
+        const r=canvas.getBoundingClientRect();
+        const sx=canvas.width/r.width, sy=canvas.height/r.height;
+        const mx=(e.clientX-r.left)*sx, my=(e.clientY-r.top)*sy;
+        const dx=nodes[dragging].x-dragOff.x-mx+dragOff.x;
+        // if barely moved, treat as click → toggle partition
+        const moved=Math.abs((e.clientX-r.left)*sx+dragOff.x-nodes[dragging].x)+Math.abs((e.clientY-r.top)*sy+dragOff.y-nodes[dragging].y);
+        // We already moved node, so check distance from original drag start
+    }
+    dragging=null;
+});
+canvas.addEventListener('click', e=>{
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    const mx=(e.clientX-r.left)*sx, my=(e.clientY-r.top)*sy;
+    for(let i=nodes.length-1;i>=0;i--) {
+        const dx=nodes[i].x-mx, dy=nodes[i].y-my;
+        if(dx*dx+dy*dy<20*20) {
+            partition[i]=partition[i]===PART_A?PART_B:PART_A;
+            updateStats(); draw();
+            return;
+        }
+    }
+});
+
+// ============ TEXT I/O ============
+function loadFromText() {
+    const text=document.getElementById('adjInput').value.trim();
+    if(!text) return;
+    resetGraph();
+    const nodeSet=new Set();
+    const edgePairs=[];
+    for(const line of text.split('\n')) {
+        const m=line.match(/^(\d+)\s*:\s*(.*)/);
+        if(!m) continue;
+        const u=parseInt(m[1]); nodeSet.add(u);
+        for(const tok of m[2].trim().split(/\s+/)) {
+            const v=parseInt(tok);
+            if(!isNaN(v)) { nodeSet.add(v); edgePairs.push([u,v]); }
+        }
+    }
+    for(const id of [...nodeSet].sort((a,b)=>a-b)) addNode(id);
+    for(const [u,v] of edgePairs) addEdge(u,v);
+    forceLayout(); randomPartition(); updateStats(); draw();
+}
+function exportText() {
+    let text='';
+    for(const n of nodes) {
+        text+=n.id+': '+adj[n.id].join(' ')+'\n';
+    }
+    document.getElementById('adjInput').value=text;
+}
+
+// ============ PRESETS ============
+function initPresets() {
+    const row=document.getElementById('presetRow');
+    presets.forEach((p,i)=>{
+        const btn=document.createElement('button');
+        btn.className='preset-btn';
+        btn.textContent=p.name;
+        btn.onclick=()=>{ document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); p.build(); };
+        row.appendChild(btn);
+    });
+}
+
+// ============ INIT ============
+initPresets();
+presets[0].build();
+</script>
+
+</body>
+</html>
