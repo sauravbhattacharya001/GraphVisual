@@ -526,7 +526,15 @@ public final class ChordalGraphAnalyzer {
      * @return list of minimal separators
      */
     public static List<Set<String>> minimalSeparators(Graph<String, Edge> graph) {
-        List<Set<String>> cliques = allMaximalCliques(graph);
+        if (graph == null || graph.getVertexCount() == 0) {
+            return Collections.emptyList();
+        }
+        // Reuse a single adjacency map + MCS instead of rebuilding both
+        // inside allMaximalCliques and again for the clique tree.
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
+        List<String> peo = maximumCardinalitySearch(graph, adj);
+        Map<String, Integer> pos = buildPositionMap(peo);
+        List<Set<String>> cliques = maximalCliquesFromPEO(peo, pos, adj);
         List<CliqueTreeNode> tree = buildCliqueTreeFromCliques(cliques);
         if (tree.size() <= 1) return Collections.emptyList();
 
@@ -654,7 +662,7 @@ public final class ChordalGraphAnalyzer {
         } else {
             fillIn = fillInFromMCS(mcsOrder, pos, adj);
             coloring = colorFromPEO(mcsOrder, adj);
-            maxClique = findMaxCliqueGreedy(graph);
+            maxClique = findMaxCliqueGreedy(graph, adj);
         }
 
         return new ChordalReport(chordality, coloring, maxClique, maximalCliques,
