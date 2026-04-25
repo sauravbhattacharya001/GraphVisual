@@ -467,30 +467,9 @@ public final class PlanarGraphAnalyzer {
         return true;
     }
 
-    /** Count connected components via BFS. */
+    /** Count connected components — delegates to shared GraphUtils implementation. */
     static int countComponents(Graph<String, Edge> graph) {
-        Set<String> visited = new HashSet<String>();
-        int count = 0;
-        for (String v : graph.getVertices()) {
-            if (visited.contains(v)) continue;
-            count++;
-            Queue<String> q = new ArrayDeque<String>();
-            q.add(v);
-            visited.add(v);
-            while (!q.isEmpty()) {
-                String curr = q.poll();
-                Collection<String> nbrs = graph.getNeighbors(curr);
-                if (nbrs != null) {
-                    for (String n : nbrs) {
-                        if (!visited.contains(n)) {
-                            visited.add(n);
-                            q.add(n);
-                        }
-                    }
-                }
-            }
-        }
-        return count;
+        return GraphUtils.countComponents(graph);
     }
 
     /**
