@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNN Playground - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gnn-container { display: flex; gap: 16px; flex-wrap: wrap; }
+        .gnn-canvas-wrap { flex: 1; min-width: 500px; position: relative; }
+        .gnn-canvas-wrap canvas { width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: crosshair; }
+        .gnn-panels { width: 320px; display: flex; flex-direction: column; gap: 12px; }
+        .gnn-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .gnn-panel h3 { font-size: 14px; color: var(--accent); margin-bottom: 10px; }
+        .gnn-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .gnn-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .gnn-row select, .gnn-row input[type=number] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 13px; }
+        .gnn-row select { flex: 1; }
+        .gnn-row input[type=number] { width: 60px; }
+        .gnn-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .gnn-btn { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 13px; transition: 0.15s; }
+        .gnn-btn:hover { background: var(--accent); color: #000; }
+        .gnn-btn.active { background: var(--accent); color: #000; }
+        .gnn-btn.primary { background: var(--accent); color: #000; font-weight: 600; }
+        .gnn-preset-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+        .gnn-preset-btns .gnn-btn { font-size: 12px; padding: 4px 10px; }
+        .gnn-info { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+        .gnn-layer-indicator { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .gnn-layer-dots { display: flex; gap: 6px; }
+        .gnn-layer-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--surface-hover); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); transition: 0.3s; }
+        .gnn-layer-dot.done { background: var(--green); border-color: var(--green); color: #000; }
+        .gnn-layer-dot.current { background: var(--accent); border-color: var(--accent); color: #000; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .gnn-feature-grid { display: grid; grid-template-columns: 1fr; gap: 4px; max-height: 250px; overflow-y: auto; }
+        .gnn-feature-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .gnn-feature-row .node-id { color: var(--accent); min-width: 24px; font-weight: 600; }
+        .gnn-feature-bars { display: flex; gap: 2px; flex: 1; height: 14px; }
+        .gnn-feature-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
+        .gnn-weight-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; font-size: 11px; font-family: monospace; }
+        .gnn-weight-cell { background: var(--surface-hover); padding: 3px; text-align: center; border-radius: 2px; }
+        .gnn-status { font-size: 13px; color: var(--text-muted); padding: 8px 0; }
+        .gnn-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+        .gnn-legend span { display: flex; align-items: center; gap: 4px; }
+        .gnn-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div><h2>GraphVisual</h2><small>Documentation</small></div>
+    </a>
+    <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Home</a>
+    <a href="gnn-playground.html" class="sidebar-link active"><span class="icon">🧠</span>GNN Playground</a>
+    <a href="explorer.html" class="sidebar-link"><span class="icon">🔍</span>Graph Explorer</a>
+    <a href="stats.html" class="sidebar-link"><span class="icon">📈</span>Statistics</a>
+</nav>
+<main class="content" style="padding: 24px;">
+<h1>🧠 Graph Neural Network Playground</h1>
+<p>Visualize how Graph Neural Networks propagate information through message passing. Add nodes/edges, configure the GNN, and watch features flow through the graph step by step.</p>
+
+<div class="gnn-container">
+<div class="gnn-canvas-wrap">
+    <canvas id="gnnCanvas" width="800" height="550"></canvas>
+    <div class="gnn-legend">
+        <span><span class="gnn-legend-dot" style="background:var(--accent)"></span> Feature dim 1</span>
+        <span><span class="gnn-legend-dot" style="background:var(--green)"></span> Feature dim 2</span>
+        <span><span class="gnn-legend-dot" style="background:var(--orange)"></span> Feature dim 3</span>
+        <span><span class="gnn-legend-dot" style="background:var(--purple)"></span> Feature dim 4</span>
+    </div>
+    <div class="gnn-info">
+        <strong>Controls:</strong> Click to add node · Drag between nodes to add edge · Right-click node to delete · Drag node to move
+    </div>
+</div>
+<div class="gnn-panels">
+    <div class="gnn-panel">
+        <h3>📐 Presets</h3>
+        <div class="gnn-preset-btns">
+            <button class="gnn-btn" onclick="loadPreset('triangle')">Triangle</button>
+            <button class="gnn-btn" onclick="loadPreset('star')">Star</button>
+            <button class="gnn-btn" onclick="loadPreset('grid')">Grid 3×3</button>
+            <button class="gnn-btn" onclick="loadPreset('petersen')">Petersen</button>
+            <button class="gnn-btn" onclick="loadPreset('karate')">Karate Club</button>
+            <button class="gnn-btn" onclick="loadPreset('cycle')">Cycle</button>
+            <button class="gnn-btn" onclick="loadPreset('complete')">K₅</button>
+        </div>
+    </div>
+    <div class="gnn-panel">
+        <h3>⚙️ GNN Configuration</h3>
+        <div class="gnn-row"><label>Aggregation</label><select id="aggFn"><option value="mean">Mean</option><option value="sum">Sum</option><option value="max">Max</option></select></div>
+        <div class="gnn-row"><label>Activation</label><select id="actFn"><option value="relu">ReLU</option><option value="sigmoid">Sigmoid</option><option value="tanh">Tanh</option><option value="none">None</option></select></div>
+        <div class="gnn-row"><label>Layers</label><input type="number" id="numLayers" value="3" min="1" max="8"></div>
+        <div class="gnn-row"><label>Self-loops</label><input type="checkbox" id="selfLoops" checked></div>
+        <div class="gnn-row"><label>Anim speed</label><input type="number" id="animSpeed" value="800" min="200" max="3000" step="100"><label style="min-width:auto">ms</label></div>
+    </div>
+    <div class="gnn-panel">
+        <h3>▶️ Controls</h3>
+        <div class="gnn-layer-indicator">
+            <span style="font-size:13px;color:var(--text-muted)">Layer:</span>
+            <div class="gnn-layer-dots" id="layerDots"></div>
+        </div>
+        <div class="gnn-btns">
+            <button class="gnn-btn primary" id="stepBtn" onclick="stepForward()">Step ▶</button>
+            <button class="gnn-btn" id="autoBtn" onclick="toggleAutoPlay()">Auto ▶▶</button>
+            <button class="gnn-btn" onclick="resetFeatures()">Reset 🔄</button>
+            <button class="gnn-btn" onclick="randomizeWeights()">New Weights 🎲</button>
+        </div>
+        <div class="gnn-status" id="statusText">Add nodes or load a preset to begin.</div>
+    </div>
+    <div class="gnn-panel">
+        <h3>📊 Node Features</h3>
+        <div class="gnn-feature-grid" id="featureGrid"></div>
+    </div>
+    <div class="gnn-panel">
+        <h3>🔢 Weight Matrix (4×4)</h3>
+        <div class="gnn-weight-grid" id="weightGrid"></div>
+    </div>
+</div>
+</div>
+
+<h2 style="margin-top:32px;">How It Works</h2>
+<div class="card-grid">
+    <div class="card"><div class="icon">📨</div><h4>1. Message</h4><p>Each node collects feature vectors from its neighbors (and optionally itself via self-loops).</p></div>
+    <div class="card"><div class="icon">📦</div><h4>2. Aggregate</h4><p>Neighbor messages are combined using the chosen function: mean, sum, or element-wise max.</p></div>
+    <div class="card"><div class="icon">⚡</div><h4>3. Transform</h4><p>The aggregated vector is multiplied by a learnable weight matrix W (4×4), then passed through an activation function.</p></div>
+    <div class="card"><div class="icon">🔁</div><h4>4. Repeat</h4><p>After k layers, each node's features encode information from its k-hop neighborhood — the key insight behind GNNs.</p></div>
+</div>
+
+<script>
+const canvas = document.getElementById('gnnCanvas');
+const ctx = canvas.getContext('2d');
+const FEAT_DIM = 4;
+const FEAT_COLORS = ['#58a6ff','#3fb950','#d29922','#bc8cff'];
+
+let nodes = [], edges = [], particles = [];
+let weights = [];
+let currentLayer = 0;
+let autoPlaying = false, autoTimer = null;
+let dragging = null, dragTarget = null, connecting = null;
+let initialFeatures = [];
+
+function rand(a=0,b=1){ return a+Math.random()*(b-a); }
+function randFeat(){ return Array.from({length:FEAT_DIM},()=>rand(0,1)); }
+function cloneFeat(f){ return f.map(v=>v); }
+
+function initWeights(){
+    weights = [];
+    for(let i=0;i<FEAT_DIM;i++){
+        weights[i]=[];
+        for(let j=0;j<FEAT_DIM;j++) weights[i][j]=rand(-0.8,0.8);
+    }
+    renderWeightGrid();
+}
+
+function matMul(vec, W){
+    let out = new Array(FEAT_DIM).fill(0);
+    for(let i=0;i<FEAT_DIM;i++) for(let j=0;j<FEAT_DIM;j++) out[i]+=W[i][j]*vec[j];
+    return out;
+}
+
+function activate(vec){
+    const fn = document.getElementById('actFn').value;
+    return vec.map(v=>{
+        if(fn==='relu') return Math.max(0,v);
+        if(fn==='sigmoid') return 1/(1+Math.exp(-v));
+        if(fn==='tanh') return Math.tanh(v);
+        return v;
+    });
+}
+
+function normalize(vec){
+    let mx = Math.max(...vec.map(Math.abs), 0.001);
+    return vec.map(v=>v/mx);
+}
+
+function getNeighbors(nodeIdx){
+    let nbrs = [];
+    for(let e of edges){
+        if(e[0]===nodeIdx) nbrs.push(e[1]);
+        if(e[1]===nodeIdx) nbrs.push(e[0]);
+    }
+    if(document.getElementById('selfLoops').checked) nbrs.push(nodeIdx);
+    return nbrs;
+}
+
+function aggregate(feats){
+    const fn = document.getElementById('aggFn').value;
+    if(feats.length===0) return new Array(FEAT_DIM).fill(0);
+    if(fn==='mean'){
+        let s = new Array(FEAT_DIM).fill(0);
+        feats.forEach(f=>f.forEach((v,i)=>s[i]+=v));
+        return s.map(v=>v/feats.length);
+    }
+    if(fn==='sum'){
+        let s = new Array(FEAT_DIM).fill(0);
+        feats.forEach(f=>f.forEach((v,i)=>s[i]+=v));
+        return s;
+    }
+    if(fn==='max'){
+        let s = feats[0].map(v=>v);
+        for(let k=1;k<feats.length;k++) feats[k].forEach((v,i)=>{if(v>s[i])s[i]=v;});
+        return s;
+    }
+}
+
+function messagePass(){
+    let newFeats = nodes.map((_,i)=>{
+        let nbrs = getNeighbors(i);
+        let nbrFeats = nbrs.map(j=>cloneFeat(nodes[j].feat));
+        let agg = aggregate(nbrFeats);
+        let transformed = matMul(agg, weights);
+        let activated = activate(transformed);
+        return normalize(activated);
+    });
+    // Spawn particles
+    for(let e of edges){
+        particles.push({from:e[0],to:e[1],t:0});
+        particles.push({from:e[1],to:e[0],t:0});
+    }
+    if(document.getElementById('selfLoops').checked){
+        nodes.forEach((_,i)=>particles.push({from:i,to:i,t:0,self:true}));
+    }
+    return newFeats;
+}
+
+let pendingFeats = null;
+function stepForward(){
+    const maxLayers = parseInt(document.getElementById('numLayers').value)||3;
+    if(currentLayer>=maxLayers||nodes.length===0) return;
+    pendingFeats = messagePass();
+    currentLayer++;
+    updateStatus();
+    updateLayerDots();
+    // Apply after animation
+    setTimeout(()=>{
+        if(pendingFeats){
+            nodes.forEach((n,i)=>n.feat=pendingFeats[i]);
+            pendingFeats=null;
+            renderFeatureGrid();
+        }
+    }, parseInt(document.getElementById('animSpeed').value)||800);
+}
+
+function toggleAutoPlay(){
+    autoPlaying=!autoPlaying;
+    document.getElementById('autoBtn').classList.toggle('active',autoPlaying);
+    if(autoPlaying){
+        const speed = parseInt(document.getElementById('animSpeed').value)||800;
+        autoTimer=setInterval(()=>{
+            const maxLayers = parseInt(document.getElementById('numLayers').value)||3;
+            if(currentLayer>=maxLayers){ toggleAutoPlay(); return; }
+            stepForward();
+        }, speed+200);
+    } else {
+        clearInterval(autoTimer);
+    }
+}
+
+function resetFeatures(){
+    if(autoPlaying) toggleAutoPlay();
+    currentLayer=0;
+    nodes.forEach((n,i)=>n.feat=cloneFeat(initialFeatures[i]||randFeat()));
+    particles=[];
+    pendingFeats=null;
+    updateLayerDots();
+    renderFeatureGrid();
+    updateStatus();
+}
+
+function randomizeWeights(){ initWeights(); }
+
+function featToColor(feat){
+    let r=Math.round(((feat[0]+1)/2)*100+80);
+    let g=Math.round(((feat[1]+1)/2)*100+80);
+    let b=Math.round(((feat[2]+1)/2)*100+80);
+    return `rgb(${Math.min(255,r)},${Math.min(255,g)},${Math.min(255,b)})`;
+}
+
+function featToRadius(feat){
+    let mag = feat.reduce((s,v)=>s+Math.abs(v),0)/FEAT_DIM;
+    return 14+mag*10;
+}
+
+// Rendering
+function draw(){
+    ctx.fillStyle='#0d1117';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    // Edges
+    ctx.strokeStyle='#30363d';
+    ctx.lineWidth=1.5;
+    for(let e of edges){
+        let a=nodes[e[0]], b=nodes[e[1]];
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
+    // Connecting line
+    if(connecting && connecting.tx!==undefined){
+        ctx.strokeStyle='#58a6ff55';
+        ctx.lineWidth=2;
+        ctx.setLineDash([6,4]);
+        ctx.beginPath();ctx.moveTo(nodes[connecting.from].x,nodes[connecting.from].y);ctx.lineTo(connecting.tx,connecting.ty);ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    // Particles
+    let speed = (parseInt(document.getElementById('animSpeed').value)||800)/1000;
+    particles = particles.filter(p=>{
+        p.t += 0.016/speed;
+        if(p.t>1) return false;
+        if(p.self){
+            let n=nodes[p.from];
+            let angle=p.t*Math.PI*2;
+            let px=n.x+Math.cos(angle)*20, py=n.y+Math.sin(angle)*20;
+            ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fillStyle='#58a6ffcc';ctx.fill();
+        } else {
+            let a=nodes[p.from], b=nodes[p.to];
+            let px=a.x+(b.x-a.x)*p.t, py=a.y+(b.y-a.y)*p.t;
+            ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fillStyle='#58a6ffcc';ctx.fill();
+        }
+        return true;
+    });
+    // Nodes
+    for(let i=0;i<nodes.length;i++){
+        let n=nodes[i];
+        let r=featToRadius(n.feat);
+        let color=featToColor(n.feat);
+        // Glow
+        let grad=ctx.createRadialGradient(n.x,n.y,r*0.3,n.x,n.y,r*1.5);
+        grad.addColorStop(0,color+'55');
+        grad.addColorStop(1,'transparent');
+        ctx.fillStyle=grad;
+        ctx.beginPath();ctx.arc(n.x,n.y,r*1.5,0,Math.PI*2);ctx.fill();
+        // Node circle
+        ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);
+        ctx.fillStyle=color;ctx.fill();
+        ctx.strokeStyle='#e6edf355';ctx.lineWidth=1;ctx.stroke();
+        // Label
+        ctx.fillStyle='#000';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(i,n.x,n.y);
+    }
+    requestAnimationFrame(draw);
+}
+
+// Interaction
+let mouseDown=false, mouseX=0, mouseY=0;
+function getNodeAt(x,y){
+    for(let i=nodes.length-1;i>=0;i--){
+        let dx=nodes[i].x-x, dy=nodes[i].y-y;
+        if(dx*dx+dy*dy < 400) return i;
+    }
+    return -1;
+}
+
+canvas.addEventListener('mousedown',e=>{
+    let rect=canvas.getBoundingClientRect();
+    let sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+    let x=(e.clientX-rect.left)*sx, y=(e.clientY-rect.top)*sy;
+    mouseDown=true; mouseX=x; mouseY=y;
+    let hit=getNodeAt(x,y);
+    if(e.button===2){ // right-click delete
+        if(hit>=0){ deleteNode(hit); }
+        return;
+    }
+    if(hit>=0){
+        dragging=hit;
+        connecting={from:hit};
+    }
+});
+
+canvas.addEventListener('mousemove',e=>{
+    let rect=canvas.getBoundingClientRect();
+    let sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+    let x=(e.clientX-rect.left)*sx, y=(e.clientY-rect.top)*sy;
+    if(dragging!==null){
+        let dx=x-mouseX, dy=y-mouseY;
+        if(Math.abs(dx)+Math.abs(dy)>5){ connecting=null; } // it's a drag, not a connect
+        nodes[dragging].x=x; nodes[dragging].y=y;
+        mouseX=x; mouseY=y;
+    }
+    if(connecting){ connecting.tx=x; connecting.ty=y; }
+});
+
+canvas.addEventListener('mouseup',e=>{
+    let rect=canvas.getBoundingClientRect();
+    let sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+    let x=(e.clientX-rect.left)*sx, y=(e.clientY-rect.top)*sy;
+    if(connecting){
+        let hit=getNodeAt(x,y);
+        if(hit>=0 && hit!==connecting.from){
+            // Add edge if not exists
+            let exists=edges.some(e=>(e[0]===connecting.from&&e[1]===hit)||(e[0]===hit&&e[1]===connecting.from));
+            if(!exists) edges.push([connecting.from,hit]);
+        }
+        connecting=null;
+    }
+    if(dragging===null && getNodeAt(x,y)<0 && e.button===0){
+        // Add node
+        let feat=randFeat();
+        nodes.push({x,y,feat:cloneFeat(feat)});
+        initialFeatures.push(cloneFeat(feat));
+        renderFeatureGrid();
+        updateStatus();
+        updateLayerDots();
+    }
+    dragging=null; mouseDown=false;
+});
+
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+function deleteNode(idx){
+    nodes.splice(idx,1);
+    initialFeatures.splice(idx,1);
+    edges=edges.filter(e=>e[0]!==idx&&e[1]!==idx).map(e=>[e[0]>idx?e[0]-1:e[0],e[1]>idx?e[1]-1:e[1]]);
+    currentLayer=0;
+    updateLayerDots();
+    renderFeatureGrid();
+    updateStatus();
+}
+
+// Presets
+function loadPreset(name){
+    nodes=[]; edges=[]; particles=[]; currentLayer=0; initialFeatures=[];
+    if(autoPlaying) toggleAutoPlay();
+    const cx=400,cy=275;
+    function circ(n,r){ return Array.from({length:n},(_,i)=>({x:cx+r*Math.cos(i*2*Math.PI/n-Math.PI/2),y:cy+r*Math.sin(i*2*Math.PI/n-Math.PI/2),feat:randFeat()})); }
+
+    if(name==='triangle'){
+        nodes=circ(3,120);
+        edges=[[0,1],[1,2],[2,0]];
+    } else if(name==='star'){
+        nodes=[{x:cx,y:cy,feat:randFeat()}];
+        for(let i=0;i<6;i++) nodes.push({x:cx+150*Math.cos(i*Math.PI/3),y:cy+150*Math.sin(i*Math.PI/3),feat:randFeat()});
+        for(let i=1;i<=6;i++) edges.push([0,i]);
+    } else if(name==='grid'){
+        for(let r=0;r<3;r++) for(let c=0;c<3;c++) nodes.push({x:cx-100+c*100,y:cy-100+r*100,feat:randFeat()});
+        for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+            let i=r*3+c;
+            if(c<2) edges.push([i,i+1]);
+            if(r<2) edges.push([i,i+3]);
+        }
+    } else if(name==='petersen'){
+        let outer=circ(5,170);
+        let inner=circ(5,80);
+        nodes=[...outer,...inner];
+        for(let i=0;i<5;i++){ edges.push([i,(i+1)%5]); edges.push([i,i+5]); edges.push([5+i,5+(i+2)%5]); }
+    } else if(name==='karate'){
+        // Simplified Zachary karate club (34 nodes)
+        let n=34;
+        for(let i=0;i<n;i++){
+            let angle=i*2*Math.PI/n;
+            let r=i<17?180:130;
+            nodes.push({x:cx+r*Math.cos(angle),y:cy+r*Math.sin(angle),feat:randFeat()});
+        }
+        let karateEdges=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,10],[0,11],[0,12],[0,13],[0,17],[0,19],[0,21],[0,31],[1,2],[1,3],[1,7],[1,13],[1,17],[1,19],[1,21],[1,30],[2,3],[2,7],[2,8],[2,9],[2,13],[2,27],[2,28],[2,32],[3,7],[3,12],[3,13],[4,6],[4,10],[5,6],[5,10],[5,16],[6,16],[8,30],[8,32],[8,33],[9,33],[13,33],[14,32],[14,33],[15,32],[15,33],[18,32],[18,33],[19,33],[20,32],[20,33],[22,32],[22,33],[23,25],[23,27],[23,29],[23,32],[23,33],[24,25],[24,27],[24,31],[25,31],[26,29],[26,33],[27,33],[28,31],[28,33],[29,32],[29,33],[30,32],[30,33],[31,32],[31,33],[32,33]];
+        edges=karateEdges;
+    } else if(name==='cycle'){
+        nodes=circ(8,150);
+        for(let i=0;i<8;i++) edges.push([i,(i+1)%8]);
+    } else if(name==='complete'){
+        nodes=circ(5,130);
+        for(let i=0;i<5;i++) for(let j=i+1;j<5;j++) edges.push([i,j]);
+    }
+    initialFeatures=nodes.map(n=>cloneFeat(n.feat));
+    initWeights();
+    renderFeatureGrid();
+    updateStatus();
+    updateLayerDots();
+}
+
+function updateLayerDots(){
+    const maxLayers=parseInt(document.getElementById('numLayers').value)||3;
+    let html='';
+    for(let i=1;i<=maxLayers;i++){
+        let cls=i<currentLayer?'done':i===currentLayer?'current done':'';
+        html+=`<div class="gnn-layer-dot ${cls}">${i}</div>`;
+    }
+    document.getElementById('layerDots').innerHTML=html;
+}
+
+function renderFeatureGrid(){
+    let html='';
+    for(let i=0;i<nodes.length;i++){
+        let bars='';
+        for(let d=0;d<FEAT_DIM;d++){
+            let w=Math.round(Math.abs(nodes[i].feat[d])*60);
+            bars+=`<div class="gnn-feature-bar" style="width:${w}px;background:${FEAT_COLORS[d]}${nodes[i].feat[d]<0?'55':''}"></div>`;
+        }
+        html+=`<div class="gnn-feature-row"><span class="node-id">${i}</span><div class="gnn-feature-bars">${bars}</div></div>`;
+    }
+    document.getElementById('featureGrid').innerHTML=html;
+}
+
+function renderWeightGrid(){
+    let html='';
+    for(let i=0;i<FEAT_DIM;i++) for(let j=0;j<FEAT_DIM;j++){
+        let v=weights[i][j];
+        let color=v>0?'var(--green)':v<0?'var(--red)':'var(--text-muted)';
+        html+=`<div class="gnn-weight-cell" style="color:${color}">${v.toFixed(2)}</div>`;
+    }
+    document.getElementById('weightGrid').innerHTML=html;
+}
+
+function updateStatus(){
+    const maxLayers=parseInt(document.getElementById('numLayers').value)||3;
+    let msg = nodes.length===0 ? 'Add nodes or load a preset to begin.' :
+        currentLayer>=maxLayers ? `✅ All ${maxLayers} layers complete. Each node encodes its ${maxLayers}-hop neighborhood.` :
+        `Layer ${currentLayer}/${maxLayers} — ${nodes.length} nodes, ${edges.length} edges`;
+    document.getElementById('statusText').textContent=msg;
+}
+
+// Init
+initWeights();
+updateLayerDots();
+draw();
+loadPreset('petersen');
+</script>
+</main>
+</body>
+</html>
