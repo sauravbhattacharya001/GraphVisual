@@ -236,6 +236,7 @@ public class GraphDiffHtmlExporter {
     private void appendJs(StringBuilder sb) {
         sb.append(
             "const colors = { added: '#00e676', removed: '#ff5252', common: '#78909c' };\n" +
+            "function esc(s){var d=document.createElement('span');d.textContent=s;return d.innerHTML;}\n" +
             "const tooltip = d3.select('#tooltip');\n" +
             "const container = d3.select('#graph');\n" +
             "const w = container.node().clientWidth;\n" +
@@ -294,7 +295,7 @@ public class GraphDiffHtmlExporter {
             "    .call(d3.drag().on('start', dragStart).on('drag', dragging).on('end', dragEnd))\n" +
             "    .on('mouseover', (e, d) => {\n" +
             "      tooltip.style('display', 'block')\n" +
-            "        .html(`<b>${d.id}</b><br>Status: ${d.status}<br>Degree in ${diffData.labelA}: ${d.degA}<br>Degree in ${diffData.labelB}: ${d.degB}`)\n" +
+            "        .html(`<b>${esc(d.id)}</b><br>Status: ${d.status}<br>Degree in ${esc(diffData.labelA)}: ${d.degA}<br>Degree in ${esc(diffData.labelB)}: ${d.degB}`)\n" +
             "        .style('left', (e.pageX + 12) + 'px').style('top', (e.pageY - 10) + 'px');\n" +
             "    })\n" +
             "    .on('mouseout', () => tooltip.style('display', 'none'))\n" +

@@ -183,7 +183,7 @@ public class GraphHealthChecker {
             sb.append("<div class='issue ok'>✅ No isolated nodes</div>");
         } else {
             sb.append(String.format("<div class='issue'>⚠️ %d isolated node(s): %s</div>",
-                    r.isolatedNodes.size(), truncateList(r.isolatedNodes, 20)));
+                    r.isolatedNodes.size(), ExportUtils.escapeHtml(truncateList(r.isolatedNodes, 20))));
         }
         if (r.selfLoops.isEmpty()) {
             sb.append("<div class='issue ok'>✅ No self-loops</div>");
@@ -211,7 +211,7 @@ public class GraphHealthChecker {
             sb.append("<div class='issue ok'>✅ No degree outliers</div>");
         } else {
             sb.append(String.format("<div class='issue'>⚠️ %d degree outlier(s): %s</div>",
-                    r.degreeOutliers.size(), truncateList(r.degreeOutliers, 15)));
+                    r.degreeOutliers.size(), ExportUtils.escapeHtml(truncateList(r.degreeOutliers, 15))));
         }
 
         sb.append("</body></html>");
