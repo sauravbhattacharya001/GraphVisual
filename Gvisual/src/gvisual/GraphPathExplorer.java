@@ -633,24 +633,53 @@ public class GraphPathExplorer {
 
     // ── Internal helpers ──────────────────────────────────────────
 
+    /** Lightweight pair for the Dijkstra priority queue — avoids the
+     *  String.valueOf / Double.parseDouble round-trip that the old
+     *  String[] approach incurred on every enqueue and dequeue. */
+    private static final class DijkstraEntry implements Comparable<DijkstraEntry> {
+        final String vertex;
+        final double dist;
+        DijkstraEntry(String vertex, double dist) {
+            this.vertex = vertex;
+            this.dist = dist;
+        }
+        @Override public int compareTo(DijkstraEntry o) {
+            return Double.compare(this.dist, o.dist);
+        }
+    }
+
     /**
      * Dijkstra shortest path with optional node/Edge exclusions.
+     *
+     * <p><b>Performance note:</b> Previously stored priority-queue entries
+     * as {@code String[]{vertex, String.valueOf(dist)}} and recovered the
+     * distance via {@code Double.parseDouble} on every poll/comparison.
+     * This caused two performance problems:</p>
+     * <ol>
+     *   <li>Every enqueue allocated a String[] plus a String from
+     *       {@code String.valueOf(double)} — significant GC pressure
+     *       on graphs with many relaxation steps.</li>
+     *   <li>Every priority-queue comparison invoked
+     *       {@code Double.parseDouble} — an O(L) parse per comparison
+     *       instead of a single {@code Double.compare}.</li>
+     * </ol>
+     * <p>Now uses a typed {@link DijkstraEntry} record with a primitive
+     * {@code double} field, eliminating all string conversions.</p>
      */
     private Path dijkstra(String source, String target,
                            Set<String> excludeNodes,
                            Set<String> excludeEdges) {
         Map<String, Double> dist = new HashMap<>();
         Map<String, String> prev = new HashMap<>();
-        PriorityQueue<String[]> pq = new PriorityQueue<>(
-            Comparator.comparingDouble(a -> Double.parseDouble(a[1])));
+        PriorityQueue<DijkstraEntry> pq = new PriorityQueue<>();
 
         dist.put(source, 0.0);
-        pq.add(new String[]{source, "0"});
+        pq.add(new DijkstraEntry(source, 0.0));
 
         while (!pq.isEmpty()) {
-            String[] entry = pq.poll();
-            String u = entry[0];
-            double d = Double.parseDouble(entry[1]);
+            DijkstraEntry entry = pq.poll();
+            String u = entry.vertex;
+            double d = entry.dist;
 
             if (d > dist.getOrDefault(u, Double.MAX_VALUE)) continue;
             if (u.equals(target)) break;
@@ -667,7 +696,7 @@ public class GraphPathExplorer {
                 if (newDist < dist.getOrDefault(v, Double.MAX_VALUE)) {
                     dist.put(v, newDist);
                     prev.put(v, u);
-                    pq.add(new String[]{v, String.valueOf(newDist)});
+                    pq.add(new DijkstraEntry(v, newDist));
                 }
             }
         }
