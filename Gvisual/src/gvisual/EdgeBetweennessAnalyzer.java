@@ -46,6 +46,12 @@ import java.util.stream.Collectors;
 public class EdgeBetweennessAnalyzer {
 
     private final Graph<String, Edge> graph;
+    /**
+     * O(1) edge lookup: edgeIndex.get(u).get(v) returns the Edge between u and v.
+     * Built once at construction, replacing O(degree) graph.findEdge() calls
+     * in the back-propagation inner loop of Brandes' algorithm.
+     */
+    private final Map<String, Map<String, Edge>> edgeIndex;
     private Map<Edge, Double> betweenness;
     private List<EdgeScore> ranking;
     private Set<Edge> bridges;
@@ -91,10 +97,32 @@ public class EdgeBetweennessAnalyzer {
     public EdgeBetweennessAnalyzer(Graph<String, Edge> graph) {
         if (graph == null) throw new IllegalArgumentException("Graph must not be null");
         this.graph = graph;
+        this.edgeIndex = buildEdgeIndex();
         this.betweenness = new LinkedHashMap<>();
         this.ranking = new ArrayList<>();
         this.bridges = new HashSet<>();
         this.computed = false;
+    }
+
+    /**
+     * Builds a bidirectional edge index: for every edge (u,v), stores
+     * edgeIndex[u][v] = edge and edgeIndex[v][u] = edge (for undirected).
+     * This turns O(degree) findEdge lookups into O(1) HashMap gets.
+     */
+    private Map<String, Map<String, Edge>> buildEdgeIndex() {
+        boolean directed = isDirected();
+        Map<String, Map<String, Edge>> idx = new HashMap<>();
+        for (Edge e : graph.getEdges()) {
+            edu.uci.ics.jung.graph.util.Pair<String> ep = graph.getEndpoints(e);
+            if (ep == null) continue;
+            String u = ep.getFirst();
+            String v = ep.getSecond();
+            idx.computeIfAbsent(u, k -> new HashMap<>()).put(v, e);
+            if (!directed) {
+                idx.computeIfAbsent(v, k -> new HashMap<>()).put(u, e);
+            }
+        }
+        return idx;
     }
 
     public void setTitle(String title) { this.title = title; }
@@ -192,10 +220,18 @@ public class EdgeBetweennessAnalyzer {
         computed = true;
     }
 
+    /**
+     * O(1) edge lookup via pre-built index, replacing O(degree) graph.findEdge().
+     */
     private Edge findEdge(String v, String w) {
-        Edge e = graph.findEdge(v, w);
-        if (e == null) e = graph.findEdge(w, v);
-        return e;
+        Map<String, Edge> adj = edgeIndex.get(v);
+        if (adj != null) {
+            Edge e = adj.get(w);
+            if (e != null) return e;
+        }
+        // Fallback for directed graphs: check reverse direction
+        Map<String, Edge> revAdj = edgeIndex.get(w);
+        return revAdj != null ? revAdj.get(v) : null;
     }
 
     private boolean isDirected() {
