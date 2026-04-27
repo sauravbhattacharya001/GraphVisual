@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Role Classifier — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="network-profiler.html" class="sidebar-link"><span class="icon">🔬</span>Network Profiler</a>
+        <a href="chordal.html" class="sidebar-link"><span class="icon">🔺</span>Chordal Analysis</a>
+        <a href="signed-graph.html" class="sidebar-link"><span class="icon">±</span>Signed Graphs</a>
+        <a href="graph-compressor.html" class="sidebar-link"><span class="icon">🗜️</span>Graph Compressor</a>
+        <a href="role-classifier.html" class="sidebar-link active"><span class="icon">🎭</span>Role Classifier</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🎭 Network Role Classifier
+    <span class="subtitle">Structural role archetypes from centrality and topology metrics</span>
+</h1>
+
+<p><code>NetworkRoleClassifier</code> assigns every vertex a <strong>structural role archetype</strong> based on combined centrality metrics and local topology. Inspired by the role equivalence and positional analysis literature (Lorrain &amp; White 1971, Burt 1976), it classifies nodes into six archetypes with adaptive, data-driven thresholds.</p>
+
+<h2>Role Archetypes</h2>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="icon">⭐</div>
+        <h4>Hub</h4>
+        <p>High degree + high closeness. Well-connected core nodes that can reach everyone quickly. The network's "celebrities."</p>
+    </div>
+    <div class="card">
+        <div class="icon">🌉</div>
+        <h4>Bridge</h4>
+        <p>High betweenness but moderate/low degree. Spans communities without being highly connected within them. Remove a bridge and communication breaks.</p>
+    </div>
+    <div class="card">
+        <div class="icon">👑</div>
+        <h4>Local Hub</h4>
+        <p>High degree + high clustering. Leaders of tight-knit clusters — popular within their neighborhood but not globally central.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🔗</div>
+        <h4>Connector</h4>
+        <p>Moderate degree + moderate betweenness. Links sub-groups without the extreme metrics of hubs or bridges.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🏝️</div>
+        <h4>Peripheral</h4>
+        <p>Low degree + low centrality. Edge of the network — consumers rather than connectors.</p>
+    </div>
+    <div class="card">
+        <div class="icon">⚪</div>
+        <h4>Isolate</h4>
+        <p>Degree 0. Completely disconnected from the network.</p>
+    </div>
+</div>
+
+<h2>Quick Start</h2>
+
+<pre><code>NetworkRoleClassifier classifier = new NetworkRoleClassifier(graph);
+classifier.classify();
+
+// Single node
+NodeRole role = classifier.getRole("Alice");
+System.out.println(role);  // Alice: Hub (deg=42, dc=0.210, bc=0.085, cc=0.452, clust=0.312)
+
+// All roles
+Map&lt;String, NodeRole&gt; roles = classifier.getAllRoles();
+
+// Nodes by role
+List&lt;String&gt; bridges = classifier.getNodesByRole(StructuralRole.BRIDGE);
+
+// Top 5 most important nodes
+List&lt;NodeRole&gt; top5 = classifier.topByImportance(5);
+
+// Distribution summary
+RoleDistribution dist = classifier.getRoleDistribution();
+System.out.printf("Hubs: %d (%.1f%%)%n", dist.getCount(StructuralRole.HUB),
+    dist.getPercentage(StructuralRole.HUB));
+
+// Full report
+System.out.println(classifier.generateReport());</code></pre>
+
+<h2>Metrics Computed Per Node</h2>
+
+<p>Four centrality metrics are computed for every vertex, then normalised to [0, 1]:</p>
+
+<table>
+    <thead>
+        <tr><th>Metric</th><th>Algorithm</th><th>Interpretation</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Degree Centrality</td><td>degree / (n−1)</td><td>How connected a node is locally</td></tr>
+        <tr><td>Betweenness Centrality</td><td>Brandes' O(VE)</td><td>How often a node lies on shortest paths between others</td></tr>
+        <tr><td>Closeness Centrality</td><td>BFS + Wasserman-Faust normalization</td><td>How quickly a node can reach all others</td></tr>
+        <tr><td>Clustering Coefficient</td><td>Triangle counting</td><td>How tightly a node's neighbors are interconnected</td></tr>
+    </tbody>
+</table>
+
+<h2>Adaptive Thresholds</h2>
+
+<p>Unlike hard-coded rules, the classifier computes thresholds from the network's own distribution. The <strong>75th percentile</strong> of each metric defines "high." This means the same classifier works on a 50-node classroom network and a 50,000-node social graph without tuning.</p>
+
+<pre><code>Adaptive Thresholds (75th percentile):
+  Degree centrality:      0.0842
+  Betweenness centrality: 0.0231
+  Closeness centrality:   0.4156
+  Clustering coefficient: 0.5000</code></pre>
+
+<h2>Classification Rules</h2>
+
+<p>Roles are assigned in priority order (most specific first):</p>
+
+<ol>
+    <li><strong>Isolate</strong> — degree = 0</li>
+    <li><strong>Hub</strong> — high degree AND high closeness</li>
+    <li><strong>Bridge</strong> — high betweenness AND NOT high degree</li>
+    <li><strong>Local Hub</strong> — high degree AND high clustering</li>
+    <li><strong>Connector</strong> — high degree OR high betweenness (but didn't match above)</li>
+    <li><strong>Peripheral</strong> — everything else</li>
+</ol>
+
+<h2>Importance Scoring</h2>
+
+<p><code>topByImportance(n)</code> ranks nodes by a weighted combination:</p>
+
+<pre><code>importance = 0.3 × degreeCentrality
+           + 0.3 × betweennessCentrality
+           + 0.2 × closenessCentrality
+           + 0.2 × clusteringCoefficient</code></pre>
+
+<h2>Report Output</h2>
+
+<pre><code>=== Network Role Classification Report ===
+
+Role Distribution:
+  Hub            8 nodes ( 4.0%)
+  Bridge         6 nodes ( 3.0%)
+  Local Hub     12 nodes ( 6.0%)
+  Connector     24 nodes (12.0%)
+  Peripheral   148 nodes (74.0%)
+  Isolate        2 nodes ( 1.0%)
+  TOTAL        200 nodes
+
+Node Classifications:
+  Node       Role          Deg      DC      BC      CC   Clust
+  ---------------------------------------------------------------
+  Alice      Hub           42  0.2105  0.0854  0.4523  0.3120
+  Bob        Bridge         8  0.0402  0.1230  0.3890  0.1450
+  ...</code></pre>
+
+<h2>API Reference</h2>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>classify()</code></td><td><code>void</code></td><td>Run classification (must call first)</td></tr>
+        <tr><td><code>getRole(nodeId)</code></td><td><code>NodeRole</code></td><td>Role + metrics for one node</td></tr>
+        <tr><td><code>getAllRoles()</code></td><td><code>Map&lt;String, NodeRole&gt;</code></td><td>All node roles</td></tr>
+        <tr><td><code>getNodesByRole(role)</code></td><td><code>List&lt;String&gt;</code></td><td>Nodes with a specific role</td></tr>
+        <tr><td><code>getRoleDistribution()</code></td><td><code>RoleDistribution</code></td><td>Counts + percentages per role</td></tr>
+        <tr><td><code>topByImportance(n)</code></td><td><code>List&lt;NodeRole&gt;</code></td><td>Top N by weighted importance</td></tr>
+        <tr><td><code>generateReport()</code></td><td><code>String</code></td><td>Full text report</td></tr>
+    </tbody>
+</table>
+
+</div>
+</div>
+
+</body>
+</html>

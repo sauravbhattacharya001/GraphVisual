@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Compressor — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="network-profiler.html" class="sidebar-link"><span class="icon">🔬</span>Network Profiler</a>
+        <a href="chordal.html" class="sidebar-link"><span class="icon">🔺</span>Chordal Analysis</a>
+        <a href="signed-graph.html" class="sidebar-link"><span class="icon">±</span>Signed Graphs</a>
+        <a href="graph-compressor.html" class="sidebar-link active"><span class="icon">🗜️</span>Graph Compressor</a>
+        <a href="role-classifier.html" class="sidebar-link"><span class="icon">🎭</span>Role Classifier</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🗜️ Graph Compressor
+    <span class="subtitle">Quotient graphs via structural equivalence, similarity, degree, attributes, and k-hop locality</span>
+</h1>
+
+<p><code>GraphCompressor</code> reduces a graph by merging groups of nodes into <strong>supernodes</strong>, producing a smaller <strong>quotient graph</strong> that preserves the macro-structure of the original network. Useful for visualization of large graphs, summarization, and multi-scale analysis.</p>
+
+<h2>Compression Strategies</h2>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="icon">🔗</div>
+        <h4>Structural Equivalence</h4>
+        <p>Merges nodes with identical neighbor sets. Two nodes are structurally equivalent if they connect to exactly the same set of other nodes.</p>
+    </div>
+    <div class="card">
+        <div class="icon">📏</div>
+        <h4>Neighborhood Similarity</h4>
+        <p>Relaxed equivalence — merges nodes whose neighbor sets have Jaccard similarity above a threshold. Tunable from strict (1.0) to aggressive (0.3).</p>
+    </div>
+    <div class="card">
+        <div class="icon">📊</div>
+        <h4>Degree-Based</h4>
+        <p>Groups nodes by degree (exact or binned ranges). Useful for degree-preserving summaries.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🏷️</div>
+        <h4>Attribute-Based</h4>
+        <p>Groups nodes by any user-supplied function — community label, node type, geographic region, etc.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🎯</div>
+        <h4>K-Hop Locality</h4>
+        <p>Each seed node absorbs its k-hop neighborhood into a supernode. Creates region-based summaries centered on key vertices.</p>
+    </div>
+</div>
+
+<h2>Quick Start</h2>
+
+<pre><code>GraphCompressor compressor = new GraphCompressor(graph);
+
+// Structural equivalence
+CompressionResult result = compressor.byStructuralEquivalence();
+System.out.println(result.getSummary());
+
+// Neighborhood similarity (50% overlap)
+CompressionResult sim = compressor.byNeighborhoodSimilarity(0.5);
+
+// Degree-based with bin size 5
+CompressionResult deg = compressor.byDegree(5);
+
+// Attribute-based (e.g., by community label)
+Map&lt;String, String&gt; communities = Map.of("A", "comm1", "B", "comm1", "C", "comm2");
+CompressionResult attr = compressor.byAttribute(communities::get);
+
+// K-hop locality (2 hops around seed nodes)
+CompressionResult khop = compressor.byKHopLocality(List.of("hub1", "hub2"), 2);
+
+// Access the compressed graph
+Graph&lt;String, Edge&gt; quotient = result.getCompressedGraph();</code></pre>
+
+<h2>Compression Result</h2>
+
+<p>Every strategy returns a <code>CompressionResult</code> with rich statistics and bidirectional mappings:</p>
+
+<pre><code>=== Graph Compression Result ===
+Strategy:         structural_equivalence
+Original:         500 nodes, 2340 edges
+Compressed:       42 nodes, 186 edges
+Node reduction:   91.6%
+Edge reduction:   92.1%
+Compression ratio: 0.084
+Merged groups:    38
+Largest supernode: 24 members
+Avg supernode size: 11.9</code></pre>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>getCompressedGraph()</code></td><td>The quotient JUNG graph</td></tr>
+        <tr><td><code>getSupernodeMembers()</code></td><td>Map: supernode → list of original nodes</td></tr>
+        <tr><td><code>getNodeToSupernode()</code></td><td>Map: original node → its supernode</td></tr>
+        <tr><td><code>getCompressionRatio()</code></td><td>Compressed/original node ratio (lower = more compression)</td></tr>
+        <tr><td><code>getNodeReductionPercent()</code></td><td>Percentage of nodes eliminated</td></tr>
+        <tr><td><code>getEdgeReductionPercent()</code></td><td>Percentage of edges eliminated</td></tr>
+        <tr><td><code>getLargestSupernodeSize()</code></td><td>Number of nodes in the biggest supernode</td></tr>
+        <tr><td><code>getMembersOf(supernodeId)</code></td><td>Look up members of a specific supernode</td></tr>
+        <tr><td><code>getSupernodeOf(nodeId)</code></td><td>Find which supernode an original node belongs to</td></tr>
+        <tr><td><code>toCSV()</code></td><td>Export mapping as CSV (original_node, supernode, group_size)</td></tr>
+        <tr><td><code>getSummary()</code></td><td>Human-readable compression summary</td></tr>
+    </tbody>
+</table>
+
+<h2>Compressibility Report</h2>
+
+<p>Compare all strategies at once to find the best compression approach:</p>
+
+<pre><code>String report = compressor.compressibilityReport();
+System.out.println(report);</code></pre>
+
+<pre><code>=== Graph Compressibility Report ===
+Original: 500 nodes, 2340 edges
+
+  Structural Equivalence       →  42 supernodes, 186 edges (91.6% node reduction, 92.1% edge reduction)
+  Neighborhood Sim (t=0.9)     →  68 supernodes, 312 edges (86.4% node reduction, 86.7% edge reduction)
+  Neighborhood Sim (t=0.7)     →  35 supernodes, 148 edges (93.0% node reduction, 93.7% edge reduction)
+  Neighborhood Sim (t=0.5)     →  21 supernodes, 89 edges  (95.8% node reduction, 96.2% edge reduction)
+  Neighborhood Sim (t=0.3)     →  12 supernodes, 41 edges  (97.6% node reduction, 98.2% edge reduction)
+  Exact Degree                 →  28 supernodes, 1102 edges (94.4% node reduction, 52.9% edge reduction)
+  Degree (bin=2)               →  14 supernodes, 572 edges  (97.2% node reduction, 75.6% edge reduction)
+  Degree (bin=5)               →   8 supernodes, 234 edges  (98.4% node reduction, 90.0% edge reduction)
+  Degree (bin=10)              →   5 supernodes, 112 edges  (99.0% node reduction, 95.2% edge reduction)</code></pre>
+
+<h2>Performance Notes</h2>
+
+<ul>
+    <li><strong>Neighborhood similarity</strong> uses degree-sorted vertex ordering + upper-bound pruning: if min(|A|,|B|)/max(|A|,|B|) < threshold, the inner loop breaks early (no vertex with higher degree can match).</li>
+    <li><strong>Jaccard computation</strong> avoids HashSet allocation — iterates the smaller set and checks membership in the larger set directly.</li>
+    <li><strong>Superedge aggregation</strong> tracks edge count and total weight per supernode pair.</li>
+</ul>
+
+</div>
+</div>
+
+</body>
+</html>

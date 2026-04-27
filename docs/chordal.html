@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chordal Analysis — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="network-profiler.html" class="sidebar-link"><span class="icon">🔬</span>Network Profiler</a>
+        <a href="chordal.html" class="sidebar-link active"><span class="icon">🔺</span>Chordal Analysis</a>
+        <a href="signed-graph.html" class="sidebar-link"><span class="icon">±</span>Signed Graphs</a>
+        <a href="graph-compressor.html" class="sidebar-link"><span class="icon">🗜️</span>Graph Compressor</a>
+        <a href="role-classifier.html" class="sidebar-link"><span class="icon">🎭</span>Role Classifier</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🔺 Chordal Graph Analysis
+    <span class="subtitle">Perfect elimination, optimal coloring, clique trees, and fill-in computation</span>
+</h1>
+
+<p><code>ChordalGraphAnalyzer</code> determines whether a graph is <strong>chordal</strong> (triangulated) — meaning every cycle of length ≥ 4 has a chord — and exploits chordal structure for linear-time optimal solutions to problems that are NP-hard on general graphs.</p>
+
+<h2>Why Chordal Graphs Matter</h2>
+
+<p>Chordal graphs form the sweet spot of graph theory: complex enough to model real problems, but structured enough that normally hard problems become polynomial. When a graph is chordal:</p>
+
+<ul>
+    <li><strong>Optimal coloring</strong> — O(V+E) via greedy on reverse PEO (no backtracking needed)</li>
+    <li><strong>Maximum clique</strong> — O(V+E) from PEO neighborhoods (NP-hard in general)</li>
+    <li><strong>Minimum clique cover</strong> — equals chromatic number (perfect graph property)</li>
+    <li><strong>Maximum independent set</strong> — equals clique cover number</li>
+    <li><strong>Treewidth</strong> — directly computed as max clique size − 1</li>
+</ul>
+
+<h2>Quick Start</h2>
+
+<pre><code>// Full analysis in one call
+ChordalReport report = ChordalGraphAnalyzer.analyze(graph);
+
+System.out.println("Chordal: " + report.getChordality().isChordal());
+System.out.println("Chromatic number: " + report.getColoring().getChromaticNumber());
+System.out.println("Max clique size: " + report.getMaxClique().size());
+System.out.println("Treewidth: " + ChordalGraphAnalyzer.treewidth(graph));
+System.out.println(report.toTextReport());</code></pre>
+
+<h2>Core Algorithms</h2>
+
+<h3>Maximum Cardinality Search (MCS)</h3>
+
+<p>The foundation of all chordal analyses. MCS produces a vertex ordering where each vertex is selected to maximize the number of already-selected neighbors. On chordal graphs, this is a <strong>Perfect Elimination Ordering</strong> (PEO).</p>
+
+<pre><code>List&lt;String&gt; peo = ChordalGraphAnalyzer.maximumCardinalitySearch(graph);</code></pre>
+
+<p>Implementation uses a <strong>bucket-based priority queue</strong> for O(V+E) total time, instead of the naïve O(V²) linear scan. Each vertex lives in a bucket keyed by its current weight; selecting the maximum and incrementing neighbors are both O(1) amortized.</p>
+
+<h3>Chordality Test</h3>
+
+<pre><code>ChordalityResult result = ChordalGraphAnalyzer.testChordality(graph);
+if (result.isChordal()) {
+    System.out.println("PEO: " + result.getPeo());
+} else {
+    System.out.println("Chordless cycle: " + result.getChordlessCycle());
+}</code></pre>
+
+<p>Verifies the MCS ordering is a valid PEO by checking that each vertex's later neighbors form a clique. If not, returns a chordless cycle of length ≥ 4 as a certificate of non-chordality.</p>
+
+<h3>Optimal Coloring</h3>
+
+<pre><code>ColoringResult coloring = ChordalGraphAnalyzer.optimalColoring(graph);
+System.out.println("χ(G) = " + coloring.getChromaticNumber());
+System.out.println("Assignment: " + coloring.getColors());</code></pre>
+
+<p>Greedy coloring on the reverse PEO is guaranteed to use exactly χ(G) colors when the graph is chordal.</p>
+
+<h3>Maximum Clique &amp; All Maximal Cliques</h3>
+
+<pre><code>Set&lt;String&gt; maxClique = ChordalGraphAnalyzer.maximumClique(graph);
+
+List&lt;Set&lt;String&gt;&gt; allCliques = ChordalGraphAnalyzer.allMaximalCliques(graph);
+System.out.println("Found " + allCliques.size() + " maximal cliques");</code></pre>
+
+<h3>Clique Tree (Junction Tree)</h3>
+
+<pre><code>List&lt;CliqueTreeNode&gt; tree = ChordalGraphAnalyzer.buildCliqueTree(graph);
+for (CliqueTreeNode node : tree) {
+    System.out.printf("Node %d: %s → neighbors %s%n",
+        node.getId(), node.getVertices(), node.getNeighbors());
+}</code></pre>
+
+<p>Builds a maximum spanning tree of the clique intersection graph using Prim's algorithm. The clique tree satisfies the <strong>running intersection property</strong>: for any vertex v, the clique-tree nodes containing v form a connected subtree.</p>
+
+<h3>Fill-In Computation</h3>
+
+<pre><code>FillInResult fill = ChordalGraphAnalyzer.computeFillIn(graph);
+System.out.println("Edges needed for chordal completion: " + fill.getFillCount());
+for (String[] edge : fill.getFillEdges()) {
+    System.out.println("  " + edge[0] + " — " + edge[1]);
+}</code></pre>
+
+<h3>Minimal Separators &amp; Treewidth</h3>
+
+<pre><code>List&lt;Set&lt;String&gt;&gt; separators = ChordalGraphAnalyzer.minimalSeparators(graph);
+int tw = ChordalGraphAnalyzer.treewidth(graph);  // max clique size − 1</code></pre>
+
+<h2>Performance</h2>
+
+<p>The <code>analyze()</code> method computes all results in a single pass, sharing the MCS ordering, adjacency map, and position map across all sub-analyses. Before this optimization, calling individual methods (coloring, max clique, clique tree, etc.) would each independently re-run MCS — resulting in 5× redundant O(V+E) traversals.</p>
+
+<table>
+    <thead>
+        <tr><th>Operation</th><th>Complexity</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>MCS / PEO</td><td>O(V + E)</td></tr>
+        <tr><td>Chordality test</td><td>O(V + E)</td></tr>
+        <tr><td>Optimal coloring</td><td>O(V + E)</td></tr>
+        <tr><td>Maximum clique</td><td>O(V + E)</td></tr>
+        <tr><td>All maximal cliques</td><td>O(V + E + output)</td></tr>
+        <tr><td>Clique tree</td><td>O(k²) where k = number of maximal cliques</td></tr>
+        <tr><td>Fill-in</td><td>O(V · Δ²) where Δ = max later-neighborhood size</td></tr>
+        <tr><td>Full <code>analyze()</code></td><td>O(V + E + k²)</td></tr>
+    </tbody>
+</table>
+
+<h2>API Reference</h2>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>analyze(graph)</code></td><td><code>ChordalReport</code></td><td>Full analysis — chordality, coloring, cliques, tree, fill-in</td></tr>
+        <tr><td><code>testChordality(graph)</code></td><td><code>ChordalityResult</code></td><td>Test chordality, get PEO or chordless cycle</td></tr>
+        <tr><td><code>maximumCardinalitySearch(graph)</code></td><td><code>List&lt;String&gt;</code></td><td>Bucket-queue MCS ordering</td></tr>
+        <tr><td><code>optimalColoring(graph)</code></td><td><code>ColoringResult</code></td><td>Minimum coloring via reverse PEO</td></tr>
+        <tr><td><code>maximumClique(graph)</code></td><td><code>Set&lt;String&gt;</code></td><td>Largest clique (exact for chordal, greedy otherwise)</td></tr>
+        <tr><td><code>allMaximalCliques(graph)</code></td><td><code>List&lt;Set&lt;String&gt;&gt;</code></td><td>Enumerate all maximal cliques</td></tr>
+        <tr><td><code>buildCliqueTree(graph)</code></td><td><code>List&lt;CliqueTreeNode&gt;</code></td><td>Junction tree decomposition</td></tr>
+        <tr><td><code>computeFillIn(graph)</code></td><td><code>FillInResult</code></td><td>Minimum edges for chordal completion</td></tr>
+        <tr><td><code>minimalSeparators(graph)</code></td><td><code>List&lt;Set&lt;String&gt;&gt;</code></td><td>All minimal vertex separators</td></tr>
+        <tr><td><code>treewidth(graph)</code></td><td><code>int</code></td><td>Treewidth = max clique size − 1</td></tr>
+        <tr><td><code>eliminationCliques(graph, order)</code></td><td><code>List&lt;Set&lt;String&gt;&gt;</code></td><td>Cliques formed at each elimination step</td></tr>
+    </tbody>
+</table>
+
+</div>
+</div>
+
+</body>
+</html>

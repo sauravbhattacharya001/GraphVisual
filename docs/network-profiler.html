@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Profiler — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="network-profiler.html" class="sidebar-link active"><span class="icon">🔬</span>Network Profiler</a>
+        <a href="chordal.html" class="sidebar-link"><span class="icon">🔺</span>Chordal Analysis</a>
+        <a href="signed-graph.html" class="sidebar-link"><span class="icon">±</span>Signed Graphs</a>
+        <a href="graph-compressor.html" class="sidebar-link"><span class="icon">🗜️</span>Graph Compressor</a>
+        <a href="role-classifier.html" class="sidebar-link"><span class="icon">🎭</span>Role Classifier</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>🔬 Network Profiler
+    <span class="subtitle">Comprehensive structural profiling and network classification</span>
+</h1>
+
+<p><code>GraphNetworkProfiler</code> computes 12 structural metrics, derives a network fingerprint, then classifies the graph into a known network type — social, scale-free, small-world, random, lattice, tree-like, or core-periphery — with confidence scores and per-metric grades.</p>
+
+<h2>Quick Start</h2>
+
+<pre><code>GraphNetworkProfiler profiler = new GraphNetworkProfiler(graph);
+profiler.analyze();
+
+System.out.println(profiler.getClassification());       // e.g. SMALL_WORLD
+System.out.println(profiler.getOverallGrade().getLabel()); // e.g. "B+"
+System.out.println(profiler.getTextReport());            // full formatted report
+String html = profiler.getHtmlReport();                  // HTML dashboard</code></pre>
+
+<h2>Computed Metrics</h2>
+
+<p>All 12 metrics are computed in a single <code>analyze()</code> pass. Each metric is scored (0–100), graded (A+ through F), and interpreted with a human-readable explanation.</p>
+
+<table>
+    <thead>
+        <tr><th>Metric</th><th>Category</th><th>What It Measures</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Density</td><td>Structure</td><td>Ratio of actual edges to possible edges</td></tr>
+        <tr><td>Average Degree</td><td>Degree</td><td>Mean number of connections per vertex</td></tr>
+        <tr><td>Degree Heterogeneity (CV)</td><td>Degree</td><td>Coefficient of variation — how spread-out the degree distribution is</td></tr>
+        <tr><td>Clustering Coefficient</td><td>Clustering</td><td>Global average of local clustering — how triangular the neighborhood structure is</td></tr>
+        <tr><td>Approximate Diameter</td><td>Paths</td><td>Longest shortest-path found via sampled BFS</td></tr>
+        <tr><td>Assortativity</td><td>Mixing</td><td>Degree–degree correlation — do high-degree nodes connect to high-degree nodes?</td></tr>
+        <tr><td>Connected Components</td><td>Connectivity</td><td>Number of disconnected sub-graphs</td></tr>
+        <tr><td>Largest Component Fraction</td><td>Connectivity</td><td>Proportion of vertices in the giant component</td></tr>
+        <tr><td>Average Path Length</td><td>Paths</td><td>Mean shortest-path distance (sampled)</td></tr>
+        <tr><td>Power-Law Exponent (α)</td><td>Degree</td><td>MLE estimate of the degree distribution's power-law tail</td></tr>
+        <tr><td>Small-World Quotient (σ)</td><td>Structure</td><td>σ = (C/C_rand) / (L/L_rand) — values &gt; 1 indicate small-world properties</td></tr>
+        <tr><td>Hub Dominance</td><td>Degree</td><td>Max degree / average degree — how dominant the top hub is</td></tr>
+    </tbody>
+</table>
+
+<h2>Network Classifications</h2>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="icon">👥</div>
+        <h4>Social Network</h4>
+        <p>High clustering, assortative mixing (like connects to like), clear community structure.</p>
+    </div>
+    <div class="card">
+        <div class="icon">⚡</div>
+        <h4>Scale-Free</h4>
+        <p>Power-law degree distribution (α ∈ 1.5–4.0), hub-dominated, disassortative mixing.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🌐</div>
+        <h4>Small-World</h4>
+        <p>High clustering with short average paths (σ &gt; 1.5). The "six degrees of separation" effect.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🎲</div>
+        <h4>Random (Erdős–Rényi)</h4>
+        <p>Low clustering, Poisson-like degree distribution, neutral assortativity, no dominant hubs.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🔲</div>
+        <h4>Lattice / Grid</h4>
+        <p>Regular degree, high clustering, high diameter — typical of spatial networks.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🌳</div>
+        <h4>Tree-Like</h4>
+        <p>Edges ≈ n−1, near-zero clustering, connected, hierarchical branching.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🎯</div>
+        <h4>Core-Periphery</h4>
+        <p>Dense core with sparse periphery — wide degree spread, disassortative, hub-dominated.</p>
+    </div>
+</div>
+
+<h2>Grading System</h2>
+
+<p>Each metric receives a letter grade based on its 0–100 score:</p>
+
+<table>
+    <thead>
+        <tr><th>Grade</th><th>Score Range</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>A+ / A / A−</td><td>90–100</td><td>Excellent — metric value is in a highly interesting/optimal range</td></tr>
+        <tr><td>B+ / B / B−</td><td>80–89</td><td>Good — well within expected ranges for a structured network</td></tr>
+        <tr><td>C+ / C / C−</td><td>70–79</td><td>Average — unremarkable but not problematic</td></tr>
+        <tr><td>D</td><td>60–69</td><td>Below average — metric may indicate structural weakness</td></tr>
+        <tr><td>F</td><td>0–59</td><td>Poor — metric is in a degenerate or extreme range</td></tr>
+    </tbody>
+</table>
+
+<h2>Comparing Networks</h2>
+
+<pre><code>GraphNetworkProfiler profilerA = new GraphNetworkProfiler(graphA);
+GraphNetworkProfiler profilerB = new GraphNetworkProfiler(graphB);
+profilerA.analyze();
+profilerB.analyze();
+
+Map&lt;String, double[]&gt; diff = GraphNetworkProfiler.compare(profilerA, profilerB);
+// Each entry: [valueA, valueB, delta]
+for (var entry : diff.entrySet()) {
+    System.out.printf("%s: %.4f → %.4f (Δ%.4f)%n",
+        entry.getKey(), entry.getValue()[0], entry.getValue()[1], entry.getValue()[2]);
+}</code></pre>
+
+<h2>Implementation Notes</h2>
+
+<ul>
+    <li><strong>O(V) degree pre-computation</strong> — vertex degrees are computed once into a HashMap and reused by all metric methods, avoiding repeated <code>graph.degree()</code> calls.</li>
+    <li><strong>O(V+E) clustering</strong> — pre-built neighbor HashSets give O(1) membership checks in the triangle-counting inner loop (vs. O(degree) for <code>graph.isNeighbor()</code>).</li>
+    <li><strong>Single-pass BFS</strong> — component detection, diameter estimation, and average path length share a single set of BFS traversals (sampled + sweep).</li>
+    <li><strong>Sampled estimation</strong> — diameter and path length use up to 50 sampled BFS roots for scalability on large graphs.</li>
+    <li><strong>Deterministic</strong> — seeded <code>Random(42)</code> ensures reproducible results across runs.</li>
+</ul>
+
+<h2>API Reference</h2>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>analyze()</code></td><td><code>void</code></td><td>Run full analysis (must call before querying results)</td></tr>
+        <tr><td><code>getClassification()</code></td><td><code>NetworkType</code></td><td>Best-fit network type</td></tr>
+        <tr><td><code>getClassificationConfidence()</code></td><td><code>double</code></td><td>Classification confidence (0–100)</td></tr>
+        <tr><td><code>getMetricResults()</code></td><td><code>List&lt;MetricResult&gt;</code></td><td>All 12 scored metric results</td></tr>
+        <tr><td><code>getOverallScore()</code></td><td><code>double</code></td><td>Average score across all metrics</td></tr>
+        <tr><td><code>getOverallGrade()</code></td><td><code>Grade</code></td><td>Letter grade for overall score</td></tr>
+        <tr><td><code>getFingerprint()</code></td><td><code>Map&lt;String, Double&gt;</code></td><td>Metric name → value map</td></tr>
+        <tr><td><code>getTextReport()</code></td><td><code>String</code></td><td>Formatted text report</td></tr>
+        <tr><td><code>getHtmlReport()</code></td><td><code>String</code></td><td>Standalone HTML dashboard</td></tr>
+        <tr><td><code>compare(a, b)</code></td><td><code>Map&lt;String, double[]&gt;</code></td><td>Per-metric comparison between two profilers</td></tr>
+    </tbody>
+</table>
+
+</div>
+</div>
+
+</body>
+</html>

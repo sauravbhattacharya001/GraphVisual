@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signed Graph Analysis — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="sidebar">
+    <a href="index.html" class="sidebar-logo">
+        <span>📊</span>
+        <div>
+            <h2>GraphVisual</h2>
+            <small>Documentation</small>
+        </div>
+    </a>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting Started</div>
+        <a href="index.html" class="sidebar-link"><span class="icon">🏠</span>Overview</a>
+        <a href="guide.html" class="sidebar-link"><span class="icon">🚀</span>Setup Guide</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Analysis</div>
+        <a href="network-profiler.html" class="sidebar-link"><span class="icon">🔬</span>Network Profiler</a>
+        <a href="chordal.html" class="sidebar-link"><span class="icon">🔺</span>Chordal Analysis</a>
+        <a href="signed-graph.html" class="sidebar-link active"><span class="icon">±</span>Signed Graphs</a>
+        <a href="graph-compressor.html" class="sidebar-link"><span class="icon">🗜️</span>Graph Compressor</a>
+        <a href="role-classifier.html" class="sidebar-link"><span class="icon">🎭</span>Role Classifier</a>
+    </div>
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <a href="api.html" class="sidebar-link"><span class="icon">📖</span>API Reference</a>
+        <a href="cookbook.html" class="sidebar-link"><span class="icon">🍳</span>Cookbook</a>
+    </div>
+</nav>
+
+<div class="main">
+<div class="content">
+
+<h1>± Signed Graph Analysis
+    <span class="subtitle">Structural balance theory, coalition detection, and frustration index</span>
+</h1>
+
+<p><code>SignedGraphAnalyzer</code> implements <strong>structural balance theory</strong> for graphs where edges carry positive (+) or negative (−) signs. It analyzes social polarization, detects coalitions, measures frustration, and predicts missing edge signs based on triadic closure.</p>
+
+<h2>Background: Structural Balance Theory</h2>
+
+<p>Proposed by Heider (1946) and formalized by Cartwright &amp; Harary (1956), structural balance theory states that social networks tend toward "balanced" states:</p>
+
+<ul>
+    <li><strong>"The friend of my friend is my friend"</strong> — triangle with 3 positive edges (+++)</li>
+    <li><strong>"The enemy of my enemy is my friend"</strong> — triangle with 1 positive + 2 negative edges (+−−)</li>
+    <li><strong>Unbalanced triads</strong> — triangles with +−+ or −−− create social tension and tend to resolve</li>
+</ul>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="icon">⚖️</div>
+        <h4>Strong Balance (Harary 1953)</h4>
+        <p>A signed graph is balanced iff vertices can be split into exactly 2 groups with all positive edges within and all negative edges between groups.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🔀</div>
+        <h4>Weak Balance (Davis 1967)</h4>
+        <p>Generalization allowing k ≥ 2 coalitions. Only +−+ triads are unbalanced; −−− triads are permitted.</p>
+    </div>
+</div>
+
+<h2>Quick Start</h2>
+
+<pre><code>SignedGraphAnalyzer analyzer = new SignedGraphAnalyzer(graph);
+
+// Full analysis
+SignedGraphReport report = analyzer.analyze();
+System.out.println(report);
+
+// Individual queries
+boolean balanced = analyzer.isStronglyBalanced();
+TriangleCensus census = analyzer.triangleCensus();
+int frustration = analyzer.frustrationIndex();
+List&lt;Set&lt;String&gt;&gt; coalitions = analyzer.findCoalitions();</code></pre>
+
+<h2>Edge Sign Detection</h2>
+
+<p>Edge signs are determined automatically from edge properties:</p>
+
+<ul>
+    <li><strong>Weight-based:</strong> <code>edge.getWeight() &lt; 0</code> → negative</li>
+    <li><strong>Label-based:</strong> <code>edge.getLabel() == "-"</code> or <code>"negative"</code> → negative</li>
+    <li>Everything else → positive</li>
+</ul>
+
+<h2>Triangle Census</h2>
+
+<p>Enumerates all triangles and classifies them by sign pattern:</p>
+
+<pre><code>TriangleCensus census = analyzer.triangleCensus();
+System.out.println("All-positive (+++): " + census.ppp);
+System.out.println("Two-positive (++-): " + census.ppn);    // unbalanced
+System.out.println("One-positive (+--): " + census.pnn);    // balanced
+System.out.println("All-negative (---): " + census.nnn);
+System.out.printf("Strong balance degree: %.2f%n", census.strongBalanceDegree());
+System.out.printf("Weak balance degree: %.2f%n", census.weakBalanceDegree());</code></pre>
+
+<h2>Coalition Detection</h2>
+
+<p>Identifies groups where internal edges are positive and cross-group edges are negative:</p>
+
+<pre><code>List&lt;Set&lt;String&gt;&gt; coalitions = analyzer.findCoalitions();
+for (int i = 0; i &lt; coalitions.size(); i++) {
+    System.out.printf("Coalition %d: %s%n", i + 1, coalitions.get(i));
+}</code></pre>
+
+<p>For strongly balanced graphs, uses 2-coloring partition. For weakly balanced graphs, uses positive-edge connected components.</p>
+
+<h2>Frustration Index</h2>
+
+<p>The minimum number of edges whose sign must be flipped to make the graph balanced — also known as the line index of balance.</p>
+
+<pre><code>int frustration = analyzer.frustrationIndex();
+List&lt;Edge&gt; frustrated = analyzer.findFrustratedEdges();</code></pre>
+
+<ul>
+    <li><strong>Small graphs (≤ 20 vertices):</strong> exact solution via exhaustive 2-partition search</li>
+    <li><strong>Large graphs:</strong> greedy heuristic using BFS-based signed partition</li>
+</ul>
+
+<h2>Sign Prediction</h2>
+
+<p>Predicts the sign of a missing edge based on mutual neighbor signs (triadic closure):</p>
+
+<pre><code>int predicted = analyzer.predictSign("Alice", "Bob");
+// +1 = positive, -1 = negative, 0 = no evidence (no mutual neighbors)</code></pre>
+
+<p>For each mutual neighbor w: sign(u,w) × sign(w,v) votes for the predicted edge sign. Majority wins.</p>
+
+<h2>Vertex Polarization</h2>
+
+<pre><code>Map&lt;String, Double&gt; polarization = analyzer.vertexPolarization();
+// 0.0 = all positive edges, 1.0 = all negative edges
+
+String mostPolarized = analyzer.mostPolarizedVertex();</code></pre>
+
+<h2>API Reference</h2>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>analyze()</code></td><td><code>SignedGraphReport</code></td><td>Comprehensive analysis report</td></tr>
+        <tr><td><code>isStronglyBalanced()</code></td><td><code>boolean</code></td><td>Harary's 2-partition balance test</td></tr>
+        <tr><td><code>isWeaklyBalanced()</code></td><td><code>boolean</code></td><td>Davis's k-coalition balance test</td></tr>
+        <tr><td><code>triangleCensus()</code></td><td><code>TriangleCensus</code></td><td>Count triangles by sign pattern</td></tr>
+        <tr><td><code>frustrationIndex()</code></td><td><code>int</code></td><td>Min edges to flip for balance</td></tr>
+        <tr><td><code>findFrustratedEdges()</code></td><td><code>List&lt;Edge&gt;</code></td><td>Edges violating balance</td></tr>
+        <tr><td><code>findCoalitions()</code></td><td><code>List&lt;Set&lt;String&gt;&gt;</code></td><td>Detect positive-internal groups</td></tr>
+        <tr><td><code>predictSign(u, v)</code></td><td><code>int</code></td><td>Predict missing edge sign (+1/−1/0)</td></tr>
+        <tr><td><code>vertexPolarization()</code></td><td><code>Map&lt;String, Double&gt;</code></td><td>Per-vertex negative-edge ratio</td></tr>
+        <tr><td><code>mostPolarizedVertex()</code></td><td><code>String</code></td><td>Vertex with highest polarization</td></tr>
+        <tr><td><code>countPositiveEdges()</code></td><td><code>int</code></td><td>Number of positive edges</td></tr>
+        <tr><td><code>countNegativeEdges()</code></td><td><code>int</code></td><td>Number of negative edges</td></tr>
+        <tr><td><code>negativityRatio()</code></td><td><code>double</code></td><td>Fraction of edges that are negative</td></tr>
+        <tr><td><code>statusConsistency()</code></td><td><code>double</code></td><td>Fraction of status-consistent triads</td></tr>
+    </tbody>
+</table>
+
+</div>
+</div>
+
+</body>
+</html>
