@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Intelligence Advisor — GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .advisor-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 24px; }
+        .controls-panel { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+        .control-group h3 { font-size: 14px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .control-row label { font-size: 13px; color: var(--text-muted); min-width: 90px; }
+        .control-row input, .control-row select { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+        textarea { width: 100%; height: 120px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; resize: vertical; }
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 100px; text-align: center; }
+        .stat-card .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .fingerprint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 12px; }
+        .fp-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; }
+        .fp-card .fp-val { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .fp-card .fp-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .tag { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+        .tag-hub { background: #7c3aed33; color: #a78bfa; border: 1px solid #7c3aed55; }
+        .tag-isolated { background: #f8514933; color: #f85149; border: 1px solid #f8514955; }
+        .tag-connected { background: #3fb95033; color: #3fb950; border: 1px solid #3fb95055; }
+        .tag-clustered { background: #4f46e533; color: #a5b4fc; border: 1px solid #4f46e555; }
+        .tag-temporal { background: #05966933; color: #a7f3d0; border: 1px solid #05966955; }
+        .tag-weighted { background: #0891b233; color: #67e8f9; border: 1px solid #0891b255; }
+        .rec-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+        .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; border-left: 4px solid var(--accent); cursor: pointer; transition: all 0.2s; }
+        .rec-card:hover { border-left-color: var(--accent-hover); background: var(--surface-hover); }
+        .rec-card.expanded .rec-body { display: block; }
+        .rec-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .rec-rank { font-size: 16px; font-weight: 700; color: var(--accent); min-width: 28px; }
+        .rec-name { font-size: 14px; font-weight: 600; color: var(--text); }
+        .rec-cat { padding: 2px 8px; border-radius: 999px; font-size: 10px; background: var(--surface-hover); color: var(--text-muted); text-transform: uppercase; }
+        .rec-conf { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .conf-high { background: #3fb95033; color: #3fb950; }
+        .conf-medium { background: #d2992233; color: #d29922; }
+        .conf-low { background: #48484833; color: var(--text-muted); }
+        .rec-diff { padding: 2px 8px; border-radius: 999px; font-size: 10px; }
+        .diff-quick { background: #3fb95022; color: #3fb950; }
+        .diff-moderate { background: #d2992222; color: #d29922; }
+        .diff-intensive { background: #f8514922; color: #f85149; }
+        .rec-body { display: none; margin-top: 10px; padding-left: 36px; }
+        .rec-body p { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+        .rec-body strong { color: var(--text); }
+        .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        canvas { width: 100%; }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+        .empty-state h3 { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="nav-brand">GraphVisual</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <h1>🧠 Graph Intelligence Advisor</h1>
+        <p class="lead">Proactive analysis recommendations based on your graph's structural fingerprint. Enter or generate a graph, and the advisor will tell you which analyses will yield the most interesting insights — and why.</p>
+    </header>
+
+    <main class="advisor-layout">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>📊 Graph Input</h3>
+                <div class="control-row">
+                    <label>Preset</label>
+                    <select id="presetSelect">
+                        <option value="karate">Zachary's Karate Club (34)</option>
+                        <option value="small-world">Small World (50)</option>
+                        <option value="star">Star Hub (20)</option>
+                        <option value="ring">Ring (30)</option>
+                        <option value="tree">Binary Tree (31)</option>
+                        <option value="random-sparse">Random Sparse (40)</option>
+                        <option value="random-dense">Random Dense (25)</option>
+                        <option value="disconnected">Disconnected (30)</option>
+                        <option value="custom">Custom Edge List</option>
+                    </select>
+                </div>
+                <div id="customInput" style="display:none; margin-top: 8px;">
+                    <textarea id="edgeListInput" placeholder="Enter edges, one per line:&#10;A B&#10;B C&#10;C D&#10;..."></textarea>
+                </div>
+                <div class="btn-row" style="margin-top: 12px;">
+                    <button class="btn btn-primary" onclick="runAdvisor()">🧠 Analyze</button>
+                    <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+                </div>
+            </div>
+
+            <div class="control-group" id="fingerprintPanel" style="display:none;">
+                <h3>🔍 Structural Fingerprint</h3>
+                <div class="fingerprint-grid" id="fpGrid"></div>
+                <div class="tag-row" id="fpTags"></div>
+            </div>
+
+            <div class="control-group" id="edgeTypePanel" style="display:none;">
+                <h3>🔗 Edge Type Breakdown</h3>
+                <canvas id="edgeTypeChart" height="150"></canvas>
+            </div>
+        </div>
+
+        <div>
+            <div class="stats-bar" id="statsBar" style="display:none;">
+                <div class="stat-card"><div class="val" id="statRecs">0</div><div class="lbl">Recommendations</div></div>
+                <div class="stat-card"><div class="val" id="statTopConf">—</div><div class="lbl">Top Confidence</div></div>
+                <div class="stat-card"><div class="val" id="statQuick">0</div><div class="lbl">Quick Analyses</div></div>
+                <div class="stat-card"><div class="val" id="statCategories">0</div><div class="lbl">Categories</div></div>
+            </div>
+
+            <div id="resultsArea">
+                <div class="empty-state">
+                    <h3>Select a graph and click Analyze</h3>
+                    <p>The advisor will scan the graph's topology and recommend the most insightful analyses.</p>
+                </div>
+            </div>
+
+            <div class="chart-container" id="confChart" style="display:none;">
+                <h3 style="font-size:14px; color:var(--text-muted); margin-bottom:12px;">Confidence Distribution</h3>
+                <canvas id="confidenceCanvas" height="200"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // ── Graph generators ─────────────────────────────────────
+    function generateKarateClub() {
+        // Simplified Zachary's Karate Club
+        const edges = [
+            [1,2],[1,3],[1,4],[1,5],[1,6],[1,7],[1,8],[1,9],[1,11],[1,12],[1,13],[1,14],[1,18],[1,20],[1,22],[1,32],
+            [2,3],[2,4],[2,8],[2,14],[2,18],[2,20],[2,22],[2,31],
+            [3,4],[3,8],[3,9],[3,10],[3,14],[3,28],[3,29],[3,33],
+            [4,8],[4,13],[4,14],
+            [5,7],[5,11],
+            [6,7],[6,11],[6,17],
+            [7,17],
+            [9,31],[9,33],[9,34],
+            [10,34],
+            [14,34],
+            [15,33],[15,34],
+            [16,33],[16,34],
+            [19,33],[19,34],
+            [20,34],
+            [21,33],[21,34],
+            [23,33],[23,34],
+            [24,26],[24,28],[24,30],[24,33],[24,34],
+            [25,26],[25,28],[25,32],
+            [26,32],
+            [27,30],[27,34],
+            [28,34],
+            [29,32],[29,34],
+            [30,33],[30,34],
+            [31,33],[31,34],
+            [32,33],[32,34],
+            [33,34]
+        ];
+        return edges.map(([a,b]) => ({v1: String(a), v2: String(b), type: 'friend', weight: 1}));
+    }
+
+    function generateSmallWorld(n) {
+        const edges = [];
+        // Ring lattice with k=4 nearest neighbors
+        for (let i = 0; i < n; i++) {
+            for (let j = 1; j <= 2; j++) {
+                edges.push({v1: String(i), v2: String((i+j)%n), type: 'friend', weight: 1});
+            }
+        }
+        // Random rewiring (p=0.3)
+        for (let i = 0; i < n * 0.3; i++) {
+            const a = Math.floor(Math.random() * n);
+            let b = Math.floor(Math.random() * n);
+            while (b === a) b = Math.floor(Math.random() * n);
+            edges.push({v1: String(a), v2: String(b), type: 'classmate', weight: 1});
+        }
+        return edges;
+    }
+
+    function generateStar(n) {
+        const edges = [];
+        for (let i = 1; i < n; i++) {
+            edges.push({v1: '0', v2: String(i), type: 'friend', weight: 1});
+            if (Math.random() < 0.3) {
+                const j = 1 + Math.floor(Math.random() * (n-1));
+                if (j !== i) edges.push({v1: String(i), v2: String(j), type: 'stranger', weight: 1});
+            }
+        }
+        return edges;
+    }
+
+    function generateRing(n) {
+        const edges = [];
+        for (let i = 0; i < n; i++) {
+            edges.push({v1: String(i), v2: String((i+1)%n), type: 'friend', weight: 1});
+        }
+        return edges;
+    }
+
+    function generateBinaryTree(depth) {
+        const edges = [];
+        const n = Math.pow(2, depth) - 1;
+        for (let i = 0; i < n; i++) {
+            const left = 2*i + 1, right = 2*i + 2;
+            if (left < n) edges.push({v1: String(i), v2: String(left), type: 'friend', weight: 1});
+            if (right < n) edges.push({v1: String(i), v2: String(right), type: 'friend', weight: 1});
+        }
+        return edges;
+    }
+
+    function generateRandomSparse(n) {
+        const edges = [];
+        const edgeCount = Math.floor(n * 1.2);
+        for (let i = 0; i < edgeCount; i++) {
+            const a = Math.floor(Math.random() * n);
+            let b = Math.floor(Math.random() * n);
+            while (b === a) b = Math.floor(Math.random() * n);
+            const types = ['friend','classmate','stranger'];
+            edges.push({v1: String(a), v2: String(b), type: types[Math.floor(Math.random()*3)], weight: Math.random()*5});
+        }
+        return edges;
+    }
+
+    function generateRandomDense(n) {
+        const edges = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = i+1; j < n; j++) {
+                if (Math.random() < 0.6) {
+                    edges.push({v1: String(i), v2: String(j), type: 'friend', weight: 1});
+                }
+            }
+        }
+        return edges;
+    }
+
+    function generateDisconnected(n) {
+        const edges = [];
+        const sizes = [Math.floor(n*0.5), Math.floor(n*0.3), n - Math.floor(n*0.5) - Math.floor(n*0.3)];
+        let offset = 0;
+        for (const sz of sizes) {
+            for (let i = 0; i < sz; i++) {
+                for (let j = i+1; j < sz; j++) {
+                    if (Math.random() < 0.4) {
+                        edges.push({v1: String(offset+i), v2: String(offset+j), type: 'friend', weight: 1});
+                    }
+                }
+            }
+            offset += sz;
+        }
+        return edges;
+    }
+
+    function parseCustomEdgeList(text) {
+        const edges = [];
+        for (const line of text.trim().split('\n')) {
+            const parts = line.trim().split(/[\s,;]+/);
+            if (parts.length >= 2) {
+                edges.push({v1: parts[0], v2: parts[1], type: parts[2] || 'friend', weight: parseFloat(parts[3]) || 1});
+            }
+        }
+        return edges;
+    }
+
+    // ── Graph analysis (mirrors Java GraphIntelligenceAdvisor) ──
+    function buildGraph(edges) {
+        const adj = {};
+        const allEdges = [];
+        for (const e of edges) {
+            if (!adj[e.v1]) adj[e.v1] = new Set();
+            if (!adj[e.v2]) adj[e.v2] = new Set();
+            adj[e.v1].add(e.v2);
+            adj[e.v2].add(e.v1);
+            allEdges.push(e);
+        }
+        return { adj, edges: allEdges, vertices: Object.keys(adj) };
+    }
+
+    function computeFingerprint(graph) {
+        const V = graph.vertices.length;
+        const E = graph.edges.length;
+        const maxE = V * (V-1) / 2;
+        const density = maxE > 0 ? E / maxE : 0;
+
+        let totalDeg = 0, maxDeg = 0, minDeg = Infinity;
+        const degrees = {};
+        let hasIsolated = false;
+        for (const v of graph.vertices) {
+            const d = graph.adj[v].size;
+            degrees[v] = d;
+            totalDeg += d;
+            if (d > maxDeg) maxDeg = d;
+            if (d < minDeg) minDeg = d;
+            if (d === 0) hasIsolated = true;
+        }
+        const avgDeg = V > 0 ? totalDeg / V : 0;
+        let variance = 0;
+        for (const v of graph.vertices) {
+            const diff = degrees[v] - avgDeg;
+            variance += diff * diff;
+        }
+        variance = V > 0 ? variance / V : 0;
+        const hasHubs = maxDeg > 2 * avgDeg && avgDeg > 1;
+
+        // Edge types
+        const typeCounts = {};
+        let hasWeighted = false;
+        for (const e of graph.edges) {
+            const t = e.type || 'unknown';
+            typeCounts[t] = (typeCounts[t] || 0) + 1;
+            if (e.weight !== 0 && e.weight !== 1) hasWeighted = true;
+        }
+
+        // Components
+        const visited = new Set();
+        let componentCount = 0, largestComp = 0;
+        for (const v of graph.vertices) {
+            if (!visited.has(v)) {
+                componentCount++;
+                let size = 0;
+                const queue = [v];
+                visited.add(v);
+                while (queue.length > 0) {
+                    const cur = queue.shift();
+                    size++;
+                    for (const n of graph.adj[cur]) {
+                        if (!visited.has(n)) { visited.add(n); queue.push(n); }
+                    }
+                }
+                if (size > largestComp) largestComp = size;
+            }
+        }
+
+        // Clustering estimate
+        let totalCC = 0, counted = 0;
+        const sample = graph.vertices.slice(0, 200);
+        for (const v of sample) {
+            const neighbors = [...graph.adj[v]];
+            if (neighbors.length < 2) continue;
+            let links = 0;
+            for (let a = 0; a < neighbors.length; a++) {
+                for (let b = a+1; b < neighbors.length; b++) {
+                    if (graph.adj[neighbors[a]] && graph.adj[neighbors[a]].has(neighbors[b])) links++;
+                }
+            }
+            const possible = neighbors.length * (neighbors.length - 1) / 2;
+            totalCC += links / possible;
+            counted++;
+        }
+        const clustering = counted > 0 ? totalCC / counted : 0;
+
+        return {
+            nodeCount: V, edgeCount: E, density, avgDegree: avgDeg,
+            maxDegree: maxDeg, minDegree: minDeg === Infinity ? 0 : minDeg,
+            degreeVariance: variance, componentCount, largestComponentSize: largestComp,
+            hasIsolatedNodes: hasIsolated, hasHighDegreeHubs: hasHubs,
+            edgeTypeCount: Object.keys(typeCounts).length, edgeTypeCounts: typeCounts,
+            hasWeightedEdges: hasWeighted, clusteringEstimate: clustering
+        };
+    }
+
+    function generateRecommendations(fp) {
+        const recs = [];
+
+        if (fp.nodeCount >= 5 && fp.edgeCount >= fp.nodeCount) {
+            let conf = 0.5, reason = `Graph has ${fp.nodeCount} nodes and density ${fp.density.toFixed(4)}. `;
+            if (fp.componentCount > 1) { conf += 0.2; reason += `Multiple components (${fp.componentCount}) suggest natural groupings. `; }
+            if (fp.clusteringEstimate > 0.3) { conf += 0.2; reason += `High clustering (${fp.clusteringEstimate.toFixed(2)}) indicates tightly-knit groups. `; }
+            if (fp.edgeTypeCount > 1) { conf += 0.1; reason += 'Multiple edge types may reveal community structure along type boundaries.'; }
+            recs.push({ name: 'Community Detection (Louvain)', category: 'Structure', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Discover hidden groups/clusters and understand how the network naturally partitions', difficulty: fp.nodeCount > 500 ? 'moderate' : 'quick' });
+        }
+
+        if (fp.nodeCount >= 10 && fp.degreeVariance > 1) {
+            let conf = 0.4, reason = '';
+            if (fp.hasHighDegreeHubs) { conf += 0.3; reason += `Hub nodes detected (max degree ${fp.maxDegree} vs avg ${fp.avgDegree.toFixed(1)}) — likely structural outliers. `; }
+            if (fp.degreeVariance > fp.avgDegree * 2) { conf += 0.2; reason += `High degree variance (${fp.degreeVariance.toFixed(1)}) suggests heterogeneous connectivity. `; }
+            recs.push({ name: 'Anomaly Detection', category: 'Intelligence', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Identify suspicious or unusual nodes deviating from normal network patterns', difficulty: 'quick' });
+        }
+
+        if (fp.nodeCount >= 3 && fp.hasHighDegreeHubs) {
+            recs.push({ name: 'PageRank & Centrality Analysis', category: 'Influence', confidence: 0.7, reason: `Network has hub nodes (max degree ${fp.maxDegree}). PageRank reveals which nodes are truly influential vs just well-connected.`, insight: 'Rank nodes by true influence — find leaders, bridges, and gatekeepers', difficulty: 'quick' });
+        } else if (fp.nodeCount >= 3) {
+            recs.push({ name: 'Centrality Analysis', category: 'Influence', confidence: 0.4, reason: 'Even without obvious hubs, centrality reveals hidden influencers and structural bottlenecks.', insight: 'Identify which nodes control information flow through the network', difficulty: 'quick' });
+        }
+
+        if (fp.nodeCount >= 5 && fp.density > 0.01 && fp.density < 0.8) {
+            let conf = 0.4, reason = `Moderate density (${fp.density.toFixed(4)}) — good for prediction. `;
+            if (fp.clusteringEstimate > 0.2) { conf += 0.25; reason += 'Clustering patterns provide strong signal for predicting missing links.'; }
+            recs.push({ name: 'Link Prediction', category: 'Prediction', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Predict likely missing or future connections between nodes', difficulty: 'moderate' });
+        }
+
+        if (fp.nodeCount >= 5) {
+            let conf = 0.3, reason = '';
+            if (fp.componentCount === 1 && fp.hasHighDegreeHubs) { conf = 0.8; reason = 'Single connected component with hub nodes — removing hubs could fragment the network.'; }
+            else if (fp.componentCount === 1) { conf = 0.5; reason = 'Connected graph — worth checking robustness to node/edge removal.'; }
+            else { reason = `Already fragmented into ${fp.componentCount} components. Resilience shows vulnerability of remaining connections.`; }
+            recs.push({ name: 'Resilience Analysis', category: 'Robustness', confidence: conf, reason, insight: 'Understand how network survives targeted attacks and random failures', difficulty: fp.nodeCount > 200 ? 'intensive' : 'moderate' });
+        }
+
+        if (fp.nodeCount >= 10 && fp.edgeCount >= 15) {
+            let conf = 0.35, reason = 'Graph is large enough for meaningful motif analysis. ';
+            if (fp.clusteringEstimate > 0.3) { conf += 0.25; reason += 'High clustering suggests recurring local patterns (triangles, stars, cliques).'; }
+            recs.push({ name: 'Motif & Substructure Analysis', category: 'Patterns', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Discover recurring structural patterns revealing network organizing principles', difficulty: fp.nodeCount > 100 ? 'intensive' : 'moderate' });
+        }
+
+        if (fp.nodeCount >= 10 && fp.density > 0.01) {
+            let conf = 0.45, reason = 'K-core decomposition reveals the hierarchical backbone. ';
+            if (fp.hasHighDegreeHubs) { conf += 0.15; reason += 'Hub nodes likely form a dense core surrounded by peripheral shells.'; }
+            recs.push({ name: 'K-Core Decomposition', category: 'Structure', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Find the densest core and understand node importance layers', difficulty: 'quick' });
+        }
+
+        if (fp.nodeCount >= 20 && fp.clusteringEstimate > 0.2 && fp.componentCount === 1) {
+            recs.push({ name: 'Small World Analysis', category: 'Topology', confidence: 0.55, reason: `High clustering (${fp.clusteringEstimate.toFixed(2)}) in connected graph — classic small-world precondition.`, insight: 'Determine if the network has small-world properties (high clustering + short paths)', difficulty: 'moderate' });
+        }
+
+        if (fp.nodeCount >= 5 && fp.componentCount === 1) {
+            let conf = 0.5, reason = 'Connected graph — edge betweenness identifies critical bridges. ';
+            if (fp.edgeCount > fp.nodeCount * 1.5) { conf += 0.15; reason += 'Enough redundant paths to make bridge detection meaningful.'; }
+            recs.push({ name: 'Edge Betweenness Analysis', category: 'Influence', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Find critical edges whose removal would most disrupt communication', difficulty: fp.nodeCount > 200 ? 'intensive' : 'moderate' });
+        }
+
+        if (fp.nodeCount >= 10 && fp.componentCount === 1) {
+            let conf = 0.4, reason = 'Connected network suitable for influence modeling. ';
+            if (fp.hasHighDegreeHubs) { conf += 0.2; reason += 'Hub nodes could be superspreaders.'; }
+            recs.push({ name: 'Influence Spread Simulation', category: 'Dynamics', confidence: Math.min(1, conf), reason: reason.trim(), insight: 'Simulate information/disease spread to find optimal seed nodes', difficulty: 'moderate' });
+        }
+
+        recs.sort((a, b) => b.confidence - a.confidence);
+        return recs;
+    }
+
+    // ── UI ───────────────────────────────────────────────────
+    document.getElementById('presetSelect').addEventListener('change', function() {
+        document.getElementById('customInput').style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    function getEdges() {
+        const preset = document.getElementById('presetSelect').value;
+        switch (preset) {
+            case 'karate': return generateKarateClub();
+            case 'small-world': return generateSmallWorld(50);
+            case 'star': return generateStar(20);
+            case 'ring': return generateRing(30);
+            case 'tree': return generateBinaryTree(5);
+            case 'random-sparse': return generateRandomSparse(40);
+            case 'random-dense': return generateRandomDense(25);
+            case 'disconnected': return generateDisconnected(30);
+            case 'custom': return parseCustomEdgeList(document.getElementById('edgeListInput').value);
+        }
+    }
+
+    function runAdvisor() {
+        const edges = getEdges();
+        if (!edges || edges.length === 0) { alert('No edges to analyze.'); return; }
+
+        const graph = buildGraph(edges);
+        const fp = computeFingerprint(graph);
+        const recs = generateRecommendations(fp);
+
+        renderFingerprint(fp);
+        renderRecommendations(recs);
+        renderConfidenceChart(recs);
+
+        document.getElementById('statsBar').style.display = 'flex';
+        document.getElementById('statRecs').textContent = recs.length;
+        document.getElementById('statTopConf').textContent = recs.length > 0 ? Math.round(recs[0].confidence * 100) + '%' : '—';
+        document.getElementById('statQuick').textContent = recs.filter(r => r.difficulty === 'quick').length;
+        document.getElementById('statCategories').textContent = new Set(recs.map(r => r.category)).size;
+    }
+
+    function clearResults() {
+        document.getElementById('fingerprintPanel').style.display = 'none';
+        document.getElementById('edgeTypePanel').style.display = 'none';
+        document.getElementById('statsBar').style.display = 'none';
+        document.getElementById('confChart').style.display = 'none';
+        document.getElementById('resultsArea').innerHTML = '<div class="empty-state"><h3>Select a graph and click Analyze</h3><p>The advisor will scan the graph\'s topology and recommend the most insightful analyses.</p></div>';
+    }
+
+    function renderFingerprint(fp) {
+        const panel = document.getElementById('fingerprintPanel');
+        panel.style.display = 'block';
+        const grid = document.getElementById('fpGrid');
+        grid.innerHTML = [
+            { label: 'Nodes', value: fp.nodeCount },
+            { label: 'Edges', value: fp.edgeCount },
+            { label: 'Density', value: fp.density.toFixed(4) },
+            { label: 'Avg Degree', value: fp.avgDegree.toFixed(1) },
+            { label: 'Max Degree', value: fp.maxDegree },
+            { label: 'Components', value: fp.componentCount },
+            { label: 'Clustering', value: fp.clusteringEstimate.toFixed(3) },
+            { label: 'Edge Types', value: fp.edgeTypeCount }
+        ].map(m => `<div class="fp-card"><div class="fp-val">${m.value}</div><div class="fp-lbl">${m.label}</div></div>`).join('');
+
+        const tags = document.getElementById('fpTags');
+        let tagsHtml = '';
+        if (fp.hasHighDegreeHubs) tagsHtml += '<span class="tag tag-hub">Hub Nodes</span>';
+        if (fp.hasIsolatedNodes) tagsHtml += '<span class="tag tag-isolated">Isolated Nodes</span>';
+        if (fp.componentCount === 1) tagsHtml += '<span class="tag tag-connected">Connected</span>';
+        if (fp.clusteringEstimate > 0.3) tagsHtml += '<span class="tag tag-clustered">Clustered</span>';
+        if (fp.hasWeightedEdges) tagsHtml += '<span class="tag tag-weighted">Weighted</span>';
+        tags.innerHTML = tagsHtml;
+
+        // Edge type chart
+        const typePanel = document.getElementById('edgeTypePanel');
+        const types = Object.entries(fp.edgeTypeCounts);
+        if (types.length > 0) {
+            typePanel.style.display = 'block';
+            const canvas = document.getElementById('edgeTypeChart');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = 150 * 2;
+            ctx.scale(2, 2);
+            const w = canvas.offsetWidth, h = 150;
+            ctx.clearRect(0, 0, w, h);
+            const maxVal = Math.max(...types.map(t => t[1]));
+            const barW = Math.min(40, (w - 40) / types.length - 10);
+            const colors = ['#818cf8', '#22d3ee', '#34d399', '#fbbf24', '#f87171', '#a78bfa'];
+            types.forEach(([type, count], i) => {
+                const x = 30 + i * (barW + 10);
+                const barH = (count / maxVal) * (h - 40);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fillRect(x, h - 20 - barH, barW, barH);
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(type, x + barW/2, h - 6);
+                ctx.fillText(count, x + barW/2, h - 24 - barH);
+            });
+        } else {
+            typePanel.style.display = 'none';
+        }
+    }
+
+    function renderRecommendations(recs) {
+        const area = document.getElementById('resultsArea');
+        if (recs.length === 0) {
+            area.innerHTML = '<div class="empty-state"><h3>No recommendations</h3><p>Graph may be too small for meaningful analysis.</p></div>';
+            return;
+        }
+        let html = '<div class="rec-list">';
+        recs.forEach((r, i) => {
+            const confClass = r.confidence >= 0.7 ? 'conf-high' : r.confidence >= 0.4 ? 'conf-medium' : 'conf-low';
+            html += `<div class="rec-card" onclick="this.classList.toggle('expanded')">
+                <div class="rec-header">
+                    <span class="rec-rank">#${i+1}</span>
+                    <span class="rec-name">${r.name}</span>
+                    <span class="rec-cat">${r.category}</span>
+                    <span class="rec-conf ${confClass}">${Math.round(r.confidence*100)}%</span>
+                    <span class="rec-diff diff-${r.difficulty}">${r.difficulty}</span>
+                </div>
+                <div class="rec-body">
+                    <p><strong>Why:</strong> ${r.reason}</p>
+                    <p><strong>Expected insight:</strong> ${r.insight}</p>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        area.innerHTML = html;
+    }
+
+    function renderConfidenceChart(recs) {
+        if (recs.length === 0) { document.getElementById('confChart').style.display = 'none'; return; }
+        document.getElementById('confChart').style.display = 'block';
+        const canvas = document.getElementById('confidenceCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth * 2;
+        canvas.height = 200 * 2;
+        ctx.scale(2, 2);
+        const w = canvas.offsetWidth, h = 200;
+        ctx.clearRect(0, 0, w, h);
+
+        const barW = Math.min(50, (w - 60) / recs.length - 8);
+        recs.forEach((r, i) => {
+            const x = 40 + i * (barW + 8);
+            const barH = r.confidence * (h - 50);
+            const color = r.confidence >= 0.7 ? '#3fb950' : r.confidence >= 0.4 ? '#d29922' : '#484848';
+            ctx.fillStyle = color;
+            ctx.fillRect(x, h - 25 - barH, barW, barH);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.save();
+            ctx.translate(x + barW/2, h - 8);
+            ctx.rotate(-0.4);
+            const shortName = r.name.length > 12 ? r.name.substring(0, 12) + '…' : r.name;
+            ctx.fillText(shortName, 0, 0);
+            ctx.restore();
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(Math.round(r.confidence*100) + '%', x + barW/2, h - 29 - barH);
+        });
+    }
+    </script>
+</body>
+</html>

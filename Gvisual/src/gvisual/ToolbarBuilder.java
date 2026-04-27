@@ -76,6 +76,7 @@ public final class ToolbarBuilder {
         addEdgeBetweennessButton(toolPanel, owner, ctx);
         addStatsDashboardButton(toolPanel, owner, ctx);
         addStorytellerButton(toolPanel, owner, ctx);
+        addIntelligenceAdvisorButton(toolPanel, owner, ctx);
 
         if (legend != null) {
             toolPanel.add(legend);
@@ -457,6 +458,27 @@ public final class ToolbarBuilder {
                     storyteller.export(outFile);
                     return "Graph story exported to " + outFile.getName()
                             + "\nOpen in a browser to read the narrative.";
+                });
+    }
+
+    /* ---- Intelligence Advisor ---- */
+
+    private static void addIntelligenceAdvisorButton(JPanel panel, JFrame owner, GraphContext ctx) {
+        ExportActions.addExportButton(panel, owner,
+                "<html><center>\uD83E\uDDE0 AI Advisor<br/>Smart analysis<br/>recommendations<br/>based on your<br/>graph structure</center></html>",
+                "Export Intelligence Advisor Report",
+                () -> "advisor_" + ctx.getTimestamp() + ".html",
+                new String[]{".html"},
+                outFile -> {
+                    GraphIntelligenceAdvisor advisor = new GraphIntelligenceAdvisor(ctx.getGraph());
+                    advisor.analyze();
+                    advisor.exportHtml(outFile);
+                    int count = advisor.getRecommendations().size();
+                    String top = count > 0 ? advisor.getRecommendations().get(0).getAnalysisName() : "none";
+                    return "Intelligence Advisor report exported to " + outFile.getName()
+                            + "\n" + count + " analysis recommendations generated."
+                            + "\nTop recommendation: " + top
+                            + "\nOpen in any browser to view the interactive report.";
                 });
     }
 }
