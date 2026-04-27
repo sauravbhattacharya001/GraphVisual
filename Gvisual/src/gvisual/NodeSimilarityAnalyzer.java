@@ -252,6 +252,15 @@ public class NodeSimilarityAnalyzer {
      * Uses a min-heap to efficiently track the top-k pairs without
      * storing all O(n²) scores.
      *
+     * <p><b>Performance:</b> For JACCARD, OVERLAP, ADAMIC_ADAR, and COSINE
+     * metrics, similarity is always 0 when two nodes share no common
+     * neighbors. This method exploits that by enumerating only <b>2-hop
+     * pairs</b> (neighbors-of-neighbors) instead of all O(V²) vertex
+     * pairs — reducing work to O(V·Δ²) where Δ is max degree. On sparse
+     * graphs (Δ ≪ V) this is orders of magnitude faster.
+     * STRUCTURAL_EQUIVALENCE can be non-zero for any pair, so it still
+     * uses the O(V²) sweep.</p>
+     *
      * @param metric the similarity metric to use
      * @param k      maximum number of pairs to return
      * @return list of scored pairs, sorted by score descending
@@ -259,23 +268,26 @@ public class NodeSimilarityAnalyzer {
     public List<ScoredPair> mostSimilar(Metric metric, int k) {
         if (k <= 0) return Collections.emptyList();
 
-        List<String> vertices = new ArrayList<String>(graph.getVertices());
-        Collections.sort(vertices); // deterministic ordering
         PriorityQueue<ScoredPair> minHeap = new PriorityQueue<ScoredPair>(k + 1,
             (ScoredPair a, ScoredPair b) -> {
                     return Double.compare(a.score, b.score); // min-heap by score
                 }
         );
 
-        for (int i = 0; i < vertices.size(); i++) {
-            for (int j = i + 1; j < vertices.size(); j++) {
-                double score = similarity(vertices.get(i), vertices.get(j), metric);
-                ScoredPair sp = new ScoredPair(vertices.get(i), vertices.get(j), score);
-                minHeap.offer(sp);
-                if (minHeap.size() > k) {
-                    minHeap.poll();
+        if (metric == Metric.STRUCTURAL_EQUIVALENCE) {
+            // SE can be non-zero for any pair — full O(V²) sweep required
+            List<String> vertices = new ArrayList<String>(graph.getVertices());
+            Collections.sort(vertices);
+            for (int i = 0; i < vertices.size(); i++) {
+                for (int j = i + 1; j < vertices.size(); j++) {
+                    double score = structuralEquivalence(vertices.get(i), vertices.get(j));
+                    offerToHeap(minHeap, vertices.get(i), vertices.get(j), score, k);
                 }
             }
+        } else {
+            // JACCARD, OVERLAP, ADAMIC_ADAR, COSINE: score > 0 only when
+            // nodes share ≥1 common neighbor. Enumerate 2-hop pairs only.
+            enumerate2HopPairs(metric, minHeap, k);
         }
 
         List<ScoredPair> result = new ArrayList<ScoredPair>(minHeap);
@@ -354,20 +366,52 @@ public class NodeSimilarityAnalyzer {
     /**
      * Find all node pairs with similarity above a threshold.
      *
+     * <p><b>Performance:</b> For JACCARD, OVERLAP, ADAMIC_ADAR, and COSINE
+     * metrics (which are 0 when nodes share no common neighbor), only
+     * 2-hop pairs are evaluated — O(V·Δ²) instead of O(V²). When
+     * threshold > 0 this is both correct and complete since unreachable
+     * pairs always score 0.</p>
+     *
      * @param metric    the similarity metric to use
      * @param threshold minimum score (inclusive)
      * @return list of scored pairs above threshold, sorted descending
      */
     public List<ScoredPair> similarPairsAboveThreshold(Metric metric, double threshold) {
-        List<String> vertices = new ArrayList<String>(graph.getVertices());
-        Collections.sort(vertices);
         List<ScoredPair> result = new ArrayList<ScoredPair>();
 
-        for (int i = 0; i < vertices.size(); i++) {
-            for (int j = i + 1; j < vertices.size(); j++) {
-                double score = similarity(vertices.get(i), vertices.get(j), metric);
-                if (score >= threshold) {
-                    result.add(new ScoredPair(vertices.get(i), vertices.get(j), score));
+        if (metric != Metric.STRUCTURAL_EQUIVALENCE && threshold > 0) {
+            // 2-hop fast path: only pairs sharing ≥1 common neighbor can score > 0
+            List<String> vertices = new ArrayList<String>(graph.getVertices());
+            Collections.sort(vertices);
+            Map<String, Integer> vertexOrd = new HashMap<String, Integer>(vertices.size() * 2);
+            for (int i = 0; i < vertices.size(); i++) vertexOrd.put(vertices.get(i), i);
+
+            for (String u : vertices) {
+                Set<String> nu = neighbors(u);
+                if (nu.isEmpty()) continue;
+                int uOrd = vertexOrd.get(u);
+                Set<String> seen = new HashSet<String>();
+                for (String w : nu) {
+                    for (String v : neighbors(w)) {
+                        if (vertexOrd.get(v) > uOrd && seen.add(v)) {
+                            double score = similarity(u, v, metric);
+                            if (score >= threshold) {
+                                result.add(new ScoredPair(u, v, score));
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Full O(V²) sweep needed for SE or threshold <= 0
+            List<String> vertices = new ArrayList<String>(graph.getVertices());
+            Collections.sort(vertices);
+            for (int i = 0; i < vertices.size(); i++) {
+                for (int j = i + 1; j < vertices.size(); j++) {
+                    double score = similarity(vertices.get(i), vertices.get(j), metric);
+                    if (score >= threshold) {
+                        result.add(new ScoredPair(vertices.get(i), vertices.get(j), score));
+                    }
                 }
             }
         }
@@ -401,6 +445,52 @@ public class NodeSimilarityAnalyzer {
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    // ── 2-hop enumeration ────────────────────────────────────────
+
+    /**
+     * Enumerates only vertex pairs that share at least one common neighbor
+     * (2-hop reachable pairs). For each such pair, computes the given
+     * similarity metric and inserts into the min-heap.
+     *
+     * <p>Complexity: O(V·Δ²) where Δ is max degree — compared to O(V²)
+     * for the full enumeration. On sparse graphs where Δ ≪ V this gives
+     * orders-of-magnitude speedup. A per-source seen set deduplicates
+     * pairs, and lexicographic ordering (v > u) prevents evaluating
+     * each pair twice.</p>
+     */
+    private void enumerate2HopPairs(Metric metric, PriorityQueue<ScoredPair> minHeap, int k) {
+        List<String> vertices = new ArrayList<String>(graph.getVertices());
+        Collections.sort(vertices);
+        Map<String, Integer> vertexOrd = new HashMap<String, Integer>(vertices.size() * 2);
+        for (int i = 0; i < vertices.size(); i++) vertexOrd.put(vertices.get(i), i);
+
+        for (String u : vertices) {
+            Set<String> nu = neighbors(u);
+            if (nu.isEmpty()) continue;
+            int uOrd = vertexOrd.get(u);
+
+            // Walk 2-hop: u -> w -> v where v > u (lexicographic) and v ∉ seen
+            Set<String> seen = new HashSet<String>();
+            for (String w : nu) {
+                for (String v : neighbors(w)) {
+                    if (vertexOrd.get(v) > uOrd && seen.add(v)) {
+                        double score = similarity(u, v, metric);
+                        offerToHeap(minHeap, u, v, score, k);
+                    }
+                }
+            }
+        }
+    }
+
+    /** Offers a scored pair to a bounded min-heap. */
+    private static void offerToHeap(PriorityQueue<ScoredPair> heap,
+                                     String u, String v, double score, int k) {
+        if (heap.size() < k || score > heap.peek().score) {
+            heap.offer(new ScoredPair(u, v, score));
+            if (heap.size() > k) heap.poll();
+        }
     }
 
     // ── Internal helpers ────────────────────────────────────────
