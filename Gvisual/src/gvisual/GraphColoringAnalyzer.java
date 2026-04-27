@@ -46,6 +46,25 @@ public class GraphColoringAnalyzer {
     private final Graph<String, Edge> graph;
 
     /**
+     * Pre-built adjacency sets for O(1) neighbor lookups.
+     * Replaces repeated {@code graph.isNeighbor()} calls (which are O(degree)
+     * in JUNG's sparse graph implementations) with HashSet.contains() — O(1).
+     * Built once at construction; reused by chromaticLowerBound(),
+     * analyzeColorClasses(), and anywhere else that tests adjacency.
+     */
+    private final Map<String, Set<String>> adjacency;
+
+    /**
+     * Pre-cached degree per vertex. Eliminates repeated {@code graph.degree()}
+     * calls in sort comparators (O(V log V) calls in LARGEST_FIRST),
+     * edgeChromaticBounds(), maxDegree(), and DSatur initialization.
+     */
+    private final Map<String, Integer> degreeCache;
+
+    /** Cached max degree — computed once from degreeCache. */
+    private final int cachedMaxDegree;
+
+    /**
      * Creates a new GraphColoringAnalyzer for the given graph.
      *
      * @param graph the JUNG graph to color
@@ -56,6 +75,18 @@ public class GraphColoringAnalyzer {
             throw new IllegalArgumentException("Graph must not be null");
         }
         this.graph = graph;
+
+        // Pre-build adjacency sets and degree cache — O(V + E) once,
+        // then all subsequent neighbor/degree queries are O(1).
+        this.adjacency = GraphUtils.buildAdjacencyMap(graph);
+        this.degreeCache = new HashMap<>(graph.getVertexCount() * 2);
+        int maxDeg = 0;
+        for (Map.Entry<String, Set<String>> entry : adjacency.entrySet()) {
+            int deg = entry.getValue().size();
+            degreeCache.put(entry.getKey(), deg);
+            if (deg > maxDeg) maxDeg = deg;
+        }
+        this.cachedMaxDegree = maxDeg;
     }
 
     // ── Greedy Coloring ─────────────────────────────────────────────
@@ -156,23 +187,24 @@ public class GraphColoringAnalyzer {
         Map<String, Integer> colorAssignment = new HashMap<>();
         Map<String, Set<Integer>> saturation = new HashMap<>();
 
-        // Cache degree per vertex to avoid repeated graph.degree() calls
-        Map<String, Integer> degreeCache = new HashMap<>();
+        // Use the pre-computed degree cache from construction instead of
+        // calling graph.degree() V times here.
         for (String v : vertices) {
             saturation.put(v, new HashSet<>());
-            degreeCache.put(v, graph.degree(v));
         }
 
         // Priority queue ordered by: saturation desc, degree desc, name asc.
         // Using a TreeSet with a Comparator gives O(log V) removal of the
         // max-priority element and O(log V) re-insertion on saturation updates,
         // replacing the previous O(V) linear scan per iteration.
+        // Captures the instance-level degreeCache for O(1) degree lookups.
+        final Map<String, Integer> localDegreeCache = this.degreeCache;
         TreeSet<String> pq = new TreeSet<>((a, b) -> {
             int satA = saturation.get(a).size();
             int satB = saturation.get(b).size();
             if (satA != satB) return Integer.compare(satB, satA); // desc
-            int degA = degreeCache.get(a);
-            int degB = degreeCache.get(b);
+            int degA = localDegreeCache.getOrDefault(a, 0);
+            int degB = localDegreeCache.getOrDefault(b, 0);
             if (degA != degB) return Integer.compare(degB, degA); // desc
             return a.compareTo(b); // asc (tiebreaker for TreeSet uniqueness)
         });
@@ -237,6 +269,20 @@ public class GraphColoringAnalyzer {
      *
      * @return lower bound on chromatic number (clique number estimate)
      */
+    /**
+     * Computes a lower bound on the chromatic number using greedy clique
+     * detection. The chromatic number is at least the size of the largest
+     * clique found.
+     *
+     * <p><b>Performance:</b> Uses pre-built adjacency sets for O(1)
+     * neighbor checks (via {@code HashSet.contains()}) instead of the
+     * previous {@code graph.isNeighbor()} which is O(degree) per call
+     * in JUNG's sparse graph backing store. Also uses the pre-cached
+     * degree map for candidate sorting, eliminating O(V log V)
+     * graph API calls per vertex.</p>
+     *
+     * @return lower bound on chromatic number (clique number estimate)
+     */
     public int chromaticLowerBound() {
         Collection<String> vertices = graph.getVertices();
         if (vertices.isEmpty()) {
@@ -250,16 +296,21 @@ public class GraphColoringAnalyzer {
             List<String> clique = new ArrayList<>();
             clique.add(start);
 
+            Set<String> startNeighbors = adjacency.get(start);
+            if (startNeighbors == null || startNeighbors.isEmpty()) continue;
+
             // Sort candidates by degree descending for better heuristic
-            List<String> candidates = new ArrayList<>();
-            Collection<String> neighbors = GraphUtils.neighborsOf(graph, start);
-            candidates.addAll(neighbors);
-            candidates.sort((a, b) -> Integer.compare(graph.degree(b), graph.degree(a)));
+            List<String> candidates = new ArrayList<>(startNeighbors);
+            candidates.sort((a, b) -> Integer.compare(
+                    degreeCache.getOrDefault(b, 0),
+                    degreeCache.getOrDefault(a, 0)));
 
             for (String candidate : candidates) {
+                // O(1) adjacency check per clique member via HashSet
+                Set<String> candidateNeighbors = adjacency.get(candidate);
                 boolean adjacent = true;
                 for (String member : clique) {
-                    if (!graph.isNeighbor(candidate, member)) {
+                    if (!candidateNeighbors.contains(member)) {
                         adjacent = false;
                         break;
                     }
@@ -456,12 +507,15 @@ public class GraphColoringAnalyzer {
         analysis.put("balanceRatio", largest > 0
             ? (double) smallest / largest : 1.0);
 
-        // Verify each color class is an independent set
+        // Verify each color class is an independent set.
+        // Uses pre-built adjacency sets for O(1) checks instead of
+        // graph.isNeighbor() which is O(degree) per call.
         boolean allIndependent = true;
         for (List<String> cls : classes.values()) {
             for (int i = 0; i < cls.size(); i++) {
+                Set<String> iNeighbors = adjacency.get(cls.get(i));
                 for (int j = i + 1; j < cls.size(); j++) {
-                    if (graph.isNeighbor(cls.get(i), cls.get(j))) {
+                    if (iNeighbors != null && iNeighbors.contains(cls.get(j))) {
                         allIndependent = false;
                         break;
                     }
@@ -492,21 +546,17 @@ public class GraphColoringAnalyzer {
      *
      * @return array with [lower bound, upper bound] for Edge chromatic number
      */
+    /**
+     * Estimates the Edge chromatic number bounds using Vizing's theorem.
+     * Uses the pre-cached max degree — O(1) instead of O(V) graph API calls.
+     *
+     * @return array with [lower bound, upper bound] for Edge chromatic number
+     */
     public int[] edgeChromaticBounds() {
-        Collection<String> vertices = graph.getVertices();
-        if (vertices.isEmpty() || graph.getEdgeCount() == 0) {
+        if (graph.getVertexCount() == 0 || graph.getEdgeCount() == 0) {
             return new int[]{0, 0};
         }
-
-        int maxDegree = 0;
-        for (String v : vertices) {
-            int deg = graph.degree(v);
-            if (deg > maxDegree) {
-                maxDegree = deg;
-            }
-        }
-
-        return new int[]{maxDegree, maxDegree + 1};
+        return new int[]{cachedMaxDegree, cachedMaxDegree + 1};
     }
 
     /**
@@ -515,15 +565,14 @@ public class GraphColoringAnalyzer {
      *
      * @return maximum degree
      */
+    /**
+     * Returns the maximum vertex degree (Δ), using the pre-cached value.
+     * O(1) instead of O(V) graph API calls.
+     *
+     * @return maximum degree
+     */
     public int maxDegree() {
-        int max = 0;
-        for (String v : graph.getVertices()) {
-            int deg = graph.degree(v);
-            if (deg > max) {
-                max = deg;
-            }
-        }
-        return max;
+        return cachedMaxDegree;
     }
 
     // ── Report Generation ───────────────────────────────────────────
@@ -589,8 +638,12 @@ public class GraphColoringAnalyzer {
                 Collections.sort(vertices);
                 break;
             case LARGEST_FIRST:
+                // Use cached degree map for O(1) lookups in the comparator,
+                // eliminating O(V log V) graph.degree() API calls.
                 vertices.sort((a, b) -> {
-                    int cmp = Integer.compare(graph.degree(b), graph.degree(a));
+                    int cmp = Integer.compare(
+                            degreeCache.getOrDefault(b, 0),
+                            degreeCache.getOrDefault(a, 0));
                     return cmp != 0 ? cmp : a.compareTo(b);
                 });
                 break;
@@ -691,8 +744,7 @@ public class GraphColoringAnalyzer {
         // Upper bound on colors needed is max-degree + 1; pre-allocate a
         // boolean array instead of a HashSet<Integer> per vertex to avoid
         // boxing and hashing overhead in the inner loop.
-        int maxDeg = maxDegree();
-        boolean[] usedColors = new boolean[maxDeg + 2];
+        boolean[] usedColors = new boolean[cachedMaxDegree + 2];
 
         for (String vertex : vertexOrder) {
             // Reset only the slots we dirtied (cheaper than Arrays.fill
