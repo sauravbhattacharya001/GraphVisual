@@ -38,6 +38,32 @@ public class GraphSparsificationAnalyzer {
         this.graph = graph;
     }
 
+    /**
+     * Creates a new empty graph containing all vertices from the original
+     * but no edges. Every sparsification method needs this scaffold.
+     */
+    private Graph<String, Edge> newEmptyShell() {
+        Graph<String, Edge> shell = new UndirectedSparseGraph<String, Edge>();
+        for (String vtx : graph.getVertices()) shell.addVertex(vtx);
+        return shell;
+    }
+
+    /**
+     * Copies a single edge into a target graph, duplicating type, weight,
+     * and label. Silently skips edges with null endpoints.
+     *
+     * @return true if the edge was added, false if skipped
+     */
+    private static boolean addEdgeCopy(Graph<String, Edge> target, Edge e) {
+        String u = e.getVertex1(), v = e.getVertex2();
+        if (u == null || v == null) return false;
+        Edge copy = new Edge(e.getType(), u, v);
+        copy.setWeight(e.getWeight());
+        copy.setLabel(e.getLabel());
+        target.addEdge(copy, u, v);
+        return true;
+    }
+
     /** Scores each Edge by importance (0.0-1.0). Higher = more important. */
     public Map<Edge, Double> scoreEdgeImportance() {
         Map<Edge, Double> scores = new LinkedHashMap<Edge, Double>();
@@ -102,8 +128,7 @@ public class GraphSparsificationAnalyzer {
 
     /** Spanning tree (Kruskal's MST). */
     public Graph<String, Edge> spanningTreeSparsify() {
-        Graph<String, Edge> sparse = new UndirectedSparseGraph<String, Edge>();
-        for (String vtx : graph.getVertices()) sparse.addVertex(vtx);
+        Graph<String, Edge> sparse = newEmptyShell();
         if (graph.getVertexCount() <= 1) return sparse;
 
         List<Edge> edges = new ArrayList<Edge>(graph.getEdges());
@@ -117,9 +142,7 @@ public class GraphSparsificationAnalyzer {
             if (u == null || vt == null) continue;
             String ru = ufFind(par, u), rv = ufFind(par, vt);
             if (!ru.equals(rv)) {
-                Edge ne = new Edge(e.getType(), u, vt);
-                ne.setWeight(e.getWeight()); ne.setLabel(e.getLabel());
-                sparse.addEdge(ne, u, vt);
+                addEdgeCopy(sparse, e);
                 ufUnion(par, rnk, ru, rv);
             }
         }
@@ -139,17 +162,11 @@ public class GraphSparsificationAnalyzer {
     /** Random sparsification — keeps each Edge with given probability. */
     public Graph<String, Edge> randomSparsify(double keepProb, long seed) {
         if (keepProb < 0 || keepProb > 1) throw new IllegalArgumentException("keepProbability must be between 0 and 1");
-        Graph<String, Edge> sparse = new UndirectedSparseGraph<String, Edge>();
-        for (String vtx : graph.getVertices()) sparse.addVertex(vtx);
+        Graph<String, Edge> sparse = newEmptyShell();
         Random rng = new Random(seed);
         for (Edge e : graph.getEdges()) {
             if (rng.nextDouble() < keepProb) {
-                String u = e.getVertex1(), vt = e.getVertex2();
-                if (u != null && vt != null) {
-                    Edge ne = new Edge(e.getType(), u, vt);
-                    ne.setWeight(e.getWeight()); ne.setLabel(e.getLabel());
-                    sparse.addEdge(ne, u, vt);
-                }
+                addEdgeCopy(sparse, e);
             }
         }
         return sparse;
@@ -157,16 +174,10 @@ public class GraphSparsificationAnalyzer {
 
     /** Threshold sparsification — keeps edges with weight >= threshold. */
     public Graph<String, Edge> thresholdSparsify(float threshold) {
-        Graph<String, Edge> sparse = new UndirectedSparseGraph<String, Edge>();
-        for (String vtx : graph.getVertices()) sparse.addVertex(vtx);
+        Graph<String, Edge> sparse = newEmptyShell();
         for (Edge e : graph.getEdges()) {
             if (e.getWeight() >= threshold) {
-                String u = e.getVertex1(), vt = e.getVertex2();
-                if (u != null && vt != null) {
-                    Edge ne = new Edge(e.getType(), u, vt);
-                    ne.setWeight(e.getWeight()); ne.setLabel(e.getLabel());
-                    sparse.addEdge(ne, u, vt);
-                }
+                addEdgeCopy(sparse, e);
             }
         }
         return sparse;
@@ -175,8 +186,7 @@ public class GraphSparsificationAnalyzer {
     /** Local sparsification — keep top-k edges per vertex by weight. */
     public Graph<String, Edge> localSparsify(int k) {
         if (k < 1) throw new IllegalArgumentException("k must be at least 1");
-        Graph<String, Edge> sparse = new UndirectedSparseGraph<String, Edge>();
-        for (String vtx : graph.getVertices()) sparse.addVertex(vtx);
+        Graph<String, Edge> sparse = newEmptyShell();
         Set<String> added = new HashSet<String>();
 
         for (String vertex : graph.getVertices()) {
@@ -189,9 +199,7 @@ public class GraphSparsificationAnalyzer {
                 if (u == null || vt == null) continue;
                 String key = u.compareTo(vt) < 0 ? u + "|" + vt : vt + "|" + u;
                 if (!added.contains(key)) {
-                    Edge ne = new Edge(e.getType(), u, vt);
-                    ne.setWeight(e.getWeight()); ne.setLabel(e.getLabel());
-                    sparse.addEdge(ne, u, vt);
+                    addEdgeCopy(sparse, e);
                     added.add(key);
                 }
                 cnt++;
@@ -203,8 +211,7 @@ public class GraphSparsificationAnalyzer {
     /** Importance-based sparsification — keeps the most important edges. */
     public Graph<String, Edge> importanceSparsify(double keepRatio) {
         if (keepRatio < 0 || keepRatio > 1) throw new IllegalArgumentException("keepRatio must be between 0 and 1");
-        Graph<String, Edge> sparse = new UndirectedSparseGraph<String, Edge>();
-        for (String vtx : graph.getVertices()) sparse.addVertex(vtx);
+        Graph<String, Edge> sparse = newEmptyShell();
 
         Map<Edge, Double> scores = scoreEdgeImportance();
         List<Map.Entry<Edge, Double>> sorted = new ArrayList<Map.Entry<Edge, Double>>(scores.entrySet());
@@ -215,13 +222,7 @@ public class GraphSparsificationAnalyzer {
         int cnt = 0;
         for (Map.Entry<Edge, Double> entry : sorted) {
             if (cnt >= keep) break;
-            Edge e = entry.getKey();
-            String u = e.getVertex1(), vt = e.getVertex2();
-            if (u != null && vt != null) {
-                Edge ne = new Edge(e.getType(), u, vt);
-                ne.setWeight(e.getWeight()); ne.setLabel(e.getLabel());
-                sparse.addEdge(ne, u, vt);
-            }
+            addEdgeCopy(sparse, entry.getKey());
             cnt++;
         }
         return sparse;
