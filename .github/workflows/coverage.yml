@@ -58,6 +58,19 @@ jobs:
             -d build/test/classes \
             @test-sources.txt
 
+      - name: Discover test classes
+        id: discover-tests
+        working-directory: Gvisual
+        run: |
+          # Auto-discover all *Test classes from compiled test output
+          TEST_CLASSES=$(find build/test/classes -name '*Test.class' \
+            | sed 's|build/test/classes/||;s|\.class$||;s|/|.|g' \
+            | sort)
+          echo "Found $(echo "$TEST_CLASSES" | wc -l) test classes"
+          echo "$TEST_CLASSES"
+          # Store as space-separated for JUnitCore
+          echo "classes=$(echo $TEST_CLASSES | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
       - name: Run tests with JaCoCo coverage
         working-directory: Gvisual
         run: |
@@ -65,12 +78,7 @@ jobs:
             -javaagent:lib/test/jacocoagent.jar=destfile=build/jacoco.exec,includes=gvisual.*:app.* \
             -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
             org.junit.runner.JUnitCore \
-            app.UtilMethodsTest \
-            gvisual.EdgeTest \
-            gvisual.GraphStatsTest \
-            gvisual.ShortestPathFinderTest \
-            gvisual.CommunityDetectorTest \
-            gvisual.GraphMLExporterTest
+            ${{ steps.discover-tests.outputs.classes }}
 
       - name: Generate coverage report
         working-directory: Gvisual
