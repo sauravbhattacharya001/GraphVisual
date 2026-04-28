@@ -5,7 +5,6 @@ import edu.uci.ics.jung.graph.Graph;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
-import java.awt.Dimension;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;

@@ -6,7 +6,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Graph Intelligence Advisor — proactively analyzes a graph's structural
@@ -573,7 +572,7 @@ public class GraphIntelligenceAdvisor {
         html.append("<div class=\"header\">\n");
         html.append("  <h1>&#129504; Graph Intelligence Advisor</h1>\n");
         html.append("  <p class=\"subtitle\">Proactive analysis recommendations based on structural fingerprinting</p>\n");
-        html.append("  <p class=\"meta\">Generated: ").append(escapeHtml(timestamp)).append(" &bull; ");
+        html.append("  <p class=\"meta\">Generated: ").append(ExportUtils.escapeHtml(timestamp)).append(" &bull; ");
         html.append(fingerprint.nodeCount).append(" nodes &bull; ");
         html.append(fingerprint.edgeCount).append(" edges</p>\n");
         html.append("</div>\n\n");
@@ -621,7 +620,7 @@ public class GraphIntelligenceAdvisor {
                 double pct = 100.0 * entry.getValue() / maxCount;
                 String color = barColors[ci % barColors.length];
                 html.append("    <div class=\"bar-row\">\n");
-                html.append("      <span class=\"bar-label\">").append(escapeHtml(entry.getKey())).append("</span>\n");
+                html.append("      <span class=\"bar-label\">").append(ExportUtils.escapeHtml(entry.getKey())).append("</span>\n");
                 html.append("      <div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:")
                         .append(String.format("%.1f", pct)).append("%;background:").append(color).append("\"></div></div>\n");
                 html.append("      <span class=\"bar-count\">").append(entry.getValue()).append("</span>\n");
@@ -644,18 +643,18 @@ public class GraphIntelligenceAdvisor {
                 html.append("  <div class=\"rec-card\">\n");
                 html.append("    <div class=\"rec-header\">\n");
                 html.append("      <span class=\"rec-rank\">#").append(rank++).append("</span>\n");
-                html.append("      <span class=\"rec-name\">").append(escapeHtml(r.getAnalysisName())).append("</span>\n");
-                html.append("      <span class=\"rec-category\">").append(escapeHtml(r.getCategory())).append("</span>\n");
+                html.append("      <span class=\"rec-name\">").append(ExportUtils.escapeHtml(r.getAnalysisName())).append("</span>\n");
+                html.append("      <span class=\"rec-category\">").append(ExportUtils.escapeHtml(r.getCategory())).append("</span>\n");
                 html.append("      <span class=\"rec-conf ").append(confClass).append("\">")
                         .append(String.format("%.0f%%", r.getConfidence() * 100)).append("</span>\n");
                 html.append("      <span class=\"rec-diff diff-").append(r.getDifficulty()).append("\">")
-                        .append(escapeHtml(r.getDifficulty())).append("</span>\n");
+                        .append(ExportUtils.escapeHtml(r.getDifficulty())).append("</span>\n");
                 html.append("    </div>\n");
                 html.append("    <div class=\"rec-body\">\n");
                 html.append("      <p class=\"rec-reason\"><strong>Why:</strong> ")
-                        .append(escapeHtml(r.getReasoning())).append("</p>\n");
+                        .append(ExportUtils.escapeHtml(r.getReasoning())).append("</p>\n");
                 html.append("      <p class=\"rec-insight\"><strong>Expected insight:</strong> ")
-                        .append(escapeHtml(r.getExpectedInsight())).append("</p>\n");
+                        .append(ExportUtils.escapeHtml(r.getExpectedInsight())).append("</p>\n");
                 html.append("    </div>\n");
                 html.append("  </div>\n");
             }
@@ -674,15 +673,9 @@ public class GraphIntelligenceAdvisor {
 
     private void appendMetricCard(StringBuilder html, String label, String value, String level) {
         html.append("    <div class=\"metric-card ").append(level).append("\">\n");
-        html.append("      <div class=\"metric-value\">").append(escapeHtml(value)).append("</div>\n");
-        html.append("      <div class=\"metric-label\">").append(escapeHtml(label)).append("</div>\n");
+        html.append("      <div class=\"metric-value\">").append(ExportUtils.escapeHtml(value)).append("</div>\n");
+        html.append("      <div class=\"metric-label\">").append(ExportUtils.escapeHtml(label)).append("</div>\n");
         html.append("    </div>\n");
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private String getCSS() {

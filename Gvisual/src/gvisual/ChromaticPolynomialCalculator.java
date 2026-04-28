@@ -3,7 +3,6 @@ package gvisual;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Chromatic Polynomial Calculator — computes the chromatic polynomial P(G, k)

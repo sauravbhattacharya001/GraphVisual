@@ -79,14 +79,14 @@ public class GraphDiffHtmlExporter {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         sb.append("<meta charset=\"UTF-8\">\n");
-        sb.append("<title>").append(escapeHtml(title)).append("</title>\n");
+        sb.append("<title>").append(ExportUtils.escapeHtml(title)).append("</title>\n");
         sb.append("<script src=\"https://d3js.org/d3.v7.min.js\"></script>\n");
         sb.append("<style>\n");
         appendCss(sb);
         sb.append("</style>\n</head>\n<body class=\"").append(darkMode ? "dark" : "light").append("\">\n");
 
         sb.append("<div id=\"header\">\n");
-        sb.append("  <h1>").append(escapeHtml(title)).append("</h1>\n");
+        sb.append("  <h1>").append(ExportUtils.escapeHtml(title)).append("</h1>\n");
         sb.append("  <div id=\"controls\">\n");
         sb.append("    <label><input type=\"checkbox\" id=\"showAdded\" checked> Added</label>\n");
         sb.append("    <label><input type=\"checkbox\" id=\"showRemoved\" checked> Removed</label>\n");
@@ -99,8 +99,8 @@ public class GraphDiffHtmlExporter {
         sb.append("  <div id=\"stats\"></div>\n");
         sb.append("  <div id=\"graph\"></div>\n");
         sb.append("  <div id=\"legend\">\n");
-        sb.append("    <div class=\"legend-item\"><span class=\"dot added\"></span> Added in ").append(escapeHtml(labelB)).append("</div>\n");
-        sb.append("    <div class=\"legend-item\"><span class=\"dot removed\"></span> Removed from ").append(escapeHtml(labelA)).append("</div>\n");
+        sb.append("    <div class=\"legend-item\"><span class=\"dot added\"></span> Added in ").append(ExportUtils.escapeHtml(labelB)).append("</div>\n");
+        sb.append("    <div class=\"legend-item\"><span class=\"dot removed\"></span> Removed from ").append(ExportUtils.escapeHtml(labelA)).append("</div>\n");
         sb.append("    <div class=\"legend-item\"><span class=\"dot common\"></span> Common</div>\n");
         sb.append("  </div>\n");
         sb.append("</div>\n");
@@ -358,10 +358,6 @@ public class GraphDiffHtmlExporter {
             "\n" +
             "update();\n"
         );
-    }
-
-    private static String escapeHtml(String s) {
-        return ExportUtils.escapeHtml(s);
     }
 
     /**

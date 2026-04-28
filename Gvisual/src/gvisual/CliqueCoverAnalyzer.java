@@ -2,7 +2,6 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Clique Cover Analyzer — partitions graph vertices into the fewest cliques.

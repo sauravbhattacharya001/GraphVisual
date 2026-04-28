@@ -308,14 +308,14 @@ public class EdgeBetweennessAnalyzer {
         sb.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         sb.append("<meta charset=\"UTF-8\">\n");
         sb.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-        sb.append("<title>").append(escapeHtml(title)).append("</title>\n");
+        sb.append("<title>").append(ExportUtils.escapeHtml(title)).append("</title>\n");
         sb.append("<style>\n");
         sb.append(getCSS());
         sb.append("</style>\n</head>\n<body>\n");
 
         // Header
         sb.append("<div class=\"header\">\n");
-        sb.append("<h1>").append(escapeHtml(title)).append("</h1>\n");
+        sb.append("<h1>").append(ExportUtils.escapeHtml(title)).append("</h1>\n");
         sb.append("<p>Edge betweenness centrality analysis — identifies critical edges acting as bridges between communities</p>\n");
         sb.append("</div>\n");
 
@@ -356,8 +356,8 @@ public class EdgeBetweennessAnalyzer {
             String cls = es.isBridge() ? " class=\"bridge-row\"" : "";
             sb.append("<tr").append(cls).append(">");
             sb.append("<td>").append(rank).append("</td>");
-            sb.append("<td>").append(escapeHtml(es.getSource())).append("</td>");
-            sb.append("<td>").append(escapeHtml(es.getTarget())).append("</td>");
+            sb.append("<td>").append(ExportUtils.escapeHtml(es.getSource())).append("</td>");
+            sb.append("<td>").append(ExportUtils.escapeHtml(es.getTarget())).append("</td>");
             sb.append("<td>").append(String.format("%.4f", es.getBetweenness())).append("</td>");
             sb.append("<td><div class=\"meter\"><div class=\"meter-fill\" style=\"width:").append(String.format("%.1f", rel)).append("%\"></div></div></td>");
             sb.append("<td>").append(es.isBridge() ? "🌉 Yes" : "—").append("</td>");
@@ -375,7 +375,7 @@ public class EdgeBetweennessAnalyzer {
             sb.append("<p>Removing any bridge edge disconnects the graph into separate components.</p>\n<ul>\n");
             for (EdgeScore es : ranking) {
                 if (es.isBridge()) {
-                    sb.append("<li><strong>").append(escapeHtml(es.getSource())).append(" ↔ ").append(escapeHtml(es.getTarget()));
+                    sb.append("<li><strong>").append(ExportUtils.escapeHtml(es.getSource())).append(" ↔ ").append(ExportUtils.escapeHtml(es.getTarget()));
                     sb.append("</strong> — betweenness: ").append(String.format("%.4f", es.getBetweenness())).append("</li>\n");
                 }
             }
@@ -409,10 +409,6 @@ public class EdgeBetweennessAnalyzer {
         sb.append("<div class=\"card-value\">").append(value).append("</div>");
         sb.append("<div class=\"card-label\">").append(label).append("</div>");
         sb.append("</div>\n");
-    }
-
-    private String escapeHtml(String s) {
-        return ExportUtils.escapeHtml(s);
     }
 
     private String getCSS() {

@@ -5,7 +5,6 @@ import edu.uci.ics.jung.graph.Graph;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Exports a {@link TemporalGraph} as a self-contained interactive HTML timeline
@@ -156,13 +155,13 @@ public class GraphTimelineExporter {
         sb.append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         sb.append("<meta charset=\"UTF-8\">\n");
         sb.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-        sb.append("<title>").append(escapeHtml(title)).append("</title>\n");
+        sb.append("<title>").append(ExportUtils.escapeHtml(title)).append("</title>\n");
         sb.append("<style>\n");
         sb.append(getCSS());
         sb.append("</style>\n</head>\n<body>\n");
         sb.append("<div id=\"app\">\n");
         sb.append("  <div id=\"header\">\n");
-        sb.append("    <h1>").append(escapeHtml(title)).append("</h1>\n");
+        sb.append("    <h1>").append(ExportUtils.escapeHtml(title)).append("</h1>\n");
         sb.append("    <div id=\"controls\">\n");
         sb.append("      <button id=\"btnPrev\" title=\"Previous\">⏮</button>\n");
         sb.append("      <button id=\"btnPlay\" title=\"Play/Pause\">▶</button>\n");
@@ -449,9 +448,5 @@ public class GraphTimelineExporter {
 
     private static String escapeJson(String s) {
         return ExportUtils.escapeJs(s);
-    }
-
-    private static String escapeHtml(String s) {
-        return ExportUtils.escapeHtml(s);
     }
 }
