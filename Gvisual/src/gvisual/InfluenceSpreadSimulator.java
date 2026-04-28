@@ -56,12 +56,14 @@ public class InfluenceSpreadSimulator {
     private final Map<String, List<String>> neighborCache;
 
     /**
-     * Pre-cached Edge weights: "from\0to" → weight.
+     * Pre-cached Edge weights: source → (target → weight).
      * Only entries with Edge weight in (0, 1] are stored; missing keys
-     * mean "use default probability". Avoids O(degree) findEdge() lookups
-     * that dominated Monte Carlo hot loops.
+     * mean "use default probability". Uses a nested map to avoid
+     * string concatenation ("from\0to") on every edge lookup in Monte
+     * Carlo hot loops — eliminates O(E × rounds × trials) temporary
+     * String allocations that dominated GC pressure.
      */
-    private final Map<String, Double> edgeWeightCache;
+    private final Map<String, Map<String, Double>> edgeWeightCache;
 
     /**
      * Pre-cached predecessor lists for directed graphs: node → list of
@@ -114,11 +116,14 @@ public class InfluenceSpreadSimulator {
     /**
      * Pre-caches Edge weights that override the default probability.
      * Only stores edges where weight is in (0, 1] — the range that
-     * getEdgeProbability would use instead of the default. Key format:
-     * "from\0to" (null-char separator — never appears in vertex IDs).
+     * getEdgeProbability would use instead of the default.
+     *
+     * <p>Uses a nested Map (source → target → weight) instead of the
+     * previous concatenated-key approach ("from\0to") to eliminate
+     * per-lookup String allocation in Monte Carlo hot loops.</p>
      */
-    private Map<String, Double> buildEdgeWeightCache() {
-        Map<String, Double> cache = new HashMap<String, Double>();
+    private Map<String, Map<String, Double>> buildEdgeWeightCache() {
+        Map<String, Map<String, Double>> cache = new HashMap<String, Map<String, Double>>();
         for (Edge e : graph.getEdges()) {
             double w = e.getWeight();
             if (w > 0 && w <= 1.0) {
@@ -127,10 +132,10 @@ public class InfluenceSpreadSimulator {
                     Iterator<String> it = endpoints.iterator();
                     String u = it.next();
                     String v = it.next();
-                    cache.put(u + "\0" + v, w);
+                    cache.computeIfAbsent(u, k -> new HashMap<String, Double>()).put(v, w);
                     // For undirected graphs, cache both directions
                     if (!(graph instanceof DirectedGraph)) {
-                        cache.put(v + "\0" + u, w);
+                        cache.computeIfAbsent(v, k -> new HashMap<String, Double>()).put(u, w);
                     }
                 }
             }
@@ -731,8 +736,12 @@ public class InfluenceSpreadSimulator {
     }
 
     private double getEdgeProbability(String from, String to, double defaultProb) {
-        Double cached = edgeWeightCache.get(from + "\0" + to);
-        return cached != null ? cached : defaultProb;
+        Map<String, Double> targets = edgeWeightCache.get(from);
+        if (targets != null) {
+            Double cached = targets.get(to);
+            if (cached != null) return cached;
+        }
+        return defaultProb;
     }
 
     private RoundSnapshot createSnapshot(int round, Map<String, NodeState> state) {
