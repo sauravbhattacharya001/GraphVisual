@@ -393,65 +393,6 @@ public class LinkPredictionAnalyzer {
                     return Double.compare(b.getScore(), a.getScore());
                 };
 
-    /**
-     * Holds the results of enumerating all candidate (non-Edge) vertex pairs,
-     * along with precomputed adjacency and common-neighbor sets. This lets
-     * {@link #predict} and {@link #predictEnsemble} share the expensive O(V²)
-     * pair enumeration, adjacency construction, and common-neighbor
-     * computation instead of duplicating it.
-     */
-    private static class PairEvaluation {
-        final int n;
-        final int existingEdges;
-        final long possibleEdges;
-        final Map<String, Set<String>> adjacency;
-        /** Ordered list of candidate pairs as [u, v] arrays. */
-        final List<String[]> pairs;
-        /** Common neighbors for each pair, same indexing as pairs. */
-        final List<Set<String>> commonNeighbors;
-
-        PairEvaluation(int n, int existingEdges, long possibleEdges,
-                       Map<String, Set<String>> adjacency,
-                       List<String[]> pairs, List<Set<String>> commonNeighbors) {
-            this.n = n;
-            this.existingEdges = existingEdges;
-            this.possibleEdges = possibleEdges;
-            this.adjacency = adjacency;
-            this.pairs = pairs;
-            this.commonNeighbors = commonNeighbors;
-        }
-    }
-
-    /**
-     * Enumerates all non-Edge vertex pairs, builds adjacency, and computes
-     * common neighbors for each pair. Called once by predict/predictEnsemble.
-     */
-    private PairEvaluation evaluatePairs() {
-        Collection<String> vertices = graph.getVertices();
-        int n = vertices.size();
-        int existingEdges = graph.getEdgeCount();
-        long possibleEdges = (long) n * (n - 1) / 2;
-        Map<String, Set<String>> adjacency = adjacency();
-
-        List<String> vertexList = new ArrayList<String>(vertices);
-        List<String[]> pairs = new ArrayList<String[]>();
-        List<Set<String>> commonNeighbors = new ArrayList<Set<String>>();
-
-        for (int i = 0; i < vertexList.size(); i++) {
-            for (int j = i + 1; j < vertexList.size(); j++) {
-                String u = vertexList.get(i);
-                String v = vertexList.get(j);
-                if (adjacency.get(u).contains(v)) continue;
-
-                pairs.add(new String[]{u, v});
-                commonNeighbors.add(getCommonNeighbors(adjacency, u, v));
-            }
-        }
-
-        return new PairEvaluation(n, existingEdges, possibleEdges,
-                adjacency, pairs, commonNeighbors);
-    }
-
     // ── Scoring functions ───────────────────────────────────────
 
     private double computeScore(Method method, Map<String, Set<String>> adjacency,

@@ -1,7 +1,5 @@
 package gvisual;
 
-import edu.uci.ics.jung.graph.Graph;
-
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;

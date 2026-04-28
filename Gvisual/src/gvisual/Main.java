@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -26,7 +25,6 @@ import java.util.logging.Logger;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.collections15.Transformer;
@@ -675,14 +673,6 @@ public class Main extends JFrame {
             @Override public Graph<String, Edge> getGraph() { return g; }
             @Override public void onOverlayChanged() { syncRenderers(); refreshGraph(); }
         });
-    }
-
-    /**
-     * Returns a human-readable label for Edge type codes.
-     */
-    private String getDominantLabel(String typeCode) {
-        EdgeType type = EdgeType.fromCode(typeCode);
-        return type != null ? type.getDisplayLabel() : typeCode;
     }
 
     /**
