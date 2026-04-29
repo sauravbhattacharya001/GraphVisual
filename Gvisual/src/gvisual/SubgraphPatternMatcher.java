@@ -378,6 +378,22 @@ public class SubgraphPatternMatcher {
                 matches.size() >= maxMatches);
     }
 
+    /**
+     * VF2-style backtracking with candidate domain reduction.
+     *
+     * <p><b>Optimisation:</b> When the current pattern node has at least one
+     * already-mapped neighbor in the pattern, its candidate domain is
+     * restricted to the target-graph neighbors of that mapped counterpart
+     * (intersected across all mapped pattern neighbors when there are several).
+     * This reduces the inner loop from O(|V_target|) to O(degree) at each
+     * recursive depth after the first, eliminating the dominant cost in
+     * dense or large target graphs and providing exponential pruning of the
+     * search tree.</p>
+     *
+     * <p>For the first pattern node (or any pattern node with no yet-mapped
+     * neighbors), the full target vertex set is still enumerated, but this
+     * occurs at most once in typical connected patterns.</p>
+     */
     private void backtrack(List<String> patternOrder, int depth,
                            Map<String, String> mapping,
                            Set<String> usedTargetNodes,
@@ -402,8 +418,13 @@ public class SubgraphPatternMatcher {
         String patternNode = patternOrder.get(depth);
         int requiredDegree = patternDegree.getOrDefault(patternNode, 0);
 
-        // Get candidates: target nodes not yet used
-        for (String candidate : target.getVertices()) {
+        // Candidate domain reduction: if patternNode has already-mapped
+        // neighbors, restrict candidates to target neighbors of those
+        // mapped counterparts (intersection across all mapped neighbors).
+        Collection<String> candidateDomain = computeCandidateDomain(
+                patternNode, mapping, patternAdj, targetAdj);
+
+        for (String candidate : candidateDomain) {
             if (usedTargetNodes.contains(candidate)) continue;
 
             // Degree pruning
@@ -431,6 +452,60 @@ public class SubgraphPatternMatcher {
                 usedTargetNodes.remove(candidate);
             }
         }
+    }
+
+    /**
+     * Computes the candidate domain for a pattern node by intersecting
+     * the target neighborhoods of all already-mapped pattern neighbors.
+     *
+     * <p>If the pattern node has no mapped neighbors, returns the full
+     * target vertex set. If it has one mapped neighbor, returns that
+     * neighbor's target adjacency set directly (no copy). If multiple,
+     * returns the intersection of their adjacency sets — starting from
+     * the smallest set for minimum iteration.</p>
+     *
+     * @return candidate target nodes (unmodifiable view or new set)
+     */
+    private Collection<String> computeCandidateDomain(
+            String patternNode,
+            Map<String, String> mapping,
+            Map<String, Set<String>> patternAdj,
+            Map<String, Set<String>> targetAdj) {
+
+        Set<String> patternNeighbors = patternAdj.getOrDefault(patternNode,
+                Collections.emptySet());
+
+        // Collect target adjacency sets for all already-mapped pattern neighbors
+        List<Set<String>> constraintSets = null;
+        for (String pn : patternNeighbors) {
+            String mappedTarget = mapping.get(pn);
+            if (mappedTarget != null) {
+                Set<String> nbrs = targetAdj.getOrDefault(mappedTarget,
+                        Collections.emptySet());
+                if (constraintSets == null) {
+                    constraintSets = new ArrayList<>(4);
+                }
+                constraintSets.add(nbrs);
+            }
+        }
+
+        if (constraintSets == null) {
+            // No mapped neighbors — must scan all target vertices
+            return target.getVertices();
+        }
+
+        if (constraintSets.size() == 1) {
+            // Single constraint: return its neighbor set directly (no copy)
+            return constraintSets.get(0);
+        }
+
+        // Multiple constraints: intersect starting from smallest set
+        constraintSets.sort(Comparator.comparingInt(Set::size));
+        Set<String> domain = new HashSet<>(constraintSets.get(0));
+        for (int i = 1; i < constraintSets.size() && !domain.isEmpty(); i++) {
+            domain.retainAll(constraintSets.get(i));
+        }
+        return domain;
     }
 
     private boolean isConsistent(String patternNode, String candidate,
