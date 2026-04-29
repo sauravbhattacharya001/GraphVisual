@@ -519,6 +519,150 @@ Include:
 - Impact on existing functionality
 - References (papers, existing implementations) if applicable
 
+## Reproducing CI Locally
+
+Before pushing, replicate exactly what CI does:
+
+### Full Build + Test (mirrors `ci.yml`)
+
+```bash
+cd Gvisual
+
+# JDK 11 build (CI primary)
+mkdir -p build/classes build/test/classes
+find src -name '*.java' > sources.txt
+javac -source 8 -target 8 \
+  -cp "$(find lib -name '*.jar' | tr '\n' ':')" \
+  -d build/classes @sources.txt
+
+# Compile tests
+find test -name '*.java' > test_sources.txt
+javac -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+  -d build/test/classes @test_sources.txt
+
+# Run all tests
+java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+  org.junit.runner.JUnitCore $(find build/test/classes -name '*Test.class' \
+  | sed 's|build/test/classes/||;s|/|.|g;s|\.class||')
+```
+
+### Using Maven (simpler)
+
+```bash
+mvn clean compile          # Build only
+mvn clean test             # Build + run tests
+mvn clean verify           # Full verification
+```
+
+### Docker Build
+
+Reproduces the full CI environment:
+
+```bash
+docker build -t graphvisual:local .
+# Runs tests as part of the multi-stage build
+```
+
+### Cross-JDK Testing
+
+CI tests on both JDK 11 and JDK 17. If you have both installed:
+
+```bash
+JAVA_HOME=/path/to/jdk11 mvn test
+JAVA_HOME=/path/to/jdk17 mvn test
+```
+
+### CodeQL Locally
+
+Install the [CodeQL CLI](https://github.com/github/codeql-action) and run:
+
+```bash
+codeql database create graphvisual-db --language=java --source-root=.
+codeql database analyze graphvisual-db codeql/java-queries:codeql-suites/java-security-extended.qls --format=sarif-latest --output=results.sarif
+```
+
+## Performance Benchmarking
+
+GraphVisual includes `GraphBenchmarkSuite` — a collection of classic network science benchmark graphs for testing algorithm performance.
+
+### Running Benchmarks
+
+```java
+import gvisual.GraphBenchmarkSuite;
+
+// Generate all benchmark graphs
+List<GraphBenchmarkSuite.BenchmarkGraph> benchmarks = GraphBenchmarkSuite.getAllBenchmarks();
+
+// Time your analyzer against increasing graph sizes
+for (BenchmarkGraph bg : benchmarks) {
+    long start = System.nanoTime();
+    YourAnalyzer analyzer = new YourAnalyzer(bg.getGraph());
+    analyzer.analyze();
+    long elapsed = System.nanoTime() - start;
+    System.out.printf("%s (%d nodes): %.2f ms%n",
+        bg.getName(), bg.getGraph().getVertexCount(), elapsed / 1e6);
+}
+```
+
+### Performance Guidelines
+
+| Graph Size | Acceptable Response Time |
+|------------|--------------------------|
+| < 100 nodes | < 10 ms |
+| 100–1,000 nodes | < 100 ms |
+| 1,000–10,000 nodes | < 1 second |
+| > 10,000 nodes | Document complexity |
+
+### Profiling Tips
+
+1. **Use `GraphBenchmarkSuite`** — don't invent random graph generators for every test
+2. **Measure wall-clock time** for user-facing operations
+3. **Profile before optimizing** — use VisualVM or async-profiler
+4. **Document complexity** — add `@implNote` Javadoc with big-O for non-trivial algorithms
+5. **Avoid premature allocation** — reuse collections across iterations when safe
+6. **Precompute** adjacency sets or degree caches if your analyzer does repeated neighbor lookups
+
+### Regression Testing
+
+When submitting a performance PR:
+1. Show before/after timings on at least 2 benchmark graphs
+2. Include the graph size and your hardware specs
+3. Verify correctness hasn't regressed (same outputs on same inputs)
+
+## Dependency Management
+
+GraphVisual uses a hybrid approach:
+
+- **Maven (`pom.xml`)** — for CI, CodeQL, and IDE integration
+- **Local JARs (`Gvisual/lib/`)** — for compilation without Maven (legacy support)
+
+### Adding a New Dependency
+
+1. Add to `pom.xml` with appropriate `<scope>` (compile, test, provided)
+2. Place the JAR in `Gvisual/lib/` for non-Maven builds
+3. Update `.github/copilot-setup-steps.yml` if the dep affects build steps
+4. Document why it's needed in the PR description
+
+### Current Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| JUNG | 2.0.1 | Graph data structures & basic algorithms |
+| PostgreSQL JDBC | 42.7.x | Data pipeline database connectivity |
+| Commons IO | 2.x | File/stream utilities |
+| JUnit 4 | 4.13.x | Test framework |
+
+### Updating Dependencies
+
+Dependabot manages automated updates. To manually update:
+
+```bash
+mvn versions:display-dependency-updates
+mvn versions:use-latest-releases -DallowMajorUpdates=false
+```
+
+Always run the full test suite after a dependency update.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
