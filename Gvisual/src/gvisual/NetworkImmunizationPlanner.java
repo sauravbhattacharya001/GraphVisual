@@ -141,10 +141,26 @@ public class NetworkImmunizationPlanner {
 
     /**
      * Run the full autonomous immunization planning pipeline.
+     *
+     * <p>Performance: precomputes centrality rankings (betweenness, PageRank, K-Shell)
+     * once and reuses them across all budget levels and threshold searches, eliminating
+     * redundant O(V²+VE) recomputations that previously occurred ~49× per plan() call.</p>
      */
     public ImmunizationPlan plan(Graph<String, Edge> graph, double budgetFraction) {
         int n = graph.getVertexCount();
         if (n == 0) throw new IllegalArgumentException("Graph is empty");
+
+        // Precompute centrality rankings once — avoids redundant O(V²+VE) recomputation
+        // across budget sweep (6 levels × 6 strategies) + threshold search (~10 iterations).
+        List<String> degreeRanked = computeDegreeRanking(graph);
+        List<String> betweennessRanked = computeBetweennessRanking(graph);
+        List<String> pageRankRanked = computePageRankRanking(graph, 0.85, 30);
+        List<String> kShellRanked = computeKShellRanking(graph);
+        Map<Strategy, List<String>> rankings = new EnumMap<>(Strategy.class);
+        rankings.put(Strategy.DEGREE, degreeRanked);
+        rankings.put(Strategy.BETWEENNESS, betweennessRanked);
+        rankings.put(Strategy.PAGERANK, pageRankRanked);
+        rankings.put(Strategy.KSHELL, kShellRanked);
 
         // 1. Run baseline epidemic (no immunization)
         EpidemicResult baseline = runEpidemic(graph, Collections.emptySet());
@@ -152,7 +168,7 @@ public class NetworkImmunizationPlanner {
         // 2. Evaluate each strategy at the given budget
         List<StrategyResult> results = new ArrayList<>();
         for (Strategy strategy : Strategy.values()) {
-            List<String> immunized = selectNodes(graph, strategy, budgetFraction);
+            List<String> immunized = selectNodesFromRankings(graph, strategy, budgetFraction, rankings);
             Set<String> immunizedSet = new HashSet<>(immunized);
             EpidemicResult epidemic = runEpidemic(graph, immunizedSet);
             double effectiveness = baseline.totalInfected > 0
@@ -170,7 +186,7 @@ public class NetworkImmunizationPlanner {
         for (Strategy strategy : Strategy.values()) {
             double[] effectivenessArr = new double[budgetLevels.length];
             for (int i = 0; i < budgetLevels.length; i++) {
-                List<String> immunized = selectNodes(graph, strategy, budgetLevels[i]);
+                List<String> immunized = selectNodesFromRankings(graph, strategy, budgetLevels[i], rankings);
                 EpidemicResult ep = runEpidemic(graph, new HashSet<>(immunized));
                 effectivenessArr[i] = baseline.totalInfected > 0
                         ? 1.0 - (ep.totalInfected / baseline.totalInfected) : 0.0;
@@ -179,7 +195,7 @@ public class NetworkImmunizationPlanner {
         }
 
         // 5. Find critical threshold for recommended strategy
-        double criticalThreshold = findCriticalThreshold(graph, recommended, baseline);
+        double criticalThreshold = findCriticalThresholdFromRankings(graph, recommended, baseline, rankings);
 
         return new ImmunizationPlan(results, recommended, criticalThreshold, baseline, n, budgetSweep);
     }
@@ -274,25 +290,26 @@ public class NetworkImmunizationPlanner {
     }
 
     /**
-     * Select nodes to immunize based on the given strategy.
+     * Select nodes to immunize using precomputed rankings.
+     * Rankings are computed once per plan() call, eliminating redundant centrality computations.
      */
-    private List<String> selectNodes(Graph<String, Edge> graph, Strategy strategy, double budgetFraction) {
+    private List<String> selectNodesFromRankings(Graph<String, Edge> graph, Strategy strategy,
+                                                  double budgetFraction, Map<Strategy, List<String>> rankings) {
         int n = graph.getVertexCount();
         int budget = Math.max(1, (int) (n * budgetFraction));
-        List<String> vertices = new ArrayList<>(graph.getVertices());
 
         switch (strategy) {
             case DEGREE:
-                return selectByDegree(graph, budget);
             case BETWEENNESS:
-                return selectByBetweenness(graph, budget);
             case PAGERANK:
-                return selectByPageRank(graph, budget);
+            case KSHELL:
+                // All deterministic strategies use precomputed ranking — O(1) subList
+                List<String> ranked = rankings.get(strategy);
+                return new ArrayList<>(ranked.subList(0, Math.min(budget, ranked.size())));
             case ACQUAINTANCE:
                 return selectByAcquaintance(graph, budget);
-            case KSHELL:
-                return selectByKShell(graph, budget);
             case RANDOM:
+                List<String> vertices = new ArrayList<>(graph.getVertices());
                 Collections.shuffle(vertices, rng);
                 return vertices.subList(0, Math.min(budget, vertices.size()));
             default:
@@ -300,32 +317,33 @@ public class NetworkImmunizationPlanner {
         }
     }
 
-    private List<String> selectByDegree(Graph<String, Edge> graph, int budget) {
+    // --- Precomputed ranking builders (called once per plan()) ---
+
+    private List<String> computeDegreeRanking(Graph<String, Edge> graph) {
         List<String> vertices = new ArrayList<>(graph.getVertices());
         vertices.sort((a, b) -> Integer.compare(graph.degree(b), graph.degree(a)));
-        return vertices.subList(0, Math.min(budget, vertices.size()));
+        return vertices;
     }
 
-    private List<String> selectByBetweenness(Graph<String, Edge> graph, int budget) {
+    private List<String> computeBetweennessRanking(Graph<String, Edge> graph) {
         Map<String, Double> betweenness = computeBetweenness(graph);
         List<Map.Entry<String, Double>> sorted = new ArrayList<>(betweenness.entrySet());
         sorted.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < Math.min(budget, sorted.size()); i++) {
-            result.add(sorted.get(i).getKey());
-        }
-        return result;
+        return sorted.stream().map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
-    private List<String> selectByPageRank(Graph<String, Edge> graph, int budget) {
-        Map<String, Double> pr = computePageRank(graph, 0.85, 30);
+    private List<String> computePageRankRanking(Graph<String, Edge> graph, double damping, int iterations) {
+        Map<String, Double> pr = computePageRank(graph, damping, iterations);
         List<Map.Entry<String, Double>> sorted = new ArrayList<>(pr.entrySet());
         sorted.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < Math.min(budget, sorted.size()); i++) {
-            result.add(sorted.get(i).getKey());
-        }
-        return result;
+        return sorted.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+    }
+
+    private List<String> computeKShellRanking(Graph<String, Edge> graph) {
+        Map<String, Integer> kshell = computeKShell(graph);
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(kshell.entrySet());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        return sorted.stream().map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
     private List<String> selectByAcquaintance(Graph<String, Edge> graph, int budget) {
@@ -344,24 +362,15 @@ public class NetworkImmunizationPlanner {
         return new ArrayList<>(selected);
     }
 
-    private List<String> selectByKShell(Graph<String, Edge> graph, int budget) {
-        Map<String, Integer> kshell = computeKShell(graph);
-        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(kshell.entrySet());
-        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < Math.min(budget, sorted.size()); i++) {
-            result.add(sorted.get(i).getKey());
-        }
-        return result;
-    }
-
     /**
      * Find the minimum budget fraction needed to contain the epidemic (total infected < 10%).
+     * Uses precomputed rankings to avoid recomputing centrality metrics.
      */
-    private double findCriticalThreshold(Graph<String, Edge> graph, Strategy strategy, EpidemicResult baseline) {
+    private double findCriticalThresholdFromRankings(Graph<String, Edge> graph, Strategy strategy,
+                                                     EpidemicResult baseline, Map<Strategy, List<String>> rankings) {
         double threshold = 0.30; // default if not found
         for (double budget = 0.05; budget <= 0.50; budget += 0.05) {
-            List<String> immunized = selectNodes(graph, strategy, budget);
+            List<String> immunized = selectNodesFromRankings(graph, strategy, budget, rankings);
             EpidemicResult ep = runEpidemic(graph, new HashSet<>(immunized));
             if (ep.totalInfected < 0.10) {
                 threshold = budget;
