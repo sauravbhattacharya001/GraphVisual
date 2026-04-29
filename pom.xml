@@ -101,7 +101,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.21.0</version>
+            <version>2.22.0</version>
         </dependency>
 
         <!-- StAX API removed: built into JDK since Java 6 -->
@@ -117,7 +117,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.10</version>
+            <version>42.7.11</version>
         </dependency>
 
         <!-- Java3D vecmath -->
