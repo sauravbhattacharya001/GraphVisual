@@ -197,6 +197,7 @@ public class GraphKnowledgeExtractor {
     private final Graph<String, Edge> graph;
     private final boolean directed;
     private final Map<String, Set<String>> neighborMap;
+    private final Set<String> edgeSet;
     private int topK = 20;
 
     // ── Constructor ──────────────────────────────────────────────────
@@ -208,6 +209,7 @@ public class GraphKnowledgeExtractor {
         this.graph = graph;
         this.directed = graph instanceof DirectedGraph;
         this.neighborMap = buildNeighborMap();
+        this.edgeSet = buildEdgeSet();
     }
 
     public void setTopK(int topK) {
@@ -248,7 +250,7 @@ public class GraphKnowledgeExtractor {
         boolean sample = maxPairs > 10000;
 
         List<Prediction> results = new ArrayList<>();
-        Set<String> existingEdges = buildEdgeSet();
+        Set<String> existingEdges = edgeSet;
         Random rng = new Random(42);
 
         if (sample) {
@@ -360,7 +362,7 @@ public class GraphKnowledgeExtractor {
 
     private List<TriadicClosure> runTransitivityInference() {
         List<TriadicClosure> closures = new ArrayList<>();
-        Set<String> existingEdges = buildEdgeSet();
+        Set<String> existingEdges = edgeSet;
         Set<String> seen = new HashSet<>();
 
         for (String b : graph.getVertices()) {
@@ -468,13 +470,12 @@ public class GraphKnowledgeExtractor {
         // Find node pairs with high structural similarity but no direct edge
         List<String> vertices = new ArrayList<>(graph.getVertices());
         List<StructuralHole> holes = new ArrayList<>();
-        Set<String> existingEdges = buildEdgeSet();
 
         for (int i = 0; i < Math.min(vertices.size(), 50); i++) {
             for (int j = i + 1; j < Math.min(vertices.size(), 50); j++) {
                 String u = vertices.get(i);
                 String v = vertices.get(j);
-                if (existingEdges.contains(pairKey(u, v))) continue;
+                if (edgeSet.contains(pairKey(u, v))) continue;
                 Set<String> uN = neighborMap.getOrDefault(u, Collections.emptySet());
                 Set<String> vN = neighborMap.getOrDefault(v, Collections.emptySet());
                 if (uN.isEmpty() || vN.isEmpty()) continue;
@@ -544,7 +545,7 @@ public class GraphKnowledgeExtractor {
                 List<String> leaves = new ArrayList<>(nbrs);
                 for (int i = 0; i < Math.min(leaves.size(), 3); i++) {
                     for (int j = i + 1; j < Math.min(leaves.size(), 3); j++) {
-                        if (!buildEdgeSet().contains(pairKey(leaves.get(i), leaves.get(j)))) {
+                        if (!edgeSet.contains(pairKey(leaves.get(i), leaves.get(j)))) {
                             starImplied.add(leaves.get(i) + " -> " + leaves.get(j));
                         }
                     }
@@ -567,7 +568,7 @@ public class GraphKnowledgeExtractor {
                 List<String> ends = new ArrayList<>(nbrs);
                 String a = ends.get(0);
                 String b = ends.get(1);
-                if (!buildEdgeSet().contains(pairKey(a, b))) {
+                if (!edgeSet.contains(pairKey(a, b))) {
                     chainImplied.add(a + " -> " + b + " (via " + v + ")");
                 }
             }
@@ -599,7 +600,6 @@ public class GraphKnowledgeExtractor {
 
     private List<String> findTriangleImpliedConnections() {
         // Near-triangles: two edges of three present
-        Set<String> existingEdges = buildEdgeSet();
         List<String> implied = new ArrayList<>();
         List<String> vertices = new ArrayList<>(graph.getVertices());
 
@@ -610,7 +610,7 @@ public class GraphKnowledgeExtractor {
                 for (int j = i + 1; j < nbrList.size() && implied.size() < 10; j++) {
                     String a = nbrList.get(i);
                     String c = nbrList.get(j);
-                    if (!existingEdges.contains(pairKey(a, c))) {
+                    if (!edgeSet.contains(pairKey(a, c))) {
                         implied.add(a + " -> " + c + " (close triangle via " + b + ")");
                     }
                 }
@@ -648,13 +648,12 @@ public class GraphKnowledgeExtractor {
         // 3. Triadic closure rate
         int openTriads = 0;
         int closedTriads = 0;
-        Set<String> edges = buildEdgeSet();
         for (String v : graph.getVertices()) {
             Set<String> nbrs = neighborMap.getOrDefault(v, Collections.emptySet());
             List<String> nbrList = new ArrayList<>(nbrs);
             for (int i = 0; i < nbrList.size(); i++) {
                 for (int j = i + 1; j < nbrList.size(); j++) {
-                    if (edges.contains(pairKey(nbrList.get(i), nbrList.get(j)))) {
+                    if (edgeSet.contains(pairKey(nbrList.get(i), nbrList.get(j)))) {
                         closedTriads++;
                     } else {
                         openTriads++;
@@ -685,10 +684,9 @@ public class GraphKnowledgeExtractor {
             if (k < 2) continue;
             int links = 0;
             List<String> nbrList = new ArrayList<>(nbrs);
-            Set<String> edges = buildEdgeSet();
             for (int i = 0; i < nbrList.size(); i++) {
                 for (int j = i + 1; j < nbrList.size(); j++) {
-                    if (edges.contains(pairKey(nbrList.get(i), nbrList.get(j)))) links++;
+                    if (edgeSet.contains(pairKey(nbrList.get(i), nbrList.get(j)))) links++;
                 }
             }
             double maxLinks = (double) k * (k - 1) / 2;
