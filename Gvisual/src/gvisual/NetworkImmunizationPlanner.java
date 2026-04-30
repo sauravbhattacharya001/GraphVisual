@@ -202,6 +202,17 @@ public class NetworkImmunizationPlanner {
 
     /**
      * Simulate SIR epidemic with Monte Carlo averaging.
+     *
+     * <p>Uses an explicit infected-set approach: instead of iterating all V
+     * vertices each time step to find infected nodes and count states, maintains
+     * a working set of currently-infected nodes and running counters for
+     * infected/recovered counts. This reduces per-step cost from O(V) to
+     * O(|infected| × avg_degree) when the infection is sparse relative to
+     * graph size — which is the common case, especially with immunization.</p>
+     *
+     * <p>Also eliminates the per-step full HashMap copy (O(V) allocation +
+     * insertion) by applying transitions in-place with deferred infection
+     * collection, matching the semantics of synchronous SIR updates.</p>
      */
     private EpidemicResult runEpidemic(Graph<String, Edge> graph, Set<String> immunized) {
         int n = graph.getVertexCount();
@@ -216,6 +227,8 @@ public class NetworkImmunizationPlanner {
         int avgDuration = 0;
 
         for (int run = 0; run < monteCarloRuns; run++) {
+            // Use explicit state tracking with running counters to avoid
+            // O(V) state-value scan each time step.
             Map<String, State> states = new HashMap<>();
             for (String v : graph.getVertices()) {
                 states.put(v, immunized.contains(v) ? State.IMMUNIZED : State.SUSCEPTIBLE);
@@ -225,22 +238,22 @@ public class NetworkImmunizationPlanner {
             List<String> susceptible = new ArrayList<>(vertices);
             Collections.shuffle(susceptible, rng);
             int seeds = Math.min(initialInfected, susceptible.size());
+            Set<String> currentlyInfected = new LinkedHashSet<>();
             for (int i = 0; i < seeds; i++) {
-                states.put(susceptible.get(i), State.INFECTED);
+                String seed = susceptible.get(i);
+                states.put(seed, State.INFECTED);
+                currentlyInfected.add(seed);
             }
 
+            int infCount = currentlyInfected.size();
+            int recCount = 0;
             double peakInf = 0;
             int peakT = 0;
             int duration = timeSteps;
-            Set<String> everInfected = new HashSet<>();
-            for (int i = 0; i < seeds; i++) everInfected.add(susceptible.get(i));
+            int everInfectedCount = infCount;
 
             for (int t = 0; t < timeSteps; t++) {
-                int infCount = 0, recCount = 0;
-                for (State s : states.values()) {
-                    if (s == State.INFECTED) infCount++;
-                    else if (s == State.RECOVERED) recCount++;
-                }
+                // Record epidemic curve using maintained counters — O(1)
                 double fracInf = (double) infCount / n;
                 double fracRec = (double) recCount / n;
                 avgInfected[t] += fracInf;
@@ -249,27 +262,41 @@ public class NetworkImmunizationPlanner {
                 if (fracInf > peakInf) { peakInf = fracInf; peakT = t; }
                 if (infCount == 0 && t > 0) { duration = t; break; }
 
-                // SIR transitions
-                Map<String, State> next = new HashMap<>(states);
-                for (String v : graph.getVertices()) {
-                    if (states.get(v) == State.INFECTED) {
-                        // Try to infect neighbors
-                        for (String neighbor : graph.getNeighbors(v)) {
-                            if (states.get(neighbor) == State.SUSCEPTIBLE && rng.nextDouble() < beta) {
-                                next.put(neighbor, State.INFECTED);
-                                everInfected.add(neighbor);
-                            }
-                        }
-                        // Try to recover
-                        if (rng.nextDouble() < gamma) {
-                            next.put(v, State.RECOVERED);
+                // SIR transitions — only iterate infected nodes, not all V
+                List<String> toRecover = new ArrayList<>();
+                List<String> toInfect = new ArrayList<>();
+                for (String v : currentlyInfected) {
+                    // Try to infect neighbors
+                    for (String neighbor : graph.getNeighbors(v)) {
+                        if (states.get(neighbor) == State.SUSCEPTIBLE && rng.nextDouble() < beta) {
+                            toInfect.add(neighbor);
                         }
                     }
+                    // Try to recover
+                    if (rng.nextDouble() < gamma) {
+                        toRecover.add(v);
+                    }
                 }
-                states = next;
+
+                // Apply infections (deferred to preserve synchronous semantics)
+                for (String v : toInfect) {
+                    if (states.get(v) == State.SUSCEPTIBLE) { // guard against duplicates
+                        states.put(v, State.INFECTED);
+                        currentlyInfected.add(v);
+                        infCount++;
+                        everInfectedCount++;
+                    }
+                }
+                // Apply recoveries
+                for (String v : toRecover) {
+                    states.put(v, State.RECOVERED);
+                    currentlyInfected.remove(v);
+                    infCount--;
+                    recCount++;
+                }
             }
 
-            avgTotalInfected += (double) everInfected.size() / n;
+            avgTotalInfected += (double) everInfectedCount / n;
             avgPeakInfected += peakInf;
             avgPeakTime += peakT;
             avgDuration += duration;
