@@ -166,13 +166,19 @@ public class GraphSentinel {
         Map<String, Set<String>> adjBefore = buildAdjacencyMap(before);
         Map<String, Set<String>> adjAfter = buildAdjacencyMap(after);
 
+        // Pre-compute degrees and hubs once — reused by hub dynamics and stability scoring
+        Map<String, Integer> degBefore = computeDegrees(before);
+        Map<String, Integer> degAfter = computeDegrees(after);
+        Set<String> hubsBefore = identifyHubs(degBefore);
+        Set<String> hubsAfter = identifyHubs(degAfter);
+
         // 1. Community migration
         Map<String, Integer> commBefore = detectCommunities(before);
         Map<String, Integer> commAfter = detectCommunities(after);
         report.communityEvents = analyzeCommunityMigration(commBefore, commAfter);
 
-        // 2. Hub dynamics
-        report.hubEvents = analyzeHubDynamics(before, after);
+        // 2. Hub dynamics (uses pre-computed degrees and hubs)
+        report.hubEvents = analyzeHubDynamics(degBefore, degAfter, hubsBefore, hubsAfter);
 
         // 3. Centrality shifts
         Map<String, Double> cenBefore = computeBetweenness(before, adjBefore);
@@ -183,8 +189,9 @@ public class GraphSentinel {
         report.roleTransitions = analyzeRoleTransitions(before, after, adjBefore, adjAfter,
                 cenBefore, cenAfter, commBefore, commAfter);
 
-        // 5. Stability score
-        report.stabilityScore = computeStabilityScore(before, after, commBefore, commAfter);
+        // 5. Stability score (uses pre-computed degrees and hubs)
+        report.stabilityScore = computeStabilityScore(before, after, commBefore, commAfter,
+                hubsBefore, hubsAfter);
         report.stabilityGrade = gradeStability(report.stabilityScore);
 
         // 6. Early warnings
@@ -321,13 +328,9 @@ public class GraphSentinel {
 
     // -- Hub dynamics ------------------------------------------------------
 
-    private List<HubEvent> analyzeHubDynamics(Graph<String, Edge> g1, Graph<String, Edge> g2) {
+    private List<HubEvent> analyzeHubDynamics(Map<String, Integer> deg1, Map<String, Integer> deg2,
+                                                Set<String> hubs1, Set<String> hubs2) {
         List<HubEvent> events = new ArrayList<>();
-        Map<String, Integer> deg1 = computeDegrees(g1);
-        Map<String, Integer> deg2 = computeDegrees(g2);
-
-        Set<String> hubs1 = identifyHubs(deg1);
-        Set<String> hubs2 = identifyHubs(deg2);
 
         // New hubs emerged
         for (String h : hubs2) {
@@ -448,7 +451,11 @@ public class GraphSentinel {
             double cb = cenBefore.getOrDefault(node, 0.0);
             double ca = cenAfter.getOrDefault(node, 0.0);
             double diff = ca - cb;
-            shifts.add(new CentralityShift(node, cb, ca, classifyCentralityChange(cb, ca, diff)));
+            String classification = classifyCentralityChange(cb, ca, diff);
+            // Skip STABLE nodes early — avoids allocating thousands of throwaway objects
+            if (!"STABLE".equals(classification)) {
+                shifts.add(new CentralityShift(node, cb, ca, classification));
+            }
         }
 
         // Sort by absolute change descending, return top 10
@@ -456,7 +463,7 @@ public class GraphSentinel {
                 Math.abs(b.newCentrality - b.oldCentrality),
                 Math.abs(a.newCentrality - a.oldCentrality)));
 
-        return shifts.size() > 10 ? shifts.subList(0, 10) : shifts;
+        return shifts.size() > 10 ? new ArrayList<>(shifts.subList(0, 10)) : shifts;
     }
 
     private String classifyCentralityChange(double old, double now, double diff) {
@@ -544,7 +551,8 @@ public class GraphSentinel {
     // -- Stability scorer --------------------------------------------------
 
     private int computeStabilityScore(Graph<String, Edge> g1, Graph<String, Edge> g2,
-                                       Map<String, Integer> comm1, Map<String, Integer> comm2) {
+                                       Map<String, Integer> comm1, Map<String, Integer> comm2,
+                                       Set<String> hubs1, Set<String> hubs2) {
         // Node stability (20%)
         Set<String> n1 = new HashSet<>(g1.getVertices());
         Set<String> n2 = new HashSet<>(g2.getVertices());
@@ -560,9 +568,7 @@ public class GraphSentinel {
         Map<Integer, Set<String>> ag = groupByCommunity(comm2);
         double commStability = communityMatchScore(bg, ag);
 
-        // Hub stability (15%)
-        Set<String> hubs1 = identifyHubs(computeDegrees(g1));
-        Set<String> hubs2 = identifyHubs(computeDegrees(g2));
+        // Hub stability (15%) — uses pre-computed hubs from analyze()
         double hubStability = hubs1.isEmpty() && hubs2.isEmpty() ? 1.0 : jaccard(hubs1, hubs2);
 
         // Degree distribution stability (20%)
