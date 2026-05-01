@@ -341,33 +341,36 @@ public class GraphGameTheoryEngine {
 
     private List<Coalition> analyzeCoalitions(Graph<String, Edge> graph,
                                               List<String> vertices) {
-        // Start with singleton coalitions
+        // Start with singleton coalitions and precompute their values
         List<Set<String>> coalitions = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
         for (String v : vertices) {
             Set<String> s = new LinkedHashSet<>();
             s.add(v);
             coalitions.add(s);
+            values.add(0.0); // singleton value is always 0
         }
 
-        // Greedy merge
+        // Greedy merge — cache coalition values to avoid O(C²) recomputation
         boolean merged = true;
         while (merged && coalitions.size() > 1) {
             merged = false;
             double bestGain = 0;
             int bestI = -1, bestJ = -1;
+            double bestMergedVal = 0;
 
             for (int i = 0; i < coalitions.size(); i++) {
+                double valI = values.get(i);
                 for (int j = i + 1; j < coalitions.size(); j++) {
                     Set<String> merged_ = new LinkedHashSet<>(coalitions.get(i));
                     merged_.addAll(coalitions.get(j));
                     double mergedVal = coalitionValue(graph, merged_);
-                    double currentVal = coalitionValue(graph, coalitions.get(i))
-                            + coalitionValue(graph, coalitions.get(j));
-                    double gain = mergedVal - currentVal;
+                    double gain = mergedVal - valI - values.get(j);
                     if (gain > bestGain) {
                         bestGain = gain;
                         bestI = i;
                         bestJ = j;
+                        bestMergedVal = mergedVal;
                     }
                 }
             }
@@ -375,20 +378,26 @@ public class GraphGameTheoryEngine {
             if (bestI >= 0 && bestGain > 0) {
                 Set<String> newCoalition = new LinkedHashSet<>(coalitions.get(bestI));
                 newCoalition.addAll(coalitions.get(bestJ));
+                // Remove higher index first to preserve lower index
                 coalitions.remove(bestJ);
+                values.remove(bestJ);
                 coalitions.remove(bestI);
+                values.remove(bestI);
                 coalitions.add(newCoalition);
+                values.add(bestMergedVal);
                 merged = true;
             }
         }
 
-        // Sort by value descending and assign ranks
+        // Sort by cached value descending and assign ranks
+        Integer[] indices = new Integer[coalitions.size()];
+        for (int i = 0; i < indices.length; i++) indices[i] = i;
+        Arrays.sort(indices, (a, b) -> Double.compare(values.get(b), values.get(a)));
+
         List<Coalition> result = new ArrayList<>();
-        coalitions.sort((a, b) -> Double.compare(coalitionValue(graph, b),
-                coalitionValue(graph, a)));
-        for (int i = 0; i < coalitions.size(); i++) {
-            result.add(new Coalition(coalitions.get(i),
-                    coalitionValue(graph, coalitions.get(i)), i + 1));
+        for (int rank = 0; rank < indices.length; rank++) {
+            int idx = indices[rank];
+            result.add(new Coalition(coalitions.get(idx), values.get(idx), rank + 1));
         }
 
         return result;
