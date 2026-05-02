@@ -9,3 +9,6 @@ contact_links:
   - name: Architecture Overview
     url: https://github.com/sauravbhattacharya001/GraphVisual/blob/master/ARCHITECTURE.md
     about: Understand the codebase structure before contributing or filing architecture-related issues.
+  - name: Testing Guide
+    url: https://github.com/sauravbhattacharya001/GraphVisual/blob/master/TESTING.md
+    about: Review the testing guide before filing test-related issues or CI failures.

@@ -1,0 +1,104 @@
+name: CI / Build Failure
+description: Report a CI pipeline failure, build breakage, or test infrastructure issue
+title: "[CI]: "
+labels: ["ci/cd", "build"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to report CI workflow failures, flaky tests, or build infrastructure issues.
+        For bugs in application code, use the [Bug Report](bug_report.yml) template instead.
+
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Affected Workflow
+      description: Which GitHub Actions workflow is failing?
+      options:
+        - ci.yml (build + test)
+        - codeql.yml (security scanning)
+        - coverage.yml (code coverage)
+        - docker.yml (Docker build)
+        - pages.yml (GitHub Pages)
+        - publish.yml (Maven publish)
+        - auto-label.yml (issue labeling)
+        - stale.yml (stale issue management)
+        - Multiple workflows
+        - Local build (not CI)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: failure-type
+    attributes:
+      label: Failure Type
+      description: What kind of failure is this?
+      options:
+        - Build compilation error
+        - Test failure (deterministic)
+        - Flaky test (intermittent)
+        - Dependency resolution failure
+        - Docker build failure
+        - Workflow configuration error
+        - Timeout / resource exhaustion
+        - Permission / secrets issue
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: run-url
+    attributes:
+      label: Failed Run URL
+      description: Link to the failed GitHub Actions run (click the red ✗ → "Details" to get the URL).
+      placeholder: https://github.com/sauravbhattacharya001/GraphVisual/actions/runs/...
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Paste the relevant error messages or log excerpt from the failed run.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: recent-changes
+    attributes:
+      label: Recent Changes
+      description: Was this triggered by a specific commit or PR? Did it start failing recently, or has it always been broken?
+      placeholder: |
+        Started failing after commit abc1234 which updated the JUNG dependency.
+        Was passing consistently before that.
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      description: How often does this failure occur?
+      options:
+        - Every run (deterministic)
+        - Intermittent / flaky (< 50% of runs)
+        - Rare (happened once or twice)
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: java-version
+    attributes:
+      label: Java Version (if relevant)
+      description: Which Java version is the failure occurring on?
+      options:
+        - "8"
+        - "11"
+        - "17"
+        - "21"
+        - All versions
+        - Not Java-related
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information — e.g., does it reproduce locally? Any workarounds found?

@@ -1,0 +1,83 @@
+name: Documentation Issue
+description: Report incorrect, missing, or confusing documentation
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us keep the documentation accurate and useful. Report gaps, errors, or anything that's hard to follow.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Area
+      description: Which documentation is affected?
+      options:
+        - README.md
+        - ALGORITHMS.md (algorithm reference)
+        - ARCHITECTURE.md (codebase structure)
+        - DATABASE.md (schema / data pipeline)
+        - CONTRIBUTING.md
+        - TESTING.md (test guide)
+        - API / Javadoc comments
+        - GitHub Pages site
+        - Inline code comments
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-kind
+    attributes:
+      label: Issue Type
+      description: What kind of documentation problem is this?
+      options:
+        - Incorrect / outdated information
+        - Missing documentation for existing feature
+        - Confusing or unclear explanation
+        - Missing code examples
+        - Broken links or references
+        - Typo / formatting
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Where in the documentation is the problem? Include file paths, section headings, or URLs.
+      placeholder: |
+        File: ALGORITHMS.md, section "Community Detection"
+        Or: https://sauravbhattacharya001.github.io/GraphVisual/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What's wrong or missing? Be specific about what the documentation says vs. what it should say.
+      placeholder: |
+        The ALGORITHMS.md entry for CommunityEvolutionTracker says it uses Louvain,
+        but the implementation actually uses label propagation with temporal weighting...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested Fix
+      description: If you know what the documentation should say, include it here.
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How much does this affect users?
+      options:
+        - High — misleading information could cause incorrect usage
+        - Medium — gap makes it harder to contribute or understand
+        - Low — cosmetic or minor clarity improvement
+    validations:
+      required: true
