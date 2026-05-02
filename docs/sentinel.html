@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Sentinel - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">&#x1F4CA; GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>&#x1F6E1;&#xFE0F; Graph Sentinel</h1>
+        <p class="lead">
+            Autonomous structural drift detector that compares two graph snapshots
+            and surfaces meaningful changes: community migrations, hub dynamics,
+            centrality shifts, role transitions, stability scoring, and early-warning alerts.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                <code>GraphSentinel</code> goes far beyond simple set-level diffs
+                (added/removed nodes). It detects the <em>meaning</em> behind structural
+                changes, answers <strong>"what happened to the network?"</strong>, and
+                recommends actions. Compare any two JUNG graph snapshots &mdash; different
+                time periods, experimental conditions, or simulation states.
+            </p>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+<pre><code>GraphSentinel sentinel = new GraphSentinel(beforeGraph, afterGraph);
+GraphSentinel.DriftReport report = sentinel.analyze();
+
+// Text summary
+System.out.println(sentinel.toText(report));
+
+// Interactive HTML report
+String html = sentinel.exportHtml(report);
+Files.writeString(Path.of("drift-report.html"), html);</code></pre>
+        </section>
+
+        <section>
+            <h2>Six Analysis Engines</h2>
+
+            <h3>1. Community Migration Detector</h3>
+            <p>
+                Identifies community-level changes between snapshots: splits, merges,
+                births, deaths, and individual node migrations from one community to
+                another. Uses connected-component analysis on both graphs and maps
+                communities across snapshots via maximum node overlap.
+            </p>
+
+            <h3>2. Hub Dynamics Analyzer</h3>
+            <p>
+                Tracks high-degree nodes across snapshots, classifying them as
+                <strong>emerged</strong> (new hub), <strong>declined</strong> (lost hub status),
+                <strong>strengthened</strong> (gained connections), or
+                <strong>weakened</strong> (lost connections). Reports degree changes and
+                percentage shifts.
+            </p>
+
+            <h3>3. Centrality Shift Detector</h3>
+            <p>
+                Computes betweenness centrality in both snapshots and identifies
+                <strong>rising influencers</strong> (large centrality increase),
+                <strong>declining gatekeepers</strong> (centrality drop), and
+                <strong>new/lost bridge nodes</strong> whose removal would disconnect
+                the graph.
+            </p>
+
+            <h3>4. Structural Role Transition Detector</h3>
+            <p>
+                Assigns each node a structural role &mdash; <em>Hub</em>, <em>Bridge</em>,
+                <em>Core</em>, <em>Peripheral</em>, or <em>Isolate</em> &mdash; in both
+                snapshots. Reports all role transitions (e.g., "Node X transitioned from
+                Peripheral to Hub").
+            </p>
+
+            <h3>5. Stability Scorer</h3>
+            <p>
+                Computes a composite <strong>0&ndash;100 stability score</strong> across
+                five dimensions:
+            </p>
+            <ul>
+                <li><strong>Node stability</strong> &mdash; fraction of nodes present in both snapshots</li>
+                <li><strong>Edge stability</strong> &mdash; fraction of edges preserved</li>
+                <li><strong>Community stability</strong> &mdash; consistency of community assignments</li>
+                <li><strong>Centrality stability</strong> &mdash; correlation of centrality rankings</li>
+                <li><strong>Degree distribution stability</strong> &mdash; similarity of degree distributions</li>
+            </ul>
+
+            <h3>6. Early Warning System</h3>
+            <p>
+                Generates prioritized alerts at three severity levels:
+            </p>
+            <ul>
+                <li><strong>CRITICAL</strong> &mdash; network fragmentation, major hub loss, stability &lt; 30</li>
+                <li><strong>WARNING</strong> &mdash; community splits, significant centrality shifts, stability &lt; 60</li>
+                <li><strong>INFO</strong> &mdash; minor migrations, new node appearances, small structural shifts</li>
+            </ul>
+            <p>
+                Each alert includes a <strong>recommendation</strong> for how to respond.
+            </p>
+        </section>
+
+        <section>
+            <h2>Report Structure</h2>
+<pre><code>DriftReport report = sentinel.analyze();
+
+// Overall stability
+report.getStabilityScore();       // 0-100
+report.getStabilityGrade();       // A, B, C, D, F
+
+// Structural changes
+report.getNodesAdded();           // Set&lt;String&gt;
+report.getNodesRemoved();         // Set&lt;String&gt;
+report.getEdgesAdded();           // int
+report.getEdgesRemoved();         // int
+
+// Community migrations
+for (CommunityEvent event : report.getCommunityEvents()) {
+    event.getType();    // SPLIT, MERGE, BIRTH, DEATH, MIGRATION
+    event.getNodes();   // affected nodes
+}
+
+// Hub dynamics
+for (HubChange change : report.getHubChanges()) {
+    change.getNode();
+    change.getType();       // EMERGED, DECLINED, STRENGTHENED, WEAKENED
+    change.getDegreeDelta();
+}
+
+// Alerts
+for (Alert alert : report.getAlerts()) {
+    alert.getSeverity();        // CRITICAL, WARNING, INFO
+    alert.getMessage();
+    alert.getRecommendation();
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>Use Cases</h2>
+            <ul>
+                <li><strong>Temporal network monitoring</strong> &mdash; detect structural drift
+                    in social networks across time periods.</li>
+                <li><strong>A/B testing</strong> &mdash; compare network structure under different
+                    experimental conditions.</li>
+                <li><strong>Simulation analysis</strong> &mdash; evaluate how interventions
+                    (node removal, edge addition) affect network structure.</li>
+                <li><strong>Compliance &amp; security</strong> &mdash; alert on unexpected
+                    structural changes in infrastructure or communication networks.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>See Also</h2>
+            <ul>
+                <li><a href="graph-compare.html">Graph Compare</a> &mdash; visual side-by-side comparison</li>
+                <li><a href="time-machine.html">Time Machine</a> &mdash; temporal graph playback</li>
+                <li><a href="community-evolution.html">Community Evolution</a> &mdash; track communities over time</li>
+                <li><a href="health-checker.html">Health Checker</a> &mdash; structural quality diagnostics</li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

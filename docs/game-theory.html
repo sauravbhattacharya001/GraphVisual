@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Theory Engine - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">&#x1F4CA; GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>&#x1F3B2; Game Theory Engine</h1>
+        <p class="lead">
+            Model networks as cooperative and non-cooperative games. Compute Shapley
+            values, Nash equilibria, coalition structures, bargaining power, and
+            composite strategic position scores for every node.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                The <code>GraphGameTheoryEngine</code> applies four game-theoretic
+                frameworks to any JUNG graph, answering questions like <em>"Which node
+                contributes the most to network connectivity?"</em> and <em>"What is
+                the optimal coalition structure?"</em>
+            </p>
+            <ul>
+                <li><strong>Shapley Value Calculator</strong> &mdash; Monte Carlo approximation
+                    of each node's marginal contribution to connected-pairs connectivity.</li>
+                <li><strong>Nash Equilibrium Detector</strong> &mdash; Network coordination game
+                    solved via best-response dynamics with convergence detection.</li>
+                <li><strong>Coalition Structure Analyzer</strong> &mdash; Greedy merge optimization
+                    using a <code>density &times; size&sup2;</code> coalition value function.</li>
+                <li><strong>Bargaining Power Analyzer</strong> &mdash; Sampling-based Banzhaf-style
+                    power index measuring critical membership in winning coalitions.</li>
+            </ul>
+            <p>
+                A composite <strong>Strategic Position Score</strong> (0&ndash;100) blends all four
+                metrics into a single ranking per node.
+            </p>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+<pre><code>GraphGameTheoryEngine engine = new GraphGameTheoryEngine();
+
+// Optional: tune parameters
+engine.setShapleyPermutations(500)    // default 200
+      .setBargainingSamples(1000)     // default 500
+      .setNashMaxIterations(200)      // default 100
+      .setNashCost(0.25);             // default 0.3
+
+// Run analysis
+GameTheoryReport report = engine.analyze(graph);
+
+// Text output
+System.out.println(engine.toText(report));
+
+// Interactive HTML dashboard
+String html = engine.exportHtml(report);
+Files.writeString(Path.of("game-theory.html"), html);</code></pre>
+        </section>
+
+        <section>
+            <h2>Analysis Engines</h2>
+
+            <h3>Shapley Value</h3>
+            <p>
+                Approximates each node's Shapley value using Monte Carlo permutation sampling.
+                The value function counts the number of connected node pairs in a subgraph,
+                so a node's Shapley value reflects how much it contributes to overall
+                network connectivity when added to random coalitions.
+            </p>
+            <p>
+                Higher <code>shapleyPermutations</code> improves accuracy at the cost of
+                runtime. For graphs under 100 nodes, 200&ndash;500 permutations typically
+                suffice; for larger graphs, consider 50&ndash;100.
+            </p>
+
+            <h3>Nash Equilibrium</h3>
+            <p>
+                Models a coordination game where each node chooses to
+                <em>participate</em> or <em>defect</em>. Participating nodes pay a cost
+                (<code>nashCost</code>) but gain value from connected participating
+                neighbors. The engine finds pure-strategy Nash equilibria via
+                best-response dynamics, detecting convergence or cycling.
+            </p>
+
+            <h3>Coalition Structure</h3>
+            <p>
+                Greedily merges pairs of coalitions that maximize the total coalition
+                value, defined as <code>internalDensity &times; size&sup2;</code>.
+                The result is a partition of nodes into coalitions that balances
+                internal cohesion with group size.
+            </p>
+
+            <h3>Bargaining Power (Banzhaf Index)</h3>
+            <p>
+                Samples random coalitions and measures how often each node is
+                <em>critical</em>&mdash;removing it drops the coalition below the winning
+                threshold. Nodes that frequently tip coalitions from winning to losing
+                have high bargaining power.
+            </p>
+        </section>
+
+        <section>
+            <h2>Report Structure</h2>
+<pre><code>GameTheoryReport report = engine.analyze(graph);
+
+// Per-node results
+for (NodeGameProfile p : report.getProfiles()) {
+    System.out.printf("%s: shapley=%.3f, nash=%s, bargaining=%.3f, strategic=%d%n",
+        p.getNode(),
+        p.getShapleyValue(),
+        p.getNashStrategy(),    // PARTICIPATE or DEFECT
+        p.getBargainingPower(),
+        p.getStrategicScore()); // 0-100
+}
+
+// Coalition structure
+for (Coalition c : report.getCoalitions()) {
+    System.out.printf("Coalition %d: %s (value=%.2f, density=%.2f)%n",
+        c.getId(), c.getMembers(), c.getValue(), c.getDensity());
+}
+
+// Summary insights (auto-generated)
+for (String insight : report.getInsights()) {
+    System.out.println(insight);
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>HTML Dashboard</h2>
+            <p>
+                The <code>exportHtml()</code> method generates a self-contained HTML page
+                with bar charts for Shapley values, bargaining power, and strategic scores,
+                a coalition membership table, Nash equilibrium breakdown, and autonomous
+                insights about key players and power dynamics.
+            </p>
+        </section>
+
+        <section>
+            <h2>See Also</h2>
+            <ul>
+                <li><a href="influence-maximizer.html">Influence Maximizer</a> &mdash; seed-set optimization</li>
+                <li><a href="communities.html">Community Detection</a> &mdash; modularity-based partitioning</li>
+                <li><a href="role-classifier.html">Role Classifier</a> &mdash; structural role assignment</li>
+                <li><a href="resilience.html">Resilience Analyzer</a> &mdash; network robustness</li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topology Hypothesis Tester - GraphVisual</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">&#x1F4CA; GraphVisual</a>
+        <div class="nav-links">
+            <a href="guide.html">Guide</a>
+            <a href="api.html">API</a>
+            <a href="cookbook.html">Cookbook</a>
+        </div>
+    </nav>
+
+    <main class="doc-content">
+        <h1>&#x1F9EA; Topology Hypothesis Tester</h1>
+        <p class="lead">
+            Statistically test whether a graph matches known topology archetypes
+            &mdash; Scale-Free, Small-World, Random, Core-Periphery, or
+            Hierarchical &mdash; using null-model comparisons and ensemble scoring.
+        </p>
+
+        <section>
+            <h2>Overview</h2>
+            <p>
+                The <code>GraphTopologyHypothesisTester</code> answers the question
+                <em>"What kind of network is this?"</em> by comparing observed structural
+                signatures against Monte Carlo-generated null models. Each hypothesis
+                receives a confidence score and p-value estimate, producing a ranked
+                verdict with evidence summaries.
+            </p>
+        </section>
+
+        <section>
+            <h2>Hypotheses</h2>
+            <table>
+                <thead>
+                    <tr><th>Topology</th><th>Model</th><th>Key Signatures</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Scale-Free</strong></td>
+                        <td>Barab&aacute;si-Albert</td>
+                        <td>Power-law degree distribution; few high-degree hubs; low clustering</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Small-World</strong></td>
+                        <td>Watts-Strogatz</td>
+                        <td>High clustering coefficient; short average path length relative to random</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Random</strong></td>
+                        <td>Erd&#337;s-R&eacute;nyi</td>
+                        <td>Poisson degree distribution; low clustering; uniform edge probability</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Core-Periphery</strong></td>
+                        <td>Borgatti-Everett</td>
+                        <td>Dense interconnected core; sparse peripheral nodes attached to core</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hierarchical</strong></td>
+                        <td>Ravasz-Barab&aacute;si</td>
+                        <td>Inverse clustering-degree relationship; modular structure at multiple scales</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+<pre><code>GraphTopologyHypothesisTester tester =
+    new GraphTopologyHypothesisTester(graph);
+
+// Run all five hypothesis tests
+tester.runAllTests();
+
+// Ranked results (highest confidence first)
+List&lt;HypothesisResult&gt; results = tester.getRankedResults();
+for (HypothesisResult r : results) {
+    System.out.printf("%s: confidence=%.1f%%, p=%.4f, verdict=%s%n",
+        r.getTopology().getLabel(),
+        r.getConfidence() * 100,
+        r.getPValue(),
+        r.getVerdict());   // STRONG_MATCH, POSSIBLE, UNLIKELY, REJECTED
+}
+
+// Best-fit topology
+TopologyType bestFit = tester.getBestFitTopology();
+System.out.println("Best fit: " + bestFit.getLabel());
+
+// Confidence for a specific hypothesis
+double conf = tester.getConfidence(TopologyType.SCALE_FREE);
+
+// Full text report
+String report = tester.generateReport();</code></pre>
+        </section>
+
+        <section>
+            <h2>Methodology</h2>
+            <p>For each hypothesis, the tester follows a rigorous statistical protocol:</p>
+            <ol>
+                <li><strong>Compute structural signatures</strong> from the observed graph
+                    (degree distribution, clustering coefficient, average path length,
+                    core-periphery fitness, clustering-degree correlation).</li>
+                <li><strong>Generate null-model ensemble</strong> &mdash; Monte Carlo random
+                    graphs matching the hypothesis model with equivalent size/density.</li>
+                <li><strong>Compare observed metrics</strong> against the null distribution
+                    using z-scores to measure how well the observed graph fits each model.</li>
+                <li><strong>Assign confidence scores</strong> and estimate p-values from
+                    the empirical null distribution.</li>
+                <li><strong>Produce a ranked verdict</strong> classifying each hypothesis as
+                    <code>STRONG_MATCH</code>, <code>POSSIBLE</code>, <code>UNLIKELY</code>,
+                    or <code>REJECTED</code>.</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Result Structure</h2>
+<pre><code>HypothesisResult result = results.get(0);
+
+result.getTopology();      // TopologyType enum
+result.getConfidence();    // 0.0 - 1.0
+result.getPValue();        // statistical p-value
+result.getVerdict();       // STRONG_MATCH | POSSIBLE | UNLIKELY | REJECTED
+result.getEvidence();      // List&lt;String&gt; of supporting/contradicting evidence
+result.getZScores();       // Map&lt;String, Double&gt; per-metric z-scores</code></pre>
+        </section>
+
+        <section>
+            <h2>Use Cases</h2>
+            <ul>
+                <li><strong>Network characterization</strong> &mdash; classify unknown networks
+                    in research or forensic analysis.</li>
+                <li><strong>Model validation</strong> &mdash; verify that a synthetic network
+                    generator produces the intended topology.</li>
+                <li><strong>Anomaly detection</strong> &mdash; a network that doesn't match any
+                    known topology may indicate unusual structure worth investigating.</li>
+                <li><strong>Comparative studies</strong> &mdash; track how a network's topology
+                    classification changes over time or across conditions.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>See Also</h2>
+            <ul>
+                <li><a href="anomaly.html">Anomaly Detector</a> &mdash; node-level anomaly scoring</li>
+                <li><a href="network-profiler.html">Network Profiler</a> &mdash; comprehensive structural metrics</li>
+                <li><a href="communities.html">Community Detection</a> &mdash; modularity-based partitioning</li>
+                <li><a href="graph-evolution.html">Evolution Simulator</a> &mdash; watch topology emerge over time</li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>
