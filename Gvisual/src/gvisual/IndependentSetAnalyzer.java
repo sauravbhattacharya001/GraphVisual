@@ -74,17 +74,21 @@ public class IndependentSetAnalyzer {
     /**
      * Checks whether a given vertex set is a valid independent set.
      *
+     * <p>Uses the cached adjacency map for O(1) neighbor lookups instead of
+     * {@code graph.findEdge()} which may be O(degree) per call. For each
+     * vertex, checks whether any of its adjacency-set neighbors are also
+     * in the candidate set, giving O(Σ deg(v)) total instead of O(|S|²)
+     * findEdge calls.</p>
+     *
      * @param vertices the candidate set
      * @return true if no two vertices in the set are adjacent
      */
     public boolean isIndependentSet(Set<String> vertices) {
-        if (vertices == null) return true;
-        List<String> list = new ArrayList<>(vertices);
-        for (int i = 0; i < list.size(); i++) {
-            for (int j = i + 1; j < list.size(); j++) {
-                if (graph.findEdge(list.get(i), list.get(j)) != null) {
-                    return false;
-                }
+        if (vertices == null || vertices.size() < 2) return true;
+        Map<String, Set<String>> adj = adjacency();
+        for (String v : vertices) {
+            for (String n : adj.getOrDefault(v, Collections.emptySet())) {
+                if (vertices.contains(n)) return false;
             }
         }
         return true;
@@ -154,7 +158,13 @@ public class IndependentSetAnalyzer {
 
     /**
      * Greedy independent set using maximum-degree-first removal strategy.
-     * Iteratively removes the highest-degree vertex and its neighbors.
+     * Iteratively removes the highest-degree vertex until all remaining
+     * vertices are isolated (degree 0), then collects them as the IS.
+     *
+     * <p>Previous implementation contained a dead first loop that ran in
+     * O(V²) time doing no useful work before a second loop repeated the
+     * computation. This version eliminates the dead loop, halving the
+     * overall cost.</p>
      *
      * @return a maximal independent set
      */
@@ -163,31 +173,6 @@ public class IndependentSetAnalyzer {
         Set<String> remaining = new HashSet<>(graph.getVertices());
         Map<String, Set<String>> adjMap = adjacency();
 
-        while (!remaining.isEmpty()) {
-            String maxVertex = null;
-            int maxDeg = -1;
-            for (String v : remaining) {
-                int deg = 0;
-                for (String n : adjMap.getOrDefault(v, Collections.emptySet())) {
-                    if (remaining.contains(n)) deg++;
-                }
-                if (deg > maxDeg || (deg == maxDeg && (maxVertex == null || v.compareTo(maxVertex) < 0))) {
-                    maxDeg = deg;
-                    maxVertex = v;
-                }
-            }
-            // Remove maxVertex (it's excluded), add remaining isolated vertices
-            remaining.remove(maxVertex);
-            // Actually, max-degree removal means: remove it, then pick remaining isolates
-            // Let me use the correct strategy: pick vertex, add to set, remove neighbors
-            // For max-degree: pick min-degree vertex to ADD (keeps more options)
-            // Re-implementing: this is min-neighbor-count strategy
-            // Actually for "max degree first": remove high-degree vertices to free up isolates
-            // Standard approach: remove max degree vertex from graph, repeat, leftover = IS
-        }
-
-        // Better implementation: standard vertex removal approach
-        remaining = new HashSet<>(graph.getVertices());
         while (!remaining.isEmpty()) {
             // Find max-degree vertex in remaining
             String maxV = null;
@@ -528,18 +513,27 @@ public class IndependentSetAnalyzer {
      * For each vertex, determines how many maximal independent sets contain it.
      * Uses the enumerated maximal IS (limited to avoid explosion).
      *
+     * <p>Accumulates counts in a single pass over the MIS list instead of
+     * the previous O(V × |MIS|) nested loop. Total work is now
+     * O(Σ |mis_i|) — proportional to the sum of MIS sizes — which is
+     * typically much less than V × |MIS| since most MIS are small
+     * relative to V.</p>
+     *
      * @param limit max number of maximal IS to enumerate
      * @return map of vertex → count of MIS containing it
      */
     public Map<String, Integer> vertexMISParticipation(int limit) {
         List<Set<String>> allMIS = allMaximalIndependentSets(limit);
+        // Initialize all vertices to 0
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
-            int count = 0;
-            for (Set<String> mis : allMIS) {
-                if (mis.contains(v)) count++;
+            counts.put(v, 0);
+        }
+        // Single pass: iterate each MIS and increment member counts
+        for (Set<String> mis : allMIS) {
+            for (String member : mis) {
+                counts.merge(member, 1, Integer::sum);
             }
-            counts.put(v, count);
         }
         return counts;
     }
