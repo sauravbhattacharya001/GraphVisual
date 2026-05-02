@@ -1,0 +1,122 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label issues by template and content
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const title = (issue.title || '').toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const combined = `${title} ${body}`;
+            const labels = new Set();
+
+            // --- Template detection (issue forms set headings) ---
+            if (body.includes('### steps to reproduce') || body.includes('### actual behavior')) {
+              labels.add('bug');
+            }
+            if (body.includes('### feature description') || body.includes('### use case')) {
+              labels.add('enhancement');
+            }
+            if (body.includes('### algorithm name') || body.includes('### algorithm category')) {
+              labels.add('algorithm-request');
+            }
+            if (body.includes('### performance scenario') || body.includes('### graph size')) {
+              labels.add('performance');
+            }
+
+            // --- Component detection from keywords ---
+            const componentRules = [
+              { keywords: ['visualization', 'render', 'layout', 'display', 'ui', 'panel', 'canvas', 'javafx', 'heatmap', 'chart'], label: 'visualization' },
+              { keywords: ['centrality', 'betweenness', 'pagerank', 'eigenvector', 'degree centrality', 'closeness'], label: 'centrality' },
+              { keywords: ['community', 'louvain', 'modularity', 'clustering coefficient', 'cluster'], label: 'community-detection' },
+              { keywords: ['shortest path', 'dijkstra', 'bellman', 'bfs', 'dfs', 'traversal', 'pathfinding', 'a\\*'], label: 'graph-traversal' },
+              { keywords: ['bipartite', 'matching', 'coloring', 'chromatic', 'clique', 'independent set', 'steiner'], label: 'graph-theory' },
+              { keywords: ['export', 'import', 'csv', 'graphml', 'adjacency', 'json', 'file format'], label: 'data-pipeline' },
+              { keywords: ['database', 'sqlite', 'sql', 'network.java', 'util.java', 'persistence'], label: 'database' },
+              { keywords: ['test', 'junit', 'coverage', 'assertion', 'fixture'], label: 'tests' },
+              { keywords: ['ci', 'workflow', 'action', 'build', 'maven', 'deploy', 'docker'], label: 'ci/cd' },
+              { keywords: ['doc', 'readme', 'javadoc', 'comment', 'contributing'], label: 'documentation' },
+              { keywords: ['security', 'vulnerability', 'cve', 'injection', 'sanitiz'], label: 'security' },
+              { keywords: ['memory', 'slow', 'timeout', 'heap', 'gc', 'latency', 'optimize', 'bottleneck'], label: 'performance' },
+            ];
+
+            for (const rule of componentRules) {
+              if (rule.keywords.some(kw => combined.includes(kw))) {
+                labels.add(rule.label);
+              }
+            }
+
+            // --- Priority heuristics ---
+            if (/\b(crash|exception|nullpointer|stackover|outofmemory|data loss|corrupt)\b/.test(combined)) {
+              labels.add('priority/high');
+            }
+            if (/\b(typo|cosmetic|minor|nit)\b/.test(combined)) {
+              labels.add('priority/low');
+            }
+
+            // --- Apply labels ---
+            const toApply = [...labels];
+            if (toApply.length === 0) {
+              toApply.push('needs-triage');
+            }
+
+            // Ensure all labels exist (create missing ones)
+            const existingLabels = await github.rest.issues.listLabelsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const existingNames = new Set(existingLabels.data.map(l => l.name));
+
+            const labelColors = {
+              'bug': 'd73a4a',
+              'enhancement': 'a2eeef',
+              'algorithm-request': '5319e7',
+              'performance': 'fbca04',
+              'visualization': '0075ca',
+              'centrality': 'bfd4f2',
+              'community-detection': 'c5def5',
+              'graph-traversal': 'd4c5f9',
+              'graph-theory': 'f9d0c4',
+              'data-pipeline': 'e4e669',
+              'database': 'fef2c0',
+              'tests': 'bfdadc',
+              'ci/cd': 'ededed',
+              'documentation': '0075ca',
+              'security': 'b60205',
+              'priority/high': 'b60205',
+              'priority/low': 'c2e0c6',
+              'needs-triage': 'ffffff',
+            };
+
+            for (const name of toApply) {
+              if (!existingNames.has(name)) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  color: labelColors[name] || 'ededed',
+                });
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: toApply,
+            });
+
+            core.info(`Applied labels: ${toApply.join(', ')}`);
