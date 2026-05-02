@@ -253,18 +253,6 @@ public class GraphDiameterAnalyzer {
 
     // --- Private helpers ---
 
-    private int computeEccentricity(String source, Set<String> component) {
-        Map<String, Integer> distances = GraphUtils.bfsDistances(graph, source);
-        int maxDist = 0;
-        for (String v : component) {
-            Integer d = distances.get(v);
-            if (d != null && d > maxDist) {
-                maxDist = d;
-            }
-        }
-        return maxDist;
-    }
-
     private Set<String> findLargestComponent() {
         return GraphUtils.findLargestComponent(graph);
     }

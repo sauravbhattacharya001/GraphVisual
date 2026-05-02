@@ -722,8 +722,4 @@ public class IndependentSetAnalyzer {
     // ── Helpers ───────────────────────────────────────────────────
 
 
-    @SuppressWarnings("unchecked")
-    private Collection<String> ensureCollection(Collection<String> c) {
-        return c;
-    }
 }

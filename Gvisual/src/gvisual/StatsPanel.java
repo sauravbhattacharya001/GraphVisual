@@ -1,7 +1,6 @@
 package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.util.List;
 import javax.swing.*;

@@ -5,7 +5,6 @@ import edu.uci.ics.jung.graph.Graph;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Exports a {@link TemporalGraph} as a self-contained interactive HTML timeline

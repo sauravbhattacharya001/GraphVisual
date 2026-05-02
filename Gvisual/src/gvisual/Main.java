@@ -7,7 +7,6 @@ import edu.uci.ics.jung.algorithms.layout.StaticLayout;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.screencap.PNGDump;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,8 +18,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -679,14 +676,6 @@ public class Main extends JFrame {
             @Override public Graph<String, Edge> getGraph() { return g; }
             @Override public void onOverlayChanged() { syncRenderers(); refreshGraph(); }
         });
-    }
-
-    /**
-     * Returns a human-readable label for Edge type codes.
-     */
-    private String getDominantLabel(String typeCode) {
-        EdgeType type = EdgeType.fromCode(typeCode);
-        return type != null ? type.getDisplayLabel() : typeCode;
     }
 
     /**
