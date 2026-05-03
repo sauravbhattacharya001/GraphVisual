@@ -398,6 +398,13 @@ public class GraphClusterQualityAnalyzer {
      * Information (NMI). Score ranges from 0 (no mutual information) to
      * 1 (identical clusterings).
      *
+     * <p><b>Performance:</b> Builds a contingency table in a single O(n)
+     * pass over the node set, then derives H(A), H(B), and MI from the
+     * row/column sums and cell counts. This replaces the previous
+     * O(k_A × k_B) approach that allocated a new {@code HashSet} copy
+     * plus {@code retainAll()} for every cluster pair — each copy was
+     * O(|cluster|) in both time and GC pressure.</p>
+     *
      * @param clusteringA first clustering (node to cluster ID)
      * @param clusteringB second clustering (node to cluster ID)
      * @return NMI score in [0, 1]
@@ -418,37 +425,47 @@ public class GraphClusterQualityAnalyzer {
         int n = clusteringA.size();
         if (n == 0) return 0.0;
 
-        // Build cluster to members maps
-        Map<Integer, Set<String>> clustersA = invertClustering(clusteringA);
-        Map<Integer, Set<String>> clustersB = invertClustering(clusteringB);
+        // Single O(n) pass: build contingency counts and marginals
+        // contingency[(cA, cB)] = number of nodes in both clusters
+        Map<Long, Integer> contingency = new HashMap<Long, Integer>();
+        Map<Integer, Integer> aCounts = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> bCounts = new HashMap<Integer, Integer>();
 
-        // Compute entropy H(A), H(B), and mutual information I(A,B)
+        for (String node : clusteringA.keySet()) {
+            int cA = clusteringA.get(node);
+            int cB = clusteringB.get(node);
+            // Pack two ints into a long key to avoid object allocation
+            long key = ((long) cA << 32) | (cB & 0xFFFFFFFFL);
+            contingency.merge(key, 1, Integer::sum);
+            aCounts.merge(cA, 1, Integer::sum);
+            bCounts.merge(cB, 1, Integer::sum);
+        }
+
+        // H(A)
         double ha = 0.0;
-        for (Set<String> clust : clustersA.values()) {
-            double p = (double) clust.size() / n;
-            if (p > 0) ha -= p * log2(p);
+        for (int count : aCounts.values()) {
+            double p = (double) count / n;
+            ha -= p * log2(p);
         }
 
+        // H(B)
         double hb = 0.0;
-        for (Set<String> clust : clustersB.values()) {
-            double p = (double) clust.size() / n;
-            if (p > 0) hb -= p * log2(p);
+        for (int count : bCounts.values()) {
+            double p = (double) count / n;
+            hb -= p * log2(p);
         }
 
-        // Mutual information
+        // Mutual information from contingency table — no set intersections
         double mi = 0.0;
-        for (Set<String> cA : clustersA.values()) {
-            for (Set<String> cB : clustersB.values()) {
-                Set<String> intersection = new HashSet<String>(cA);
-                intersection.retainAll(cB);
-                int overlap = intersection.size();
-                if (overlap > 0) {
-                    double pAB = (double) overlap / n;
-                    double pA = (double) cA.size() / n;
-                    double pB = (double) cB.size() / n;
-                    mi += pAB * log2(pAB / (pA * pB));
-                }
-            }
+        for (Map.Entry<Long, Integer> cell : contingency.entrySet()) {
+            int nij = cell.getValue();
+            long key = cell.getKey();
+            int cA = (int) (key >> 32);
+            int cB = (int) key;
+            double pAB = (double) nij / n;
+            double pA = (double) aCounts.get(cA) / n;
+            double pB = (double) bCounts.get(cB) / n;
+            mi += pAB * log2(pAB / (pA * pB));
         }
 
         double denominator = (ha + hb) / 2.0;
@@ -459,6 +476,13 @@ public class GraphClusterQualityAnalyzer {
      * Compute Adjusted Rand Index (ARI) between two clusterings.
      * ARI adjusts the Rand Index for chance: 0 = random agreement,
      * 1 = perfect agreement, negative = worse than random.
+     *
+     * <p><b>Performance:</b> Builds the contingency table in a single
+     * O(n) pass using a packed {@code long} key, then derives marginals
+     * and the ARI from cell counts. This replaces the previous
+     * O(k_A × k_B) approach that allocated a {@code HashSet} copy +
+     * {@code retainAll()} for every cluster pair — each copy was
+     * O(|cluster|) in time and GC pressure.</p>
      *
      * @param clusteringA first clustering
      * @param clusteringB second clustering
@@ -478,43 +502,29 @@ public class GraphClusterQualityAnalyzer {
         int n = clusteringA.size();
         if (n <= 1) return 0.0;
 
-        // Build contingency table
-        Map<Integer, Set<String>> clustersA = invertClustering(clusteringA);
-        Map<Integer, Set<String>> clustersB = invertClustering(clusteringB);
+        // Single O(n) pass: build contingency counts and row/column marginals
+        Map<Long, Integer> contingency = new HashMap<Long, Integer>();
+        Map<Integer, Integer> aCounts = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> bCounts = new HashMap<Integer, Integer>();
 
-        List<Integer> aIds = new ArrayList<Integer>(clustersA.keySet());
-        List<Integer> bIds = new ArrayList<Integer>(clustersB.keySet());
-
-        int[] aSums = new int[aIds.size()];
-        int[] bSums = new int[bIds.size()];
-
-        List<List<Integer>> contingency = new ArrayList<List<Integer>>();
-        for (int i = 0; i < aIds.size(); i++) {
-            List<Integer> row = new ArrayList<Integer>();
-            Set<String> cA = clustersA.get(aIds.get(i));
-            for (int j = 0; j < bIds.size(); j++) {
-                Set<String> cB = clustersB.get(bIds.get(j));
-                Set<String> inter = new HashSet<String>(cA);
-                inter.retainAll(cB);
-                int nij = inter.size();
-                row.add(nij);
-                aSums[i] += nij;
-                bSums[j] += nij;
-            }
-            contingency.add(row);
+        for (String node : clusteringA.keySet()) {
+            int cA = clusteringA.get(node);
+            int cB = clusteringB.get(node);
+            long key = ((long) cA << 32) | (cB & 0xFFFFFFFFL);
+            contingency.merge(key, 1, Integer::sum);
+            aCounts.merge(cA, 1, Integer::sum);
+            bCounts.merge(cB, 1, Integer::sum);
         }
 
-        // Compute index using nCr(nij, 2) sums
+        // Compute ARI from contingency cell counts and marginals
         long sumNij2 = 0;
-        for (List<Integer> row : contingency) {
-            for (int nij : row) {
-                sumNij2 += choose2(nij);
-            }
+        for (int nij : contingency.values()) {
+            sumNij2 += choose2(nij);
         }
         long sumA2 = 0;
-        for (int ai : aSums) sumA2 += choose2(ai);
+        for (int ai : aCounts.values()) sumA2 += choose2(ai);
         long sumB2 = 0;
-        for (int bi : bSums) sumB2 += choose2(bi);
+        for (int bi : bCounts.values()) sumB2 += choose2(bi);
 
         long totalC2 = choose2(n);
         double expected = totalC2 > 0 ? (double) sumA2 * sumB2 / totalC2 : 0;
@@ -582,9 +592,12 @@ public class GraphClusterQualityAnalyzer {
             result.get(cid).add(entry.getKey());
         }
         return result;
-    }`n
+    }
+    /** 1 / ln(2), cached to avoid repeated division in log2(). */
+    private static final double LOG2_INV = 1.0 / Math.log(2.0);
+
     private static double log2(double x) {
-        return Math.log(x) / Math.log(2.0);
+        return Math.log(x) * LOG2_INV;
     }
 
     private static long choose2(int n) {
