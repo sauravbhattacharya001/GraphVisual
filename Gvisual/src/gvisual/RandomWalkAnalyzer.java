@@ -384,7 +384,9 @@ public class RandomWalkAnalyzer {
         reachable.add(source);
         while (!q.isEmpty()) {
             V v = q.poll();
-            for (V n : graph.getNeighbors(v)) {
+            Collection<V> neighbors = graph.getNeighbors(v);
+            if (neighbors == null) continue;
+            for (V n : neighbors) {
                 if (reachable.add(n)) q.add(n);
             }
         }
@@ -405,9 +407,11 @@ public class RandomWalkAnalyzer {
         for (int i = 0; i < n; i++) {
             V v = nodeList.get(i);
             Collection<V> neighbors = graph.getNeighbors(v);
-            int deg = neighbors.size();
-            if (deg == 0) { P[i][i] = 1.0; }
-            else { for (V nb : neighbors) P[i][idx.get(nb)] += 1.0 / deg; }
+            if (neighbors == null || neighbors.isEmpty()) { P[i][i] = 1.0; }
+            else {
+                int deg = neighbors.size();
+                for (V nb : neighbors) P[i][idx.get(nb)] += 1.0 / deg;
+            }
         }
         return P;
     }
