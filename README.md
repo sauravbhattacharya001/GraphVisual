@@ -28,6 +28,11 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-informational)](https://github.com/sauravbhattacharya001/GraphVisual)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/sauravbhattacharya001/GraphVisual/pulls)
 [![Maintained](https://img.shields.io/badge/Maintained-yes-green.svg)](https://github.com/sauravbhattacharya001/GraphVisual/commits/master)
+[![GHCR](https://img.shields.io/badge/GHCR-container-blue?logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/pkgs/container/graphvisual)
+[![Security Policy](https://img.shields.io/badge/Security-policy-blueviolet?logo=opensourceinitiative)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/SECURITY.md)
+[![Copilot Ready](https://img.shields.io/badge/Copilot-ready-8957e5?logo=githubcopilot)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/.github/copilot-setup-steps.yml)
+[![Auto Label](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/auto-label.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/auto-label.yml)
+[![Stale Bot](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/stale.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/stale.yml)
 
 </div>
 
