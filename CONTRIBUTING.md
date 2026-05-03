@@ -1,6 +1,6 @@
 # Contributing to GraphVisual
 
-Thanks for your interest in contributing! GraphVisual is a large-scale graph theory toolkit with 147 source files, 106 test classes, and 70+ documentation pages. This guide will help you navigate the codebase and contribute effectively.
+Thanks for your interest in contributing! GraphVisual is a large-scale graph theory toolkit with 158 source files, 116 test classes, and 74 documentation pages. This guide will help you navigate the codebase and contribute effectively.
 
 ## Table of Contents
 
@@ -79,22 +79,23 @@ The schema expects tables: `meeting`, `event_3`, `device_1`, `deviceID`.
 ```
 GraphVisual/
 ├── .github/
-│   ├── workflows/          # CI, CodeQL, coverage, Docker, Pages, publish
+│   ├── workflows/          # CI, CodeQL, coverage, Docker, Pages, publish,
+│   │                       # auto-label, issue-triage, stale bot
 │   ├── copilot-instructions.md
 │   ├── copilot-setup-steps.yml
 │   ├── dependabot.yml
-│   └── ISSUE_TEMPLATE/     # Bug report, feature request, performance forms
+│   └── ISSUE_TEMPLATE/     # Bug, feature, performance, CI failure, docs, dep forms
 ├── Gvisual/
 │   ├── src/
-│   │   ├── gvisual/        # 140+ source files — core library
+│   │   ├── gvisual/        # 158 source files — core library
 │   │   └── app/            # Data pipeline (DB → edge-list)
 │   ├── test/
-│   │   ├── gvisual/        # 106 test classes
+│   │   ├── gvisual/        # 116 test classes
 │   │   └── app/            # Pipeline utility tests
 │   ├── lib/                # JUNG 2.0.1, PostgreSQL JDBC, Commons IO
 │   └── images/             # UI icons and legend assets
 ├── Vidly/                  # Separate .NET project (not part of GraphVisual core)
-├── docs/                   # 70+ HTML documentation pages + CSS
+├── docs/                   # 74 HTML documentation pages + CSS
 ├── pom.xml                 # Maven build descriptor
 ├── Dockerfile              # Multi-stage Docker build
 ├── ALGORITHMS.md           # Algorithm documentation
@@ -106,7 +107,7 @@ GraphVisual/
 
 ## Module Catalog
 
-The `gvisual` package contains 140+ classes organized into functional areas. Here's a map to help you find your way:
+The `gvisual` package contains 158 classes organized into functional areas. Here's a map to help you find your way:
 
 ### Core & GUI
 | Class | Purpose |
@@ -126,6 +127,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `CommunityDetector` | Connected component analysis |
 | `LouvainCommunityDetector` | Louvain modularity-based community detection |
 | `CommunityEvolutionTracker` | Track community changes over time |
+| `CycleAnalyzer` | Cycle detection, enumeration, and girth computation |
 | `KCoreDecomposition` | k-core subgraph extraction |
 | `KTrussAnalyzer` | k-truss decomposition |
 | `ArticulationPointAnalyzer` | Cut vertices and biconnected components |
@@ -144,6 +146,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `HamiltonianAnalyzer` | Hamiltonian path/cycle analysis |
 | `TopologicalSortAnalyzer` | DAG ordering, cycle detection |
 | `RandomWalkAnalyzer` | Random walk simulation and hitting times |
+| `GraphDiameterAnalyzer` | Exact and approximate diameter computation |
 
 ### Graph Algorithms — Coloring & Covering
 | Class | Purpose |
@@ -169,6 +172,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `LinkPredictionAnalyzer` | Link prediction (common neighbors, Adamic-Adar, etc.) |
 | `RichClubAnalyzer` | Rich-club coefficient analysis |
 | `StructuralHoleAnalyzer` | Burt's structural holes, constraint, effective size |
+| `GraphNeighborhoodAnalyzer` | k-hop neighborhood extraction and ego-network metrics |
 
 ### Graph Algorithms — Spectral & Algebraic
 | Class | Purpose |
@@ -200,9 +204,20 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `GraphResilienceAnalyzer` | Attack/failure resilience simulation |
 | `GraphAnomalyDetector` | Anomalous node/edge detection |
 | `InfluenceSpreadSimulator` | Influence cascade simulation (IC, LT models) |
+| `GraphInfluenceCampaignPlanner` | Strategic multi-wave influence maximization planning |
 | `GraphClusterQualityAnalyzer` | Modularity, silhouette, NMI |
 | `DegreeDistributionAnalyzer` | Degree distribution, power-law fitting |
 | `GraphHealthChecker` | Graph quality diagnostics |
+| `GraphSentinel` | Autonomous graph monitoring — drift detection and alerting |
+| `GraphAutoPilot` | Automated analysis pipeline — runs multiple analyzers in sequence |
+| `GraphAutonomousRepairEngine` | Self-healing graph repair — reconnects components, removes anomalies |
+| `NetworkImmunizationPlanner` | Targeted node immunization to halt epidemic spread |
+| `GraphPercolationEngine` | Percolation threshold analysis with 7 sub-engines and health scoring |
+| `GraphOpinionDynamicsEngine` | Opinion formation models (voter, DeGroot, bounded confidence) |
+| `GraphGameTheoryEngine` | Game-theoretic analysis on graphs (Nash equilibria, cooperative games) |
+| `GraphTopologyHypothesisTester` | Statistical hypothesis tests on graph topology |
+| `GraphEvolutionSimulator` | Temporal graph evolution — growth, rewiring, and preferential attachment |
+| `GraphTemporalDynamicsEngine` | Time-varying network dynamics and temporal motifs |
 
 ### Graph Operations & Transformations
 | Class | Purpose |
@@ -225,6 +240,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `GraphSimilarityAnalyzer` | Graph-level similarity metrics |
 | `GraphDiffAnalyzer` | Structural diff between two graphs |
 | `MotifAnalyzer`, `GraphMotifFinder` | Network motif detection |
+| `GraphKnowledgeExtractor` | Extract structured knowledge graphs from raw graphs |
 
 ### Layout Engines
 | Class | Purpose |
@@ -241,6 +257,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 |-------|---------|
 | `GraphMLExporter`, `GexfExporter`, `JsonGraphExporter` | Standard graph formats |
 | `DotExporter`, `DimacsExporter` | DOT (Graphviz), DIMACS formats |
+| `GraphMatrixExporter` | Adjacency/incidence/Laplacian matrix export (CSV, JSON) |
 | `SvgExporter`, `TikzExporter` | SVG, LaTeX TikZ export |
 | `InteractiveHtmlExporter`, `GraphDiffHtmlExporter` | Interactive HTML visualizations |
 | `CsvReportExporter`, `NetworkFlowExporter` | Tabular data export |
@@ -261,6 +278,7 @@ The `gvisual` package contains 140+ classes organized into functional areas. Her
 | `GraphBenchmarkSuite` | Performance benchmarking |
 | `GraphQueryEngine` | Graph query language (GQL-lite) |
 | `GraphIntelligenceAdvisor` | AI-driven analysis recommendations |
+| `GraphFileParser` | Multi-format graph file loader (edge-list, GraphML, GEXF, DOT) |
 | `GraphUtils` | Shared graph utilities |
 | `ExportActions`, `ExportUtils` | Export action registry, shared helpers |
 | `MinimumSpanningTree`, `SteinerTreeAnalyzer` | MST and Steiner tree |
@@ -317,7 +335,7 @@ java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':
 # Run all tests (use a test runner or list all test classes)
 ```
 
-The test suite has **106 test classes** covering most analyzers and exporters. CI runs a subset against JDK 11 and 17 — see `.github/workflows/ci.yml` for the canonical list.
+The test suite has **116 test classes** covering most analyzers and exporters. CI runs a subset against JDK 11 and 17 — see `.github/workflows/ci.yml` for the canonical list.
 
 ### Docker
 
