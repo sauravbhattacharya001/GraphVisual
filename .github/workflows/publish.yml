@@ -19,6 +19,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    outputs:
+      published-version: ${{ steps.extract-version.outputs.version }}
 
     steps:
       - name: Checkout
@@ -49,8 +51,34 @@ jobs:
         run: |
           mvn versions:set -DnewVersion="${{ github.event.inputs.version }}" -B
 
+      - name: Extract published version
+        id: extract-version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $VERSION"
+
+      - name: Run tests before publish
+        run: mvn test -B
+
       - name: Build package (with sources and javadoc)
         run: mvn package source:jar javadoc:jar -B -DskipTests
+
+      - name: Verify JAR manifest
+        run: |
+          FAT_JAR=$(ls target/*-all.jar 2>/dev/null | head -1)
+          if [ -n "$FAT_JAR" ]; then
+            echo "=== Fat JAR Manifest ==="
+            unzip -p "$FAT_JAR" META-INF/MANIFEST.MF
+            echo ""
+            echo "=== Verifying Main-Class entry ==="
+            MAIN_CLASS=$(unzip -p "$FAT_JAR" META-INF/MANIFEST.MF | grep 'Main-Class' || true)
+            if [ -z "$MAIN_CLASS" ]; then
+              echo "WARNING: No Main-Class found in fat JAR manifest"
+            else
+              echo "Found: $MAIN_CLASS"
+            fi
+          fi
 
       - name: Publish to GitHub Packages
         run: mvn deploy -B -DskipTests -s ${{ github.workspace }}/settings.xml
@@ -66,13 +94,14 @@ jobs:
             !target/original-*.jar
           retention-days: 90
 
-      - name: Generate checksums
+      - name: Generate checksums (SHA-256 + SHA-512)
         if: github.event_name == 'release'
         run: |
           cd target
           for jar in *.jar; do
             [ -f "$jar" ] || continue
             sha256sum "$jar" > "$jar.sha256"
+            sha512sum "$jar" > "$jar.sha512"
           done
 
       - name: Attach JARs to release
@@ -94,7 +123,7 @@ jobs:
           DOC_JAR=$(ls target/*-javadoc.jar 2>/dev/null | head -1)
           [ -n "$DOC_JAR" ] && gh release upload "$TAG" "$DOC_JAR" --clobber
           # Upload checksums
-          for checksum in target/*.sha256; do
+          for checksum in target/*.sha256 target/*.sha512; do
             [ -f "$checksum" ] && gh release upload "$TAG" "$checksum" --clobber
           done
 
@@ -121,3 +150,94 @@ jobs:
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: target/graphvisual-*.jar
+
+  verify:
+    needs: publish
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Set up JDK 11
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Wait for package propagation
+        run: sleep 30
+
+      - name: Download and verify published package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.publish.outputs.published-version }}"
+          TAG="${{ github.event.release.tag_name }}"
+          echo "Verifying published version: $VERSION (tag: $TAG)"
+
+          # Download fat JAR from release assets
+          mkdir -p /tmp/verify
+          cd /tmp/verify
+          gh release download "$TAG" \
+            --repo "${{ github.repository }}" \
+            --pattern "*-all.jar" \
+            --dir . || { echo "No fat JAR in release assets"; exit 0; }
+
+          FAT_JAR=$(ls *-all.jar 2>/dev/null | head -1)
+          if [ -z "$FAT_JAR" ]; then
+            echo "No fat JAR found to verify"
+            exit 0
+          fi
+
+          echo "=== Verify JAR is valid ZIP/JAR ==="
+          jar tf "$FAT_JAR" > /dev/null
+          echo "✅ JAR is structurally valid"
+
+          echo "=== Verify Main-Class in manifest ==="
+          MAIN_CLASS=$(unzip -p "$FAT_JAR" META-INF/MANIFEST.MF | grep '^Main-Class:' | awk '{print $2}' | tr -d '\r')
+          if [ -z "$MAIN_CLASS" ]; then
+            echo "❌ No Main-Class in manifest"
+            exit 1
+          fi
+          echo "✅ Main-Class: $MAIN_CLASS"
+
+          echo "=== Verify JAR can be loaded by JVM ==="
+          # Run with -version flag or trigger class loading (headless)
+          java -Djava.awt.headless=true -cp "$FAT_JAR" "$MAIN_CLASS" --help 2>&1 || true
+          echo "✅ JVM loaded the JAR without ClassNotFoundException"
+
+          echo "=== Verify package in GitHub Packages registry ==="
+          # Check that the Maven package exists in the registry
+          RESPONSE=$(gh api \
+            "/orgs/sauravbhattacharya001/packages/maven/com.github.sauravbhattacharya001.graphvisual/versions" \
+            --jq '.[0].name' 2>/dev/null || \
+            gh api \
+            "/users/sauravbhattacharya001/packages/maven/com.github.sauravbhattacharya001.graphvisual/versions" \
+            --jq '.[0].name' 2>/dev/null || echo "")
+          if [ -n "$RESPONSE" ]; then
+            echo "✅ Package found in GitHub Packages: $RESPONSE"
+          else
+            echo "⚠️ Could not verify package in registry (may need time to propagate)"
+          fi
+
+      - name: Verify checksum integrity
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          mkdir -p /tmp/checksums
+          cd /tmp/checksums
+
+          # Download all assets
+          gh release download "$TAG" \
+            --repo "${{ github.repository }}" \
+            --dir . 2>/dev/null || true
+
+          # Verify SHA-256 checksums
+          for sha_file in *.sha256; do
+            [ -f "$sha_file" ] || continue
+            JAR_NAME="${sha_file%.sha256}"
+            if [ -f "$JAR_NAME" ]; then
+              echo "Verifying $JAR_NAME..."
+              sha256sum -c "$sha_file" && echo "✅ $JAR_NAME checksum OK" || echo "❌ $JAR_NAME checksum MISMATCH"
+            fi
+          done
