@@ -799,11 +799,11 @@ public class GraphSpectralClusteringEngine {
         for (int c = 0; c < k; c++) {
             double cut = 0, vol = 0;
             for (int i = 0; i < n; i++) {
-                boolean inC = assignment.get(vertices.get(i)) == c;
+                boolean inC = assignment.get(vertices.get(i)).intValue() == c;
                 if (inC) {
                     for (int j = 0; j < n; j++) vol += adj[i][j];
                     for (int j = 0; j < n; j++) {
-                        if (assignment.get(vertices.get(j)) != c) {
+                        if (assignment.get(vertices.get(j)).intValue() != c) {
                             cut += adj[i][j];
                         }
                     }
