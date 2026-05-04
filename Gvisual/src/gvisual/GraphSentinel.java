@@ -163,8 +163,8 @@ public class GraphSentinel {
         report.edgesBefore = before.getEdgeCount();
         report.edgesAfter = after.getEdgeCount();
 
-        Map<String, Set<String>> adjBefore = buildAdjacencyMap(before);
-        Map<String, Set<String>> adjAfter = buildAdjacencyMap(after);
+        Map<String, Set<String>> adjBefore = GraphUtils.buildAdjacencyMap(before);
+        Map<String, Set<String>> adjAfter = GraphUtils.buildAdjacencyMap(after);
 
         // Pre-compute degrees and hubs once — reused by hub dynamics and stability scoring
         Map<String, Integer> degBefore = computeDegrees(before);
@@ -742,13 +742,7 @@ public class GraphSentinel {
 
     // -- Utility methods ---------------------------------------------------
 
-    private Map<String, Set<String>> buildAdjacencyMap(Graph<String, Edge> g) {
-        Map<String, Set<String>> adj = new HashMap<>();
-        for (String v : g.getVertices()) {
-            adj.put(v, new HashSet<>(g.getNeighbors(v)));
-        }
-        return adj;
-    }
+    // buildAdjacencyMap removed — use GraphUtils.buildAdjacencyMap(graph)
 
     private Map<String, Integer> computeDegrees(Graph<String, Edge> g) {
         Map<String, Integer> deg = new HashMap<>();

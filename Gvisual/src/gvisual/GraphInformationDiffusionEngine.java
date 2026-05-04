@@ -164,7 +164,7 @@ public class GraphInformationDiffusionEngine {
         }
 
         // Build adjacency
-        Map<String, Set<String>> adj = buildAdjacency(graph, vertices);
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(graph);
 
         // Select seeds
         Set<String> seeds = resolveSeedNodes(vertices, adj);
@@ -697,7 +697,7 @@ public class GraphInformationDiffusionEngine {
         List<String> probeNodes = new ArrayList<>(vertices);
         Collections.shuffle(probeNodes, rng);
         for (int p = 0; p < probes; p++) {
-            Map<String, Integer> dist = bfs(probeNodes.get(p), adj);
+            Map<String, Integer> dist = GraphUtils.bfsDistancesFromAdj(probeNodes.get(p), adj);
             for (int d : dist.values()) {
                 if (d > maxDist) maxDist = d;
             }
@@ -705,23 +705,7 @@ public class GraphInformationDiffusionEngine {
         return maxDist;
     }
 
-    private Map<String, Integer> bfs(String start, Map<String, Set<String>> adj) {
-        Map<String, Integer> dist = new LinkedHashMap<>();
-        dist.put(start, 0);
-        Queue<String> queue = new LinkedList<>();
-        queue.add(start);
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            int d = dist.get(u);
-            for (String v : adj.getOrDefault(u, Collections.emptySet())) {
-                if (!dist.containsKey(v)) {
-                    dist.put(v, d + 1);
-                    queue.add(v);
-                }
-            }
-        }
-        return dist;
-    }
+    // bfs removed — use GraphUtils.bfsDistancesFromAdj(source, adj)
 
     private double computeGini(double[] sorted) {
         int n = sorted.length;
@@ -741,7 +725,7 @@ public class GraphInformationDiffusionEngine {
         int maxComp = 0;
         for (String v : vertices) {
             if (visited.contains(v)) continue;
-            Map<String, Integer> comp = bfs(v, adj);
+            Map<String, Integer> comp = GraphUtils.bfsDistancesFromAdj(v, adj);
             visited.addAll(comp.keySet());
             if (comp.size() > maxComp) maxComp = comp.size();
         }
@@ -815,19 +799,7 @@ public class GraphInformationDiffusionEngine {
     // Helpers
     // ==================================================================
 
-    private Map<String, Set<String>> buildAdjacency(Graph<String, Edge> graph, List<String> vertices) {
-        Map<String, Set<String>> adj = new LinkedHashMap<>();
-        for (String v : vertices) adj.put(v, new LinkedHashSet<>());
-        for (Edge edge : graph.getEdges()) {
-            String v1 = edge.getVertex1();
-            String v2 = edge.getVertex2();
-            if (v1 == null || v2 == null) continue;
-            if (v1.equals(v2)) continue; // skip self-loops
-            adj.computeIfAbsent(v1, k -> new LinkedHashSet<>()).add(v2);
-            adj.computeIfAbsent(v2, k -> new LinkedHashSet<>()).add(v1);
-        }
-        return adj;
-    }
+    // buildAdjacency removed — use GraphUtils.buildAdjacencyMap(graph)
 
     private Set<String> resolveSeedNodes(List<String> vertices, Map<String, Set<String>> adj) {
         if (seedNodes != null && !seedNodes.isEmpty()) {

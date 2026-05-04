@@ -232,7 +232,7 @@ public class GraphAutoPilot {
             return;
         }
 
-        adjacency = buildAdjacency(graph);
+        adjacency = GraphUtils.buildAdjacencyMap(graph);
         beforeHealth = computeHealth(graph);
 
         // Phase 1: Diagnose
@@ -710,7 +710,7 @@ public class GraphAutoPilot {
 
         for (int t = 0; t < trials && count < 2; t++) {
             String start = vertices.get(t);
-            Map<String, Integer> dist = bfs(start, adjacency);
+            Map<String, Integer> dist = GraphUtils.bfsDistancesFromAdj(start, adjacency);
             // Find the farthest node
             String farthest = null;
             int maxDist = 0;
@@ -775,7 +775,7 @@ public class GraphAutoPilot {
             return h;
         }
 
-        Map<String, Set<String>> adj = buildAdjacency(g);
+        Map<String, Set<String>> adj = GraphUtils.buildAdjacencyMap(g);
 
         // Bridges
         h.bridgeCount = findBridges(g, adj).size();
@@ -823,19 +823,7 @@ public class GraphAutoPilot {
 
     // ── Graph algorithms ───────────────────────────────────
 
-    private Map<String, Set<String>> buildAdjacency(Graph<String, Edge> g) {
-        Map<String, Set<String>> adj = new HashMap<>();
-        for (String v : g.getVertices()) adj.put(v, new HashSet<>());
-        for (Edge e : g.getEdges()) {
-            Collection<String> ep = g.getEndpoints(e);
-            if (ep == null || ep.size() < 2) continue;
-            Iterator<String> it = ep.iterator();
-            String a = it.next(), b = it.next();
-            adj.get(a).add(b);
-            adj.get(b).add(a);
-        }
-        return adj;
-    }
+    // buildAdjacency removed — use GraphUtils.buildAdjacencyMap(graph)
 
     /** Find bridge edges. Returns set of "u||v" keys (sorted). */
     private Set<String> findBridges(Graph<String, Edge> g, Map<String, Set<String>> adj) {
@@ -986,24 +974,7 @@ public class GraphAutoPilot {
         return components;
     }
 
-    /** BFS distances from a source. */
-    private Map<String, Integer> bfs(String source, Map<String, Set<String>> adj) {
-        Map<String, Integer> dist = new HashMap<>();
-        Queue<String> queue = new ArrayDeque<>();
-        dist.put(source, 0);
-        queue.add(source);
-        while (!queue.isEmpty()) {
-            String u = queue.poll();
-            int d = dist.get(u);
-            for (String v : adj.getOrDefault(u, Collections.emptySet())) {
-                if (!dist.containsKey(v)) {
-                    dist.put(v, d + 1);
-                    queue.add(v);
-                }
-            }
-        }
-        return dist;
-    }
+    // bfs removed — use GraphUtils.bfsDistancesFromAdj(source, adj)
 
     /** Approximate diameter using BFS from a few nodes. */
     private double approximateDiameter(Graph<String, Edge> g, Map<String, Set<String>> adj) {
@@ -1012,7 +983,7 @@ public class GraphAutoPilot {
         int maxDist = 0;
         int samples = Math.min(10, vertices.size());
         for (int i = 0; i < samples; i++) {
-            Map<String, Integer> dist = bfs(vertices.get(i), adj);
+            Map<String, Integer> dist = GraphUtils.bfsDistancesFromAdj(vertices.get(i), adj);
             for (int d : dist.values()) {
                 if (d > maxDist) maxDist = d;
             }

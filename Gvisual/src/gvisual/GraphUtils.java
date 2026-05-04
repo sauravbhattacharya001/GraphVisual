@@ -406,6 +406,40 @@ public final class GraphUtils {
         return edges - vertices.size() + comps;
     }
 
+    // ── BFS from adjacency map ─────────────────────────────────────────
+
+    /**
+     * BFS from a source vertex using a pre-built adjacency map, returning
+     * distances (hop counts) to all reachable vertices.
+     *
+     * <p>This variant is useful when the caller already holds an adjacency
+     * map and wants to avoid re-traversing the JUNG graph structure.</p>
+     *
+     * @param source the starting vertex
+     * @param adj    pre-built adjacency map (vertex → set of neighbors)
+     * @return map from vertex ID to its BFS distance from source
+     */
+    public static Map<String, Integer> bfsDistancesFromAdj(
+            String source, Map<String, Set<String>> adj) {
+        Map<String, Integer> dist = new HashMap<String, Integer>();
+        ArrayDeque<String> queue = new ArrayDeque<String>();
+        dist.put(source, 0);
+        queue.add(source);
+        while (!queue.isEmpty()) {
+            String u = queue.poll();
+            int d = dist.get(u);
+            Set<String> neighbors = adj.get(u);
+            if (neighbors == null) continue;
+            for (String v : neighbors) {
+                if (!dist.containsKey(v)) {
+                    dist.put(v, d + 1);
+                    queue.add(v);
+                }
+            }
+        }
+        return dist;
+    }
+
     // ── Clustering coefficient ────────────────────────────────────────
 
     /**
