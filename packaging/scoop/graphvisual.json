@@ -1,0 +1,38 @@
+{
+    "version": "2.62.0",
+    "description": "Interactive graph visualization and analysis tool with 57+ algorithms",
+    "homepage": "https://github.com/sauravbhattacharya001/GraphVisual",
+    "license": "MIT",
+    "depends": "java/temurin11-jdk",
+    "url": "https://github.com/sauravbhattacharya001/GraphVisual/releases/download/v2.62.0/graphvisual-2.62.0-all.jar",
+    "hash": "",
+    "suggest": {
+        "JDK 11+": [
+            "java/temurin11-jdk",
+            "java/temurin17-jdk",
+            "java/temurin21-jdk"
+        ]
+    },
+    "pre_install": "if (!(Get-Command java -ErrorAction SilentlyContinue)) { Write-Host 'Java 11+ is required. Install with: scoop install java/temurin11-jdk' -ForegroundColor Yellow }",
+    "installer": {
+        "script": [
+            "New-Item -ItemType Directory -Path \"$dir\\bin\" -Force | Out-Null",
+            "Move-Item \"$dir\\graphvisual-*-all.jar\" \"$dir\\bin\\graphvisual.jar\" -Force"
+        ]
+    },
+    "bin": [],
+    "shortcuts": [
+        ["bin\\graphvisual.jar", "GraphVisual"]
+    ],
+    "env_set": {
+        "GRAPHVISUAL_HOME": "$dir"
+    },
+    "notes": [
+        "Run with: java -jar \"$dir\\bin\\graphvisual.jar\"",
+        "Or use the shortcut: GraphVisual"
+    ],
+    "checkver": "github",
+    "autoupdate": {
+        "url": "https://github.com/sauravbhattacharya001/GraphVisual/releases/download/v$version/graphvisual-$version-all.jar"
+    }
+}

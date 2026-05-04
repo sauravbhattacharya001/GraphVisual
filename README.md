@@ -292,11 +292,47 @@ mvn test -Dtest=BipartiteAnalyzerTest#testMaximumMatchingCompleteBipartite
 
 See **[TESTING.md](TESTING.md)** for the full testing guide: conventions, coverage gaps, and how to write new tests.
 
-## Maven / GitHub Packages
+## Installation
 
-GraphVisual is published to [GitHub Packages](https://github.com/sauravbhattacharya001/GraphVisual/packages) as a Maven artifact. You can use it as a library dependency or download the fat JAR directly.
+Multiple ways to get GraphVisual running — pick your preferred method.
 
-### Add as a Maven dependency
+### Quick Install (recommended)
+
+**Linux / macOS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sauravbhattacharya001/GraphVisual/master/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/sauravbhattacharya001/GraphVisual/master/install.ps1 | iex
+```
+
+Both installers download the latest fat JAR, create a `graphvisual` launcher, and add it to your PATH. Requires Java 11+.
+
+Install a specific version:
+
+```bash
+# Linux/macOS
+curl -fsSL .../install.sh | bash -s -- --version v2.62.0
+
+# Windows
+$env:GRAPHVISUAL_VERSION = "v2.62.0"; irm .../install.ps1 | iex
+```
+
+### GitHub CLI
+
+```bash
+# Download the latest fat JAR
+gh release download --repo sauravbhattacharya001/GraphVisual --pattern "*-all.jar"
+java -jar graphvisual-*-all.jar
+```
+
+### Maven Dependency (use as a library)
+
+GraphVisual is published to [GitHub Packages](https://github.com/sauravbhattacharya001/GraphVisual/packages).
 
 1. Configure GitHub Packages in your `~/.m2/settings.xml`:
 
@@ -323,7 +359,7 @@ GraphVisual is published to [GitHub Packages](https://github.com/sauravbhattacha
 <dependency>
   <groupId>com.github.sauravbhattacharya001</groupId>
   <artifactId>graphvisual</artifactId>
-  <version>1.1.0</version>
+  <version>2.62.0</version>
 </dependency>
 ```
 
@@ -332,17 +368,23 @@ GraphVisual is published to [GitHub Packages](https://github.com/sauravbhattacha
 Each [release](https://github.com/sauravbhattacharya001/GraphVisual/releases) includes a standalone `graphvisual-*-all.jar` with all dependencies bundled:
 
 ```bash
-java -jar graphvisual-1.1.0-all.jar
+java -jar graphvisual-2.62.0-all.jar
 ```
 
-### Build with Maven locally
+### Build from Source
 
 ```bash
+git clone https://github.com/sauravbhattacharya001/GraphVisual.git
+cd GraphVisual
+
 # Install vendored local JARs first
 mvn initialize -P install-local-deps
 
 # Build the project
 mvn package -B
+
+# Run
+java -jar target/graphvisual-*-all.jar
 ```
 
 ## Docker
