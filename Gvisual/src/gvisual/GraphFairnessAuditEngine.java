@@ -559,22 +559,30 @@ public class GraphFairnessAuditEngine {
         }
         if (starved.isEmpty()) return Collections.emptyList();
 
-        // For each starved node, find best unconnected partner
+        // For each starved node, find best unconnected partner.
+        // The improvement estimate factors in both the starved node's deficit
+        // and the candidate partner's degree — connecting a low-degree node to
+        // a high-degree hub reduces the Gini coefficient more than connecting
+        // to another low-degree node.  Previous code used a flat formula that
+        // scored all candidates with degrees[j] > avgDeg identically (only a
+        // binary 1.5× multiplier), making partner selection arbitrary.
         List<Intervention> candidates = new ArrayList<>();
+        double maxDeg = 1;
+        for (int d : degrees) maxDeg = Math.max(maxDeg, d);
         for (int si : starved) {
             String sv = vertices.get(si);
             Set<String> neighbors = adj.get(sv);
             double bestImprovement = 0;
             String bestTarget = null;
+            double deficit = avgDeg - degrees[si]; // always > 0 for starved
             for (int j = 0; j < n; j++) {
                 if (j == si) continue;
                 String tv = vertices.get(j);
                 if (neighbors.contains(tv)) continue;
-                // Estimate improvement: connecting a low-degree to a moderate-degree node
-                double improvement = (avgDeg - degrees[si]) / (n * avgDeg + 1);
-                if (degrees[j] > avgDeg) {
-                    improvement *= 1.5; // Bonus for connecting to well-connected node
-                }
+                // Base improvement from closing the starved node's deficit.
+                // Scale by partner degree so higher-degree partners rank higher.
+                double partnerFactor = 1.0 + (degrees[j] / maxDeg);
+                double improvement = deficit * partnerFactor / (n * avgDeg + 1);
                 if (improvement > bestImprovement) {
                     bestImprovement = improvement;
                     bestTarget = tv;

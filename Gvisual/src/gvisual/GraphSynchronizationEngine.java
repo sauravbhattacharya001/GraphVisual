@@ -220,13 +220,20 @@ public class GraphSynchronizationEngine {
         }
 
         // Engine 4: Critical Coupling Estimator
+        // Use consistent initial phases across all K values so the coupling
+        // curve reflects only the effect of coupling strength, not random
+        // initial conditions.  Previous code generated new random phases per
+        // sweep point via the shared rng, making the curve noisy and K_c
+        // estimation unreliable (a low-K trial could randomly get a favorable
+        // starting configuration and appear more synchronized).
         Map<Double, Double> couplingCurve = new LinkedHashMap<>();
         double criticalCoupling = couplingMax;
         int shortSteps = Math.max(50, timeSteps / 2);
+        double[] sweepBaseTheta = new double[n];
+        for (int i = 0; i < n; i++) sweepBaseTheta[i] = rng.nextDouble() * TWO_PI;
         for (int s = 0; s <= couplingSteps; s++) {
             double k = couplingMax * s / couplingSteps;
-            double[] thetaCopy = new double[n];
-            for (int i = 0; i < n; i++) thetaCopy[i] = rng.nextDouble() * TWO_PI;
+            double[] thetaCopy = sweepBaseTheta.clone();
             SimResult sr = simulate(thetaCopy, omega, adj, k, shortSteps, stepSize, n);
             double r = sr.trajectory.get(sr.trajectory.size() - 1);
             couplingCurve.put(roundK(k), r);
