@@ -270,29 +270,66 @@ public class GraphInformationDiffusionEngine {
         for (String v : vertices) activationCount.put(v, new int[]{0});
         double totalSize = 0;
 
+        // Pre-compute neighbor sizes (immutable per trial)
+        Map<String, Integer> neighborSize = new LinkedHashMap<>(n * 2);
+        for (String v : vertices) {
+            neighborSize.put(v, adj.getOrDefault(v, Collections.emptySet()).size());
+        }
+
         for (int trial = 0; trial < monteCarloTrials; trial++) {
             // Random thresholds
-            Map<String, Double> thresholds = new LinkedHashMap<>();
+            Map<String, Double> thresholds = new LinkedHashMap<>(n * 2);
             for (String v : vertices) {
                 thresholds.put(v, rng.nextDouble());
             }
 
             Set<String> active = new LinkedHashSet<>(seeds);
+
+            // Incremental active-neighbor counts: only recompute on activation
+            Map<String, Integer> activeNbCount = new LinkedHashMap<>(n * 2);
+            for (String v : vertices) activeNbCount.put(v, 0);
+
+            // Initialize counts from seed nodes
+            for (String s : seeds) {
+                for (String nb : adj.getOrDefault(s, Collections.emptySet())) {
+                    if (!active.contains(nb)) {
+                        activeNbCount.put(nb, activeNbCount.get(nb) + 1);
+                    }
+                }
+            }
+
+            // Candidate set: inactive nodes with at least one active neighbor
+            Set<String> candidates = new LinkedHashSet<>();
+            for (String v : vertices) {
+                if (!active.contains(v) && activeNbCount.get(v) > 0) {
+                    candidates.add(v);
+                }
+            }
+
             boolean changed = true;
             while (changed) {
                 changed = false;
-                for (String v : vertices) {
-                    if (active.contains(v)) continue;
-                    Set<String> neighbors = adj.getOrDefault(v, Collections.emptySet());
-                    if (neighbors.isEmpty()) continue;
-                    int activeNeighbors = 0;
-                    for (String nb : neighbors) {
-                        if (active.contains(nb)) activeNeighbors++;
-                    }
-                    double fraction = (double) activeNeighbors / neighbors.size();
+                List<String> newlyActivated = new ArrayList<>();
+                Iterator<String> it = candidates.iterator();
+                while (it.hasNext()) {
+                    String v = it.next();
+                    int nSize = neighborSize.get(v);
+                    if (nSize == 0) { it.remove(); continue; }
+                    double fraction = (double) activeNbCount.get(v) / nSize;
                     if (fraction >= thresholds.get(v)) {
                         active.add(v);
+                        it.remove();
+                        newlyActivated.add(v);
                         changed = true;
+                    }
+                }
+                // Update counts and candidates for newly activated nodes
+                for (String v : newlyActivated) {
+                    for (String nb : adj.getOrDefault(v, Collections.emptySet())) {
+                        if (!active.contains(nb)) {
+                            activeNbCount.put(nb, activeNbCount.get(nb) + 1);
+                            candidates.add(nb);
+                        }
                     }
                 }
             }
