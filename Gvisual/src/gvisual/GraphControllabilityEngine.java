@@ -819,7 +819,7 @@ public class GraphControllabilityEngine {
         h.append("</div>\n");
 
         h.append("<p style=\"text-align:center;color:#475569;margin-top:20px;font-size:0.8em\">");
-        h.append("GraphControllabilityEngine — GraphVisual | zalenix</p>\n");
+        h.append("GraphControllabilityEngine — GraphVisual | sauravbhattacharya001</p>\n");
         h.append("</body>\n</html>");
         return h.toString();
     }
