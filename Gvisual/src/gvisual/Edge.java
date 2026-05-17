@@ -1,12 +1,46 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Edge.java
+ *
+ * Core edge data model for GraphVisual. See class Javadoc below.
  */
 
 package gvisual;
+
 /**
+ * Edge between two vertices in a GraphVisual graph.
  *
- * @author user
+ * <p>An {@code Edge} carries:
+ * <ul>
+ *   <li>An <b>edge type</b> ({@link #getType()}) drawn from the project's
+ *       relationship categories, with the canonical short codes
+ *       {@code f} (friend), {@code fs} (familiar stranger),
+ *       {@code c} (classmate), {@code s} (stranger), and
+ *       {@code sg} (study group). See {@link EdgeType} for the full
+ *       palette and metadata.</li>
+ *   <li>Two endpoint identifiers ({@link #getVertex1()} and
+ *       {@link #getVertex2()}). The edge is treated as <b>undirected</b>:
+ *       {@code (v1, v2)} equals {@code (v2, v1)} for {@link #equals(Object)}
+ *       and {@link #hashCode()} purposes.</li>
+ *   <li>A scalar {@link #getWeight() weight} (typically interaction
+ *       intensity — frequency × duration).</li>
+ *   <li>An optional human-readable {@link #getLabel() label}.</li>
+ *   <li>Optional <b>temporal extent</b> in the form of an epoch-millis
+ *       start ({@link #getTimestamp()}) and end
+ *       ({@link #getEndTimestamp()}). Untimed edges (both null) are
+ *       considered active at all times.</li>
+ * </ul>
+ *
+ * <p>Note for callers: the {@code vertex1} / {@code vertex2} fields stored
+ * on an {@code Edge} are advisory. The authoritative endpoints for an edge
+ * inside a JUNG graph are obtained via
+ * {@link edu.uci.ics.jung.graph.Graph#getEndpoints(Object)}; analyzers that
+ * read endpoints should prefer that API.
+ *
+ * <p>This class is mutable but is intended to be treated as effectively
+ * immutable once inserted into a graph (changing endpoints or type after
+ * insertion may corrupt analyzer state).
+ *
+ * @author sauravbhattacharya001
  */
 public class Edge {
     private String edgeType;
@@ -44,17 +78,28 @@ public class Edge {
     }
 
     /**
-     * Constructor
+     * No-arg constructor. Leaves all fields at their defaults
+     * ({@code null} for object fields, {@code 0f} for {@link #getWeight()}).
+     * Mainly intended for frameworks (deserialization, bean instantiation).
+     * Prefer {@link #Edge(String, String, String)} for explicit construction.
      */
     public Edge()
     {
     }
 
     /**
-     * Constructor
-     * @param edgeType Type of the Edge
-     * @param vertex1 vertex id
-     * @param vertex2 vertex id
+     * Constructs an edge with a type and two endpoints.
+     *
+     * <p><b>Argument order matters:</b> the type comes first, followed by
+     * the two endpoint identifiers. Swapping the order leaves the edge
+     * with garbage type / vertex fields, which has been a recurring source
+     * of subtle bugs in callers.
+     *
+     * @param edgeType type code (e.g. {@code "f"}, {@code "c"}, {@code "s"});
+     *                 see {@link EdgeType}
+     * @param vertex1  first endpoint id (undirected: order is irrelevant
+     *                 for equality)
+     * @param vertex2  second endpoint id
      */
     public Edge(String edgeType,String vertex1,String vertex2)
     {
@@ -63,21 +108,39 @@ public class Edge {
         this.vertex2 = vertex2;
     }
 
+    /**
+     * Sets the scalar weight of this edge.
+     * @param weight non-negative numeric weight (semantics are caller-defined,
+     *               but typically encodes interaction intensity)
+     */
     public void setWeight(float weight)
     {
         this.weight = weight;
     }
 
+    /**
+     * Returns the scalar weight of this edge.
+     * @return the weight (default {@code 0f} if never set)
+     */
     public float getWeight()
     {
         return this.weight;
     }
 
+    /**
+     * Sets the human-readable label for this edge.
+     * Labels are display-only and do not participate in {@link #equals(Object)}.
+     * @param label the label, or {@code null} to clear
+     */
     public void setLabel(String label)
     {
         this.label = label;
     }
 
+    /**
+     * Returns the human-readable label for this edge.
+     * @return the label, or {@code null} if none was set
+     */
     public String getLabel()
     {
         return this.label;
