@@ -183,6 +183,84 @@ public class EdgePersistenceAnalyzerTest {
         assertFalse(transient_.contains(e1));
     }
 
+    // ── Memoization & validation (issue #168) ─────────────────────
+
+    @Test
+    public void testClassify_isMemoizedAcrossCalls() {
+        // Same inputs -> classify() must return the SAME map instance the
+        // second time (proves we are not re-scanning windows/edges).
+        Edge e1 = new Edge("f", "A", "B");
+        e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
+        Edge e2 = new Edge("f", "C", "D");
+        e2.setTimestamp(0L); e2.setEndTimestamp(10L);
+        graph.addEdge(e1, "A", "B");
+        graph.addEdge(e2, "C", "D");
+
+        TemporalGraph tg = new TemporalGraph(graph);
+        EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 20);
+
+        Map<Edge, String> first = epa.classify();
+        Map<Edge, String> second = epa.classify();
+        assertSame("classify() must memoize and return the same instance",
+                   first, second);
+
+        // Semantics still match the original (transient + persistent).
+        assertEquals(EdgePersistenceAnalyzer.PERSISTENT, first.get(e1));
+        assertEquals(EdgePersistenceAnalyzer.TRANSIENT, first.get(e2));
+    }
+
+    @Test
+    public void testSummaryAndBucketsUseCachedClassification() {
+        Edge e1 = new Edge("f", "A", "B");
+        e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
+        graph.addEdge(e1, "A", "B");
+
+        TemporalGraph tg = new TemporalGraph(graph);
+        EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 10);
+
+        // Drive summary() and getEdgesByClassification() and re-check
+        // classify() identity to confirm nothing rebuilt the cache.
+        Map<Edge, String> first = epa.classify();
+        epa.summary();
+        epa.getEdgesByClassification(EdgePersistenceAnalyzer.PERSISTENT);
+        epa.getEdgesByClassification(EdgePersistenceAnalyzer.PERIODIC);
+        epa.getEdgesByClassification(EdgePersistenceAnalyzer.TRANSIENT);
+        Map<Edge, String> later = epa.classify();
+        assertSame("summary/getEdgesByClassification must not invalidate cache",
+                   first, later);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetEdgesByClassification_unknownStringRejected() {
+        Edge e1 = new Edge("f", "A", "B");
+        e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
+        graph.addEdge(e1, "A", "B");
+        TemporalGraph tg = new TemporalGraph(graph);
+        EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 5);
+        // Common typo — must throw, not silently return empty set.
+        epa.getEdgesByClassification("persistant");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetEdgesByClassification_wrongCaseRejected() {
+        Edge e1 = new Edge("f", "A", "B");
+        e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
+        graph.addEdge(e1, "A", "B");
+        TemporalGraph tg = new TemporalGraph(graph);
+        EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 5);
+        epa.getEdgesByClassification("PERSISTENT");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetEdgesByClassification_nullRejected() {
+        Edge e1 = new Edge("f", "A", "B");
+        e1.setTimestamp(0L); e1.setEndTimestamp(1000L);
+        graph.addEdge(e1, "A", "B");
+        TemporalGraph tg = new TemporalGraph(graph);
+        EdgePersistenceAnalyzer epa = new EdgePersistenceAnalyzer(tg, 5);
+        epa.getEdgesByClassification(null);
+    }
+
     // ── Constants ──────────────────────────────────────────────────
 
     @Test

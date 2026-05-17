@@ -16,6 +16,17 @@ import java.util.*;
  * reveals relationship strength: persistent edges are strong ties, transient
  * edges are weak/one-time encounters.</p>
  *
+ * <h2>Caching contract</h2>
+ * <p>The classification is <em>memoized on first compute</em>. The inputs
+ * ({@link TemporalGraph} and window count) are treated as effectively
+ * immutable for the lifetime of an instance: subsequent calls to
+ * {@link #classify()}, {@link #summary()}, and
+ * {@link #getEdgesByClassification(String)} are O(1) lookups after the
+ * first traversal, instead of repeated O(W·E) re-scans (see GitHub
+ * issue #168). If the underlying graph is mutated externally, those
+ * mutations will <strong>not</strong> be reflected — construct a new
+ * analyzer to re-classify.</p>
+ *
  * @author zalenix
  */
 public class EdgePersistenceAnalyzer {
@@ -27,8 +38,20 @@ public class EdgePersistenceAnalyzer {
     /** Edge appears in &lt;25% of time windows. */
     public static final String TRANSIENT = "transient";
 
+    /** Set of valid classification strings (for input validation). */
+    private static final Set<String> VALID_CLASSIFICATIONS =
+        Collections.unmodifiableSet(new LinkedHashSet<>(
+            Arrays.asList(PERSISTENT, PERIODIC, TRANSIENT)));
+
     private final TemporalGraph temporalGraph;
     private final int windowCount;
+
+    /** Cached classification result; lazily computed on first {@link #classify()}. */
+    private Map<Edge, String> cachedClassification;
+    /** Cached summary counts; lazily computed on first {@link #summary()}. */
+    private Map<String, Integer> cachedSummary;
+    /** Cached bucketed edge sets keyed by classification, lazily populated. */
+    private Map<String, Set<Edge>> cachedBuckets;
 
     /**
      * Creates an EdgePersistenceAnalyzer.
@@ -51,9 +74,18 @@ public class EdgePersistenceAnalyzer {
     /**
      * Analyzes Edge persistence across time windows.
      *
-     * @return a map from each Edge to its persistence classification
+     * <p>The first call performs the O(W·E) window/edge scan and memoizes
+     * the result. Subsequent calls return the same (unmodifiable) map
+     * instance, guaranteeing both reference equality and content
+     * equality.</p>
+     *
+     * @return an unmodifiable map from each Edge to its persistence classification
      */
     public Map<Edge, String> classify() {
+        if (cachedClassification != null) {
+            return cachedClassification;
+        }
+
         List<Map.Entry<Long, Graph<String, Edge>>> windows =
             temporalGraph.generateWindows(windowCount);
 
@@ -82,15 +114,20 @@ public class EdgePersistenceAnalyzer {
                 result.put(entry.getKey(), TRANSIENT);
             }
         }
-        return result;
+        cachedClassification = Collections.unmodifiableMap(result);
+        return cachedClassification;
     }
 
     /**
      * Returns a summary of Edge persistence: counts of each classification.
+     * Memoized; subsequent calls do not re-traverse.
      *
-     * @return map with keys "persistent", "periodic", "transient" and integer counts
+     * @return unmodifiable map with keys "persistent", "periodic", "transient" and integer counts
      */
     public Map<String, Integer> summary() {
+        if (cachedSummary != null) {
+            return cachedSummary;
+        }
         Map<Edge, String> classified = classify();
         Map<String, Integer> counts = new LinkedHashMap<>();
         counts.put(PERSISTENT, 0);
@@ -99,23 +136,49 @@ public class EdgePersistenceAnalyzer {
         for (String category : classified.values()) {
             counts.merge(category, 1, Integer::sum);
         }
-        return counts;
+        cachedSummary = Collections.unmodifiableMap(counts);
+        return cachedSummary;
     }
 
     /**
      * Returns only edges matching the given classification.
      *
+     * <p>Bucketed results are computed once on first request per
+     * classification and reused for subsequent calls.</p>
+     *
      * @param classification one of {@link #PERSISTENT}, {@link #PERIODIC}, {@link #TRANSIENT}
-     * @return set of edges matching the classification
+     * @return unmodifiable set of edges matching the classification
+     * @throws IllegalArgumentException if {@code classification} is null or not one
+     *     of the three known constants. This catches silent typos like
+     *     {@code "persistant"} or {@code "PERSISTENT"} that would previously
+     *     return an empty set with no warning.
      */
     public Set<Edge> getEdgesByClassification(String classification) {
-        Map<Edge, String> classified = classify();
-        Set<Edge> result = new LinkedHashSet<>();
-        for (Map.Entry<Edge, String> entry : classified.entrySet()) {
-            if (classification.equals(entry.getValue())) {
-                result.add(entry.getKey());
-            }
+        if (classification == null || !VALID_CLASSIFICATIONS.contains(classification)) {
+            throw new IllegalArgumentException(
+                "Unknown classification: " + classification
+                + " (expected one of " + VALID_CLASSIFICATIONS + ")");
         }
-        return result;
+        if (cachedBuckets == null) {
+            cachedBuckets = buildBuckets(classify());
+        }
+        return cachedBuckets.get(classification);
+    }
+
+    /** One-pass partition of the classification map into per-bucket edge sets. */
+    private static Map<String, Set<Edge>> buildBuckets(Map<Edge, String> classified) {
+        Map<String, Set<Edge>> buckets = new LinkedHashMap<>();
+        buckets.put(PERSISTENT, new LinkedHashSet<>());
+        buckets.put(PERIODIC,  new LinkedHashSet<>());
+        buckets.put(TRANSIENT, new LinkedHashSet<>());
+        for (Map.Entry<Edge, String> entry : classified.entrySet()) {
+            buckets.get(entry.getValue()).add(entry.getKey());
+        }
+        // Freeze the bucket sets so callers cannot mutate cached state.
+        Map<String, Set<Edge>> frozen = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<Edge>> e : buckets.entrySet()) {
+            frozen.put(e.getKey(), Collections.unmodifiableSet(e.getValue()));
+        }
+        return Collections.unmodifiableMap(frozen);
     }
 }
