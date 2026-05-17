@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
+import edu.uci.ics.jung.graph.util.Pair;
 import java.util.*;
 
 /**
@@ -270,58 +271,59 @@ public class GraphProductCalculator {
         long start = System.currentTimeMillis();
         Graph<String, Edge> product = new UndirectedSparseGraph<String, Edge>();
 
+        // Add all product vertices
         for (String u : verticesG) {
             for (String v : verticesH) {
                 product.addVertex(productVertex(u, v));
             }
         }
 
-        // Build adjacency sets for fast lookup
-        Set<String> gEdgeSet = new HashSet<String>();
-        for (String u1 : verticesG) {
-            for (String u2 : verticesG) {
-                if (!u1.equals(u2) && areAdjacent(graphG, u1, u2)) {
-                    gEdgeSet.add(u1 + "\0" + u2);
-                }
+        // The strong product G ⊠ H is the edge-disjoint union of the
+        // Cartesian and tensor products. We construct it directly from
+        // the edge sets of G and H instead of materialising every pair
+        // of product vertices and parsing the synthetic labels back.
+        //
+        // Cost: O(E_G · V_H + V_G · E_H + E_G · E_H) edges added (which
+        // matches the theoretical formula). The previous implementation
+        // was O((V_G · V_H)²) with per-pair String.indexOf parsing,
+        // dominating runtime on even modest product graphs.
+
+        // 1) Cartesian (G-factor): for each H-vertex v, copy edges of G.
+        for (Edge eg : graphG.getEdges()) {
+            Pair<String> ep = graphG.getEndpoints(eg);
+            String u1 = ep.getFirst();
+            String u2 = ep.getSecond();
+            for (String v : verticesH) {
+                product.addEdge(newProductEdge(u1, v, u2, v),
+                        productVertex(u1, v), productVertex(u2, v));
             }
         }
-        Set<String> hEdgeSet = new HashSet<String>();
-        for (String v1 : verticesH) {
-            for (String v2 : verticesH) {
-                if (!v1.equals(v2) && areAdjacent(graphH, v1, v2)) {
-                    hEdgeSet.add(v1 + "\0" + v2);
-                }
+
+        // 2) Cartesian (H-factor): for each G-vertex u, copy edges of H.
+        for (Edge eh : graphH.getEdges()) {
+            Pair<String> ep = graphH.getEndpoints(eh);
+            String v1 = ep.getFirst();
+            String v2 = ep.getSecond();
+            for (String u : verticesG) {
+                product.addEdge(newProductEdge(u, v1, u, v2),
+                        productVertex(u, v1), productVertex(u, v2));
             }
         }
 
-        // Iterate all pairs of product vertices
-        List<String> allProductVertices = new ArrayList<String>(product.getVertices());
-        for (int i = 0; i < allProductVertices.size(); i++) {
-            for (int j = i + 1; j < allProductVertices.size(); j++) {
-                String pv1 = allProductVertices.get(i);
-                String pv2 = allProductVertices.get(j);
-
-                // Parse back the components
-                String u1 = parseFirst(pv1);
-                String v1 = parseSecond(pv1);
-                String u2 = parseFirst(pv2);
-                String v2 = parseSecond(pv2);
-
-                boolean uEqual = u1.equals(u2);
-                boolean vEqual = v1.equals(v2);
-                boolean uAdj = gEdgeSet.contains(u1 + "\0" + u2);
-                boolean vAdj = hEdgeSet.contains(v1 + "\0" + v2);
-
-                boolean connected = false;
-                if (uEqual && vAdj) connected = true;       // Cartesian (H-factor)
-                else if (vEqual && uAdj) connected = true;  // Cartesian (G-factor)
-                else if (uAdj && vAdj) connected = true;    // Tensor
-
-                if (connected) {
-                    Edge e = new Edge("product", pv1, pv2);
-                    e.setLabel("e" + (edgeCounter++));
-                    product.addEdge(e, pv1, pv2);
-                }
+        // 3) Tensor part: for each (G-edge, H-edge) pair add both
+        // diagonals (u1,v1)-(u2,v2) and (u1,v2)-(u2,v1).
+        for (Edge eg : graphG.getEdges()) {
+            Pair<String> egp = graphG.getEndpoints(eg);
+            String u1 = egp.getFirst();
+            String u2 = egp.getSecond();
+            for (Edge eh : graphH.getEdges()) {
+                Pair<String> ehp = graphH.getEndpoints(eh);
+                String v1 = ehp.getFirst();
+                String v2 = ehp.getSecond();
+                product.addEdge(newProductEdge(u1, v1, u2, v2),
+                        productVertex(u1, v1), productVertex(u2, v2));
+                product.addEdge(newProductEdge(u1, v2, u2, v1),
+                        productVertex(u1, v2), productVertex(u2, v1));
             }
         }
 
@@ -478,19 +480,4 @@ public class GraphProductCalculator {
         return degrees;
     }
 
-    // --- Parsing helpers for "(u,v)" vertex labels ---
-
-    private String parseFirst(String productVertex) {
-        // "(u,v)" -> "u"
-        int start = productVertex.indexOf('(') + 1;
-        int comma = productVertex.lastIndexOf(',');
-        return productVertex.substring(start, comma);
-    }
-
-    private String parseSecond(String productVertex) {
-        // "(u,v)" -> "v"
-        int comma = productVertex.lastIndexOf(',');
-        int end = productVertex.lastIndexOf(')');
-        return productVertex.substring(comma + 1, end);
-    }
 }
