@@ -459,6 +459,17 @@ System.out.println(smallWorld.analyze(graph));
 
 See **[ALGORITHMS.md](ALGORITHMS.md)** for the complete reference with time complexities and algorithm details.
 
+### GraphAdversaryForecaster — agentic adversarial-intent modeler
+
+Given the original graph and an ordered attack trace (the nodes that were removed, in chronological order), `GraphAdversaryForecaster` replays the trace step by step, infers which strategy best explains the observed removal order (RANDOM, DEGREE_TARGETING, BETWEENNESS_TARGETING, BRIDGE_TARGETING, COMMUNITY_CUT, PERIPHERAL), forecasts the top-K next targets with softmax probabilities, and emits prioritized defenses (`HARDEN`, `ADD_REDUNDANT_EDGE` with a concrete suggested edge, `MONITOR`, `DECOY`) tagged P0/P1/P2 by expected impact on the largest connected component.
+
+```java
+GraphAdversaryForecaster fc =
+        new GraphAdversaryForecaster(originalGraph, attackTrace).withTopK(5);
+GraphAdversaryForecaster.Forecast f = fc.analyze();
+System.out.println(fc.toMarkdown(f));  // or toText / toJson
+```
+
 ## Research Context
 
 This project was built to study **community evolution in student social networks** using Bluetooth proximity sensing. Key research questions:
