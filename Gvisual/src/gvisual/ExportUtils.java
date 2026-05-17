@@ -57,7 +57,7 @@ public final class ExportUtils {
      * JSON-escapes a string value, wrapping it in double quotes.
      *
      * <p>Escapes backslashes, double quotes, newlines, carriage returns,
-     * tabs, and other control characters (as {@code \uXXXX}).</p>
+     * tabs, and other control characters (as {@code \\uXXXX}).</p>
      *
      * @param value the input string (may be null)
      * @return JSON-quoted string, or {@code "null"} if input is null

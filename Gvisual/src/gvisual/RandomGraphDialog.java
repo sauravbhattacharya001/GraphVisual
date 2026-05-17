@@ -20,7 +20,7 @@ import java.util.Map;
  *   RandomGraphDialog dlg = new RandomGraphDialog(parentFrame);
  *   dlg.setVisible(true);
  *   Graph&lt;String, Edge&gt; result = dlg.getGeneratedGraph();
- *   if (result != null) { /* use it */ }
+ *   if (result != null) { // use it ... }
  * </pre>
  *
  * @author GraphVisual Feature Builder
