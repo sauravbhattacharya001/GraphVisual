@@ -2,6 +2,9 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import cern.colt.matrix.DoubleMatrix2D;
+import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import cern.colt.matrix.linalg.EigenvalueDecomposition;
 
 /**
  * Computes the eigenvalue spectrum of the adjacency and Laplacian matrices
@@ -37,7 +40,6 @@ import java.util.*;
 public class GraphSpectrumAnalyzer {
 
     private static final double EPSILON = 1e-10;
-    private static final int MAX_ITERATIONS = 500;
 
     private final Graph<String, Edge> graph;
     private double[] adjacencyEigenvalues;
@@ -238,126 +240,35 @@ public class GraphSpectrumAnalyzer {
         return sb.toString();
     }
 
-    // ---- QR Algorithm for symmetric matrix eigenvalues ----
+    // ---- Eigenvalue computation (Colt EigenvalueDecomposition) ----
 
+    /**
+     * Computes the eigenvalues of a real symmetric matrix using Colt's
+     * {@link EigenvalueDecomposition}.
+     *
+     * <p>Previously this class shipped a hand-rolled Householder+implicit-QR
+     * routine that crashed with {@code ArrayIndexOutOfBoundsException} on
+     * every non-trivial graph (issue #169) and produced incorrect eigenvalues
+     * even when it did not crash. Colt is already on the classpath
+     * ({@code lib/colt-1.2.0.jar}), so we delegate to its well-tested
+     * symmetric-matrix path.</p>
+     */
     private double[] computeEigenvalues(double[][] matrix) {
         int n = matrix.length;
         if (n == 0) return new double[0];
         if (n == 1) return new double[]{matrix[0][0]};
 
-        // Copy matrix
-        double[][] M = new double[n][n];
+        DoubleMatrix2D m = new DenseDoubleMatrix2D(n, n);
         for (int i = 0; i < n; i++) {
-            M[i] = Arrays.copyOf(matrix[i], n);
-        }
-
-        // Reduce to tridiagonal form using Householder reflections
-        double[] diag = new double[n];
-        double[] offdiag = new double[n];
-        tridiagonalize(M, diag, offdiag);
-
-        // Apply implicit QR shifts to tridiagonal matrix
-        qrTridiagonal(diag, offdiag, n);
-
-        return diag;
-    }
-
-    /**
-     * Householder tridiagonalization for symmetric matrix.
-     * After this, diag contains diagonal and offdiag contains sub-diagonal.
-     */
-    private void tridiagonalize(double[][] M, double[] diag, double[] offdiag) {
-        int n = M.length;
-        for (int i = n - 1; i > 0; i--) {
-            double scale = 0;
-            for (int k = 0; k < i; k++) scale += Math.abs(M[i][k]);
-
-            if (scale < EPSILON) {
-                offdiag[i] = M[i][i - 1];
-            } else {
-                double h = 0;
-                for (int k = 0; k < i; k++) {
-                    M[i][k] /= scale;
-                    h += M[i][k] * M[i][k];
-                }
-                double f = M[i][i - 1];
-                double g = f >= 0 ? -Math.sqrt(h) : Math.sqrt(h);
-                offdiag[i] = scale * g;
-                h -= f * g;
-                M[i][i - 1] = f - g;
-
-                double[] u = new double[i];
-                for (int j = 0; j < i; j++) {
-                    u[j] = 0;
-                    for (int k = 0; k <= j; k++) u[j] += M[j][k] * M[i][k];
-                    for (int k = j + 1; k < i; k++) u[j] += M[k][j] * M[i][k];
-                    u[j] /= h;
-                }
-
-                double k2 = 0;
-                for (int j = 0; j < i; j++) k2 += M[i][j] * u[j];
-                k2 /= (2.0 * h);
-
-                for (int j = 0; j < i; j++) u[j] -= k2 * M[i][j];
-
-                for (int j = 0; j < i; j++) {
-                    for (int k2b = 0; k2b <= j; k2b++) {
-                        M[j][k2b] -= M[i][j] * u[k2b] + u[j] * M[i][k2b];
-                    }
-                }
-            }
-            diag[i] = M[i][i];
-        }
-        diag[0] = M[0][0];
-        offdiag[0] = 0;
-    }
-
-    /**
-     * Implicit QR algorithm with Wilkinson shifts for tridiagonal symmetric matrix.
-     */
-    private void qrTridiagonal(double[] diag, double[] offdiag, int n) {
-        for (int l = 0; l < n; l++) {
-            int iter = 0;
-            while (true) {
-                int m = l;
-                while (m < n - 1) {
-                    double dd = Math.abs(diag[m]) + Math.abs(diag[m + 1]);
-                    if (Math.abs(offdiag[m + 1]) + dd == dd) break;
-                    m++;
-                }
-                if (m == l) break;
-                if (++iter > MAX_ITERATIONS) break;
-
-                // Wilkinson shift
-                double g = (diag[l + 1] - diag[l]) / (2.0 * offdiag[l + 1]);
-                double r = Math.sqrt(g * g + 1.0);
-                double shift = diag[m] - diag[l]
-                        + offdiag[l + 1] / (g + (g >= 0 ? r : -r));
-
-                double s = 1.0, c = 1.0, p = 0.0;
-                for (int i = m - 1; i >= l; i--) {
-                    double f = s * offdiag[i + 1];
-                    double b = c * offdiag[i + 1];
-                    r = Math.sqrt(f * f + shift * shift);
-                    offdiag[i + 2] = r;
-                    if (Math.abs(r) < EPSILON) {
-                        diag[i + 1] -= p;
-                        offdiag[m + 1 < n ? m + 1 : m] = 0;
-                        break;
-                    }
-                    s = f / r;
-                    c = shift / r;
-                    g = diag[i + 1] - p;
-                    r = (diag[i] - g) * s + 2.0 * c * b;
-                    p = s * r;
-                    diag[i + 1] = g + p;
-                    shift = c * r - b;
-                }
-                diag[l] -= p;
-                offdiag[l + 1] = shift;
-                if (m + 1 < n) offdiag[m + 1] = 0;
+            double[] row = matrix[i];
+            for (int j = 0; j < n; j++) {
+                m.setQuick(i, j, row[j]);
             }
         }
+        EigenvalueDecomposition eig = new EigenvalueDecomposition(m);
+        double[] real = eig.getRealEigenvalues().toArray();
+        // Imaginary parts must be ~0 for symmetric input; we trust Colt here.
+        return real;
     }
 
     private void reverseArray(double[] arr) {
