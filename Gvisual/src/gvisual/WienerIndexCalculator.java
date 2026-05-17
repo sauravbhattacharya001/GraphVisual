@@ -22,7 +22,7 @@ import java.util.*;
  * <p>All BFS passes use array-based traversal for performance, matching the
  * pattern in {@link GraphDiameterAnalyzer} and {@link NodeCentralityAnalyzer}.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class WienerIndexCalculator {
 

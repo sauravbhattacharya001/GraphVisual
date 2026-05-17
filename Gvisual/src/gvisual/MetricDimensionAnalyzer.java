@@ -53,7 +53,7 @@ import java.util.*;
  *       major vertices</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class MetricDimensionAnalyzer {
 

@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  *   List&lt;CommunitySnapshot&gt; lineage = result.getNodeLineage("Alice");
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CommunityEvolutionTracker {
 

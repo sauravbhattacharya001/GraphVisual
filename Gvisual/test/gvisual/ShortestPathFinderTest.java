@@ -12,7 +12,7 @@ import java.util.Set;
  * Tests for ShortestPathFinder — BFS and Dijkstra path finding
  * on JUNG UndirectedSparseGraph.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class ShortestPathFinderTest {
 

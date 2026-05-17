@@ -30,7 +30,7 @@ import java.util.*;
  *   <li>Minimum cycle basis for network topology analysis</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CycleAnalyzer {
 

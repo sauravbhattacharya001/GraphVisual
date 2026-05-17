@@ -37,7 +37,7 @@ import java.util.*;
  * <p>Positions are supplied as a Map&lt;String, Point2D&gt;. If a vertex
  * has no position, it is excluded from spatial metrics.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphDrawingQualityAnalyzer {
 

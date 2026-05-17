@@ -22,7 +22,7 @@ import java.util.*;
  * <p>Applications: route planning, circuit board tracing, DNA fragment assembly,
  * Chinese Postman Problem analysis, network traversal optimization.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class EulerianPathAnalyzer {
 

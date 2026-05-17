@@ -17,7 +17,7 @@ import java.util.*;
  * <p>A resolution parameter γ controls granularity (γ &gt; 1 = smaller
  * communities, γ &lt; 1 = larger ones).</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class LouvainCommunityDetector {
 

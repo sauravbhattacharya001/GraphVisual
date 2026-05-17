@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  *   dash.export(new File("dashboard.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphStatsDashboard {
 

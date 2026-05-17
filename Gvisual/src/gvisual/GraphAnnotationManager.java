@@ -12,7 +12,7 @@ import java.util.*;
  * underlying graph structure. Supports JSON export/import for persistence
  * and sharing between researchers.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphAnnotationManager {
 

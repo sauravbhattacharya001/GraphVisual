@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  *   String html = engine.exportHtml(report);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphPercolationEngine {
 

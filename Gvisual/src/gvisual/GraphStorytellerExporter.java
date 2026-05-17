@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *   storyteller.export(new File("graph_story.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphStorytellerExporter {
 

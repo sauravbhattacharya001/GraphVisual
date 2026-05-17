@@ -21,7 +21,7 @@ import java.util.*;
  *   String overview = summarizer.getOverviewSection();
  * </pre></p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSummarizer {
 

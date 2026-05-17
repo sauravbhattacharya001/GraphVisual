@@ -28,7 +28,7 @@ import java.util.*;
  * suitable for moderate-sized graphs. For very large graphs, the search is
  * limited to keep runtime reasonable.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class PerfectGraphAnalyzer {
 

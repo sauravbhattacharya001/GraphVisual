@@ -33,7 +33,7 @@ import java.util.*;
  *   <li>Deadlock detection in resource allocation</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class StronglyConnectedComponentsAnalyzer {
 

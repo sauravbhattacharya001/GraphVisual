@@ -9,7 +9,7 @@ import java.util.*;
  * Useful for identifying growth phases, stability periods, and
  * network degradation.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GrowthRateAnalyzer {
 

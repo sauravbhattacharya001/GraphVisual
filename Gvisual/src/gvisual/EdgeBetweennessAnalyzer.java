@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
  *   List&lt;EdgeScore&gt; ranking = analyzer.getRanking();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class EdgeBetweennessAnalyzer {
 

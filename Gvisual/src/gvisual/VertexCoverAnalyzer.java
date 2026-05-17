@@ -37,7 +37,7 @@ import java.util.*;
  * <p>Applications: network monitoring (placing sensors on links), bioinformatics
  * (enzyme selection), VLSI design, security (surveillance camera placement).</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class VertexCoverAnalyzer {
 

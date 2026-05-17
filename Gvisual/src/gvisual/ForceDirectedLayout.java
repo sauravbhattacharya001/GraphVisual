@@ -35,7 +35,7 @@ import java.util.*;
  * <p>O(iterations × (V² + E)) — the V² term comes from all-pairs repulsion.
  * Suitable for graphs up to ~5000 nodes.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class ForceDirectedLayout {
 

@@ -21,7 +21,7 @@ import java.util.*;
  *   <li><strong>Stationary distribution</strong> — long-run visit probabilities</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class RandomWalkAnalyzer {
 

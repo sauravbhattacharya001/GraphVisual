@@ -28,7 +28,7 @@ import java.util.*;
  * case is exponential, but degree-based pruning makes it practical for
  * real-world networks.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphIsomorphismChecker {
 

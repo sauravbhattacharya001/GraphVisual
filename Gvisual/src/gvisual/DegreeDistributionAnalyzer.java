@@ -31,7 +31,7 @@ import java.util.*;
  *   <li><b>Text summary</b> — formatted multi-line report.</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class DegreeDistributionAnalyzer {
 

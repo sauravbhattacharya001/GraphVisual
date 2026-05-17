@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link GraphSentinel} -- autonomous structural drift detector.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSentinelTest {
 

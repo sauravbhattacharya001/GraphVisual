@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * the successor (out-Edge) direction is followed.  The source vertex itself
  * is always at depth 0.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphNeighborhoodAnalyzer {
 

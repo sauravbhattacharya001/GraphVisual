@@ -46,7 +46,7 @@ import java.util.*;
  *   result2.exportEdgeList(new File("subgraph.csv"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SubgraphExtractor {
 

@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * <p>Useful for characterizing network uniformity in social networks,
  * IMEI call graphs, and infrastructure topologies.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphRegularityAnalyzer {
 

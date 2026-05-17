@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for RichClubAnalyzer.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class RichClubAnalyzerTest {
 

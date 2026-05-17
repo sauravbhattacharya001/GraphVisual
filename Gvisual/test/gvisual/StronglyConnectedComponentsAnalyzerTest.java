@@ -10,7 +10,7 @@ import java.util.*;
 /**
  * Tests for StronglyConnectedComponentsAnalyzer.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class StronglyConnectedComponentsAnalyzerTest {
 

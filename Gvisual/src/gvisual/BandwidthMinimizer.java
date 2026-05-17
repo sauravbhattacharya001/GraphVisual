@@ -25,7 +25,7 @@ import java.util.*;
  * numbering, cache-friendly graph traversal, and reducing fill-in during
  * matrix factorization.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class BandwidthMinimizer {
 

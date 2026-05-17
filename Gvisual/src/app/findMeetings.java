@@ -20,7 +20,7 @@ import java.util.TreeSet;
  * Detected meetings are written to the {@code meeting} database table with
  * start/end times and participant identifiers.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class findMeetings {
 

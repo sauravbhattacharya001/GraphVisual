@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link GraphNetworkProfiler}.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphNetworkProfilerTest {
 

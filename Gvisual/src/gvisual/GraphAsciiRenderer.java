@@ -35,7 +35,7 @@ import java.util.*;
  *   renderer.exportToFile("graph-ascii.txt");
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphAsciiRenderer {
 

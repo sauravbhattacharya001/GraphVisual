@@ -23,7 +23,7 @@ package app;
  * Network.generateFile("graph.txt", "03", "15", config);
  * }</pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class ThresholdConfig {
 

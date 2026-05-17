@@ -27,7 +27,7 @@ import java.util.Arrays;
  * <p>For undirected graphs, each Edge counts as a bidirectional link.
  * Dangling nodes (degree 0) distribute their rank uniformly to all nodes.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class PageRankAnalyzer {
 

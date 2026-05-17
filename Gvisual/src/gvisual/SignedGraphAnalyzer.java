@@ -34,7 +34,7 @@ import java.util.*;
  *   <li><b>Frustration index:</b> NP-hard in general; exact for small graphs, heuristic for large.</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SignedGraphAnalyzer {
 

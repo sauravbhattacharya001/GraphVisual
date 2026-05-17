@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link GraphEvolutionSimulator}.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphEvolutionSimulatorTest {
 

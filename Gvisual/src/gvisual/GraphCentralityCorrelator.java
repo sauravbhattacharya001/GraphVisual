@@ -13,7 +13,7 @@ import java.util.*;
  * A configurable discordance threshold identifies structurally interesting
  * nodes whose importance varies by measure.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphCentralityCorrelator {
 

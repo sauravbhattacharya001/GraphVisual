@@ -35,7 +35,7 @@ import java.util.*;
  * non-equivalent vertices, but may fail to distinguish some equivalent
  * vertices in highly regular graphs.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSymmetryAnalyzer {
 

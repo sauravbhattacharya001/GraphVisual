@@ -27,7 +27,7 @@ import java.util.*;
  *   <li><b>Vertex Edge-cliques</b> — clique decomposition of L(G)</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class LineGraphAnalyzer {
 

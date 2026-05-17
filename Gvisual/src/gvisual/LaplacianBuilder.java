@@ -21,7 +21,7 @@ import java.util.*;
  * <p>Also provides helpers for extracting the adjacency matrix, degree matrix,
  * and building Laplacians for vertex subsets (subgraph-induced Laplacians).</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class LaplacianBuilder {
 

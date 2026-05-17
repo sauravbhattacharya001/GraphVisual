@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  *   result.report();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class RichClubAnalyzer {
 

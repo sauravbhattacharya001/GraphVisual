@@ -14,7 +14,7 @@ import java.util.*;
  * <p>Consumers should call the static methods rather than hard-coding
  * edge type strings.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class EdgeTypeRegistry {
 

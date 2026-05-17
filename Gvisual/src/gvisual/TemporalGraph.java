@@ -21,7 +21,7 @@ import java.util.*;
  * referencing the same Edge objects) so modifications won't affect the
  * original graph.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class TemporalGraph {
 

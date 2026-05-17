@@ -33,7 +33,7 @@ import java.util.*;
  *   exporter.export(new File("network.tex"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class TikzExporter {
 

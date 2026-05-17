@@ -29,7 +29,7 @@ import java.util.*;
  * The {@code maxDepth} and {@code maxPaths} guards prevent runaway
  * computation on dense graphs.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphPathExplorer {
 

@@ -45,7 +45,7 @@ import java.util.*;
  *   CompressionResult result4 = compressor.byAttribute(communities::get);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphCompressor {
 

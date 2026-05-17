@@ -39,7 +39,7 @@ import java.util.*;
  *   <li>Small-to-medium graphs (up to ~500 nodes)</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SpectralLayout {
 

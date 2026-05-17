@@ -26,7 +26,7 @@ import java.util.*;
  *   Map&lt;String, Double&gt; nearest = nsa.kNearestNeighbors("A", Metric.ADAMIC_ADAR, 5);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NodeSimilarityAnalyzer {
 

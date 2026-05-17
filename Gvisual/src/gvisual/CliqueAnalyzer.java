@@ -26,7 +26,7 @@ import java.util.*;
  * <p>Clique detection is fundamental in social network analysis (finding
  * tight-knit groups), bioinformatics (protein complexes), and graph theory.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CliqueAnalyzer {
 

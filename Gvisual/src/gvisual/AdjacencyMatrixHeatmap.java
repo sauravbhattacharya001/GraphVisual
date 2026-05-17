@@ -22,7 +22,7 @@ import java.util.List;
  * - Tooltip on hover showing node pair and Edge details
  * - Export to PNG
  * 
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class AdjacencyMatrixHeatmap extends JPanel {
 

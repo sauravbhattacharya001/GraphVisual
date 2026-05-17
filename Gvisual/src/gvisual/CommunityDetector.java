@@ -12,7 +12,7 @@ import java.util.*;
  * composition (relationship types), and track how communities evolve
  * over the timeline.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CommunityDetector {
 

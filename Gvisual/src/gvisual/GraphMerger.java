@@ -36,7 +36,7 @@ import java.util.*;
  * Graph&lt;String, Edge&gt; merged = result.getMergedGraph();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class GraphMerger {
 

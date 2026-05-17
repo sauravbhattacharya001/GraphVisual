@@ -32,7 +32,7 @@ import java.util.*;
  * <p>Uses QR algorithm for eigenvalue computation (no external dependencies).
  * Suitable for graphs up to a few hundred vertices.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSpectrumAnalyzer {
 

@@ -20,7 +20,7 @@ import java.util.*;
  *       genus estimate, face list, and recommendations</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class PlanarGraphAnalyzer {
 

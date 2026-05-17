@@ -39,7 +39,7 @@ import java.util.*;
  *   System.out.println(result.getSummary());
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSampler {
 

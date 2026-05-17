@@ -11,7 +11,7 @@ import java.util.*;
  * between any two nodes in the network. Useful for analyzing
  * how closely connected individuals are in the social graph.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class ShortestPathFinder {
 

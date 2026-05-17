@@ -20,7 +20,7 @@ import java.util.*;
  *   <li><b>Reports</b> — comprehensive text analysis of sparsification results</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSparsificationAnalyzer {
 

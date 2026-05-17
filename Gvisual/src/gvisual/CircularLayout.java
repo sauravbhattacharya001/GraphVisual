@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
  * String svg = layout.toSvg();
  * }</pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CircularLayout {
 

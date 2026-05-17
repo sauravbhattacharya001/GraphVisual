@@ -18,7 +18,7 @@ import java.util.*;
  * a degradation curve that reveals how robust the network is against different
  * failure modes — a key metric in network science.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphResilienceAnalyzer {
 

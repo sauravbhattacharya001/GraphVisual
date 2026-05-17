@@ -32,7 +32,7 @@ import java.util.*;
  *   comparer.export(new File("layout-comparison.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphLayoutComparer {
 

@@ -42,7 +42,7 @@ import java.util.*;
  * System.out.println(sf.getSummary());
  * }</pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphGenerator {
 

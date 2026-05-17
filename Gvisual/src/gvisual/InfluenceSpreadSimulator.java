@@ -27,7 +27,7 @@ import java.util.*;
  *   <li>Cascade timeline: full trace of who infected whom and when</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class InfluenceSpreadSimulator {
 

@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
  * String report = classifier.generateReport();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NetworkRoleClassifier {
 

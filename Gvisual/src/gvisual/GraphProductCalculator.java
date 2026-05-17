@@ -42,7 +42,7 @@ import java.util.*;
  * <p>Product vertices are named "(u,v)" where u and v are original vertex
  * labels. Product edges carry type "product".</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphProductCalculator {
 

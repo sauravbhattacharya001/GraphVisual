@@ -25,7 +25,7 @@ import java.util.*;
  *
  * <p>Uses Maximum Cardinality Search (MCS) for PEO computation.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class ChordalGraphAnalyzer {
 

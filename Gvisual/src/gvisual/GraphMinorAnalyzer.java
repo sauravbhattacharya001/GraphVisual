@@ -25,7 +25,7 @@ import java.util.*;
  * <p>All operations produce new graph copies; the original is never modified.
  * For minor containment, heuristic/bounded search is used to keep runtime practical.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphMinorAnalyzer {
 

@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
  * String html = profiler.getHtmlReport();
  * }</pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphNetworkProfiler {
 

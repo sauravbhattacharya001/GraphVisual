@@ -28,7 +28,7 @@ import java.util.*;
  *   System.out.println("Imbalance: " + result.getImbalanceRatio());
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphPartitioner {
 

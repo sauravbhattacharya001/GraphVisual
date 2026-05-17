@@ -27,7 +27,7 @@ import java.sql.ResultSet;
  * visualization and analysis tools (e.g., GraphVisual, Gephi, NetworkX).
  * Edge weight = count × average duration.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class Network {
 

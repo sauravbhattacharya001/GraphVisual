@@ -31,7 +31,7 @@ import java.util.*;
  *   <li>Labeled tree enumeration (Cayley's formula via Prüfer)</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class TreeAnalyzer {
 

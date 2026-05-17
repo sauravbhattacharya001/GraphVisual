@@ -27,7 +27,7 @@ import java.util.*;
  * mutations will <strong>not</strong> be reflected — construct a new
  * analyzer to re-classify.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class EdgePersistenceAnalyzer {
 

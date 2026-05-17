@@ -14,7 +14,7 @@ package gvisual;
  * to its own file for reusability across other layout algorithms
  * (e.g. spectral, hierarchical) and to improve testability.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 final class QuadTree {
 

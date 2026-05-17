@@ -24,7 +24,7 @@ import java.util.*;
  *   <li>Recommending connections in collaboration networks</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class LinkPredictionAnalyzer {
 

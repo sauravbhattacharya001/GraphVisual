@@ -36,7 +36,7 @@ import java.util.*;
  * tightly-knit groups, in bioinformatics for protein interaction networks,
  * and in network visualisation for layout simplification.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class KCoreDecomposition {
 

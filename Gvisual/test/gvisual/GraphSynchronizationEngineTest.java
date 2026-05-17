@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link GraphSynchronizationEngine}.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSynchronizationEngineTest {
 

@@ -28,7 +28,7 @@ import java.util.*;
  *   String xml = exporter.exportToString();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphMLExporter {
 

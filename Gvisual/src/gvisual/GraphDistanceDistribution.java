@@ -24,7 +24,7 @@ import java.util.*;
  * <p>All computations use unweighted BFS. For directed graphs the out-Edge
  * direction is followed. Distance to self is 0, unreachable pairs use -1.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphDistanceDistribution {
 

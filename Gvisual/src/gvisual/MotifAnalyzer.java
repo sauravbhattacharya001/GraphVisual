@@ -33,7 +33,7 @@ import java.util.*;
  *       network structure across graphs.</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class MotifAnalyzer {
 

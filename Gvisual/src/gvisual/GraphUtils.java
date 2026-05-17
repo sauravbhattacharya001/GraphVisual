@@ -15,7 +15,7 @@ import java.util.*;
  *
  * <p>All methods are static and stateless — safe for concurrent use.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class GraphUtils {
 

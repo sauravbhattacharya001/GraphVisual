@@ -11,7 +11,7 @@ import java.util.*;
 /**
  * Tests for CycleAnalyzer.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CycleAnalyzerTest {
 

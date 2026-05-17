@@ -36,7 +36,7 @@ import java.util.*;
  *   exporter.export(new File("graph.col"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class DimacsExporter {
 

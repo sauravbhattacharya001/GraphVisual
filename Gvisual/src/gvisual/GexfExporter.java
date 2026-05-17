@@ -35,7 +35,7 @@ import java.util.*;
  *   String xml = exporter.exportToString();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  * @see <a href="https://gexf.net/schema.html">GEXF 1.3 Specification</a>
  */
 public class GexfExporter {

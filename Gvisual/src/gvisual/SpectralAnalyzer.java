@@ -42,7 +42,7 @@ import java.util.*;
  * <p>Complexity: O(n³) per sweep, typically converges in O(n) sweeps for
  * well-conditioned matrices. Suitable for graphs up to ~1000 nodes.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SpectralAnalyzer {
 

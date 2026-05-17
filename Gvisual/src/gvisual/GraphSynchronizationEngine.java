@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  *       community sync, limiting factors, recommendations</li>
  * </ol>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSynchronizationEngine {
 

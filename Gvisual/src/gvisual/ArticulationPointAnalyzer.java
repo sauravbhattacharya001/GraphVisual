@@ -21,7 +21,7 @@ import java.util.*;
  *
  * <p>The algorithm runs in O(V + E) time using a single DFS pass.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class ArticulationPointAnalyzer {
 

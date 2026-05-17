@@ -34,7 +34,7 @@ import java.util.AbstractMap;
  *   String html = animator.toHtmlPlayer(frames, 800, 600);
  * </pre>
  *
- * @author Zalenix (automated builder)
+ * @author sauravbhattacharya001
  */
 public class GraphAlgorithmAnimator {
 

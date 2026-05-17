@@ -43,7 +43,7 @@ import java.util.*;
  * <p>Analysis is lazy — call any getter and it will trigger
  * computation once if needed.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SmallWorldAnalyzer {
 

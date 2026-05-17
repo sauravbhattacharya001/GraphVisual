@@ -23,7 +23,7 @@ import java.util.*;
  *       upper bound via BFS ordering for larger ones.</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphLabelingAnalyzer {
 

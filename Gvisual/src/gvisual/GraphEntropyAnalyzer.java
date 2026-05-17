@@ -45,7 +45,7 @@ import java.util.*;
  * implements multiple complementary measures to give a holistic view of
  * a graph's information-theoretic properties.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphEntropyAnalyzer {
 

@@ -27,7 +27,7 @@ import java.util.*;
  * <p>Algorithms: Kahn's algorithm (BFS-based) for the primary sort,
  * DFS-based traversal for cycle detection and back-Edge reporting.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class TopologicalSortAnalyzer {
 

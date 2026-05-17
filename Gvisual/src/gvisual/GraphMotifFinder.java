@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  *   <li>Network comparison via motif frequency profiles</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphMotifFinder {
 

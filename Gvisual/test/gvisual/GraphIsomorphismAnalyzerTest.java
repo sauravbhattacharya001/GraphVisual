@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * Tests for GraphIsomorphismAnalyzer.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphIsomorphismAnalyzerTest {
 

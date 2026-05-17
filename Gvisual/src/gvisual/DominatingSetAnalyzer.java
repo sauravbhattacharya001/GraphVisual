@@ -36,7 +36,7 @@ import java.util.*;
  * <p>Applications: wireless sensor network coverage, facility placement,
  * social network influence, ad-hoc network routing backbones.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class DominatingSetAnalyzer {
 

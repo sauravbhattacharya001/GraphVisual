@@ -16,7 +16,7 @@ import java.util.*;
  * carry all three metrics per node, enabling comparative analysis of node
  * importance in the social network.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NodeCentralityAnalyzer {
 

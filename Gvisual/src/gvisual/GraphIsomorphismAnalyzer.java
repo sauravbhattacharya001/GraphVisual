@@ -22,7 +22,7 @@ import java.util.*;
  * <p>Time complexity: O(V!) worst case, but fast-rejection filters and
  * degree-based pruning make it practical for most real-world graphs.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphIsomorphismAnalyzer {
 

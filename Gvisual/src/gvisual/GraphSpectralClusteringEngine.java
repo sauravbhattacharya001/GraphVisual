@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  *       bridge nodes, balance, separation quality, and recommendations.</li>
  * </ol>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSpectralClusteringEngine {
 

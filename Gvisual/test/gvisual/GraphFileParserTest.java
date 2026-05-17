@@ -21,7 +21,7 @@ import static org.junit.Assert.*;
  * malformed input handling, empty files, filter predicates, section ordering,
  * and duplicate node/edge resilience.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphFileParserTest {
 

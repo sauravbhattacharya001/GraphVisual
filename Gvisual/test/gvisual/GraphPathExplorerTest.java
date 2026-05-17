@@ -12,7 +12,7 @@ import java.util.*;
  * Tests for GraphPathExplorer — all-paths enumeration, K-shortest paths,
  * constrained routing, avoidance routing, path statistics, and bottleneck detection.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphPathExplorerTest {
 

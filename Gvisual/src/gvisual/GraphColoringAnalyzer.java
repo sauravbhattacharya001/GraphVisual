@@ -31,7 +31,7 @@ import java.util.*;
  * String report = analyzer.generateReport();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphColoringAnalyzer {
 

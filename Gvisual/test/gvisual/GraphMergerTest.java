@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
  * Tests for {@link GraphMerger} covering all merge strategies and
  * Edge conflict resolution modes.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphMergerTest {
 

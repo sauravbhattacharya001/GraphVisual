@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *   <li>Program analysis (loop identification)</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class FeedbackVertexSetAnalyzer {
 

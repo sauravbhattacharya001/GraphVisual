@@ -24,7 +24,7 @@ import java.util.*;
  *   <li><b>Edit Distance:</b> total additions + removals to transform A into B</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphDiffAnalyzer {
 

@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
  *   <li>Transportation planning — hub-and-spoke networks</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SteinerTreeAnalyzer {
 

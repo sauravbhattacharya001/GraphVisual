@@ -9,7 +9,7 @@ import java.io.IOException;
  * <p>Provides output-path validation to prevent directory-traversal
  * attacks (CWE-22) when exporting graphs, reports, or HTML files.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class ExportUtils {
 

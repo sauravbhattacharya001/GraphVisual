@@ -24,7 +24,7 @@ import java.util.*;
  * a graph is. Graphs of bounded treewidth admit efficient algorithms for
  * many NP-hard problems.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class TreewidthAnalyzer {
 

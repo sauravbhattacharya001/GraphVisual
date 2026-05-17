@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  *       alerts with recommendations</li>
  * </ol>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphSentinel {
 

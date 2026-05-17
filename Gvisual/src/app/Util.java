@@ -10,7 +10,7 @@ package app;
  *   DB_USER  — database user      (required)
  *   DB_PASS  — database password  (required)
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 import java.sql.*;
 

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  *   String html = extractor.exportHtml(report);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphKnowledgeExtractor {
 

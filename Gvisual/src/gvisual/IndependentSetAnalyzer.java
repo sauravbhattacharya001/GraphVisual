@@ -31,7 +31,7 @@ import java.util.*;
  *   <li>Molecular structure (stable configurations)</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class IndependentSetAnalyzer {
 

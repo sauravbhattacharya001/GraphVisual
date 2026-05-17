@@ -11,7 +11,7 @@ import java.util.List;
  * Tests for GraphProductCalculator — Cartesian, tensor, strong, and
  * lexicographic graph products.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphProductCalculatorTest {
 

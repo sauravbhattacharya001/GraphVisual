@@ -23,7 +23,7 @@ import java.util.*;
  * <p>Applications include task assignment, scheduling, network routing,
  * and social network analysis (e.g., two-mode networks).</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class BipartiteAnalyzer {
 

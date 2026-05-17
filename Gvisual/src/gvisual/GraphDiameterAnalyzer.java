@@ -20,7 +20,7 @@ import java.util.Arrays;
  * Useful for understanding the overall spread and identifying structurally
  * important nodes in social/IMEI networks.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphDiameterAnalyzer {
 

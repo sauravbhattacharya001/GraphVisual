@@ -42,7 +42,7 @@ import java.util.*;
  *   List&lt;Recommendation&gt; top = advisor.getTopRecommendations(5);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphIntelligenceAdvisor {
 

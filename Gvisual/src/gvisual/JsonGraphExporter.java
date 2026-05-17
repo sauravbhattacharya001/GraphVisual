@@ -31,7 +31,7 @@ import java.util.*;
  *   String json = exporter.exportToString();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class JsonGraphExporter {
 

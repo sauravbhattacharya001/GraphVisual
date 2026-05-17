@@ -39,7 +39,7 @@ import java.util.*;
  *       small tournaments.</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class TournamentAnalyzer {
 

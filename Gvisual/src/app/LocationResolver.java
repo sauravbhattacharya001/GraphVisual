@@ -23,7 +23,7 @@ import java.util.Map;
  *   <li>Duplicated fallback query logic extracted to {@link #findBestAP}</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class LocationResolver {
 

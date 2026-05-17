@@ -29,7 +29,7 @@ import java.util.*;
  *   gen.export(new File("report.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NetworkReportGenerator {
 

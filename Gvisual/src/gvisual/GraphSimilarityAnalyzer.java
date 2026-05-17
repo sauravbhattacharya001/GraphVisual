@@ -32,7 +32,7 @@ import java.util.*;
  * communities evolve across months or semesters by measuring structural
  * similarity between graph snapshots.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  * @see GraphEntropyAnalyzer
  */
 public class GraphSimilarityAnalyzer {

@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  * report generation, Edge cases (empty graph, single node, disconnected nodes,
  * complete graph), and all structural role archetypes.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NetworkRoleClassifierTest {
 

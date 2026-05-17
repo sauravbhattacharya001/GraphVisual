@@ -33,7 +33,7 @@ import java.util.*;
  *   String dot = exporter.exportToString();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class DotExporter {
 

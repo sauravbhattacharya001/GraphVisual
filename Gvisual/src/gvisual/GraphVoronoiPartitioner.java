@@ -28,7 +28,7 @@ import java.util.*;
  *   p.exportHtml(result, "voronoi-partition.html");
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphVoronoiPartitioner {
 

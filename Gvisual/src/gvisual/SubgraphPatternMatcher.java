@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * to ~10-15 nodes in graphs up to ~10,000 nodes due to aggressive
  * pruning.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SubgraphPatternMatcher {
 

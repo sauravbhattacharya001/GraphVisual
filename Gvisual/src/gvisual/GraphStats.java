@@ -13,7 +13,7 @@ import java.util.*;
  * making it easy to add new categories without modifying the constructor
  * or adding new getter methods.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphStats {
 

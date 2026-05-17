@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
  *   Graph&lt;String, Edge&gt; optimized = pilot.applyTopActions(5);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphAutoPilot {
 

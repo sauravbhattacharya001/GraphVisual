@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * String text = analyzer.formatReport(report);
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class StructuralHoleAnalyzer {
 

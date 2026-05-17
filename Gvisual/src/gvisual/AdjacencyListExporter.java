@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  *   // creates graph_adj.txt, graph_adj.py, graph_adj.m, graph_adj.wl
  * </pre></p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class AdjacencyListExporter {
 

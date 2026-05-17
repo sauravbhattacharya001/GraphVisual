@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  *   sim.exportComparisonHtml(comparison, new File("evolution-comparison.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphEvolutionSimulator {
 

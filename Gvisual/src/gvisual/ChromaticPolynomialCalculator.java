@@ -32,7 +32,7 @@ import java.util.*;
  * long colorings = result.evaluate(4);  // number of proper 4-colorings
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class ChromaticPolynomialCalculator {
 

@@ -22,7 +22,7 @@ import java.util.*;
  *   <li>Export a textual comparison report</li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class GraphComplementAnalyzer {
 

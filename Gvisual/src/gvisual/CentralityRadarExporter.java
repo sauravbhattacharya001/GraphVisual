@@ -29,7 +29,7 @@ import java.util.*;
  *   exporter.export(new File("centrality-radar.html"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class CentralityRadarExporter {
 

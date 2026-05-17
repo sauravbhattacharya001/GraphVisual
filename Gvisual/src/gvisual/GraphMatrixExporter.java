@@ -28,7 +28,7 @@ import java.util.*;
  *   exporter.exportLaplacianLatex(new File("lap.tex"));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphMatrixExporter {
 

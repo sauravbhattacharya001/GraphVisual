@@ -39,7 +39,7 @@ import java.util.*;
  * String report = detector.formatReport();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphAnomalyDetector {
 

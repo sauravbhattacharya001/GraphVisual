@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  * String report = tester.generateReport();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphTopologyHypothesisTester {
 

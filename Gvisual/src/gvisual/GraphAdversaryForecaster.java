@@ -50,7 +50,7 @@ import java.util.*;
  *   System.out.println(fc.toMarkdown(f));
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public final class GraphAdversaryForecaster {
 

@@ -7,7 +7,7 @@ import java.util.*;
 /**
  * Classic network science benchmark graphs for testing and comparison.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphBenchmarkSuite {
 

@@ -38,7 +38,7 @@ import java.util.*;
  *   String svg = exporter.exportToString();
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class SvgExporter {
 

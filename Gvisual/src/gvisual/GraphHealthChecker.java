@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  *   checker.exportHtml(report, "health-report.html");
  * </pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphHealthChecker {
 

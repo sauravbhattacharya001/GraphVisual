@@ -34,7 +34,7 @@ import java.util.*;
  * <p>Network flow is fundamental in transportation networks, communication
  * networks, bipartite matching, and supply chain optimisation.</p>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class NetworkFlowAnalyzer {
 

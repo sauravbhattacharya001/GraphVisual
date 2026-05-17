@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  *   <li>Wang &amp; Cheng (2012), <em>Truss Decomposition in Massive Networks</em></li>
  * </ul>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class KTrussAnalyzer {
 

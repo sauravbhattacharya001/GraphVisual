@@ -51,7 +51,7 @@ import java.util.*;
  * System.out.println(report.getSummary());
  * }</pre>
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphClusterQualityAnalyzer {
 

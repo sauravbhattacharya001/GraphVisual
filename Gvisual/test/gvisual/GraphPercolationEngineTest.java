@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link GraphPercolationEngine}.
  *
- * @author zalenix
+ * @author sauravbhattacharya001
  */
 public class GraphPercolationEngineTest {
 
