@@ -15,6 +15,8 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - [Structural Analysis](#structural-analysis)
 - [Comparison & Evolution](#comparison--evolution)
 - [Stochastic & Prediction](#stochastic--prediction)
+- [Graph Transformation & Construction](#graph-transformation--construction)
+- [Special Graph Classes](#special-graph-classes)
 - [Export & Generation](#export--generation)
 
 ---
@@ -117,6 +119,18 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(V + E)
 - **Algorithm:** Finds maximal subsets of vertices where every vertex is reachable from every other vertex (in directed graphs). Used for condensation DAG construction.
 
+### K-Truss Decomposition
+- **File:** `KTrussAnalyzer.java`
+- **Complexity:** O(m · t_max) edge-peeling, where m = |E| and t_max is the maximum truss number
+- **Algorithm:** Iteratively removes edges whose triangle support drops below (k − 2) and assigns each removed edge its highest surviving k. A k-truss is a maximal subgraph in which every edge belongs to at least (k − 2) triangles, giving a more cohesive notion of community than k-core. Returns the truss number per edge, the hierarchy of (k+1)-truss ⊂ k-truss subgraphs, and the global maximum truss.
+- **Use cases:** Cohesive subgroup detection in social networks, robust community cores, hierarchical clustering by triangle density.
+
+### Rich-Club Analysis
+- **File:** `RichClubAnalyzer.java`
+- **Complexity:** O(V + E) per coefficient; O(R · (V + E)) for normalisation with R randomised rewirings
+- **Algorithm:** Computes the rich-club coefficient φ(k) = 2·E>k / (N>k·(N>k − 1)), the density of edges among nodes of degree > k. A rich-club ordering occurs when φ(k) increases with k. Normalised coefficient ρ(k) = φ(k) / φ_rand(k) is obtained by degree-preserving random rewiring of the input graph; ρ(k) > 1 indicates a genuine rich-club beyond what degree distribution alone explains.
+- **Use cases:** Hub-of-hubs detection in air-traffic and brain networks, identifying preferential interconnection among elite nodes, distinguishing real rich-clubs from degree-sequence artefacts.
+
 ### Graph Resilience (Attack Simulation)
 - **File:** `GraphResilienceAnalyzer.java`
 - **Complexity:** O(V × (V + E))
@@ -135,6 +149,18 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **File:** `BipartiteAnalyzer.java`
 - **Complexity:** O(E × √V)
 - **Algorithm:** For bipartite graphs: BFS layering + DFS augmenting paths. Also computes minimum vertex cover (König's theorem) and maximum independent set (complement of vertex cover).
+
+### Bipartite Detection & Analysis (BFS 2-colouring)
+- **File:** `BipartiteAnalyzer.java`
+- **Complexity:** O(V + E) for bipartiteness; cached Hopcroft–Karp matching reused across queries
+- **Algorithm:** BFS 2-colouring across all components determines bipartiteness and yields the left/right partition. On a positive result the cached Hopcroft–Karp matching feeds König-based minimum vertex cover and maximum independent set. On a negative result, an odd-cycle witness is reported for diagnostics.
+- **Use cases:** Assignment problems, scheduling, recommendation graphs, bipartite community detection, fast acceptance tests before invoking bipartite-only algorithms.
+
+### Clique Cover (Clique Partition)
+- **File:** `CliqueCoverAnalyzer.java`
+- **Complexity:** NP-hard exact; O(V³ · E) greedy heuristic; θ(G) = χ(Ḡ)
+- **Algorithm:** Partitions vertices into the minimum number of vertex-disjoint cliques. Uses the duality θ(G) = χ(Ḡ) (chromatic number of the complement) for a lower bound, plus a greedy heuristic that repeatedly extracts the largest clique containing the least-covered vertex. Returns the partition, per-clique sizes, and quality vs the lower bound.
+- **Use cases:** Compact graph encoding, register-allocation analogues, scheduling problems where vertices must share a clique, complement-based colouring.
 
 ### Minimum Vertex Cover (Greedy Approximation)
 - **File:** `VertexCoverAnalyzer.java`
@@ -164,6 +190,12 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **File:** `ChordalGraphAnalyzer.java`
 - **Complexity:** O(V + E) for recognition
 - **Algorithm:** Maximum cardinality search (MCS) for perfect elimination ordering (PEO). If a PEO exists, the graph is chordal. Provides optimal coloring, maximum clique, and minimum fill-in for chordal graphs.
+
+### Perfect Graph Analysis
+- **File:** `PerfectGraphAnalyzer.java`
+- **Complexity:** O(V⁵) brute-force odd-hole search (small graphs); polynomial recognition for known sub-classes (bipartite, chordal)
+- **Algorithm:** A graph is *perfect* iff χ(H) = ω(H) for every induced subgraph H. By the Strong Perfect Graph Theorem (Chudnovsky–Robertson–Seymour–Thomas, 2006), this holds iff neither G nor Ḡ contains an odd hole (induced odd cycle ≥ 5). Searches for odd holes in G and the complement, reports witness cycles, and recognises common perfect sub-classes (bipartite, chordal, comparability) for fast positive answers.
+- **Use cases:** Polynomial-time colouring and clique algorithms whenever perfection is established, theoretical analysis of social and scheduling graphs.
 
 ### Planarity Testing
 - **File:** `PlanarGraphAnalyzer.java`
@@ -258,6 +290,54 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(V + E)
 - **Algorithm:** Structural balance theory — checks if a signed graph (positive/negative edges) satisfies balance conditions. Detects frustrated cycles and computes frustration index.
 
+### Small-World Network Analysis
+- **File:** `SmallWorldAnalyzer.java`
+- **Complexity:** O(V·(V + E)) (BFS from each vertex for average path length dominates)
+- **Algorithm:** Tests Watts–Strogatz small-world properties by combining local/global clustering coefficients and characteristic path length against random and lattice baselines. Reports σ = (C/Cr)/(L/Lr) and ω = Lr/L − C/Cl, then classifies the network as Small-World, Random-Like, Lattice-Like, or Disconnected. Handles disconnected graphs by restricting path-length computations to the largest connected component.
+- **Use cases:** Diagnosing brain-network and social-network topologies, validating synthetic generators, comparing temporal snapshots.
+
+### Graph Regularity
+- **File:** `GraphRegularityAnalyzer.java`
+- **Complexity:** O(V + E)
+- **Algorithm:** Determines whether a graph is k-regular and quantifies departure from regularity. Computes the Albertson irregularity index Σ|deg(u) − deg(v)| over edges, degree variance, and the maximum/minimum degree gap. Identifies strongly-regular candidates by checking common neighbour counts for adjacent vs non-adjacent pairs.
+- **Use cases:** Detection of structured topologies (rings, lattices, cages), null-model construction, sanity-checking synthetic generators.
+
+### k-Hop Neighbourhood Analysis
+- **File:** `GraphNeighborhoodAnalyzer.java`
+- **Complexity:** O(k · (V + E)) per source for BFS layers
+- **Algorithm:** BFS expansion from a source vertex producing the sequence of k-hop layers, the cumulative reachable set, and the growth profile |N_k| / |N_{k−1}|. Aggregates per-vertex 1-hop neighbour-degree statistics (mean, variance) used downstream by entropy and similarity analyzers.
+- **Use cases:** Influence radius estimation, locality-sensitive features for link prediction, ego-network construction.
+
+### Graph Labeling
+- **File:** `GraphLabelingAnalyzer.java`
+- **Complexity:** O(V! · E) worst-case backtracking; feasible for V ≤ ≈ 20
+- **Algorithm:** Backtracking search with pruning for graph-labeling problems — primarily *graceful labeling* (vertices labelled 0..m so that edge labels |f(u) − f(v)| are exactly {1..m}). Also computes magic-labeling candidates and reports the first feasible labeling discovered.
+- **Use cases:** Combinatorial design verification, exam-scheduling toy models, teaching examples for NP-hard search.
+
+### Metric Dimension
+- **File:** `MetricDimensionAnalyzer.java`
+- **Complexity:** NP-hard exact (subset enumeration with pruning); O(V·(V + E)) per inner BFS
+- **Algorithm:** Finds the minimum *resolving set* — a subset S ⊆ V such that the distance vector (d(v, s))_{s∈S} is unique for every v. Uses incremental subset search with twin-vertex pruning (twins must be separated). Returns the metric dimension β(G), an optimal resolving set, and per-vertex distance signatures.
+- **Use cases:** Sensor placement for robot localisation, chemical-graph identification, network-fingerprinting research.
+
+### Graph Symmetry & Automorphism Orbits
+- **File:** `GraphSymmetryAnalyzer.java`
+- **Complexity:** O(k · (V + E)) per Weisfeiler–Leman iteration; exponential worst-case for the exact automorphism group
+- **Algorithm:** Color-refinement (1-WL) produces vertex equivalence classes that are a superset of true orbits; for small graphs these are refined by backtracking automorphism search. Reports orbit sizes, vertex-/edge-transitivity flags, and a symmetry score (fraction of vertices in non-trivial orbits).
+- **Use cases:** Structural equivalence detection, canonical labelling, anomaly detection (vertices in singleton orbits often play unique roles).
+
+### Graph Drawing Quality
+- **File:** `GraphDrawingQualityAnalyzer.java`
+- **Complexity:** O(E²) for edge-crossing count; O(V + E) for the remaining metrics
+- **Algorithm:** Evaluates the aesthetic quality of a 2-D layout using standard graph-drawing metrics: edge-crossing count, edge-length uniformity (coefficient of variation), minimum angular resolution at vertices, node-overlap ratio, and stress (Σ (d_euc − d_graph)² weighted by 1/d_graph²). Produces a composite readability score.
+- **Use cases:** Comparing layout algorithms, automated layout-parameter tuning, regression testing of force-directed implementations.
+
+### Graph Cluster Quality
+- **File:** `GraphClusterQualityAnalyzer.java`
+- **Complexity:** O(V + E) for modularity, conductance, coverage, performance
+- **Algorithm:** Evaluates any vertex partition (from Louvain, GraphPartitioner, or user-supplied) using a battery of partition-quality metrics: Newman–Girvan modularity Q, conductance per cluster and aggregate, coverage (fraction of intra-cluster edges), performance, and normalised cut. Reports per-cluster density and size distribution.
+- **Use cases:** Selecting between community-detection algorithms, validating ground-truth communities, sweeping resolution parameters.
+
 ### Graph Entropy Analysis
 - **File:** `GraphEntropyAnalyzer.java`
 - **Complexity:** O(V² + E) for full computation (eigenvalue decomposition dominates)
@@ -321,6 +401,12 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **Complexity:** O(V × avg_degree²) per metric
 - **Algorithm:** Predicts missing edges using four similarity metrics: Common Neighbors, Jaccard Coefficient, Adamic-Adar Index, and Preferential Attachment.
 
+### Node Similarity (Structural)
+- **File:** `NodeSimilarityAnalyzer.java`
+- **Complexity:** O(V² · avg_degree) for all-pairs; O(V · avg_degree) per query pair
+- **Algorithm:** Pairwise structural similarity using Jaccard, Overlap (Szymkiewicz–Simpson), Adamic–Adar, Sørensen–Dice, cosine over neighbour-set indicator vectors, and preferential-attachment scores. Returns ranked top-k similar pairs and per-vertex nearest-neighbour lists.
+- **Use cases:** Friend recommendation, role discovery, candidate generation for link prediction, structural deduplication.
+
 ### Influence Spread (Independent Cascade)
 - **File:** `InfluenceSpreadSimulator.java`
 - **Complexity:** O(simulations × (V + E))
@@ -330,6 +416,44 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 - **File:** `RandomWalkAnalyzer.java`
 - **Complexity:** O(walk_length) per walk
 - **Algorithm:** Simulates random walks for cover time analysis, hitting time estimation, mixing rate measurement, and random-walk-based centrality. Supports lazy random walks.
+
+---
+
+## Graph Transformation & Construction
+
+### Line Graph L(G)
+- **File:** `LineGraphAnalyzer.java`
+- **Complexity:** O(V + E · avg_degree) construction; O(E²) worst-case for dense graphs
+- **Algorithm:** Builds the line graph L(G), in which every edge of G becomes a vertex of L(G) and two vertices of L(G) are adjacent iff their underlying edges share an endpoint. Provides forward/backward edge-vertex mappings, reports |V(L(G))| = |E(G)| and |E(L(G))| = Σ_v C(deg(v), 2), and exposes line-graph-specific properties (claw-freeness check, triangle count translation, Whitney-isomorphism witnesses where applicable).
+- **Use cases:** Reducing edge-centric problems (edge colouring, edge betweenness) to vertex-centric ones, characterisation of line-graph-recognisable structures, theoretical conversions.
+
+### Graph Complement Ḡ
+- **File:** `GraphComplementAnalyzer.java`
+- **Complexity:** O(V²) construction; complement-vs-original comparison in O(V + E)
+- **Algorithm:** Constructs the complement Ḡ, in which an edge exists iff it does *not* exist in G. Provides side-by-side statistics: density, degree sequence, connected-component count, triangle count, and self-complementary detection. Useful as a primitive for clique-cover / coloring duality (θ(G) = χ(Ḡ)) and perfect-graph testing.
+- **Use cases:** Anti-edge analysis, sparse↔dense problem conversion, exposing missing-relationship structure in social graphs.
+
+### Graph Minor Operations
+- **File:** `GraphMinorAnalyzer.java`
+- **Complexity:** O(V + E) per edge contraction, vertex deletion, or edge deletion
+- **Algorithm:** Implements the minor-construction primitives: edge contraction (merge endpoints, redirect incident edges, deduplicate, drop self-loops), vertex deletion (with all incident edges), and edge deletion. Supports replay of a recorded minor sequence to derive a minor H ≤ G and verifies subgraph / topological-minor relationships for small witnesses.
+- **Use cases:** Treewidth experimentation, Robertson–Seymour-style minor checks, network simplification while preserving connectivity skeletons.
+
+### Graph Sparsification
+- **File:** `GraphSparsificationAnalyzer.java`
+- **Complexity:** O(V·E) for cached edge-betweenness; O(E log E) for random / spanning-tree variants
+- **Algorithm:** Reduces |E| while preserving target structural properties. Strategies: (a) spanning-tree sparsification (minimum edges keeping connectivity), (b) edge-importance scoring via betweenness / bridge detection / redundancy with a cached betweenness pass, and (c) random sparsification toward a target retention ratio. Reports retention statistics, change in connectivity / diameter / clustering, and per-edge importance scores.
+- **Use cases:** Speeding up downstream analyses on dense graphs, visual decluttering for large layouts, building benchmark families.
+
+---
+
+## Special Graph Classes
+
+### Tournament Graph Analysis
+- **File:** `TournamentAnalyzer.java`
+- **Complexity:** O(V²) Hamiltonian-path construction; O(V²) score sequence; O(V³) condensation / king detection
+- **Algorithm:** A tournament is a directed graph obtained by orienting every edge of K_n. Implements the constructive O(n²) Hamiltonian-path algorithm (every tournament has one), score-sequence computation with Landau's necessary-and-sufficient condition, king-vertex detection (vertex reaching all others in ≤ 2 hops), strong-connectivity test, and transitive-tournament recognition.
+- **Use cases:** Round-robin ranking, paired-comparison models, social-choice analysis, tournament-sport scheduling.
 
 ---
 
@@ -356,9 +480,13 @@ A comprehensive reference for all graph algorithms implemented in GraphVisual, o
 | Community | Louvain, K-Core, Motifs, Cliques | O(V + E) | Cliques O(3^(V/3)) |
 | Connectivity | Tarjan, Kosaraju, Resilience, κ/λ | O(V + E) | Resilience O(V·(V+E)) |
 | Matching | Hopcroft-Karp, Vertex Cover | O(E√V) | Independent Set (NP-hard) |
-| Coloring | DSatur, Chordal | O(V² + E) | General coloring (NP-hard) |
+| Coloring | DSatur, Chordal, Perfect-Graph | O(V² + E) | Odd-hole search O(V⁵) |
 | Flow | Edmonds-Karp, Kruskal, MaxCut, Partitioning | O(E log E) | MaxCut (NP-hard) |
-| Layout | Fruchterman-Reingold | O(iter·(V²+E)) | — |
-| Structural | Diameter, Spectral, Treewidth, Struct. Holes, Entropy | O(V + E) | Entropy O(V²) eigenvalue |
+| Layout | Fruchterman-Reingold, Drawing-Quality | O(iter·(V²+E)) | Edge-crossing count O(E²) |
+| Structural | Diameter, Spectral, Treewidth, Struct. Holes, Entropy, Regularity, Neighborhood, Symmetry, Small-World | O(V + E) | Metric Dimension (NP-hard) |
 | Comparison | Diff, Similarity, Persistence, Growth | O(V + E) | Similarity O(V²) eigenvalue |
 | Temporal | TemporalGraph, Persistence, Growth | O(W × E) | — |
+| Transformation | Line Graph, Complement, Minor, Sparsification | O(V + E) per op | Edge betweenness O(V·E) |
+| Special Classes | Tournament, Bipartite, Perfect, Chordal, Tree, Regular | O(V + E) recognition | Perfect odd-hole O(V⁵) |
+| Cohesion | K-Truss, Rich-Club, K-Core, Cliques | O(m·t_max) | Cliques O(3^(V/3)) |
+| Similarity | Node Similarity, Link Prediction | O(V·avg_deg²) | All-pairs O(V²·avg_deg) |
