@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
+import edu.uci.ics.jung.graph.util.Pair;
 import java.util.*;
 
 /**
@@ -44,9 +45,12 @@ public final class GraphComplementAnalyzer {
 
         Set<String> existingEdges = new HashSet<>();
         for (Edge e : graph.getEdges()) {
-            String v1 = e.getVertex1();
-            String v2 = e.getVertex2();
-            existingEdges.add(edgeKey(v1, v2));
+            // Read endpoints from the graph rather than from Edge fields so the
+            // complement is correct even when callers constructed Edge objects
+            // with no/asymmetric vertex1/vertex2 fields (e.g. when this method
+            // is composed: complement(complement(g))).
+            Pair<String> ends = graph.getEndpoints(e);
+            existingEdges.add(edgeKey(ends.getFirst(), ends.getSecond()));
         }
 
         int edgeId = 0;
@@ -55,7 +59,13 @@ public final class GraphComplementAnalyzer {
                 String v1 = vertices.get(i);
                 String v2 = vertices.get(j);
                 if (!existingEdges.contains(edgeKey(v1, v2))) {
-                    Edge e = new Edge(v1, v2, "complement_" + edgeId++);
+                    // Edge(edgeType, vertex1, vertex2) — previously the
+                    // arguments were passed in the wrong order, which left
+                    // the Edge's vertex fields pointing at the wrong values
+                    // and broke any caller (or recursive call) that read
+                    // them back. Use a stable "complement" type tag.
+                    Edge e = new Edge("complement", v1, v2);
+                    e.setLabel("complement_" + edgeId++);
                     complement.addEdge(e, v1, v2);
                 }
             }
@@ -148,7 +158,8 @@ public final class GraphComplementAnalyzer {
         Graph<String, Edge> complement = buildComplement(graph);
         List<String[]> result = new ArrayList<>();
         for (Edge e : complement.getEdges()) {
-            result.add(new String[]{e.getVertex1(), e.getVertex2()});
+            Pair<String> ends = complement.getEndpoints(e);
+            result.add(new String[]{ends.getFirst(), ends.getSecond()});
         }
         return result;
     }
