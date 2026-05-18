@@ -1,0 +1,10 @@
+# Sitemap reference
+Sitemap: https://sauravbhattacharya001.github.io/GraphVisual/sitemap.xml
+
+# Default crawl policy — everything is public documentation, allow indexing.
+User-agent: *
+Allow: /
+
+# Don't crawl the Javadoc tree; it's hundreds of generated pages with no
+# unique content value for search results.
+Disallow: /javadoc/
