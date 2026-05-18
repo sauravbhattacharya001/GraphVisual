@@ -76,13 +76,13 @@ public class WienerIndexCalculator {
 
         pairCount = (long) componentSize * (componentSize - 1) / 2;
 
-        // Build index and adjacency arrays
-        List<String> vertices = new ArrayList<String>(component);
-        int n = vertices.size();
-        Map<String, Integer> idxMap = new HashMap<String, Integer>(n * 2);
-        for (int i = 0; i < n; i++) idxMap.put(vertices.get(i), i);
-
-        int[][] adj = buildAdjacency(n, idxMap);
+        // Build indexed adjacency over the largest component.
+        // Delegates to GraphUtils.IndexedGraph to avoid duplicating the
+        // List<Integer>[] -> int[][] build pattern (also used by
+        // NodeCentralityAnalyzer, RandomWalkAnalyzer, etc.).
+        GraphUtils.IndexedGraph ig = new GraphUtils.IndexedGraph(graph, component);
+        int n = ig.n;
+        int[][] adj = ig.adjLists;
 
         // Reusable BFS structures
         int[] dist = new int[n];
@@ -179,27 +179,6 @@ public class WienerIndexCalculator {
     }
 
     // --- Private helpers ---
-
-    private int[][] buildAdjacency(int n, Map<String, Integer> idxMap) {
-        @SuppressWarnings("unchecked")
-        List<Integer>[] tmp = new List[n];
-        for (int i = 0; i < n; i++) tmp[i] = new ArrayList<Integer>();
-        for (Edge e : graph.getEdges()) {
-            Integer ui = idxMap.get(e.getVertex1());
-            Integer vi = idxMap.get(e.getVertex2());
-            if (ui != null && vi != null && !ui.equals(vi)) {
-                tmp[ui].add(vi);
-                tmp[vi].add(ui);
-            }
-        }
-        int[][] adj = new int[n][];
-        for (int i = 0; i < n; i++) {
-            List<Integer> nb = tmp[i];
-            adj[i] = new int[nb.size()];
-            for (int j = 0; j < nb.size(); j++) adj[i][j] = nb.get(j);
-        }
-        return adj;
-    }
 
     private void ensureComputed() {
         if (!computed) {

@@ -560,6 +560,48 @@ public final class GraphUtils {
                 }
             }
         }
+
+        /**
+         * Builds an indexed representation restricted to a vertex subset.
+         * Only edges with both endpoints in {@code vertices} are included,
+         * and the vertex ordering is taken from {@code vertices}'s iteration
+         * order so callers can predict integer indices.
+         *
+         * <p>Useful for analyzers that operate on a single component (e.g.
+         * {@link WienerIndexCalculator}) without needing to allocate their
+         * own private adjacency representation.</p>
+         *
+         * @param graph    the source graph
+         * @param vertices the vertices to include; iteration order defines indices
+         */
+        public IndexedGraph(Graph<String, Edge> graph, Collection<String> vertices) {
+            vertexList = new ArrayList<String>(vertices);
+            n = vertexList.size();
+            vertexIndex = new HashMap<String, Integer>(n * 2);
+            for (int i = 0; i < n; i++) {
+                vertexIndex.put(vertexList.get(i), i);
+            }
+
+            @SuppressWarnings("unchecked")
+            List<Integer>[] tmp = new List[n];
+            for (int i = 0; i < n; i++) tmp[i] = new ArrayList<Integer>();
+            for (Edge e : graph.getEdges()) {
+                Integer ui = vertexIndex.get(e.getVertex1());
+                Integer vi = vertexIndex.get(e.getVertex2());
+                if (ui != null && vi != null && !ui.equals(vi)) {
+                    tmp[ui].add(vi);
+                    tmp[vi].add(ui);
+                }
+            }
+            adjLists = new int[n][];
+            for (int i = 0; i < n; i++) {
+                List<Integer> nb = tmp[i];
+                adjLists[i] = new int[nb.size()];
+                for (int j = 0; j < nb.size(); j++) {
+                    adjLists[i][j] = nb.get(j);
+                }
+            }
+        }
     }
 
     // ── Betweenness Centrality (array-based Brandes) ──────────────────
