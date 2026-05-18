@@ -23,8 +23,8 @@ GraphVisual/
 │   │       ├── addLocation.java   # WiFi-based meeting location classification
 │   │       └── matchImei.java     # Device → IMEI mapping
 │   ├── test/
-│   │   ├── gvisual/           # 66 test classes (~2100+ tests total)
-│   │   └── app/               # Pipeline utility tests (2 test classes)
+│   │   ├── gvisual/           # 129 test classes (~4,640+ tests total)
+│   │   └── app/               # Pipeline utility tests (4 test classes)
 │   ├── lib/                   # JUNG 2.0.1, PostgreSQL JDBC, Java3D, Commons IO
 │   └── images/                # UI icons (play, pause, stop, legend colors)
 ├── pom.xml                    # Maven build (Java 11+, shade plugin for fat JAR)
@@ -194,7 +194,7 @@ See [DATABASE.md](DATABASE.md) for full schema documentation.
 
 ## Testing
 
-68 test classes with ~2100+ tests covering all analyzers, utilities, and security:
+133 test classes with ~4,640+ tests covering all analyzers, utilities, and security:
 
 | Test Class | Tests | Covers |
 |------------|-------|--------|

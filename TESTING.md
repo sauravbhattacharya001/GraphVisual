@@ -25,8 +25,8 @@ mvn test -Dsurefire.useFile=false
 
 | Metric | Value |
 |--------|-------|
-| Test classes | 106 (+ 2 in `app/`) |
-| Total tests | ~2,100+ |
+| Test classes | 129 (+ 4 in `app/`) |
+| Total tests | ~4,640+ (`@Test` methods) |
 | Framework | JUnit 4 |
 | Source directory | `Gvisual/test/` |
 | Coverage areas | Analyzers, exporters, layouts, utilities, GUI controllers |
@@ -41,13 +41,14 @@ The tests are configured via Maven Surefire in `pom.xml`:
 
 ```
 Gvisual/test/
-├── gvisual/                   # 106 test classes for core library
+├── gvisual/                   # 129 test classes for core library
 │   ├── ArticulationPointAnalyzerTest.java
 │   ├── BipartiteAnalyzerTest.java
 │   ├── ...
 │   └── TopologicalSortAnalyzerTest.java
-└── app/                       # 2 test classes for data pipeline
+└── app/                       # 4 test classes for data pipeline
     ├── ThresholdConfigTest.java
+    ├── UtilMethodsTest.java
     └── UtilTest.java
 ```
 
@@ -127,15 +128,17 @@ public void testSummaryNotEmpty() {
 
 ## Classes Without Tests
 
-The following 40 source classes in `gvisual/` do not have dedicated test classes. Contributions welcome:
+The following 28 source classes in `gvisual/` do not yet have dedicated test classes in `Gvisual/test/gvisual/`. Contributions welcome:
 
-**Exporters:** `AdjacencyListExporter`, `CentralityRadarExporter`, `DimacsExporter`, `GraphDiffHtmlExporter`, `GraphMatrixExporter`, `GraphStorytellerExporter`, `GraphTimelineExporter`, `NetworkFlowExporter`, `TikzExporter`
+**Exporters:** `CentralityRadarExporter`, `GraphDiffHtmlExporter`, `GraphMatrixExporter`, `GraphStorytellerExporter`, `GraphTimelineExporter`, `TikzExporter`
 
 **GUI Controllers:** `ArticulationPanelController`, `CentralityPanelController`, `CommunityPanelController`, `EgoPanelController`, `ExportActions`, `MSTPanelController`, `PathPanelController`, `ResiliencePanelController`, `StatsPanel`, `ToolbarBuilder`, `Main`, `RandomGraphDialog`
 
-**Analyzers:** `GraphComplementAnalyzer`, `GraphCompressor`, `GraphDegreeSequenceRandomizer`, `GraphDrawingQualityAnalyzer`, `GraphHealthChecker`, `GraphLayoutComparer`, `GraphMotifFinder`, `GraphProductCalculator`, `GraphRegularityAnalyzer`, `GraphSpectrumAnalyzer`, `GraphStatsDashboard`, `GraphVoronoiPartitioner`
+**Analyzers:** `GraphCompressor`, `GraphDrawingQualityAnalyzer`, `GraphLayoutComparer`, `GraphRegularityAnalyzer`, `GraphSpectrumAnalyzer`, `GraphStatsDashboard`, `GraphVoronoiPartitioner`
 
-**Utilities/Models:** `AdjacencyMatrixHeatmap`, `AnalysisResult`, `EdgeType`, `GraphRenderers`, `QuadTree`, `RandomGraphGenerator`, `SpectralLayout`
+**Utilities/Models:** `AdjacencyMatrixHeatmap`, `GraphRenderers`, `SpectralLayout`
+
+> Some of these classes also have skeleton tests under `Gvisual/src/test/gvisual/` that are not yet wired into the Surefire test source tree (`Gvisual/test/`). Promoting those into `Gvisual/test/gvisual/` (and fixing any drift against the current production APIs) is a good first contribution.
 
 ## Writing New Tests
 

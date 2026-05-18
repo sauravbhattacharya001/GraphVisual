@@ -24,7 +24,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![57 Analyzers](https://img.shields.io/badge/Analyzers-57-blueviolet)](ALGORITHMS.md)
 [![Publish](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/.github/dependabot.yml)
-[![2500+ Tests](https://img.shields.io/badge/Tests-2500%2B-brightgreen)](Gvisual/test/)
+[![4,600+ Tests](https://img.shields.io/badge/Tests-4600%2B-brightgreen)](Gvisual/test/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-informational)](https://github.com/sauravbhattacharya001/GraphVisual)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/sauravbhattacharya001/GraphVisual/pulls)
 [![Maintained](https://img.shields.io/badge/Maintained-yes-green.svg)](https://github.com/sauravbhattacharya001/GraphVisual/commits/master)
@@ -66,7 +66,7 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 145 source classes (~55,000+ lines of production code, 100,000+ total with tests), 57 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)**, **[ALGORITHMS.md](ALGORITHMS.md)**, and **[TESTING.md](TESTING.md)** for full details including the analyzer reference table, design patterns, dependency map, and testing guide.
+GraphVisual consists of 175 source classes (~55,000+ lines of production code, 100,000+ total with tests), 58 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)**, **[ALGORITHMS.md](ALGORITHMS.md)**, and **[TESTING.md](TESTING.md)** for full details including the analyzer reference table, design patterns, dependency map, and testing guide.
 
 ```
 Gvisual/src/
@@ -172,7 +172,7 @@ Gvisual/src/
     ├── Network.java, Util.java, findMeetings.java, addLocation.java, matchImei.java
 ```
 
-100 test classes with **2,500+ tests** cover all analyzers and utilities.
+133 test classes with **4,600+ tests** cover all analyzers and utilities.
 
 ## Requirements
 
@@ -277,7 +277,7 @@ All thresholds are adjustable at runtime via the Category Panel sliders.
 
 ## Testing
 
-The test suite includes **106 test classes** with **2,100+ tests** covering analyzers, exporters, layouts, and utilities.
+The test suite includes **133 test classes** with **4,600+ tests** covering analyzers, exporters, layouts, and utilities.
 
 ```bash
 # Run all tests

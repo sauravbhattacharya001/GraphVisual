@@ -1,6 +1,6 @@
 # Contributing to GraphVisual
 
-Thanks for your interest in contributing! GraphVisual is a large-scale graph theory toolkit with 158 source files, 116 test classes, and 74 documentation pages. This guide will help you navigate the codebase and contribute effectively.
+Thanks for your interest in contributing! GraphVisual is a large-scale graph theory toolkit with 175 source files, 133 test classes, and 74 documentation pages. This guide will help you navigate the codebase and contribute effectively.
 
 ## Table of Contents
 
@@ -90,7 +90,7 @@ GraphVisual/
 │   │   ├── gvisual/        # 158 source files — core library
 │   │   └── app/            # Data pipeline (DB → edge-list)
 │   ├── test/
-│   │   ├── gvisual/        # 116 test classes
+│   │   ├── gvisual/        # 129 test classes
 │   │   └── app/            # Pipeline utility tests
 │   ├── lib/                # JUNG 2.0.1, PostgreSQL JDBC, Commons IO
 │   └── images/             # UI icons and legend assets
@@ -335,7 +335,7 @@ java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':
 # Run all tests (use a test runner or list all test classes)
 ```
 
-The test suite has **116 test classes** covering most analyzers and exporters. CI runs a subset against JDK 11 and 17 — see `.github/workflows/ci.yml` for the canonical list.
+The test suite has **133 test classes** (~4,640+ `@Test` methods) covering most analyzers and exporters. CI runs a subset against JDK 11 and 17 — see `.github/workflows/ci.yml` for the canonical list.
 
 ### Docker
 
