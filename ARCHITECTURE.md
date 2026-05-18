@@ -8,14 +8,14 @@ This document describes the source structure, design patterns, and key component
 GraphVisual/
 ├── Gvisual/
 │   ├── src/
-│   │   ├── gvisual/           # Visualization + analysis (73 classes)
+│   │   ├── gvisual/           # Visualization + analysis (169 classes)
 │   │   │   ├── Main.java      # Swing GUI — graph panel, timeline, controls
 │   │   │   ├── edge.java      # Edge model (type, vertices, weight, label, timestamps)
 │   │   │   ├── EdgeType.java  # Enum — relationship categories, colors, defaults
 │   │   │   ├── GraphStats.java           # Network metrics (density, degree, hubs)
 │   │   │   ├── GraphMLExporter.java      # GraphML XML export
 │   │   │   ├── GraphGenerator.java       # Synthetic graph topologies
-│   │   │   └── [46 analyzers + 21 utilities — see below]
+│   │   │   └── [58 analyzers + 100+ engines, advisors, exporters, controllers, utilities — see below]
 │   │   └── app/               # Data pipeline — DB → edge files
 │   │       ├── Network.java       # SQL → edge-list generation
 │   │       ├── Util.java          # Database connection factory
@@ -23,7 +23,7 @@ GraphVisual/
 │   │       ├── addLocation.java   # WiFi-based meeting location classification
 │   │       └── matchImei.java     # Device → IMEI mapping
 │   ├── test/
-│   │   ├── gvisual/           # 129 test classes (~4,640+ tests total)
+│   │   ├── gvisual/           # 129 test classes (~4,640+ tests total — 133 total including app/)
 │   │   └── app/               # Pipeline utility tests (4 test classes)
 │   ├── lib/                   # JUNG 2.0.1, PostgreSQL JDBC, Java3D, Commons IO
 │   └── images/                # UI icons (play, pause, stop, legend colors)
@@ -34,7 +34,7 @@ GraphVisual/
 
 ## Analyzers
 
-The analysis engine consists of 46 analyzer classes and 21 utility/infrastructure classes (67 non-Main classes). Each analyzer follows the same pattern:
+The analysis engine consists of **58 analyzer classes**, **11 engines**, **3 advisors**, **16 exporters**, **7 panel controllers**, and ~70 additional utility/infrastructure classes (169 total in the `gvisual` package, plus 7 in `app/`). Each analyzer follows the same pattern:
 
 1. Constructor takes a `Graph<String, edge>` (JUNG graph)
 2. Validates input (null check → `IllegalArgumentException`)
@@ -119,7 +119,7 @@ The analysis engine consists of 46 analyzer classes and 21 utility/infrastructur
 | `GraphUtils` | Shared graph traversal utilities: adjacency maps, BFS, components, shortest paths, betweenness centrality. |
 | `InteractiveHtmlExporter` | Exports graphs as self-contained interactive HTML files using D3.js force simulation. |
 | `LaplacianBuilder` | Constructs various Laplacian matrices (standard, normalized, signless) from a JUNG graph. |
-| `Main` | Swing application entry point (2399 lines) — graph panel, timeline, toolbar, statistics, centrality rankings. |
+| `Main` | Swing application entry point (927 lines) — graph panel, timeline, toolbar, statistics, centrality rankings. Heavy logic has been progressively extracted into dedicated panel controllers (`*PanelController`) and engines. |
 | `SubgraphExtractor` | Extracts focused subgraphs based on vertex criteria, k-hop neighborhoods, or edge filters. |
 | `TemporalGraph` | Lightweight JUNG graph wrapper providing time-windowed views for temporal network analysis. |
 
@@ -180,7 +180,7 @@ See [DATABASE.md](DATABASE.md) for full schema documentation.
 
 ## GUI (Main.java)
 
-`Main.java` (2399 lines) is the Swing application entry point. Key components:
+`Main.java` (927 lines, down from ~2,400 after the controller/engine extraction refactor) is the Swing application entry point. Key components:
 
 | Component | Description |
 |-----------|-------------|

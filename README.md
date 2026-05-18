@@ -21,7 +21,7 @@ Built with Java and [JUNG](http://jung.sourceforge.net/) (Java Universal Network
 [![Release](https://img.shields.io/github/v/release/sauravbhattacharya001/GraphVisual?logo=github)](https://github.com/sauravbhattacharya001/GraphVisual/releases/latest)
 [![Open Issues](https://img.shields.io/github/issues/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/issues)
 [![Contributors](https://img.shields.io/github/contributors/sauravbhattacharya001/GraphVisual)](https://github.com/sauravbhattacharya001/GraphVisual/graphs/contributors)
-[![57 Analyzers](https://img.shields.io/badge/Analyzers-57-blueviolet)](ALGORITHMS.md)
+[![58 Analyzers](https://img.shields.io/badge/Analyzers-58-blueviolet)](ALGORITHMS.md)
 [![Publish](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml/badge.svg)](https://github.com/sauravbhattacharya001/GraphVisual/actions/workflows/publish.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)](https://github.com/sauravbhattacharya001/GraphVisual/blob/master/.github/dependabot.yml)
 [![4,600+ Tests](https://img.shields.io/badge/Tests-4600%2B-brightgreen)](Gvisual/test/)
@@ -66,11 +66,11 @@ The tool was developed for research on **social network analysis** — specifica
 
 ## Architecture
 
-GraphVisual consists of 175 source classes (~55,000+ lines of production code, 100,000+ total with tests), 58 graph analyzers, and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)**, **[ALGORITHMS.md](ALGORITHMS.md)**, and **[TESTING.md](TESTING.md)** for full details including the analyzer reference table, design patterns, dependency map, and testing guide.
+GraphVisual consists of 192 source classes (176 in `gvisual/` + 7 in `app/`; ~83,700 lines of production code, ~133,000+ total with tests), 58 graph analyzers (plus engines, advisors, exporters, and panel controllers), and a Bluetooth-to-graph data pipeline. See **[ARCHITECTURE.md](ARCHITECTURE.md)**, **[ALGORITHMS.md](ALGORITHMS.md)**, and **[TESTING.md](TESTING.md)** for full details including the analyzer reference table, design patterns, dependency map, and testing guide.
 
 ```
 Gvisual/src/
-├── gvisual/           # 145 classes — GUI, edge model, 57 analyzers, utilities
+├── gvisual/           # 169 classes — GUI, edge model, 58 analyzers, engines, exporters, controllers, utilities
 │   ├── Main.java                       # Swing GUI — graph panel, timeline, controls
 │   ├── edge.java                       # Edge model (type, vertices, weight, label)
 │   ├── EdgeType.java                   # Enum — relationship categories, colors, defaults
