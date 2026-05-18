@@ -171,7 +171,7 @@ public class EulerianPathAnalyzer {
         // Build adjacency with Edge tracking
         Map<String, LinkedList<EdgeEntry>> adj = new LinkedHashMap<String, LinkedList<EdgeEntry>>();
         for (String v : graph.getVertices()) {
-            adj.put(v, new ArrayDeque<EdgeEntry>());
+            adj.put(v, new LinkedList<EdgeEntry>());
         }
 
         Set<Edge> allEdges = new HashSet<Edge>();

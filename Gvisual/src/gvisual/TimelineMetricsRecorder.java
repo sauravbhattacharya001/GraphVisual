@@ -268,17 +268,17 @@ public class TimelineMetricsRecorder {
     /**
      * Records metrics for the current state of the graph at this timeline step.
      */
-    public void recordStep(String label, Graph<String, edge> graph,
-                           List<edge> friendEdges, List<edge> fsEdges,
-                           List<edge> classmateEdges, List<edge> strangerEdges,
-                           List<edge> studyGEdges) {
+    public void recordStep(String label, Graph<String, Edge> graph,
+                           List<Edge> friendEdges, List<Edge> fsEdges,
+                           List<Edge> classmateEdges, List<Edge> strangerEdges,
+                           List<Edge> studyGEdges) {
         if (graph == null) {
             throw new IllegalArgumentException("Graph must not be null");
         }
 
         Set<String> currentNodes = new HashSet<>(graph.getVertices());
         Set<String> currentEdgeKeys = new HashSet<>();
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             currentEdgeKeys.add(edgeKey(e));
         }
 
@@ -304,7 +304,7 @@ public class TimelineMetricsRecorder {
         }
 
         double totalWeight = 0;
-        for (edge e : graph.getEdges()) {
+        for (Edge e : graph.getEdges()) {
             totalWeight += e.getWeight();
         }
         double avgWt = edgeCount > 0 ? totalWeight / edgeCount : 0;
@@ -475,22 +475,22 @@ public class TimelineMetricsRecorder {
         return (2.0 * edges) / (nodes * (nodes - 1));
     }
 
-    private static String edgeKey(edge e) {
+    private static String edgeKey(Edge e) {
         String v1 = e.getVertex1();
         String v2 = e.getVertex2();
         if (v1.compareTo(v2) > 0) { String tmp = v1; v1 = v2; v2 = tmp; }
         return v1 + "|" + v2 + "|" + e.getType();
     }
 
-    private static int countInGraph(Graph<String, edge> graph, List<edge> edges) {
+    private static int countInGraph(Graph<String, Edge> graph, List<Edge> edges) {
         int count = 0;
-        for (edge e : edges) {
+        for (Edge e : edges) {
             if (graph.containsEdge(e)) count++;
         }
         return count;
     }
 
-    private static int countComponents(Graph<String, edge> graph) {
+    private static int countComponents(Graph<String, Edge> graph) {
         Set<String> visited = new HashSet<>();
         int components = 0;
         for (String v : graph.getVertices()) {

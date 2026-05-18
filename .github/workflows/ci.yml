@@ -10,6 +10,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         java-version: [11, 17]
 
@@ -34,20 +35,32 @@ jobs:
       - name: Compile source
         working-directory: Gvisual
         run: |
+          set -e
           mkdir -p build/classes
-          find src -name '*.java' > sources.txt
-          javac -source 8 -target 8 \
-            -cp "$(find lib -name '*.jar' -not -path 'lib/test/*' | tr '\n' ':')" \
+          # Production sources only: anything under src/ that is NOT a *Test.java
+          # (some test files are checked in under src/ alongside production code).
+          # We still want them on the test classpath later, but they must not
+          # be compiled with javac without junit on the path.
+          find src -name '*.java' ! -name '*Test.java' > sources.txt
+          MAIN_CP="$(find lib -name '*.jar' -not -path 'lib/test/*' | tr '\n' ':')"
+          javac -encoding UTF-8 \
+            -source 8 -target 8 \
+            -cp "$MAIN_CP" \
             -d build/classes \
             @sources.txt
 
       - name: Compile tests
         working-directory: Gvisual
         run: |
+          set -e
           mkdir -p build/test/classes
-          find test -name '*.java' > test-sources.txt
-          javac -source 8 -target 8 \
-            -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+          # All *Test.java files, wherever they live (test/ tree plus a handful
+          # that sit under src/ next to the code they exercise).
+          find src test -name '*Test.java' > test-sources.txt
+          TEST_CP="build/classes:$(find lib -name '*.jar' | tr '\n' ':')"
+          javac -encoding UTF-8 \
+            -source 8 -target 8 \
+            -cp "$TEST_CP" \
             -d build/test/classes \
             @test-sources.txt
 
@@ -58,6 +71,8 @@ jobs:
             org.junit.runner.JUnitCore \
             app.UtilMethodsTest \
             gvisual.EdgeTest \
+            gvisual.EdgeTypeTest \
+            gvisual.QuadTreeTest \
             gvisual.GraphStatsTest \
             gvisual.ShortestPathFinderTest \
             gvisual.GraphMLExporterTest \

@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Perfect Graph Analyzer — determines whether a graph is perfect and provides

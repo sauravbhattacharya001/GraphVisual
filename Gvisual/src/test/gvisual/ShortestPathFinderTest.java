@@ -17,18 +17,18 @@ public class ShortestPathFinderTest {
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    private static edge addEdge(Graph<String, edge> g, String v1, String v2) {
+    private static Edge addEdge(Graph<String, Edge> g, String v1, String v2) {
         g.addVertex(v1);
         g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         g.addEdge(e, v1, v2);
         return e;
     }
 
-    private static edge addWeightedEdge(Graph<String, edge> g, String v1, String v2, float w) {
+    private static Edge addWeightedEdge(Graph<String, Edge> g, String v1, String v2, float w) {
         g.addVertex(v1);
         g.addVertex(v2);
-        edge e = new edge("f", v1, v2);
+        Edge e = new Edge("f", v1, v2);
         e.setWeight(w);
         g.addEdge(e, v1, v2);
         return e;
@@ -45,7 +45,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byHops_sameVertex_returnsZeroHopPath() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         ShortestPathFinder spf = new ShortestPathFinder(g);
 
@@ -59,7 +59,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byHops_directNeighbor_returns1Hop() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         ShortestPathFinder spf = new ShortestPathFinder(g);
 
@@ -73,7 +73,7 @@ public class ShortestPathFinderTest {
     public void byHops_choosesFewestHops_notLowestWeight() {
         // A --1-- B --1-- C (2 hops)
         // A --10-- C              (1 hop, heavier)
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", 1f);
         addWeightedEdge(g, "B", "C", 1f);
         addWeightedEdge(g, "A", "C", 10f);
@@ -87,7 +87,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byHops_disconnectedVertices_returnsNull() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -97,7 +97,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byHops_linearChain_returnsCorrectPath() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -112,14 +112,14 @@ public class ShortestPathFinderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void byHops_nullSource_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         new ShortestPathFinder(g).findShortestByHops(null, "A");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void byHops_vertexNotInGraph_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         new ShortestPathFinder(g).findShortestByHops("A", "Z");
     }
@@ -128,7 +128,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byWeight_sameVertex_returnsZeroWeight() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("X");
         ShortestPathFinder spf = new ShortestPathFinder(g);
 
@@ -142,7 +142,7 @@ public class ShortestPathFinderTest {
     public void byWeight_prefersLighterPath() {
         // A --1-- B --1-- C (weight 2, 2 hops)
         // A --10-- C          (weight 10, 1 hop)
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", 1f);
         addWeightedEdge(g, "B", "C", 1f);
         addWeightedEdge(g, "A", "C", 10f);
@@ -157,7 +157,7 @@ public class ShortestPathFinderTest {
     @Test
     public void byWeight_zeroWeightEdges_treatedAsWeight1() {
         // Zero-weight edges should be normalized to 1.0
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B"); // weight 0 (default) -> treated as 1.0
         addEdge(g, "B", "C"); // weight 0 -> treated as 1.0
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -169,7 +169,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byWeight_disconnected_returnsNull() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -179,7 +179,7 @@ public class ShortestPathFinderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void byWeight_negativeEdge_throws() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", -5f);
         new ShortestPathFinder(g).findShortestByWeight("A", "B");
     }
@@ -188,7 +188,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void reachable_isolatedVertex_returnsSelf() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         ShortestPathFinder spf = new ShortestPathFinder(g);
 
@@ -198,7 +198,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void reachable_connectedComponent_returnsAll() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         g.addVertex("D"); // isolated
@@ -213,21 +213,21 @@ public class ShortestPathFinderTest {
 
     @Test
     public void areConnected_sameVertex_returnsTrue() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         assertTrue(new ShortestPathFinder(g).areConnected("A", "A"));
     }
 
     @Test
     public void areConnected_directNeighbors_returnsTrue() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         assertTrue(new ShortestPathFinder(g).areConnected("A", "B"));
     }
 
     @Test
     public void areConnected_disconnected_returnsFalse() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("A");
         g.addVertex("B");
         assertFalse(new ShortestPathFinder(g).areConnected("A", "B"));
@@ -235,7 +235,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void areConnected_transitivelyConnected_returnsTrue() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addEdge(g, "A", "B");
         addEdge(g, "B", "C");
         addEdge(g, "C", "D");
@@ -246,7 +246,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void pathResult_toString_formatsCorrectly() {
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", 3f);
         addWeightedEdge(g, "B", "C", 4f);
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -264,7 +264,7 @@ public class ShortestPathFinderTest {
 
     @Test
     public void byHops_directedGraph_respectsEdgeDirection() {
-        Graph<String, edge> g = new DirectedSparseGraph<>();
+        Graph<String, Edge> g = new DirectedSparseGraph<>();
         addEdge(g, "A", "B"); // A -> B only
         addEdge(g, "B", "C"); // B -> C only
         ShortestPathFinder spf = new ShortestPathFinder(g);
@@ -292,7 +292,7 @@ public class ShortestPathFinderTest {
         //   2   1
         //    \ /
         //     C
-        Graph<String, edge> g = new UndirectedSparseGraph<>();
+        Graph<String, Edge> g = new UndirectedSparseGraph<>();
         addWeightedEdge(g, "A", "B", 1f);
         addWeightedEdge(g, "A", "C", 2f);
         addWeightedEdge(g, "B", "D", 5f);

@@ -2,6 +2,7 @@ package gvisual;
 
 import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Computes <b>Voronoi-like partitions</b> on a graph: given a set of seed
