@@ -1,0 +1,69 @@
+# Codecov configuration for GraphVisual
+# Reference: https://docs.codecov.com/docs/codecov-yaml
+
+codecov:
+  # Wait for the coverage workflow to upload before commenting / marking status.
+  notify:
+    wait_for_ci: true
+  # Be tolerant of transient CI failures so a coverage upload outage does not
+  # block PRs from being merged.
+  require_ci_to_pass: false
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+
+  status:
+    project:
+      default:
+        # Allow a small regression to avoid flapping on tiny test churn while
+        # still encouraging an upward trend overall.
+        target: auto
+        threshold: 1.5%
+        informational: false
+        only_pulls: false
+        if_ci_failed: ignore
+    patch:
+      default:
+        # New / changed code is held to a higher bar than the project as a whole.
+        target: 70%
+        threshold: 5%
+        informational: false
+        if_ci_failed: ignore
+
+parsers:
+  jacoco:
+    partials_as_hits: true
+
+comment:
+  layout: "header, diff, flags, components, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  show_carryforward_flags: false
+
+# Files that should not be considered when computing coverage.
+# These are mostly UI controllers, demo entry points, generated artefacts and
+# anything else that is impractical to unit-test in headless CI.
+ignore:
+  - "**/Main.java"
+  - "**/*PanelController.java"
+  - "**/RandomGraphDialog.java"
+  - "**/ToolbarBuilder.java"
+  - "**/StatsPanel.java"
+  - "**/GraphStatsDashboard.java"
+  - "**/test/**"
+  - "**/*Test.java"
+  - "docs/**"
+  - "**/build/**"
+  - "**/target/**"
+
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1.5%

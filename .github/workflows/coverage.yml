@@ -98,18 +98,52 @@ jobs:
         run: |
           echo "## 📊 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          # Parse CSV for summary (skip header, sum instruction covered/missed)
-          if [ -f build/coverage/coverage.csv ]; then
-            echo "| Package | Class | Instruction Coverage |" >> $GITHUB_STEP_SUMMARY
-            echo "|---------|-------|---------------------|" >> $GITHUB_STEP_SUMMARY
-            tail -n +2 build/coverage/coverage.csv | while IFS=',' read -r group package class inst_missed inst_covered branch_missed branch_covered line_missed line_covered complexity_missed complexity_covered method_missed method_covered; do
-              total=$((inst_missed + inst_covered))
-              if [ "$total" -gt 0 ]; then
-                pct=$((inst_covered * 100 / total))
-                echo "| $package | $class | ${pct}% (${inst_covered}/${total}) |" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
+          if [ ! -f build/coverage/coverage.csv ]; then
+            echo "_No coverage.csv produced._" >> $GITHUB_STEP_SUMMARY
+            exit 0
           fi
+          # First pass: aggregate totals across all classes.
+          overall_missed=0
+          overall_covered=0
+          branch_missed_t=0
+          branch_covered_t=0
+          line_missed_t=0
+          line_covered_t=0
+          while IFS=',' read -r group package class inst_missed inst_covered branch_missed branch_covered line_missed line_covered rest; do
+            overall_missed=$((overall_missed + inst_missed))
+            overall_covered=$((overall_covered + inst_covered))
+            branch_missed_t=$((branch_missed_t + branch_missed))
+            branch_covered_t=$((branch_covered_t + branch_covered))
+            line_missed_t=$((line_missed_t + line_missed))
+            line_covered_t=$((line_covered_t + line_covered))
+          done < <(tail -n +2 build/coverage/coverage.csv)
+          inst_total=$((overall_missed + overall_covered))
+          branch_total=$((branch_missed_t + branch_covered_t))
+          line_total=$((line_missed_t + line_covered_t))
+          inst_pct=0; [ "$inst_total" -gt 0 ] && inst_pct=$((overall_covered * 100 / inst_total))
+          branch_pct=0; [ "$branch_total" -gt 0 ] && branch_pct=$((branch_covered_t * 100 / branch_total))
+          line_pct=0; [ "$line_total" -gt 0 ] && line_pct=$((line_covered_t * 100 / line_total))
+          echo "**Overall instruction coverage: ${inst_pct}%** (${overall_covered}/${inst_total})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Covered | Total | % |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|---------|-------|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Instructions | ${overall_covered} | ${inst_total} | ${inst_pct}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branches | ${branch_covered_t} | ${branch_total} | ${branch_pct}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lines | ${line_covered_t} | ${line_total} | ${line_pct}% |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>Per-class breakdown</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Class | Instruction Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|---------------------|" >> $GITHUB_STEP_SUMMARY
+          tail -n +2 build/coverage/coverage.csv | while IFS=',' read -r group package class inst_missed inst_covered rest; do
+            total=$((inst_missed + inst_covered))
+            if [ "$total" -gt 0 ]; then
+              pct=$((inst_covered * 100 / total))
+              echo "| $package | $class | ${pct}% (${inst_covered}/${total}) |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7

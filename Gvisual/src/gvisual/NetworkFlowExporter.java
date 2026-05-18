@@ -74,6 +74,10 @@ public class NetworkFlowExporter {
         int s = labelToIdx.getOrDefault(sourceLabel, -1);
         int t = labelToIdx.getOrDefault(sinkLabel, -1);
         if (s < 0 || t < 0) return 0;
+        // Degenerate case: source == sink would cause the BFS loop to terminate
+        // immediately with parent[t] != -1, augmenting flow by Integer.MAX_VALUE
+        // every iteration and overflowing. By convention max-flow from s to s is 0.
+        if (s == t) return 0;
 
         int totalFlow = 0;
         int[] parent = new int[n];
