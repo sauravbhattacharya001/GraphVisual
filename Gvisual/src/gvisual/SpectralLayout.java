@@ -117,7 +117,7 @@ public class SpectralLayout {
         }
 
         // Build Laplacian
-        double[][] L = LaplacianBuilder.buildStandardLaplacian(graph, vertices);
+        double[][] L = LaplacianBuilder.buildLaplacian(graph, vertices);
 
         // Compute 2nd and 3rd smallest eigenvectors via inverse iteration
         double[] ev2 = computeSmallestNonTrivialEigenvector(L, n, null);

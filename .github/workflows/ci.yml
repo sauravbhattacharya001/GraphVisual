@@ -44,7 +44,7 @@ jobs:
           find src -name '*.java' ! -name '*Test.java' > sources.txt
           MAIN_CP="$(find lib -name '*.jar' -not -path 'lib/test/*' | tr '\n' ':')"
           javac -encoding UTF-8 \
-            -source 8 -target 8 \
+            -source 11 -target 11 \
             -cp "$MAIN_CP" \
             -d build/classes \
             @sources.txt
@@ -59,7 +59,7 @@ jobs:
           find src test -name '*Test.java' > test-sources.txt
           TEST_CP="build/classes:$(find lib -name '*.jar' | tr '\n' ':')"
           javac -encoding UTF-8 \
-            -source 8 -target 8 \
+            -source 11 -target 11 \
             -cp "$TEST_CP" \
             -d build/test/classes \
             @test-sources.txt

@@ -167,8 +167,18 @@
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                    <!--
+                      Exclude:
+                        - test/** : JUnit tests under the test source tree.
+                        - **/*Test.java : a handful of JUnit test files live
+                          alongside production code under Gvisual/src/ (see CI
+                          workflow, which filters with `! -name '*Test.java'`).
+                          Without this pattern `mvn compile` fails because
+                          JUnit is test-scoped and not on the compile classpath.
+                    -->
                     <excludes>
                         <exclude>test/**</exclude>
+                        <exclude>**/*Test.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>

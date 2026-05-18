@@ -60,7 +60,8 @@ public class CentralityRadarExporter {
      */
     public String exportToString() {
         NodeCentralityAnalyzer analyzer = new NodeCentralityAnalyzer(graph);
-        List<NodeCentralityAnalyzer.CentralityResult> results = analyzer.analyze();
+        analyzer.compute();
+        List<NodeCentralityAnalyzer.CentralityResult> results = analyzer.getRankedResults();
 
         StringBuilder nodesJson = new StringBuilder("[");
         boolean first = true;

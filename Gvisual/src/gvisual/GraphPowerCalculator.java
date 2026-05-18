@@ -102,10 +102,7 @@ public class GraphPowerCalculator {
                 String v = vertices.get(j);
                 Integer d = distFromU.get(v);
                 if (d != null && d <= k) {
-                    Edge edge = new Edge();
-                    edge.setEdgeType("power_" + k);
-                    edge.setVertex1(u);
-                    edge.setVertex2(v);
+                    Edge edge = new Edge("power_" + k, u, v);
                     edge.setWeight(d);
                     edge.setLabel("d=" + d);
                     result.addEdge(edge, u, v);
