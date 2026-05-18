@@ -1,0 +1,38 @@
+# CodeQL configuration for GraphVisual
+# https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning
+#
+# Goals:
+#   * Run the security-and-quality query suite (broader than security-extended).
+#   * Skip vendored / generated / non-application code so findings stay actionable.
+#   * Skip test code from the main scan; tests intentionally exercise edge cases
+#     (null handling, fake credentials) that produce false-positive alerts.
+#
+# Update the paths list when adding new top-level source directories.
+name: "GraphVisual CodeQL Config"
+
+# Use the high-signal, low-noise built-in suite. security-and-quality is a
+# superset of security-extended and also includes maintainability checks.
+queries:
+  - uses: security-and-quality
+
+# Only scan first-party application code.
+paths:
+  - Gvisual/src
+
+# Exclude everything we don't author or that would create noise.
+paths-ignore:
+  - "**/test/**"
+  - "**/tests/**"
+  - "Gvisual/lib/**"
+  - "Gvisual/nbproject/**"
+  - "Gvisual/images/**"
+  - "packaging/**"
+  - "docs/**"
+  - "Vidly/**"
+  - "**/*.min.js"
+  - "**/*.generated.java"
+
+# Keep the default code-scanning queries enabled in addition to the
+# explicit `queries:` block above. security-and-quality is a superset,
+# so this is effectively a no-op but documents intent for future editors.
+disable-default-queries: false

@@ -3,17 +3,34 @@ name: "CodeQL Security Analysis"
 on:
   push:
     branches: [ "master", "main" ]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
   pull_request:
     branches: [ "master", "main" ]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
   schedule:
     # Run weekly on Monday at 06:00 UTC
     - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Cancel in-progress runs on the same ref to save CI minutes.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   analyze:
-    name: Analyze (Java)
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     permissions:
       actions: read
@@ -34,31 +51,41 @@ jobs:
         with:
           java-version: "11"
           distribution: "temurin"
+          cache: maven
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Use extended security queries for deeper analysis
-          queries: security-extended
+          # Centralised config: query suite + path filters live in
+          # .github/codeql-config.yml so they apply consistently to any
+          # future tools that read CodeQL configuration.
+          config-file: ./.github/codeql-config.yml
 
       # Build with javac directly since the project uses Ant/NetBeans
-      # but has all dependencies bundled as JARs in Gvisual/lib/
+      # but has all dependencies bundled as JARs in Gvisual/lib/.
+      # UTF-8 encoding is required: several source files contain box-drawing
+      # characters used by ASCII renderers.
       - name: Build project
         run: |
           mkdir -p build/classes
           # Collect all library JARs into classpath
           CLASSPATH=$(find Gvisual/lib -name '*.jar' | tr '\n' ':')
-          # Compile all Java sources with relaxed source level
-          # Use -source/-target 8 as minimum for modern JDK compatibility
+          # Compile all Java sources with relaxed source level.
+          # Use -source/-target 8 as minimum for modern JDK compatibility.
+          # Non-fatal: CodeQL only needs a best-effort build to extract
+          # an analysable database.
           find Gvisual/src -name '*.java' > sources.txt
-          javac -source 8 -target 8 \
+          javac -encoding UTF-8 -source 8 -target 8 \
             -cp "$CLASSPATH" \
             -d build/classes \
             -Xlint:none \
+            -Xmaxerrs 0 \
             @sources.txt || echo "Build completed with warnings (non-fatal for CodeQL)"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+          # Upload SARIF even on failure so partial results are reviewable.
+          upload: always
