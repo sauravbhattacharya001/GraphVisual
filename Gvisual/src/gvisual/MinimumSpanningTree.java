@@ -54,83 +54,100 @@ public class MinimumSpanningTree {
                     0, 0.0f, 0, vertexCount);
         }
 
-        // Collect all edges and sort by weight (Kruskal's)
-        List<Edge> sortedEdges = new ArrayList<Edge>();
-        Set<Edge> seen = new HashSet<Edge>();
-        for (Edge e : graph.getEdges()) {
-            if (!seen.contains(e)) {
-                sortedEdges.add(e);
-                seen.add(e);
-            }
+        // Intern vertices to dense integer ids once. This lets Union-Find
+        // operate on int[] arrays instead of paying the per-call cost of
+        // HashMap<String,String> lookups + String.equals chains in the
+        // path-compression loop. For graphs with V vertices and E edges,
+        // this drops the Kruskal merge phase from ~6 hashmap ops + 2
+        // String.equals per edge to a handful of array reads.
+        String[] idToVertex = new String[vertexCount];
+        HashMap<String, Integer> vertexToId = new HashMap<>(vertexCount * 2);
+        int idx = 0;
+        for (String vertex : vertices) {
+            vertexToId.put(vertex, idx);
+            idToVertex[idx] = vertex;
+            idx++;
         }
-        Collections.sort(sortedEdges, (Edge a, Edge b) -> {
-                return Float.compare(a.getWeight(), b.getWeight());
-            });
 
-        // Union-Find
-        UnionFind uf = new UnionFind(vertices);
+        // Collect distinct edges. The previous implementation used a
+        // HashSet<Edge> probe per edge; JUNG's getEdges() is already a
+        // Collection view of distinct edges, but we keep the dedupe via
+        // the LinkedHashSet ctor — it's cheaper than a separate contains+add.
+        Collection<Edge> edgeView = graph.getEdges();
+        ArrayList<Edge> sortedEdges = new ArrayList<>(
+                edgeView instanceof Set ? edgeView : new LinkedHashSet<>(edgeView));
+        sortedEdges.sort((Edge a, Edge b) -> Float.compare(a.getWeight(), b.getWeight()));
 
-        List<Edge> mstEdges = new ArrayList<Edge>();
+        // Union-Find on int ids.
+        UnionFind uf = new UnionFind(vertexCount);
+
+        ArrayList<Edge> mstEdges = new ArrayList<>(Math.min(sortedEdges.size(), vertexCount));
         float totalWeight = 0.0f;
 
         for (Edge e : sortedEdges) {
-            String u = e.getVertex1();
-            String v = e.getVertex2();
-            if (!uf.find(u).equals(uf.find(v))) {
-                uf.union(u, v);
+            Integer uIdBoxed = vertexToId.get(e.getVertex1());
+            Integer vIdBoxed = vertexToId.get(e.getVertex2());
+            // Defensive: skip edges that reference vertices the graph no
+            // longer reports. This preserves the previous behavior of
+            // "sortedEdges only contains JUNG-managed edges".
+            if (uIdBoxed == null || vIdBoxed == null) continue;
+            int uId = uIdBoxed;
+            int vId = vIdBoxed;
+            if (uf.union(uId, vId)) {
                 mstEdges.add(e);
                 totalWeight += e.getWeight();
+                if (mstEdges.size() == vertexCount - 1) {
+                    break; // MST is complete; no need to inspect heavier edges
+                }
             }
         }
 
-        // Build per-component breakdown
-        Map<String, List<String>> rootToVertices = new LinkedHashMap<String, List<String>>();
-        for (String vertex : vertices) {
-            String root = uf.find(vertex);
-            List<String> members = rootToVertices.get(root);
-            if (members == null) {
-                members = new ArrayList<String>();
-                rootToVertices.put(root, members);
+        // Build per-component breakdown indexed by canonical root id.
+        List<List<String>> rootToVertices = new ArrayList<>();
+        List<List<Edge>> rootToEdges = new ArrayList<>();
+        int[] rootToCompId = new int[vertexCount];
+        Arrays.fill(rootToCompId, -1);
+
+        for (int i = 0; i < vertexCount; i++) {
+            int root = uf.find(i);
+            int compId = rootToCompId[root];
+            if (compId == -1) {
+                compId = rootToVertices.size();
+                rootToCompId[root] = compId;
+                rootToVertices.add(new ArrayList<>());
+                rootToEdges.add(new ArrayList<>());
             }
-            members.add(vertex);
+            rootToVertices.get(compId).add(idToVertex[i]);
         }
 
-        // Map edges to their component
-        Map<String, List<Edge>> rootToEdges = new LinkedHashMap<String, List<Edge>>();
         for (Edge e : mstEdges) {
-            String root = uf.find(e.getVertex1());
-            List<Edge> compEdges = rootToEdges.get(root);
-            if (compEdges == null) {
-                compEdges = new ArrayList<Edge>();
-                rootToEdges.put(root, compEdges);
-            }
-            compEdges.add(e);
+            Integer endpointId = vertexToId.get(e.getVertex1());
+            if (endpointId == null) continue;
+            int compId = rootToCompId[uf.find(endpointId)];
+            rootToEdges.get(compId).add(e);
         }
 
-        List<MSTComponent> components = new ArrayList<MSTComponent>();
-        int compId = 0;
-        // Sort components by size descending for consistent output
-        List<Map.Entry<String, List<String>>> sortedComps =
-                new ArrayList<Map.Entry<String, List<String>>>(rootToVertices.entrySet());
-        Collections.sort(sortedComps, (Map.Entry<String, List<String>> a, Map.Entry<String, List<String>> b) -> {
-                return Integer.compare(b.getValue().size(), a.getValue().size());
-            });
+        // Sort components by size descending for consistent output. We
+        // package each component's vertices+edges together so we don't
+        // have to look them up again after sorting.
+        int componentCount = rootToVertices.size();
+        Integer[] order = new Integer[componentCount];
+        for (int i = 0; i < componentCount; i++) order[i] = i;
+        final List<List<String>> rtv = rootToVertices;
+        Arrays.sort(order, (Integer a, Integer b) ->
+                Integer.compare(rtv.get(b).size(), rtv.get(a).size()));
 
-        for (Map.Entry<String, List<String>> entry : sortedComps) {
-            String root = entry.getKey();
-            List<String> members = entry.getValue();
-            List<Edge> compEdges = rootToEdges.get(root);
-            if (compEdges == null) compEdges = Collections.<Edge>emptyList();
-
+        List<MSTComponent> components = new ArrayList<>(componentCount);
+        for (int outId = 0; outId < componentCount; outId++) {
+            int srcId = order[outId];
+            List<String> members = rootToVertices.get(srcId);
+            List<Edge> compEdges = rootToEdges.get(srcId);
             float compWeight = 0.0f;
             for (Edge e : compEdges) {
                 compWeight += e.getWeight();
             }
-
-            components.add(new MSTComponent(compId++, members, compEdges, compWeight));
+            components.add(new MSTComponent(outId, members, compEdges, compWeight));
         }
-
-        int componentCount = rootToVertices.size();
 
         return new MSTResult(mstEdges, components, componentCount, totalWeight, mstEdges.size(), vertexCount);
     }
@@ -142,33 +159,40 @@ public class MinimumSpanningTree {
 
     /**
      * Disjoint set data structure for Kruskal's algorithm.
+     *
+     * <p>Indexed by dense integer vertex ids. The previous implementation
+     * used {@code Map<String,String>} parent/rank tables, which paid the
+     * cost of a HashMap lookup and a {@link String#equals(Object)} chain
+     * on every step of the path-compression loop. The current
+     * implementation uses two {@code int[]} arrays, giving constant-time
+     * array reads in the hot loop and substantially less allocation
+     * (no boxed {@link Integer} for the rank table).</p>
      */
     static class UnionFind {
-        private final Map<String, String> parent;
-        private final Map<String, Integer> rank;
+        private final int[] parent;
+        private final byte[] rank; // tree height is bounded by log2(V); byte is plenty
 
-        UnionFind(Collection<String> elements) {
-            parent = new HashMap<String, String>();
-            rank = new HashMap<String, Integer>();
-            for (String e : elements) {
-                parent.put(e, e);
-                rank.put(e, 0);
+        UnionFind(int n) {
+            parent = new int[n];
+            rank = new byte[n];
+            for (int i = 0; i < n; i++) {
+                parent[i] = i;
             }
         }
 
         /**
-         * Find with path compression.
+         * Find with iterative path compression (two-pass, no recursion).
          */
-        String find(String x) {
-            String root = x;
-            while (!root.equals(parent.get(root))) {
-                root = parent.get(root);
+        int find(int x) {
+            int root = x;
+            while (parent[root] != root) {
+                root = parent[root];
             }
-            // Path compression
-            String current = x;
-            while (!current.equals(root)) {
-                String next = parent.get(current);
-                parent.put(current, root);
+            // Path compression: point every node on the path directly at the root.
+            int current = x;
+            while (parent[current] != root) {
+                int next = parent[current];
+                parent[current] = root;
                 current = next;
             }
             return root;
@@ -176,23 +200,28 @@ public class MinimumSpanningTree {
 
         /**
          * Union by rank.
+         *
+         * @return true if the two elements were in distinct components
+         *         and have been merged; false if they were already in the
+         *         same component.
          */
-        void union(String a, String b) {
-            String rootA = find(a);
-            String rootB = find(b);
-            if (rootA.equals(rootB)) return;
+        boolean union(int a, int b) {
+            int rootA = find(a);
+            int rootB = find(b);
+            if (rootA == rootB) return false;
 
-            int rankA = rank.get(rootA);
-            int rankB = rank.get(rootB);
+            int rankA = rank[rootA];
+            int rankB = rank[rootB];
 
             if (rankA < rankB) {
-                parent.put(rootA, rootB);
+                parent[rootA] = rootB;
             } else if (rankA > rankB) {
-                parent.put(rootB, rootA);
+                parent[rootB] = rootA;
             } else {
-                parent.put(rootB, rootA);
-                rank.put(rootA, rankA + 1);
+                parent[rootB] = rootA;
+                rank[rootA] = (byte) (rankA + 1);
             }
+            return true;
         }
     }
 

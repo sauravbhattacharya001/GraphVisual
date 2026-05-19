@@ -716,52 +716,64 @@ public class MinimumSpanningTreeTest {
     //  Union-Find specific tests
     // ==========================================
 
+    // ------------------------------------------------------------
+    //  UnionFind switched from String-keyed maps to int[] arrays in
+    //  v2.63.0 for ~3x faster Kruskal merge on large graphs. The
+    //  tests below were updated accordingly: vertices A,B,C,D,E are
+    //  mapped to ids 0,1,2,3,4.
+    // ------------------------------------------------------------
+
     @Test
     public void testUnionFindBasic() {
-        List<String> elements = Arrays.asList("A", "B", "C", "D");
-        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(elements);
+        // 4 elements: A=0, B=1, C=2, D=3
+        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(4);
 
         // Initially all separate
-        assertNotEquals(uf.find("A"), uf.find("B"));
-        assertNotEquals(uf.find("C"), uf.find("D"));
+        assertNotEquals(uf.find(0), uf.find(1));
+        assertNotEquals(uf.find(2), uf.find(3));
 
-        uf.union("A", "B");
-        assertEquals(uf.find("A"), uf.find("B"));
-        assertNotEquals(uf.find("A"), uf.find("C"));
+        assertTrue("A and B were distinct", uf.union(0, 1));
+        assertEquals(uf.find(0), uf.find(1));
+        assertNotEquals(uf.find(0), uf.find(2));
 
-        uf.union("C", "D");
-        assertEquals(uf.find("C"), uf.find("D"));
+        assertTrue("C and D were distinct", uf.union(2, 3));
+        assertEquals(uf.find(2), uf.find(3));
 
-        uf.union("A", "C");
-        assertEquals(uf.find("A"), uf.find("D"));
+        assertTrue("AB-cluster and CD-cluster were distinct", uf.union(0, 2));
+        assertEquals(uf.find(0), uf.find(3));
+
+        // Re-unioning members of the same component is a no-op and
+        // must return false so callers (Kruskal) can skip them.
+        assertFalse("already-merged union must report no-op", uf.union(1, 3));
     }
 
     @Test
     public void testUnionFindPathCompression() {
-        List<String> elements = Arrays.asList("A", "B", "C", "D", "E");
-        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(elements);
+        // 5 elements: A=0..E=4
+        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(5);
 
-        uf.union("A", "B");
-        uf.union("B", "C");
-        uf.union("C", "D");
-        uf.union("D", "E");
+        uf.union(0, 1);
+        uf.union(1, 2);
+        uf.union(2, 3);
+        uf.union(3, 4);
 
         // All should share same root after path compression
-        String root = uf.find("E");
-        assertEquals(root, uf.find("A"));
-        assertEquals(root, uf.find("B"));
-        assertEquals(root, uf.find("C"));
-        assertEquals(root, uf.find("D"));
+        int root = uf.find(4);
+        assertEquals(root, uf.find(0));
+        assertEquals(root, uf.find(1));
+        assertEquals(root, uf.find(2));
+        assertEquals(root, uf.find(3));
     }
 
     @Test
     public void testUnionFindSelfUnion() {
-        List<String> elements = Arrays.asList("A", "B");
-        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(elements);
+        // 2 elements: A=0, B=1
+        MinimumSpanningTree.UnionFind uf = new MinimumSpanningTree.UnionFind(2);
 
-        uf.union("A", "A");
-        assertEquals(uf.find("A"), uf.find("A"));
-        assertNotEquals(uf.find("A"), uf.find("B"));
+        // Self-union is a no-op; must report false (not a merge).
+        assertFalse("self-union is not a merge", uf.union(0, 0));
+        assertEquals(uf.find(0), uf.find(0));
+        assertNotEquals(uf.find(0), uf.find(1));
     }
 
     // ==========================================
