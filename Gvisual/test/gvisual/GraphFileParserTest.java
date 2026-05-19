@@ -94,7 +94,7 @@ public class GraphFileParserTest {
         );
         GraphFileParser.ParseResult result = GraphFileParser.parse(f.getAbsolutePath());
 
-        List<edge> friends = result.getEdges(EdgeType.FRIEND);
+        List<Edge> friends = result.getEdges(EdgeType.FRIEND);
         assertEquals(1, friends.size());
         assertEquals(3.14f, friends.get(0).getWeight(), 0.001f);
     }
@@ -247,7 +247,7 @@ public class GraphFileParserTest {
         );
         GraphFileParser.ParseResult result = GraphFileParser.parse(f.getAbsolutePath());
 
-        List<edge> friends = result.getEdges(EdgeType.FRIEND);
+        List<Edge> friends = result.getEdges(EdgeType.FRIEND);
         assertEquals(2, friends.size());
 
         // First edge should have the display label for legend
@@ -296,7 +296,7 @@ public class GraphFileParserTest {
         File f = writeGraph("nodes\nA\nB\nedges\nf A B 1.0\n");
         GraphFileParser.ParseResult result = GraphFileParser.parse(f.getAbsolutePath());
 
-        List<edge> strangers = result.getEdges(EdgeType.STRANGER);
+        List<Edge> strangers = result.getEdges(EdgeType.STRANGER);
         assertNotNull(strangers);
         assertTrue(strangers.isEmpty());
     }

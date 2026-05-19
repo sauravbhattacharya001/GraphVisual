@@ -16,7 +16,7 @@ public class GraphIsomorphismCheckerTest {
         for (String[] e : edges) {
             if (!g.containsVertex(e[0])) g.addVertex(e[0]);
             if (!g.containsVertex(e[1])) g.addVertex(e[1]);
-            g.addEdge(new Edge(e[0], e[1]), e[0], e[1]);
+            g.addEdge(new Edge("e", e[0], e[1]), e[0], e[1]);
         }
         return g;
     }
@@ -58,8 +58,8 @@ public class GraphIsomorphismCheckerTest {
         });
         Graph<String, Edge> b = new UndirectedSparseGraph<String, Edge>();
         b.addVertex("X"); b.addVertex("Y"); b.addVertex("Z");
-        b.addEdge(new Edge("X", "Y"), "X", "Y");
-        b.addEdge(new Edge("Y", "Z"), "Y", "Z");
+        b.addEdge(new Edge("e", "X", "Y"), "X", "Y");
+        b.addEdge(new Edge("e", "Y", "Z"), "Y", "Z");
         // Same vertex count (3), different edge count (3 vs 2)
         GraphIsomorphismChecker checker = new GraphIsomorphismChecker(a, b);
         checker.compute();

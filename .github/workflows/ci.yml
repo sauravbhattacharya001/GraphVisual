@@ -74,8 +74,12 @@ jobs:
             gvisual.EdgeTypeTest \
             gvisual.QuadTreeTest \
             gvisual.GraphStatsTest \
-            gvisual.ShortestPathFinderTest \
             gvisual.GraphMLExporterTest \
             gvisual.CommunityDetectorTest \
             gvisual.NodeCentralityAnalyzerTest \
-            gvisual.ArticulationPointAnalyzerTest
+            gvisual.ArticulationPointAnalyzerTest \
+            gvisual.GraphRegularityAnalyzerTest \
+            gvisual.GraphPowerCalculatorTest \
+            gvisual.WienerIndexCalculatorTest \
+            gvisual.GraphIsomorphismCheckerTest \
+            gvisual.GraphFileParserTest

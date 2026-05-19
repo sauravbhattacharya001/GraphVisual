@@ -22,9 +22,8 @@ public class GraphPowerCalculatorTest {
     }
 
     private void addEdge(String v1, String v2) {
-        Edge e = new Edge();
-        e.setVertex1(v1);
-        e.setVertex2(v2);
+        Edge e = new Edge("e", v1, v2);
+        e.setWeight(1.0f);
         graph.addEdge(e, v1, v2);
     }
 

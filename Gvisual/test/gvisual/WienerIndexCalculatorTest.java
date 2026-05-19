@@ -14,7 +14,7 @@ public class WienerIndexCalculatorTest {
         Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         for (int i = 0; i < n; i++) g.addVertex("v" + i);
         for (int i = 0; i < n - 1; i++) {
-            Edge e = new Edge("v" + i, "v" + (i + 1));
+            Edge e = new Edge("e", "v" + i, "v" + (i + 1));
             g.addEdge(e, "v" + i, "v" + (i + 1));
         }
         return g;
@@ -56,9 +56,9 @@ public class WienerIndexCalculatorTest {
         // Complete graph K3: all distances = 1, W = 3
         Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
-        g.addEdge(new Edge("A", "B"), "A", "B");
-        g.addEdge(new Edge("A", "C"), "A", "C");
-        g.addEdge(new Edge("B", "C"), "B", "C");
+        g.addEdge(new Edge("e", "A", "B"), "A", "B");
+        g.addEdge(new Edge("e", "A", "C"), "A", "C");
+        g.addEdge(new Edge("e", "B", "C"), "B", "C");
         WienerIndexCalculator calc = new WienerIndexCalculator(g);
         calc.compute();
         assertEquals(3, calc.getWienerIndex());
@@ -84,9 +84,9 @@ public class WienerIndexCalculatorTest {
         // K3: all d=1, WW = ½ * 3 * (1 + 1) = 3
         Graph<String, Edge> g = new UndirectedSparseGraph<String, Edge>();
         g.addVertex("A"); g.addVertex("B"); g.addVertex("C");
-        g.addEdge(new Edge("A", "B"), "A", "B");
-        g.addEdge(new Edge("A", "C"), "A", "C");
-        g.addEdge(new Edge("B", "C"), "B", "C");
+        g.addEdge(new Edge("e", "A", "B"), "A", "B");
+        g.addEdge(new Edge("e", "A", "C"), "A", "C");
+        g.addEdge(new Edge("e", "B", "C"), "B", "C");
         WienerIndexCalculator calc = new WienerIndexCalculator(g);
         calc.compute();
         assertEquals(3, calc.getHyperWienerIndex());
