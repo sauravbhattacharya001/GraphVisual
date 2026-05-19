@@ -201,11 +201,18 @@ public final class GraphCommunityChurnAdvisor<V, E> {
 
         List<NodeChurn<V>> nodeChurns = new ArrayList<>();
         int retainedNodes = 0, newArrivals = 0, departures = 0;
-        double appetiteMult = switch (appetite) {
-            case CAUTIOUS   -> 1.15;
-            case AGGRESSIVE -> 0.85;
-            default         -> 1.0;
-        };
+        double appetiteMult;
+        switch (appetite) {
+            case CAUTIOUS:
+                appetiteMult = 1.15;
+                break;
+            case AGGRESSIVE:
+                appetiteMult = 0.85;
+                break;
+            default:
+                appetiteMult = 1.0;
+                break;
+        }
 
         for (V v : all) {
             boolean inBase = baseV.contains(v);
@@ -332,13 +339,21 @@ public final class GraphCommunityChurnAdvisor<V, E> {
     }
 
     private Priority priorityOf(Verdict v, double s) {
-        return switch (v) {
-            case ISOLATING, CHURNING -> (s >= 60 ? Priority.P0 : Priority.P1);
-            case DEPARTED -> (s >= 60 ? Priority.P0 : (s >= 40 ? Priority.P1 : Priority.P2));
-            case MIGRANT, BRIDGE_FORMING -> (s >= 50 ? Priority.P1 : Priority.P2);
-            case NEW_ARRIVAL -> (s >= 50 ? Priority.P1 : Priority.P2);
-            case STABLE -> Priority.P3;
-        };
+        switch (v) {
+            case ISOLATING:
+            case CHURNING:
+                return (s >= 60 ? Priority.P0 : Priority.P1);
+            case DEPARTED:
+                return (s >= 60 ? Priority.P0 : (s >= 40 ? Priority.P1 : Priority.P2));
+            case MIGRANT:
+            case BRIDGE_FORMING:
+                return (s >= 50 ? Priority.P1 : Priority.P2);
+            case NEW_ARRIVAL:
+                return (s >= 50 ? Priority.P1 : Priority.P2);
+            case STABLE:
+            default:
+                return Priority.P3;
+        }
     }
 
     private List<CommunityEvolution> buildEvolution(Set<V> baseV, Set<V> curV,
