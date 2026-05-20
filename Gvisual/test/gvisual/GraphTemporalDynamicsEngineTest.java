@@ -26,10 +26,11 @@ public class GraphTemporalDynamicsEngineTest {
     private Graph<String, Edge> createGraph(String[][] edges) {
         Graph<String, Edge> g = new UndirectedSparseGraph<>();
         for (String[] e : edges) {
-            Edge edge = new Edge("f", e[0], e[1]);
             if (!g.containsVertex(e[0])) g.addVertex(e[0]);
             if (!g.containsVertex(e[1])) g.addVertex(e[1]);
-            g.addEdge(edge, e[0], e[1]);
+            // Skip duplicate undirected pairs so the snapshot stays a simple graph.
+            if (g.findEdge(e[0], e[1]) != null) continue;
+            g.addEdge(new Edge("f", e[0], e[1]), e[0], e[1]);
         }
         return g;
     }
@@ -443,10 +444,13 @@ public class GraphTemporalDynamicsEngineTest {
     @Test
     public void testDegreeEntropyIncreases() {
         List<Graph<String, Edge>> snapshots = new ArrayList<>();
-        // Uniform degree -> varied degree
-        snapshots.add(createGraph(new String[][]{{"A","B"},{"B","C"},{"C","D"},{"D","A"}})); // all degree 2
-        snapshots.add(createGraph(new String[][]{{"A","B"},{"B","C"},{"C","D"},{"D","A"},{"A","C"}})); // A,C degree 3
-        snapshots.add(createGraph(new String[][]{{"A","B"},{"B","C"},{"C","D"},{"D","A"},{"A","C"},{"A","D"},{"B","D"}}));
+        // Snapshot 0: uniform degree (4-cycle, every vertex has degree 2 -> entropy 0).
+        snapshots.add(createGraph(new String[][]{{"A","B"},{"B","C"},{"C","D"},{"D","A"}}));
+        // Snapshot 1: add diagonal A-C, so A and C become degree 3, B and D stay 2.
+        snapshots.add(createGraph(new String[][]{{"A","B"},{"B","C"},{"C","D"},{"D","A"},{"A","C"}}));
+        // Snapshot 2: extend with a pendant E off A and a pendant F off B -> degree mix {1,1,2,3,3,4}.
+        snapshots.add(createGraph(new String[][]{
+                {"A","B"},{"B","C"},{"C","D"},{"D","A"},{"A","C"},{"A","E"},{"B","F"}}));
         GraphTemporalDynamicsEngine.TemporalDynamicsReport report = engine.analyze(snapshots);
         // First snapshot: all same degree -> entropy = 0 (one bin)
         assertEquals(0.0, report.snapshots.get(0).degreeEntropy, 0.01);

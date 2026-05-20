@@ -18,9 +18,12 @@ package gvisual;
  *       {@code sg} (study group). See {@link EdgeType} for the full
  *       palette and metadata.</li>
  *   <li>Two endpoint identifiers ({@link #getVertex1()} and
- *       {@link #getVertex2()}). The edge is treated as <b>undirected</b>:
- *       {@code (v1, v2)} equals {@code (v2, v1)} for {@link #equals(Object)}
- *       and {@link #hashCode()} purposes.</li>
+ *       {@link #getVertex2()}). The endpoint pair is treated as
+ *       <b>ordered</b> for {@link #equals(Object)} / {@link #hashCode()}
+ *       so the class can be used safely in directed graphs (where
+ *       {@code A->B} and {@code B->A} are distinct edges). For
+ *       undirected/symmetric comparisons, use
+ *       {@link #equalsUndirected(Edge)}.</li>
  *   <li>A scalar {@link #getWeight() weight} (typically interaction
  *       intensity — frequency × duration).</li>
  *   <li>An optional human-readable {@link #getLabel() label}.</li>
@@ -215,8 +218,21 @@ public class Edge {
     }
 
     /**
-     * Two Edges are equal if they connect the same vertices (in either order),
-     * have the same type, and the same weight.
+     * Two Edges are equal if they have the same endpoints <em>in the same
+     * order</em> ({@code vertex1} and {@code vertex2}), the same type, and
+     * the same weight.
+     *
+     * <p><b>History:</b> previously this method treated {@code (v1, v2)}
+     * and {@code (v2, v1)} as equal in an attempt to model undirected
+     * semantics. That made it impossible to put an {@code Edge} into a
+     * {@code DirectedSparseGraph} alongside its reverse: JUNG's
+     * {@code containsEdge(e)} (which calls {@code Edge#equals}) reported
+     * the reverse edge as already present and {@code addEdge} threw
+     * {@code IllegalArgumentException}. The directed-graph use-cases
+     * (strongly connected components, topological sort, cycle analysis,
+     * temporal dynamics, etc.) are now first-class in the codebase, so
+     * {@code equals} is order-sensitive. Callers that want the legacy
+     * undirected comparison should use {@link #equalsUndirected(Edge)}.
      */
     @Override
     public boolean equals(Object obj)
@@ -226,7 +242,26 @@ public class Edge {
         Edge other = (Edge) obj;
         if (Float.compare(weight, other.weight) != 0) return false;
         if (!java.util.Objects.equals(edgeType, other.edgeType)) return false;
-        // Undirected: (v1,v2) == (v2,v1)
+        return java.util.Objects.equals(vertex1, other.vertex1)
+            && java.util.Objects.equals(vertex2, other.vertex2);
+    }
+
+    /**
+     * Returns {@code true} if this edge connects the same pair of
+     * vertices as {@code other} in <em>either</em> order, with the same
+     * type and weight. Useful when modeling undirected relationships on
+     * top of the standard {@link #equals(Object)} contract.
+     *
+     * @param other the edge to compare against; may be {@code null}
+     * @return true if both edges share an unordered endpoint pair, type,
+     *         and weight
+     */
+    public boolean equalsUndirected(Edge other)
+    {
+        if (this == other) return true;
+        if (other == null) return false;
+        if (Float.compare(weight, other.weight) != 0) return false;
+        if (!java.util.Objects.equals(edgeType, other.edgeType)) return false;
         boolean sameOrder = java.util.Objects.equals(vertex1, other.vertex1)
                          && java.util.Objects.equals(vertex2, other.vertex2);
         boolean reverseOrder = java.util.Objects.equals(vertex1, other.vertex2)
@@ -235,16 +270,18 @@ public class Edge {
     }
 
     /**
-     * Hash code consistent with {@link #equals}: order-independent on vertices.
+     * Hash code consistent with {@link #equals(Object)}: order-sensitive
+     * on the endpoint pair.
      */
     @Override
     public int hashCode()
     {
-        // Use addition so vertex order doesn't matter
-        int vertexHash = (vertex1 == null ? 0 : vertex1.hashCode())
-                       + (vertex2 == null ? 0 : vertex2.hashCode());
-        return 31 * (31 * vertexHash + (edgeType == null ? 0 : edgeType.hashCode()))
-             + Float.floatToIntBits(weight);
+        int h = 1;
+        h = 31 * h + (vertex1 == null ? 0 : vertex1.hashCode());
+        h = 31 * h + (vertex2 == null ? 0 : vertex2.hashCode());
+        h = 31 * h + (edgeType == null ? 0 : edgeType.hashCode());
+        h = 31 * h + Float.floatToIntBits(weight);
+        return h;
     }
 
     /**

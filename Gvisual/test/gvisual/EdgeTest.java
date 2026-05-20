@@ -143,8 +143,149 @@ public class EdgeTest {
 
     @Test
     public void testSelfLoop() {
-        // Edge class doesn't prevent self-loops — verify it stores them
+        // Edge class doesn't prevent self-loops - verify it stores them
         Edge e = new Edge("f", "X", "X");
         assertEquals(e.getVertex1(), e.getVertex2());
+    }
+
+    // --- equals / hashCode contract (order-sensitive, directed-safe) ---
+
+    @Test
+    public void testEqualsReflexive() {
+        Edge e = new Edge("f", "A", "B");
+        e.setWeight(1.5f);
+        assertEquals(e, e);
+    }
+
+    @Test
+    public void testEqualsSameFieldsAreEqual() {
+        Edge a = new Edge("f", "A", "B");
+        a.setWeight(2.0f);
+        Edge b = new Edge("f", "A", "B");
+        b.setWeight(2.0f);
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void testEqualsIgnoresLabel() {
+        // Labels are display-only and excluded from identity.
+        Edge a = new Edge("f", "A", "B");
+        a.setLabel("close");
+        Edge b = new Edge("f", "A", "B");
+        b.setLabel("acquaintance");
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void testEqualsIsOrderSensitive() {
+        // Regression: previously equals treated (A,B) == (B,A), which made
+        // it impossible to store both directions of an edge in a
+        // DirectedSparseGraph (JUNG's addEdge would reject the reverse).
+        Edge ab = new Edge("link", "A", "B");
+        Edge ba = new Edge("link", "B", "A");
+        assertNotEquals(ab, ba);
+        // Hash codes should also differ for the swapped-vertex case so
+        // hash-based containers don't collide spuriously.
+        assertNotEquals(ab.hashCode(), ba.hashCode());
+    }
+
+    @Test
+    public void testEqualsDifferentTypeNotEqual() {
+        Edge a = new Edge("f", "A", "B");
+        Edge b = new Edge("c", "A", "B");
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testEqualsDifferentWeightNotEqual() {
+        Edge a = new Edge("f", "A", "B");
+        a.setWeight(1.0f);
+        Edge b = new Edge("f", "A", "B");
+        b.setWeight(2.0f);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testEqualsAgainstNullAndOtherType() {
+        Edge a = new Edge("f", "A", "B");
+        assertNotEquals(a, null);
+        assertNotEquals(a, "not-an-edge");
+    }
+
+    @Test
+    public void testHashCodeStableAcrossInvocations() {
+        Edge e = new Edge("f", "A", "B");
+        e.setWeight(3.25f);
+        int h1 = e.hashCode();
+        int h2 = e.hashCode();
+        int h3 = e.hashCode();
+        assertEquals(h1, h2);
+        assertEquals(h2, h3);
+    }
+
+    @Test
+    public void testEqualsHandlesNullEndpoints() {
+        Edge a = new Edge();
+        Edge b = new Edge();
+        // Two default-constructed edges have identical (all-null/zero) state.
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    // --- equalsUndirected (legacy symmetric comparison) ---
+
+    @Test
+    public void testEqualsUndirectedTreatsReverseAsEqual() {
+        Edge ab = new Edge("f", "A", "B");
+        Edge ba = new Edge("f", "B", "A");
+        assertTrue(ab.equalsUndirected(ba));
+        assertTrue(ba.equalsUndirected(ab));
+    }
+
+    @Test
+    public void testEqualsUndirectedStillChecksTypeAndWeight() {
+        Edge ab = new Edge("f", "A", "B");
+        ab.setWeight(1.0f);
+        Edge baDiffType = new Edge("c", "B", "A");
+        baDiffType.setWeight(1.0f);
+        Edge baDiffWeight = new Edge("f", "B", "A");
+        baDiffWeight.setWeight(2.0f);
+        assertFalse(ab.equalsUndirected(baDiffType));
+        assertFalse(ab.equalsUndirected(baDiffWeight));
+    }
+
+    @Test
+    public void testEqualsUndirectedHandlesNull() {
+        Edge ab = new Edge("f", "A", "B");
+        assertFalse(ab.equalsUndirected(null));
+    }
+
+    @Test
+    public void testEqualsUndirectedReflexive() {
+        Edge ab = new Edge("f", "A", "B");
+        assertTrue(ab.equalsUndirected(ab));
+    }
+
+    // --- Directed-graph integration (the bug this commit fixes) ---
+
+    @Test
+    public void testDirectedGraphAcceptsBothDirections() {
+        // Regression test for the equals/hashCode bug: with order-insensitive
+        // equals, this addEdge throws IllegalArgumentException because
+        // JUNG considers the reverse edge already present.
+        edu.uci.ics.jung.graph.DirectedSparseGraph<String, Edge> g =
+                new edu.uci.ics.jung.graph.DirectedSparseGraph<>();
+        g.addVertex("A");
+        g.addVertex("B");
+        Edge ab = new Edge("link", "A", "B");
+        ab.setLabel("e1");
+        Edge ba = new Edge("link", "B", "A");
+        ba.setLabel("e2");
+        assertTrue("forward edge should be added", g.addEdge(ab, "A", "B"));
+        assertTrue("reverse edge should be added in a directed graph",
+                g.addEdge(ba, "B", "A"));
+        assertEquals(2, g.getEdgeCount());
     }
 }
