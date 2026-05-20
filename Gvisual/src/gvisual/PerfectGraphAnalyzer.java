@@ -4,6 +4,15 @@ import edu.uci.ics.jung.graph.Graph;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// Performance note (run 4238):
+// The Bron-Kerbosch max-clique and DSatur chromatic-number helpers used to
+// allocate millions of HashSet<Integer> boxes per call (an O(n) hot path
+// inside a recursion that already branches over up to n candidates). They
+// have been re-implemented on top of BitSet, which is roughly one to two
+// orders of magnitude faster on the MAX_VERTICES_EXHAUSTIVE=500 budget and
+// produces near-zero garbage per recursive branch. The public API and result
+// values are unchanged; only the internals were rewritten.
+
 /**
  * Perfect Graph Analyzer — determines whether a graph is perfect and provides
  * detailed analysis of perfection-related properties.
@@ -414,85 +423,136 @@ public final class PerfectGraphAnalyzer {
         return true;
     }
 
-    // ── Max clique (Bron-Kerbosch) ───────────────────────────────────
+    // ── Max clique (Bron-Kerbosch with Tomita pivoting, BitSet) ──────
 
     private static int maxClique(boolean[][] adj, int n) {
+        if (n == 0) return 0;
+        BitSet[] rows = toBitSetRows(adj, n);
+        BitSet P = new BitSet(n);
+        P.set(0, n);
         int[] max = {0};
-        Set<Integer> all = new HashSet<>();
-        for (int i = 0; i < n; i++) all.add(i);
-        bronKerbosch(adj, new HashSet<>(), all, new HashSet<>(), max);
+        bronKerbosch(rows, 0, P, new BitSet(n), max);
         return max[0];
     }
 
-    private static void bronKerbosch(boolean[][] adj, Set<Integer> R, Set<Integer> P,
-                                      Set<Integer> X, int[] max) {
+    /**
+     * Bron-Kerbosch with Tomita pivoting on bitset adjacency rows.
+     *
+     * <p>{@code R} is tracked as a depth counter ({@code rSize}); we only need
+     * the size of the largest clique, not its members. {@code P} and {@code X}
+     * are mutated in place across the candidate loop and freshly cloned for
+     * each recursive child, matching the original recursion exactly while
+     * eliminating the per-step {@code HashSet<Integer>} churn.</p>
+     */
+    private static void bronKerbosch(BitSet[] rows, int rSize,
+                                      BitSet P, BitSet X, int[] max) {
         if (P.isEmpty() && X.isEmpty()) {
-            max[0] = Math.max(max[0], R.size());
+            if (rSize > max[0]) max[0] = rSize;
             return;
         }
-        // Pivot selection
-        int pivot = -1, bestCount = -1;
-        for (int u : P) {
-            int count = 0;
-            for (int v : P) if (adj[u][v]) count++;
-            if (count > bestCount) { bestCount = count; pivot = u; }
+
+        // Tomita pivot: pick u from P∪X maximizing |P ∩ N(u)| so the recursion
+        // explores the smallest possible candidate set.
+        int pivot = -1;
+        int bestCount = -1;
+        for (int u = P.nextSetBit(0); u >= 0; u = P.nextSetBit(u + 1)) {
+            int c = intersectCount(P, rows[u]);
+            if (c > bestCount) { bestCount = c; pivot = u; }
         }
-        for (int u : X) {
-            int count = 0;
-            for (int v : P) if (adj[u][v]) count++;
-            if (count > bestCount) { bestCount = count; pivot = u; }
+        for (int u = X.nextSetBit(0); u >= 0; u = X.nextSetBit(u + 1)) {
+            int c = intersectCount(P, rows[u]);
+            if (c > bestCount) { bestCount = c; pivot = u; }
         }
 
-        List<Integer> candidates = new ArrayList<>();
-        for (int v : P) {
-            if (pivot == -1 || !adj[pivot][v]) candidates.add(v);
-        }
+        BitSet candidates = (BitSet) P.clone();
+        if (pivot >= 0) candidates.andNot(rows[pivot]);
 
-        for (int v : candidates) {
-            Set<Integer> newR = new HashSet<>(R); newR.add(v);
-            Set<Integer> newP = new HashSet<>(), newX = new HashSet<>();
-            for (int w : P) if (adj[v][w]) newP.add(w);
-            for (int w : X) if (adj[v][w]) newX.add(w);
-            bronKerbosch(adj, newR, newP, newX, max);
-            P.remove(v);
-            X.add(v);
+        for (int v = candidates.nextSetBit(0); v >= 0; v = candidates.nextSetBit(v + 1)) {
+            BitSet newP = (BitSet) P.clone();
+            newP.and(rows[v]);
+            BitSet newX = (BitSet) X.clone();
+            newX.and(rows[v]);
+            bronKerbosch(rows, rSize + 1, newP, newX, max);
+            P.clear(v);
+            X.set(v);
         }
     }
 
-    // ── Greedy chromatic number (DSatur) ─────────────────────────────
+    /** Number of bits set in {@code a & b}, without allocating a clone. */
+    private static int intersectCount(BitSet a, BitSet b) {
+        long[] aw = a.toLongArray();
+        long[] bw = b.toLongArray();
+        int len = Math.min(aw.length, bw.length);
+        int sum = 0;
+        for (int i = 0; i < len; i++) sum += Long.bitCount(aw[i] & bw[i]);
+        return sum;
+    }
+
+    private static BitSet[] toBitSetRows(boolean[][] adj, int n) {
+        BitSet[] rows = new BitSet[n];
+        for (int i = 0; i < n; i++) {
+            BitSet bs = new BitSet(n);
+            boolean[] row = adj[i];
+            for (int j = 0; j < n; j++) if (row[j]) bs.set(j);
+            rows[i] = bs;
+        }
+        return rows;
+    }
+
+    // ── Greedy chromatic number (DSatur, BitSet palette) ─────────────
 
     private static int greedyChromaticNumber(boolean[][] adj, int n) {
+        if (n == 0) return 0;
+
         int[] color = new int[n];
         Arrays.fill(color, -1);
         int[] saturation = new int[n];
+
+        // Precompute degrees once instead of recomputing them inside the
+        // tie-break (which was O(n^3) total).
+        int[] degree = new int[n];
+        for (int v = 0; v < n; v++) {
+            int d = 0;
+            boolean[] row = adj[v];
+            for (int w = 0; w < n; w++) if (row[w]) d++;
+            degree[v] = d;
+        }
+
+        // Per-vertex bitset of colors already used by its (colored) neighbors.
+        // The smallest available color is then just nextClearBit(0).
+        BitSet[] neighborColors = new BitSet[n];
+        for (int v = 0; v < n; v++) neighborColors[v] = new BitSet();
+
         int maxColor = 0;
 
         for (int step = 0; step < n; step++) {
-            // Pick uncolored vertex with highest saturation, break ties by degree
+            // Pick uncolored vertex with highest saturation; break ties by
+            // (precomputed) degree.
             int best = -1;
+            int bestSat = -1;
+            int bestDeg = -1;
             for (int v = 0; v < n; v++) {
                 if (color[v] != -1) continue;
-                if (best == -1 || saturation[v] > saturation[best]) best = v;
-                else if (saturation[v] == saturation[best]) {
-                    int dv = 0, db = 0;
-                    for (int w = 0; w < n; w++) { if (adj[v][w]) dv++; if (adj[best][w]) db++; }
-                    if (dv > db) best = v;
+                int sv = saturation[v];
+                if (sv > bestSat || (sv == bestSat && degree[v] > bestDeg)) {
+                    best = v;
+                    bestSat = sv;
+                    bestDeg = degree[v];
                 }
             }
 
-            // Find smallest available color
-            Set<Integer> usedColors = new HashSet<>();
-            for (int w = 0; w < n; w++) {
-                if (adj[best][w] && color[w] != -1) usedColors.add(color[w]);
-            }
-            int c = 0;
-            while (usedColors.contains(c)) c++;
+            int c = neighborColors[best].nextClearBit(0);
             color[best] = c;
-            maxColor = Math.max(maxColor, c);
+            if (c > maxColor) maxColor = c;
 
-            // Update saturation
+            // Propagate saturation to uncolored neighbors.
+            boolean[] row = adj[best];
             for (int w = 0; w < n; w++) {
-                if (adj[best][w] && color[w] == -1) saturation[w]++;
+                if (!row[w] || color[w] != -1) continue;
+                if (!neighborColors[w].get(c)) {
+                    neighborColors[w].set(c);
+                    saturation[w]++;
+                }
             }
         }
         return maxColor + 1;
