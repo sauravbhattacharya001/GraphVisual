@@ -6,13 +6,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * K-Truss Decomposition — identifies cohesive subgraphs based on triangle
+ * K-Truss Decomposition - identifies cohesive subgraphs based on triangle
  * support. Each Edge receives a <em>truss number</em> equal to the highest
  * k-truss it belongs to:
  *
  * <blockquote>
  * A <b>k-truss</b> is a maximal subgraph where every Edge participates in
- * at least (k − 2) triangles within that subgraph.
+ * at least (k - 2) triangles within that subgraph.
  * </blockquote>
  *
  * <p>K-truss sits between k-core (degree-based, too loose) and cliques
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * <h3>Algorithm (peeling, O(m · t_max))</h3>
  * <ol>
  *   <li>Count triangle support for every Edge.</li>
- *   <li>Starting from k = 2, iteratively remove edges with support &lt; k − 2.</li>
+ *   <li>Starting from k = 2, iteratively remove edges with support &lt; k - 2.</li>
  *   <li>When an Edge is removed, update triangle counts for affected edges.</li>
  *   <li>An Edge's truss number is the k at which it was removed.</li>
  * </ol>
@@ -135,7 +135,7 @@ public class KTrussAnalyzer {
             triangleSupport.put(e, count);
         }
 
-        // Step 2: Peeling — iteratively remove edges with lowest support
+        // Step 2: Peeling - iteratively remove edges with lowest support
         Set<Edge> active = new LinkedHashSet<>(remainingEdges);
         Map<Edge, Integer> support = new LinkedHashMap<>(triangleSupport);
 
@@ -156,7 +156,11 @@ public class KTrussAnalyzer {
 
                 for (Edge e : toRemove) {
                     active.remove(e);
-                    trussNumbers.put(e, k);
+                    // Edge peeled at level k means it survived (k-1)-truss
+                    // but failed the support >= k-2 requirement for k-truss.
+                    // Per Cohen (2008), truss(e) = max k such that e is in k-truss,
+                    // which is k-1 at the moment of peeling.
+                    trussNumbers.put(e, k - 1);
                     changed = true;
 
                     // Update support for edges sharing a triangle with e
@@ -176,7 +180,7 @@ public class KTrussAnalyzer {
                         }
                         if (ou.equals(v) || ov.equals(v)) {
                             if (shared != null && !shared.equals(v)) {
-                                // Both endpoints of e connect to other — skip
+                                // Both endpoints of e connect to other - skip
                             } else {
                                 shared = v;
                             }
@@ -195,14 +199,16 @@ public class KTrussAnalyzer {
                 }
             }
 
-            // All remaining edges have support >= k-2, increase k
+            // All remaining edges have support >= k-2; tentatively record
+            // truss=k (consistent with peeling convention: actual value will
+            // overwrite this if/when the edge is peeled at a later level).
             for (Edge e : active) {
-                trussNumbers.put(e, k + 1); // tentative — will be overwritten if removed later
+                trussNumbers.put(e, k);
             }
             k++;
         }
 
-        // Fix: edges still active at the end get truss number = k-1
+        // Final maxTrussNumber = highest k for which any edge survived.
         maxTrussNumber = trussNumbers.values().stream()
                 .mapToInt(Integer::intValue)
                 .max()
@@ -233,7 +239,7 @@ public class KTrussAnalyzer {
     }
 
     /**
-     * Extracts the k-truss subgraph — all edges with truss number ≥ k
+     * Extracts the k-truss subgraph - all edges with truss number ≥ k
      * and their incident vertices.
      *
      * @param k the truss parameter (k ≥ 2)
@@ -286,7 +292,7 @@ public class KTrussAnalyzer {
     }
 
     /**
-     * Returns the truss hierarchy — nested structure showing how trusses
+     * Returns the truss hierarchy - nested structure showing how trusses
      * decompose at each level.
      *
      * @return map from k to the set of edges in the k-truss but not in the (k+1)-truss
@@ -319,7 +325,7 @@ public class KTrussAnalyzer {
         report.add(String.format("Graph degeneracy (max core): %d", kcore.getDegeneracy()));
         report.add("");
 
-        // For each vertex, compute its "truss participation" — max truss of any incident Edge
+        // For each vertex, compute its "truss participation" - max truss of any incident Edge
         Map<String, Integer> vertexTruss = new LinkedHashMap<>();
         for (String v : graph.getVertices()) {
             int maxT = 0;
