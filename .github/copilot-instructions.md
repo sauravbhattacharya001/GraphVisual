@@ -53,7 +53,10 @@ GraphVisual is a Java graph visualization and analysis platform built with [JUNG
 mvn test                           # Run all 105 test suites
 mvn test -Dtest=ShortestPathFinderTest  # Run a specific test
 mvn test -pl . -Dtest="gvisual.*"      # Run all gvisual package tests
+mvn -B -ntp test-compile           # Quickly verify main + test sources compile
 ```
+
+The `copilot-setup-steps` workflow at `.github/workflows/copilot-setup-steps.yml` mirrors these commands and is what GitHub Copilot's cloud agent runs before starting a task.
 
 When adding new tests, place them in `Gvisual/test/` matching the source package.
 
@@ -72,3 +75,5 @@ When adding new tests, place them in `Gvisual/test/` matching the source package
 - The `docs/` directory is a separate GitHub Pages site — changes there don't affect the Java build
 - Database configuration may be in `Network.java` — check before modifying DB-related code
 - Use `mvn compile -q` to verify compilation after changes
+- **String escaping for exporters:** Use `gvisual.ExportUtils` (`escapeXml`, `escapeHtml`, `escapeJs`, `jsonString`, `quoteDot`) instead of writing per-class helpers. Existing per-class wrappers delegate to `ExportUtils` so behavior stays consistent across XML/JSON/HTML/SVG/GraphML/GEXF exporters.
+- **Output path safety:** New exporters that write files should call `ExportUtils.validateOutputPath(file)` first to prevent CWE-22 directory traversal.

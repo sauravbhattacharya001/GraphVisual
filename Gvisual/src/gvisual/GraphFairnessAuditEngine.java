@@ -958,8 +958,8 @@ public class GraphFairnessAuditEngine {
         html.append("\">").append(escapeHtml(value)).append("</div></div>\n");
     }
 
+    /** Delegates to {@link ExportUtils#escapeHtml(String)} for consistent HTML escaping. */
     private String escapeHtml(String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
+        return ExportUtils.escapeHtml(text);
     }
 }

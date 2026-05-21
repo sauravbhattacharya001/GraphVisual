@@ -1,0 +1,59 @@
+# Copilot Setup Steps for GraphVisual
+#
+# This workflow pre-installs the toolchain and project dependencies so that
+# GitHub Copilot's cloud coding agent (and other agentic clients) can build,
+# test, and validate changes without paying the cold-start cost each task.
+#
+# Per the GitHub docs the file MUST be at .github/workflows/copilot-setup-steps.yml
+# and the job MUST be named `copilot-setup-steps`, otherwise the agent does
+# not pick it up.
+# https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/customize-the-agent-environment
+
+name: Copilot Setup Steps
+
+on:
+  # Allows the workflow to be triggered manually for verification.
+  workflow_dispatch:
+  # Re-run when this file or the build descriptor changes so the cache stays
+  # fresh and we catch breakage before the agent does.
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - pom.xml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - pom.xml
+
+jobs:
+  # Job name is required to be exactly `copilot-setup-steps` for Copilot
+  # coding agent to consume the steps.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Show toolchain
+        run: |
+          java -version
+          mvn -version
+
+      - name: Resolve dependencies (offline cache warm-up)
+        run: mvn -B -ntp dependency:go-offline
+
+      - name: Compile (main + test sources)
+        run: mvn -B -ntp test-compile
+
+      - name: Run unit tests
+        run: mvn -B -ntp test

@@ -567,13 +567,9 @@ public class GraphAnnotationManager {
 
     // --- Helpers ---
 
+    /** Delegates to {@link ExportUtils#jsonString(String)} for consistent (and control-char-safe) JSON escaping. */
     private static String jsonString(String value) {
-        if (value == null) return "null";
-        return "\"" + value.replace("\\", "\\\\")
-                          .replace("\"", "\\\"")
-                          .replace("\n", "\\n")
-                          .replace("\r", "\\r")
-                          .replace("\t", "\\t") + "\"";
+        return ExportUtils.jsonString(value);
     }
 
     private static String extractJsonStringValue(String line) {
