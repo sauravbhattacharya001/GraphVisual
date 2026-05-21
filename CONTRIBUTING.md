@@ -317,16 +317,34 @@ The `gvisual` package contains 158 classes organized into functional areas. Here
 ```bash
 cd Gvisual
 mkdir -p build/classes
-find src -name '*.java' > sources.txt
-javac -cp "$(find lib -name '*.jar' | tr '\n' ':')" -d build/classes @sources.txt
+# Production sources only — exclude any *Test.java that may have been
+# checked in under src/ by mistake (see "Common Pitfalls" below).
+find src -name '*.java' ! -name '*Test.java' > sources.txt
+javac -encoding UTF-8 --release 17 \
+  -cp "$(find lib -name '*.jar' -not -path '*/test/*' | tr '\n' ':')" \
+  -d build/classes @sources.txt
 ```
+
+Notes:
+
+- **Use `-encoding UTF-8`**. Several source files contain box-drawing characters
+  (╔ ╚ ║ etc.) used in ASCII diagrams; without the flag, `javac` falls back
+  to the platform default and fails on Windows (`cp1252`).
+- **Target JDK 17** (`--release 17`). The codebase uses `var` (Java 10+) and
+  `Stream.toList()` (Java 16+) in places, so it will not compile cleanly
+  under `--release 8` or `11` even though older docs suggested it.
+- Keep `lib/test/*.jar` *off* the production classpath. JUnit symbols must
+  not be resolvable from production code.
 
 ### Run Tests
 
 ```bash
 mkdir -p build/test/classes
-find test -name '*.java' > test_sources.txt
-javac -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" -d build/test/classes @test_sources.txt
+# Only canonical test files (test/**/*Test.java). See "Common Pitfalls".
+find test -name '*Test.java' > test_sources.txt
+javac -encoding UTF-8 --release 17 \
+  -cp "build/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
+  -d build/test/classes @test_sources.txt
 
 # Run specific test classes
 java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':')" \
@@ -335,16 +353,73 @@ java -cp "build/classes:build/test/classes:$(find lib -name '*.jar' | tr '\n' ':
 # Run all tests (use a test runner or list all test classes)
 ```
 
+### Common Pitfalls
+
+These are real footguns that have broken CI and Docker builds in the past —
+please keep them in mind when contributing:
+
+1. **Never check in `*Test.java` files under `Gvisual/src/`.** The canonical
+   test root is `Gvisual/test/`. JUnit is not on the production classpath,
+   so a stray test under `src/` causes `package org.junit does not exist`
+   in both the Docker build and the CI "Compile source" step. If you wrote
+   a test alongside a feature in your editor, move it to the matching
+   package under `Gvisual/test/` before committing.
+2. **Check both `src/test/` and `test/` for duplicates** when moving files.
+   We had a `GraphCompressorTest` checked in under both for a while; the
+   one under `src/test/` was a stale older copy. When in doubt, keep the
+   version under `Gvisual/test/gvisual/` and delete the other.
+3. **`Edge` has no two-arg constructor.** Use
+   `new Edge("e", "a", "b")` (type code, vertex1, vertex2). The `"e"`
+   type code is fine for tests that don't care about the relationship
+   category.
+4. **`Edge#setWeight(float)` takes a `float`, not a `double`.** Use
+   `setWeight(0.9f)`, not `setWeight(0.9)` — the latter triggers "possible
+   lossy conversion from double to float".
+5. **`EdgeType` is a closed enum.** The valid constants are `FRIEND`,
+   `CLASSMATE`, `FAMILIAR`, `STRANGER`, `STUDY_GROUP`. There is no
+   `EdgeType.blue` — use the type *code* string (`"c"` for CLASSMATE)
+   when constructing `Edge` instances, or `EdgeType.CLASSMATE.getColor()`
+   when you need the colour.
+6. **`HEALTHCHECK` cannot call the GUI.** The default `CMD` launches the
+   Swing UI which needs `$DISPLAY`. The container healthcheck must verify
+   something headless (we use `jar tf Gvisual.jar`).
+
+If you hit a compile error that isn't covered here, please add it to this
+list as part of your fix — future contributors will thank you.
+
 The test suite has **133 test classes** (~4,640+ `@Test` methods) covering most analyzers and exporters. CI runs a subset against JDK 11 and 17 — see `.github/workflows/ci.yml` for the canonical list.
 
 ### Docker
 
 ```bash
+# Build the image (multi-stage; compiles source, runs a fast test subset,
+# then produces a fat JAR in the runtime image).
 docker build -t graphvisual .
-docker run graphvisual
+
+# Run the GUI with X11 forwarding from a Linux host.
+docker run --rm \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  graphvisual
+
+# Sanity-check that the JAR is loadable (works without $DISPLAY).
+docker run --rm --entrypoint sh graphvisual -c 'jar tf Gvisual.jar | head'
 ```
 
-The Docker build compiles all source, runs the full test suite, and produces a fat JAR.
+The Docker build performs:
+
+1. JDK 17 source compilation (production only, no `*Test.java` from `src/`).
+2. Test compilation against the canonical `test/` tree.
+3. A **fast deterministic test subset** (5 stable test classes) as a smoke
+   barrier — the full suite runs in CI, not in `docker build`, so image
+   builds stay fast and reproducible.
+4. Fat-JAR assembly with signed-JAR signatures stripped.
+5. A minimal runtime image based on `eclipse-temurin:17-jre` running as a
+   non-root user (`uid=1001`).
+
+The published image is also scanned by Trivy and (on tagged releases)
+signed with a SLSA build-provenance attestation via
+`actions/attest-build-provenance`. See `.github/workflows/docker.yml`.
 
 ### Code Coverage
 

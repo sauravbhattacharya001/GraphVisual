@@ -13,3 +13,8 @@ Gvisual/nbproject/private/
 # OS generated
 .DS_Store
 Thumbs.db
+
+Gvisual/sources.txt
+Gvisual/test_sources.txt
+Gvisual/build/
+

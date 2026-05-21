@@ -1,7 +1,8 @@
+# syntax=docker/dockerfile:1.7
 # ============================================================
 # GraphVisual — Multi-stage Dockerfile
-# Builds the Java/Ant JUNG graph visualization project and
-# packages it as a runnable JAR with all dependencies.
+# Builds the Java/JUNG graph visualization project and packages
+# it as a runnable fat JAR with all runtime dependencies.
 # ============================================================
 
 # ---- Stage 1: Build ----
@@ -12,30 +13,40 @@ WORKDIR /app
 # Copy project files
 COPY Gvisual/ ./Gvisual/
 
-# Download JUnit for test compilation
+# Download JUnit for test compilation (cached as a separate layer)
 RUN mkdir -p Gvisual/lib/test \
-    && curl -sL -o Gvisual/lib/test/junit-4.13.2.jar \
+    && curl -fsSL -o Gvisual/lib/test/junit-4.13.2.jar \
        https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar \
-    && curl -sL -o Gvisual/lib/test/hamcrest-core-1.3.jar \
+    && curl -fsSL -o Gvisual/lib/test/hamcrest-core-1.3.jar \
        https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
 
-# Compile source
+# Compile production sources.
+#
+# A handful of *Test.java files have historically been checked in under
+# Gvisual/src/ alongside production code; production javac must NOT see
+# those (no JUnit on the production classpath). The canonical test root
+# is Gvisual/test/.
+#
+# Target JDK 11 bytecode — the codebase uses `var` (Java 10+) and stream
+# `.toList()` (Java 16+) in a few places, but compiles cleanly under
+# --release 11 elsewhere. We use 17 to match CI's upper matrix entry.
 RUN mkdir -p Gvisual/build/classes \
-    && find Gvisual/src -name '*.java' > Gvisual/sources.txt \
-    && javac -source 8 -target 8 \
+    && find Gvisual/src -name '*.java' ! -name '*Test.java' > Gvisual/sources.txt \
+    && javac -encoding UTF-8 --release 17 \
        -cp "$(find Gvisual/lib -name '*.jar' -not -path '*/test/*' | tr '\n' ':')" \
        -d Gvisual/build/classes \
        @Gvisual/sources.txt
 
 # Compile tests
 RUN mkdir -p Gvisual/build/test/classes \
-    && find Gvisual/test -name '*.java' > Gvisual/test-sources.txt \
-    && javac -source 8 -target 8 \
+    && find Gvisual/test -name '*Test.java' > Gvisual/test-sources.txt \
+    && javac -encoding UTF-8 --release 17 \
        -cp "Gvisual/build/classes:$(find Gvisual/lib -name '*.jar' | tr '\n' ':')" \
        -d Gvisual/build/test/classes \
        @Gvisual/test-sources.txt
 
-# Run tests to verify build
+# Run a fast, deterministic subset of tests to verify the build.
+# Full test suite runs in CI; the Docker build only needs a smoke barrier.
 RUN java -cp "Gvisual/build/classes:Gvisual/build/test/classes:$(find Gvisual/lib -name '*.jar' | tr '\n' ':')" \
     org.junit.runner.JUnitCore \
     app.UtilMethodsTest \
@@ -44,7 +55,8 @@ RUN java -cp "Gvisual/build/classes:Gvisual/build/test/classes:$(find Gvisual/li
     gvisual.ShortestPathFinderTest \
     gvisual.CommunityDetectorTest
 
-# Create fat JAR with all dependencies merged
+# Create fat JAR with all dependencies merged.
+# Excludes signed-JAR signatures (would invalidate after merge) and source/javadoc jars.
 RUN mkdir -p Gvisual/dist \
     && cd Gvisual/build/classes \
     && for jar in $(find /app/Gvisual/lib -name '*.jar' \
@@ -64,13 +76,13 @@ LABEL org.opencontainers.image.title="GraphVisual" \
       org.opencontainers.image.source="https://github.com/sauravbhattacharya001/GraphVisual" \
       org.opencontainers.image.licenses="MIT"
 
-# Install X11 libraries for Swing GUI support (optional X11 forwarding)
+# X11 libraries for Swing GUI support (optional X11 forwarding from host)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        libx11-6 libxext6 libxrender1 libxtst6 libxi6 libfreetype6 fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Non-root user
 RUN groupadd --gid 1001 graphvisual \
     && useradd --uid 1001 --gid graphvisual --no-log-init --create-home graphvisual
 
@@ -83,12 +95,12 @@ COPY --chown=graphvisual:graphvisual Gvisual/images/ ./images/
 
 USER graphvisual
 
-# Health check: verify JAR is valid
+# Health check: verify the JAR is loadable. The GUI itself needs $DISPLAY,
+# so we just sanity-check that `jar tf` can read the archive.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD java -jar Gvisual.jar --version 2>/dev/null || java -cp Gvisual.jar gvisual.Main --help 2>/dev/null || exit 0
+    CMD jar tf Gvisual.jar > /dev/null 2>&1 || exit 1
 
-# Default: run the GUI application
-# For headless/X11 forwarding: docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix graphvisual
-# For CI/testing only: override CMD with test runner
+# Default: run the GUI application.
+# For X11 forwarding from host: docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix <image>
 ENTRYPOINT ["java"]
 CMD ["-jar", "Gvisual.jar"]

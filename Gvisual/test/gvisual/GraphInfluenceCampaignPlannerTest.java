@@ -34,7 +34,7 @@ public class GraphInfluenceCampaignPlannerTest {
         for (int i = 1; i <= spokes; i++) {
             String v = "n" + i;
             g.addVertex(v);
-            g.addEdge(new Edge("hub", v), "hub", v);
+            g.addEdge(new Edge("e", "hub", v), "hub", v);
         }
         return g;
     }
@@ -43,7 +43,7 @@ public class GraphInfluenceCampaignPlannerTest {
         UndirectedSparseGraph<String, Edge> g = new UndirectedSparseGraph<>();
         for (int i = 0; i < length; i++) g.addVertex("n" + i);
         for (int i = 0; i < length - 1; i++) {
-            g.addEdge(new Edge("n" + i, "n" + (i + 1)), "n" + i, "n" + (i + 1));
+            g.addEdge(new Edge("e", "n" + i, "n" + (i + 1)), "n" + i, "n" + (i + 1));
         }
         return g;
     }
@@ -53,7 +53,7 @@ public class GraphInfluenceCampaignPlannerTest {
         for (int i = 0; i < n; i++) g.addVertex("n" + i);
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
-                g.addEdge(new Edge("n" + i, "n" + j), "n" + i, "n" + j);
+                g.addEdge(new Edge("e", "n" + i, "n" + j), "n" + i, "n" + j);
             }
         }
         return g;
@@ -65,14 +65,14 @@ public class GraphInfluenceCampaignPlannerTest {
         for (int i = 0; i < 5; i++) g.addVertex("a" + i);
         for (int i = 0; i < 5; i++)
             for (int j = i + 1; j < 5; j++)
-                g.addEdge(new Edge("a" + i, "a" + j), "a" + i, "a" + j);
+                g.addEdge(new Edge("e", "a" + i, "a" + j), "a" + i, "a" + j);
         // Cluster B
         for (int i = 0; i < 5; i++) g.addVertex("b" + i);
         for (int i = 0; i < 5; i++)
             for (int j = i + 1; j < 5; j++)
-                g.addEdge(new Edge("b" + i, "b" + j), "b" + i, "b" + j);
+                g.addEdge(new Edge("e", "b" + i, "b" + j), "b" + i, "b" + j);
         // Bridge
-        g.addEdge(new Edge("a4", "b0"), "a4", "b0");
+        g.addEdge(new Edge("e", "a4", "b0"), "a4", "b0");
         return g;
     }
 
@@ -483,10 +483,10 @@ public class GraphInfluenceCampaignPlannerTest {
     public void testDirectedGraph() {
         DirectedSparseGraph<String, Edge> g = new DirectedSparseGraph<>();
         g.addVertex("a"); g.addVertex("b"); g.addVertex("c"); g.addVertex("d");
-        g.addEdge(new Edge("a", "b"), "a", "b");
-        g.addEdge(new Edge("a", "c"), "a", "c");
-        g.addEdge(new Edge("b", "d"), "b", "d");
-        g.addEdge(new Edge("c", "d"), "c", "d");
+        g.addEdge(new Edge("e", "a", "b"), "a", "b");
+        g.addEdge(new Edge("e", "a", "c"), "a", "c");
+        g.addEdge(new Edge("e", "b", "d"), "b", "d");
+        g.addEdge(new Edge("e", "c", "d"), "c", "d");
         GraphInfluenceCampaignPlanner.CampaignReport r = planner.analyze(g);
         assertNotNull(r);
         assertTrue(r.healthScore >= 0);
@@ -510,10 +510,10 @@ public class GraphInfluenceCampaignPlannerTest {
         UndirectedSparseGraph<String, Edge> g = new UndirectedSparseGraph<>();
         // Component 1
         g.addVertex("a1"); g.addVertex("a2");
-        g.addEdge(new Edge("a1", "a2"), "a1", "a2");
+        g.addEdge(new Edge("e", "a1", "a2"), "a1", "a2");
         // Component 2
         g.addVertex("b1"); g.addVertex("b2");
-        g.addEdge(new Edge("b1", "b2"), "b1", "b2");
+        g.addEdge(new Edge("e", "b1", "b2"), "b1", "b2");
         GraphInfluenceCampaignPlanner.CampaignReport r = planner.analyze(g);
         assertNotNull(r);
         assertEquals(4, r.nodesAnalyzed);
@@ -556,8 +556,8 @@ public class GraphInfluenceCampaignPlannerTest {
     public void testWeightedEdges() {
         UndirectedSparseGraph<String, Edge> g = new UndirectedSparseGraph<>();
         g.addVertex("a"); g.addVertex("b"); g.addVertex("c");
-        Edge ab = new Edge("a", "b"); ab.setWeight(0.9);
-        Edge bc = new Edge("b", "c"); bc.setWeight(0.1);
+        Edge ab = new Edge("e", "a", "b"); ab.setWeight(0.9f);
+        Edge bc = new Edge("e", "b", "c"); bc.setWeight(0.1f);
         g.addEdge(ab, "a", "b");
         g.addEdge(bc, "b", "c");
         GraphInfluenceCampaignPlanner.CampaignReport r = planner.analyze(g);
@@ -575,7 +575,7 @@ public class GraphInfluenceCampaignPlannerTest {
         for (int i = 0; i < 50; i++) {
             for (int j = i + 1; j < 50; j++) {
                 if (rand.nextDouble() < 0.15) {
-                    g.addEdge(new Edge("v" + i, "v" + j), "v" + i, "v" + j);
+                    g.addEdge(new Edge("e", "v" + i, "v" + j), "v" + i, "v" + j);
                 }
             }
         }

@@ -12,14 +12,27 @@ permissions:
   contents: read
   packages: write
   security-events: write   # for Trivy SARIF upload
+  id-token: write          # for SLSA build provenance attestations
+  attestations: write      # for SLSA build provenance attestations
 
 concurrency:
   group: docker-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  # Pin Trivy DB sources so a registry hiccup on ghcr.io's public
+  # trivy-db doesn't fail the security scan job intermittently.
+  TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db
+  TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db
+
 jobs:
   docker:
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      image-ref: ${{ steps.scan-image.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -28,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -36,6 +49,10 @@ jobs:
             type=edge,branch=master
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=GraphVisual
+            org.opencontainers.image.description=Interactive JUNG-based social network graph visualization and analysis tool
+            org.opencontainers.image.licenses=MIT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -49,7 +66,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -64,6 +81,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: ${{ github.event_name != 'pull_request' && 'mode=max' || 'false' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
           # Load image locally for scanning even on PRs (load only works with single platform)
           load: ${{ github.event_name == 'pull_request' }}
 
@@ -74,11 +93,14 @@ jobs:
             # Use the first tag from metadata (locally loaded)
             echo "image=$(echo '${{ steps.meta.outputs.tags }}' | head -1)" >> "$GITHUB_OUTPUT"
           else
-            echo "image=ghcr.io/${{ github.repository }}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_DB_REPOSITORY: ${{ env.TRIVY_DB_REPOSITORY }}
+          TRIVY_JAVA_DB_REPOSITORY: ${{ env.TRIVY_JAVA_DB_REPOSITORY }}
         with:
           image-ref: ${{ steps.scan-image.outputs.image }}
           format: table
@@ -89,6 +111,9 @@ jobs:
       - name: Trivy SARIF report
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_DB_REPOSITORY: ${{ env.TRIVY_DB_REPOSITORY }}
+          TRIVY_JAVA_DB_REPOSITORY: ${{ env.TRIVY_JAVA_DB_REPOSITORY }}
         with:
           image-ref: ${{ steps.scan-image.outputs.image }}
           format: sarif
@@ -103,10 +128,45 @@ jobs:
           sarif_file: trivy-results.sarif
         continue-on-error: true   # don't fail if Advanced Security is disabled
 
-      - name: Verify image (on push)
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+        continue-on-error: true   # don't block release if attestations API hiccups
+
+      - name: Verify image (smoke test on push)
         if: github.event_name != 'pull_request'
         run: |
-          docker pull ghcr.io/${{ github.repository }}:sha-${GITHUB_SHA::7}
-          docker run --rm ghcr.io/${{ github.repository }}:sha-${GITHUB_SHA::7} \
-            -version 2>&1 | head -5
-          echo "✅ Image verified successfully"
+          set -e
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+          echo "::group::Pull image"
+          docker pull "$IMAGE"
+          echo "::endgroup::"
+
+          echo "::group::Inspect labels"
+          docker inspect "$IMAGE" --format '{{ json .Config.Labels }}' | python3 -m json.tool
+          echo "::endgroup::"
+
+          echo "::group::Verify entrypoint resolves"
+          # Entrypoint is `java`; -version reports JRE version. Must exit 0.
+          docker run --rm --entrypoint java "$IMAGE" -version 2>&1 | head -5
+          echo "::endgroup::"
+
+          echo "::group::Verify JAR is loadable"
+          # Default CMD runs the GUI which needs $DISPLAY; instead, sanity-
+          # check the JAR via `jar tf` so we fail fast on a packaging bug
+          # (missing manifest, empty fat-jar, etc.).
+          docker run --rm --entrypoint sh "$IMAGE" -c \
+            'jar tf Gvisual.jar | head -20 && jar tf Gvisual.jar | wc -l'
+          echo "::endgroup::"
+
+          echo "::group::Verify non-root user"
+          USER_LINE=$(docker run --rm --entrypoint id "$IMAGE")
+          echo "$USER_LINE"
+          echo "$USER_LINE" | grep -q 'uid=1001' || { echo "::error::container is not running as non-root uid 1001"; exit 1; }
+          echo "::endgroup::"
+
+          echo "? Image verified successfully: $IMAGE"

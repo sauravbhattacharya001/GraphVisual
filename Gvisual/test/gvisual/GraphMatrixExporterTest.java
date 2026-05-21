@@ -24,8 +24,8 @@ public class GraphMatrixExporterTest {
         graph.addVertex("B");
         graph.addVertex("C");
 
-        Edge e1 = new Edge("A", "B", EdgeType.blue);
-        Edge e2 = new Edge("B", "C", EdgeType.blue);
+        Edge e1 = new Edge("c", "A", "B");
+        Edge e2 = new Edge("c", "B", "C");
         graph.addEdge(e1, "A", "B");
         graph.addEdge(e2, "B", "C");
         edges = Arrays.asList(e1, e2);
