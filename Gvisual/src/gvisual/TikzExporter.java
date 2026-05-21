@@ -114,28 +114,15 @@ public class TikzExporter {
             if (e.getType() != null) usedTypes.add(e.getType());
         }
 
-        // Preamble
+        // Preamble. xcolor mixing syntax (e.g. `green!70!black`) is used
+        // directly in the \draw commands below, so no \definecolor block
+        // is required here.
         if (standalone) {
             sb.append("\\documentclass[border=10pt]{standalone}\n");
             sb.append("\\usepackage[utf8]{inputenc}\n");
             sb.append("\\usepackage{tikz}\n");
             sb.append("\\usepackage{xcolor}\n");
             sb.append("\\usetikzlibrary{arrows.meta,positioning}\n\n");
-
-            // Define colors
-            for (String type : usedTypes) {
-                String color = TYPE_COLORS.getOrDefault(type, "gray");
-                sb.append("\\definecolor{Edge").append(sanitize(type)).append("}{named}{")
-                  .append(color.contains("!") ? color.split("!")[0] : color).append("}\n");
-            }
-            // Actually use xcolor mixing syntax
-            sb.setLength(0);
-            sb.append("\\documentclass[border=10pt]{standalone}\n");
-            sb.append("\\usepackage[utf8]{inputenc}\n");
-            sb.append("\\usepackage{tikz}\n");
-            sb.append("\\usepackage{xcolor}\n");
-            sb.append("\\usetikzlibrary{arrows.meta,positioning}\n\n");
-
             sb.append("\\begin{document}\n");
         }
 
