@@ -84,4 +84,5 @@ jobs:
             gvisual.GraphPowerCalculatorTest \
             gvisual.WienerIndexCalculatorTest \
             gvisual.GraphIsomorphismCheckerTest \
-            gvisual.GraphFileParserTest
+            gvisual.GraphFileParserTest \
+            gvisual.TreewidthAnalyzerTest
