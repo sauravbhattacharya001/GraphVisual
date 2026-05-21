@@ -185,7 +185,7 @@ public class ShortestPathFinder {
             visited.add(current);
 
             if (current.equals(target)) {
-                return buildPath(source, target, predecessor, predecessorEdge, true);
+                return buildPath(source, target, predecessor, predecessorEdge);
             }
 
             for (Edge e : graph.getIncidentEdges(current)) {
@@ -199,9 +199,10 @@ public class ShortestPathFinder {
                             "Edge between '" + current + "' and '" + neighbor +
                             "' has weight " + edgeWeight);
                 }
-                // Default unset weights (0.0) to 1.0 to match GraphUtils.dijkstra
-                // and prevent zero-weight edges from collapsing all distances.
-                if (edgeWeight == 0) edgeWeight = 1.0;
+                // Zero-weight edges are treated as genuine zero (a free shortcut).
+                // This matches Edge.getWeight() semantics and keeps Dijkstra's
+                // reported totalWeight consistent with the sum of actual Edge
+                // weights along the path.
                 double newDist = entryDist + edgeWeight;
                 Double oldDist = dist.get(neighbor);
 
@@ -294,23 +295,14 @@ public class ShortestPathFinder {
         }
     }
 
-    private PathResult buildPath(String source, String target,
-                                 Map<String, String> predecessor,
-                                 Map<String, Edge> predecessorEdge) {
-        return buildPath(source, target, predecessor, predecessorEdge, false);
-    }
-
     /**
      * Builds a PathResult by tracing predecessors from target back to source.
-     *
-     * @param normalizeZeroWeights if true, treat zero-weight edges as weight 1.0
-     *                             (must match the convention used by the caller,
-     *                             e.g. Dijkstra normalizes zero weights to 1.0)
+     * The reported totalWeight is the exact sum of {@link Edge#getWeight()}
+     * along the path (zero-weight edges contribute zero).
      */
     private PathResult buildPath(String source, String target,
                                  Map<String, String> predecessor,
-                                 Map<String, Edge> predecessorEdge,
-                                 boolean normalizeZeroWeights) {
+                                 Map<String, Edge> predecessorEdge) {
         List<String> vertices = new ArrayList<String>();
         List<Edge> edges = new ArrayList<Edge>();
         double totalWeight = 0;
@@ -321,9 +313,7 @@ public class ShortestPathFinder {
             Edge e = predecessorEdge.get(current);
             if (e != null) {
                 edges.add(e);
-                double w = e.getWeight();
-                if (normalizeZeroWeights && w == 0) w = 1.0;
-                totalWeight += w;
+                totalWeight += e.getWeight();
             }
             current = predecessor.get(current);
         }
