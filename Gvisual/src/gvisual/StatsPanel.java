@@ -15,6 +15,8 @@ import javax.swing.border.TitledBorder;
  */
 public class StatsPanel extends JPanel {
 
+    private static final long serialVersionUID = 1L;
+
     private static final Font LABEL_FONT = new Font("SansSerif", Font.PLAIN, 12);
 
     private final JLabel statsNodeCount;

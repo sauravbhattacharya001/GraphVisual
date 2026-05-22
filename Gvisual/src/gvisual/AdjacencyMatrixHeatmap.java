@@ -26,6 +26,8 @@ import java.util.List;
  */
 public class AdjacencyMatrixHeatmap extends JPanel {
 
+    private static final long serialVersionUID = 1L;
+
     private final Graph<String, Edge> graph;
     private List<String> nodeOrder;
     private final Map<String, Map<String, Edge>> adjacency;

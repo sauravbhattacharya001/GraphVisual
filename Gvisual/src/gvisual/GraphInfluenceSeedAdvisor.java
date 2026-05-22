@@ -428,12 +428,12 @@ public final class GraphInfluenceSeedAdvisor<V, E> {
         double reductionFraction = 0.0;
         if (mode == Mode.SPREAD) {
             expectedCoverage = finalDecisions.isEmpty() ? 0.0 : finalDecisions.get(finalDecisions.size() - 1).coverageEstimate;
-            coverageFraction = (double) expectedCoverage / n;
+            coverageFraction = expectedCoverage / n;
         } else {
             double remaining = finalDecisions.isEmpty() ? baseline : finalDecisions.get(finalDecisions.size() - 1).coverageEstimate;
             expectedCoverage = remaining;
             expectedReduction = baseline - remaining;
-            coverageFraction = (double) baseline / n;
+            coverageFraction = baseline / n;
             reductionFraction = baseline > 0 ? expectedReduction / baseline : 0.0;
         }
 

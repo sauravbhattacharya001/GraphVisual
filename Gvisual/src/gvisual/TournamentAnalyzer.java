@@ -788,13 +788,14 @@ public class TournamentAnalyzer {
         // Use greedy result as initial upper bound for pruning
         SlaterResult greedy = slaterGreedy(copeland);
         int[] bestDisagreements = {greedy.getDisagreements()};
-        List<String>[] bestOrder = new List[]{new ArrayList<>(greedy.getRanking())};
+        List<List<String>> bestOrder = new ArrayList<>(1);
+        bestOrder.add(new ArrayList<>(greedy.getRanking()));
 
         boolean[] used = new boolean[n];
         List<String> current = new ArrayList<>(n);
 
         slaterBranchAndBound(current, used, 0, bestDisagreements, bestOrder);
-        return new SlaterResult(bestOrder[0], bestDisagreements[0]);
+        return new SlaterResult(bestOrder.get(0), bestDisagreements[0]);
     }
 
     /**
@@ -806,18 +807,18 @@ public class TournamentAnalyzer {
      * @param used       which vertex indices are already placed
      * @param partialDis disagreements accumulated in the partial ordering
      * @param bestDis    single-element array holding the best disagreement count
-     * @param bestOrder  single-element array holding the best ordering found
+     * @param bestOrder  single-element list holding the best ordering found
      */
     private void slaterBranchAndBound(List<String> current, boolean[] used,
                                        int partialDis, int[] bestDis,
-                                       List<String>[] bestOrder) {
+                                       List<List<String>> bestOrder) {
         int pos = current.size();
         int n = vertices.size();
 
         if (pos == n) {
             if (partialDis < bestDis[0]) {
                 bestDis[0] = partialDis;
-                bestOrder[0] = new ArrayList<>(current);
+                bestOrder.set(0, new ArrayList<>(current));
             }
             return;
         }

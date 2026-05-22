@@ -28,6 +28,8 @@ import java.util.Map;
  */
 public class RandomGraphDialog extends JDialog {
 
+    private static final long serialVersionUID = 1L;
+
     private Graph<String, Edge> generatedGraph = null;
 
     private final JComboBox<String> modelCombo;
