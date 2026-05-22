@@ -30,6 +30,13 @@ public class RandomGraphDialog extends JDialog {
 
     private static final long serialVersionUID = 1L;
 
+    // ── Model name constants (avoid magic strings) ────────────────────────
+    static final String MODEL_ERDOS_RENYI    = "erdos-renyi";
+    static final String MODEL_BARABASI       = "barabasi-albert";
+    static final String MODEL_WATTS_STROGATZ = "watts-strogatz";
+    static final String MODEL_RANDOM_REGULAR = "random-regular";
+    static final String MODEL_GRID           = "grid";
+
     private Graph<String, Edge> generatedGraph = null;
 
     private final JComboBox<String> modelCombo;
@@ -41,7 +48,8 @@ public class RandomGraphDialog extends JDialog {
     private final JSpinner rowsSpinner;
     private final JSpinner colsSpinner;
 
-    private final JLabel pLabel, mLabel, kLabel, betaLabel, rowsLabel, colsLabel;
+    private final JLabel nLabel, pLabel, mLabel, kLabel, betaLabel, rowsLabel, colsLabel;
+    private final JLabel descLabel;
 
     public RandomGraphDialog(Frame owner) {
         super(owner, "Random Graph Generator", true);
@@ -60,63 +68,24 @@ public class RandomGraphDialog extends JDialog {
         c.gridx = 1;
         String[] models = RandomGraphGenerator.catalog().keySet().toArray(new String[0]);
         modelCombo = new JComboBox<>(models);
-        modelCombo.addActionListener(e -> updateVisibility());
         form.add(modelCombo, c);
 
-        // n (vertices)
-        c.gridx = 0; c.gridy = 1;
-        form.add(new JLabel("Vertices (n):"), c);
-        c.gridx = 1;
-        nSpinner = new JSpinner(new SpinnerNumberModel(20, 2, 500, 1));
-        form.add(nSpinner, c);
+        // Parameter rows — each builds (label, spinner) pair and returns them.
+        nSpinner    = new JSpinner(new SpinnerNumberModel(20,   2, 500,  1));
+        pSpinner    = new JSpinner(new SpinnerNumberModel(0.15, 0.01, 1.0, 0.01));
+        mSpinner    = new JSpinner(new SpinnerNumberModel(2,    1, 50,   1));
+        kSpinner    = new JSpinner(new SpinnerNumberModel(4,    2, 50,   1));
+        betaSpinner = new JSpinner(new SpinnerNumberModel(0.3,  0.0, 1.0, 0.05));
+        rowsSpinner = new JSpinner(new SpinnerNumberModel(5,    1, 50,   1));
+        colsSpinner = new JSpinner(new SpinnerNumberModel(5,    1, 50,   1));
 
-        // p (edge probability)
-        c.gridx = 0; c.gridy = 2;
-        pLabel = new JLabel("Edge prob (p):");
-        form.add(pLabel, c);
-        c.gridx = 1;
-        pSpinner = new JSpinner(new SpinnerNumberModel(0.15, 0.01, 1.0, 0.01));
-        form.add(pSpinner, c);
-
-        // m (edges per new vertex)
-        c.gridx = 0; c.gridy = 3;
-        mLabel = new JLabel("Edges/vertex (m):");
-        form.add(mLabel, c);
-        c.gridx = 1;
-        mSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 50, 1));
-        form.add(mSpinner, c);
-
-        // k (degree / neighbors)
-        c.gridx = 0; c.gridy = 4;
-        kLabel = new JLabel("Degree (k):");
-        form.add(kLabel, c);
-        c.gridx = 1;
-        kSpinner = new JSpinner(new SpinnerNumberModel(4, 2, 50, 1));
-        form.add(kSpinner, c);
-
-        // beta (rewiring)
-        c.gridx = 0; c.gridy = 5;
-        betaLabel = new JLabel("Rewire (β):");
-        form.add(betaLabel, c);
-        c.gridx = 1;
-        betaSpinner = new JSpinner(new SpinnerNumberModel(0.3, 0.0, 1.0, 0.05));
-        form.add(betaSpinner, c);
-
-        // rows
-        c.gridx = 0; c.gridy = 6;
-        rowsLabel = new JLabel("Rows:");
-        form.add(rowsLabel, c);
-        c.gridx = 1;
-        rowsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 50, 1));
-        form.add(rowsSpinner, c);
-
-        // cols
-        c.gridx = 0; c.gridy = 7;
-        colsLabel = new JLabel("Columns:");
-        form.add(colsLabel, c);
-        c.gridx = 1;
-        colsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 50, 1));
-        form.add(colsSpinner, c);
+        nLabel    = addSpinnerRow(form, c, 1, "Vertices (n):",   nSpinner);
+        pLabel    = addSpinnerRow(form, c, 2, "Edge prob (p):",  pSpinner);
+        mLabel    = addSpinnerRow(form, c, 3, "Edges/vertex (m):", mSpinner);
+        kLabel    = addSpinnerRow(form, c, 4, "Neighbors (k):",  kSpinner);
+        betaLabel = addSpinnerRow(form, c, 5, "Rewire (\u03B2):", betaSpinner);
+        rowsLabel = addSpinnerRow(form, c, 6, "Rows:",            rowsSpinner);
+        colsLabel = addSpinnerRow(form, c, 7, "Columns:",         colsSpinner);
 
         add(form, BorderLayout.CENTER);
 
@@ -139,46 +108,80 @@ public class RandomGraphDialog extends JDialog {
         btnPanel.add(cancelBtn);
         add(btnPanel, BorderLayout.SOUTH);
 
-        // Description label
-        JLabel desc = new JLabel();
-        desc.setBorder(BorderFactory.createEmptyBorder(8, 12, 4, 12));
-        desc.setFont(desc.getFont().deriveFont(Font.ITALIC, 11f));
-        Map<String, String> catalog = RandomGraphGenerator.catalog();
-        modelCombo.addActionListener(e -> {
-            String sel = (String) modelCombo.getSelectedItem();
-            desc.setText("<html>" + catalog.getOrDefault(sel, "") + "</html>");
-        });
-        desc.setText("<html>" + catalog.getOrDefault(models[0], "") + "</html>");
-        add(desc, BorderLayout.NORTH);
+        // Description label (driven by the same listener as visibility)
+        descLabel = new JLabel();
+        descLabel.setBorder(BorderFactory.createEmptyBorder(8, 12, 4, 12));
+        descLabel.setFont(descLabel.getFont().deriveFont(Font.ITALIC, 11f));
+        add(descLabel, BorderLayout.NORTH);
 
-        updateVisibility();
+        // Single listener: previously the dialog registered two separate
+        // ActionListeners on modelCombo (one for visibility, one for the
+        // description label). Consolidated into one to keep update logic
+        // atomic and avoid ordering surprises if either ever throws.
+        modelCombo.addActionListener(e -> onModelChanged());
+
+        onModelChanged();   // initial sync
         pack();
         setLocationRelativeTo(owner);
     }
 
-    private void updateVisibility() {
+    /**
+     * Adds a (label, spinner) row to {@code form} at the given grid row and
+     * returns the created label so callers can toggle its visibility.
+     *
+     * <p>Extracted to remove the seven nearly-identical
+     * "set gridx/y, new JLabel(text), set gridx, add(spinner)" blocks in
+     * the original constructor.</p>
+     */
+    private static JLabel addSpinnerRow(JPanel form, GridBagConstraints c,
+                                        int gridY, String text, JSpinner spinner) {
+        JLabel label = new JLabel(text);
+        c.gridx = 0; c.gridy = gridY;
+        form.add(label, c);
+        c.gridx = 1;
+        form.add(spinner, c);
+        return label;
+    }
+
+    /**
+     * Reacts to a model-selection change: updates which parameter rows are
+     * visible and refreshes the description text. Package-private so unit
+     * tests can drive it directly without firing Swing events.
+     */
+    void onModelChanged() {
         String model = (String) modelCombo.getSelectedItem();
-        boolean showP = "erdos-renyi".equals(model);
-        boolean showM = "barabasi-albert".equals(model);
-        boolean showK = "watts-strogatz".equals(model) || "random-regular".equals(model);
-        boolean showBeta = "watts-strogatz".equals(model);
-        boolean showGrid = "grid".equals(model);
-        boolean showN = !showGrid;
+        applyVisibility(model);
+        applyDescription(model);
+    }
 
-        pLabel.setVisible(showP); pSpinner.setVisible(showP);
-        mLabel.setVisible(showM); mSpinner.setVisible(showM);
-        kLabel.setVisible(showK); kSpinner.setVisible(showK);
-        betaLabel.setVisible(showBeta); betaSpinner.setVisible(showBeta);
-        rowsLabel.setVisible(showGrid); rowsSpinner.setVisible(showGrid);
-        colsLabel.setVisible(showGrid); colsSpinner.setVisible(showGrid);
-        nSpinner.setVisible(showN);
+    private void applyVisibility(String model) {
+        boolean showP    = MODEL_ERDOS_RENYI.equals(model);
+        boolean showM    = MODEL_BARABASI.equals(model);
+        boolean showK    = MODEL_WATTS_STROGATZ.equals(model) || MODEL_RANDOM_REGULAR.equals(model);
+        boolean showBeta = MODEL_WATTS_STROGATZ.equals(model);
+        boolean showGrid = MODEL_GRID.equals(model);
+        boolean showN    = !showGrid;
 
-        // Update k label text
-        if ("random-regular".equals(model)) {
-            kLabel.setText("Degree (k):");
-        } else {
-            kLabel.setText("Neighbors (k):");
-        }
+        setRowVisible(nLabel,    nSpinner,    showN);
+        setRowVisible(pLabel,    pSpinner,    showP);
+        setRowVisible(mLabel,    mSpinner,    showM);
+        setRowVisible(kLabel,    kSpinner,    showK);
+        setRowVisible(betaLabel, betaSpinner, showBeta);
+        setRowVisible(rowsLabel, rowsSpinner, showGrid);
+        setRowVisible(colsLabel, colsSpinner, showGrid);
+
+        // k-row label depends on which model is showing it
+        kLabel.setText(MODEL_RANDOM_REGULAR.equals(model) ? "Degree (k):" : "Neighbors (k):");
+    }
+
+    private static void setRowVisible(JLabel label, JSpinner spinner, boolean visible) {
+        label.setVisible(visible);
+        spinner.setVisible(visible);
+    }
+
+    private void applyDescription(String model) {
+        String desc = RandomGraphGenerator.catalog().getOrDefault(model, "");
+        descLabel.setText("<html>" + desc + "</html>");
     }
 
     private Graph<String, Edge> buildGraph() {
@@ -198,4 +201,35 @@ public class RandomGraphDialog extends JDialog {
     public Graph<String, Edge> getGeneratedGraph() {
         return generatedGraph;
     }
+
+    // ── Package-private hooks for tests ───────────────────────────────────
+
+    /** @return the currently selected model name */
+    String getSelectedModel() {
+        return (String) modelCombo.getSelectedItem();
+    }
+
+    /** Selects a model by name; intended for tests. */
+    void setSelectedModel(String model) {
+        modelCombo.setSelectedItem(model);
+    }
+
+    /** @return the parameter spinner for grid rows (test-only access). */
+    JSpinner getRowsSpinner() { return rowsSpinner; }
+    /** @return the parameter spinner for grid columns (test-only access). */
+    JSpinner getColsSpinner() { return colsSpinner; }
+    /** @return the n (vertex count) label (test-only access). */
+    JLabel   getNLabel()      { return nLabel; }
+    /** @return the p (edge probability) label (test-only access). */
+    JLabel   getPLabel()      { return pLabel; }
+    /** @return the m (edges per vertex) label (test-only access). */
+    JLabel   getMLabel()      { return mLabel; }
+    /** @return the k (degree / neighbors) label (test-only access). */
+    JLabel   getKLabel()      { return kLabel; }
+    /** @return the beta (rewiring probability) label (test-only access). */
+    JLabel   getBetaLabel()   { return betaLabel; }
+    /** @return the rows label (test-only access). */
+    JLabel   getRowsLabel()   { return rowsLabel; }
+    /** @return the cols label (test-only access). */
+    JLabel   getColsLabel()   { return colsLabel; }
 }
