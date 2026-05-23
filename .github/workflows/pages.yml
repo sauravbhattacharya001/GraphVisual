@@ -47,6 +47,50 @@ jobs:
             echo '<html><body><h1>Javadoc</h1><p>Javadoc generation pending. Build locally with <code>mvn javadoc:javadoc</code>.</p></body></html>' > docs/javadoc/index.html
           fi
 
+      - name: Verify docs metadata (sitemap + Open Graph)
+        run: |
+          python3 - <<'PY'
+          import sys, os, re, xml.etree.ElementTree as ET
+          ns = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          docs = 'docs'
+          tree = ET.parse(os.path.join(docs, 'sitemap.xml'))
+          locs = {u.text.rsplit('/', 1)[-1] or 'index.html'
+                  for u in tree.getroot().findall('s:url/s:loc', ns)}
+          # The root URL (.../GraphVisual/) maps back to index.html.
+          if '' in locs:
+              locs.discard('')
+              locs.add('index.html')
+          html_files = {f for f in os.listdir(docs) if f.endswith('.html')}
+          missing = sorted(html_files - locs - {'404.html'})
+          extra = sorted(locs - html_files)
+          fail = False
+          if missing:
+              print('::error::sitemap.xml is missing entries for:', ', '.join(missing))
+              fail = True
+          if extra:
+              print('::error::sitemap.xml references non-existent pages:', ', '.join(extra))
+              fail = True
+          # Open Graph / canonical coverage check.
+          required = ('og:title', 'og:description', 'rel="canonical"',
+                      'name="description"')
+          bad = []
+          for name in sorted(html_files - {'404.html'}):
+              content = open(os.path.join(docs, name), encoding='utf-8').read()
+              for tag in required:
+                  if tag not in content:
+                      bad.append(f'{name}: missing {tag}')
+          if bad:
+              for line in bad[:25]:
+                  print('::error::' + line)
+              if len(bad) > 25:
+                  print(f'::error::...and {len(bad) - 25} more')
+              fail = True
+          if fail:
+              sys.exit(1)
+          print(f'OK: {len(html_files)} HTML pages, {len(locs)} sitemap entries, '
+                f'Open Graph + canonical present on all pages.')
+          PY
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
